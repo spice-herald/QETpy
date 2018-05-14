@@ -5,6 +5,8 @@ Created by Caleb Fink 5/9/2018
 
 """
 import numpy as np
+import pickle 
+
 from math import ceil
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
@@ -284,4 +286,23 @@ def fill_negatives(arr):
     if len(good_vals) != 0:
         arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
     return arr
+
+
+
+def load_noise(file_str):
+    '''
+    load noise object that has been previously saved as pickle file
+    '''
+    with open(file_str,'rb') as saveFile:
+        return pickle.load( saveFile)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
