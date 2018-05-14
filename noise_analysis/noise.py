@@ -58,6 +58,13 @@ class noise(object):
         self.CSD = CSD
         self.freqs_CSD = freqs_CSD
         
+        temp_dict = {}
+        for ind, chann in enumerate(channNames):
+            temp_dict[chann] = ind
+            
+        self.chann_dict = temp_dict
+        del temp_dict
+        
 
         
         
@@ -422,7 +429,16 @@ class noise(object):
         
     ######## save the noise object ##########
     def save(self, path):
-        
+        '''
+        Saves the noise object as a pickle file
+        Input:
+            path: path where the noise object should be saved
+        Returns:
+            None
+        '''
+        if path[-1] != '/':
+            path += '/'
+            
         with open(path+self.name.replace(" ", "_")+'.pkl','wb') as saveFile:
             pickle.dump(self, saveFile, pickle.HIGHEST_PROTOCOL)
             
