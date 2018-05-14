@@ -270,6 +270,65 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
+            
+            
+def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, savePath = None):
+    '''
+    Function to plot multiple PSD's from different noise objects on the same figure. Each channel will
+    be plotted in its own figure
+    Input:
+        arr: array of noise objects
+        channels: list of strings, each string is a channel to plot. ex ['PSA1','PAS2']
+        lgc_decorrelatedNoise: boolian. If False, the PSD is for each channel is plotted, if True,
+                               the calculated de-correlated noise is plotted
+        lgcSave: boolian value. If True, the figure is saved in the user provided directory
+        savePath: absolute path for the figure to be saved
+    Returns:
+        None
+    '''
+    sns.set_context('notebook')
+    
+    #check to make sure channels is a list or array
+    if (type(channels) == np.ndarray or type(channels) == list):
+        for chan in channels:
+            if chan in set(sum([arr[ii].channNames for ii in range(len(arr))],[])): #check if channel is in 
+                # any of the noise objects before creating a figure
+                plt.figure()
+                plt.title(chan) 
+                plt.xlabel('Frequency [Hz]')
+                plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                plt.grid(which = 'both')
+                for ii in range(len(arr)):
+                    if chan in arr[ii].chann_dict:
+                        chan_index = arr[ii].chann_dict[chan] #check that the channel is in the noise object before plotting
+                        #plot the de correlated noise if desired
+                        if lgc_decorrelatedNoise:
+                            #check that de correlated noise has been calculated
+                            if arr[ii].unCorrNoise is not None:
+                                plt.loglog(np.sqrt(arr[ii].freqs_fit[1:]), np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
+                                           , label = arr[ii].name+' de-correlated noise')
+                            else:
+                                print('The de-correlated noise for file: {} has not been calculated yet'.format(arr[ii].name))
+                        else:
+                            plt.loglog(np.sqrt(arr[ii].freqs[1:]), np.sqrt(arr[ii].PSD[chan_index][1:]), label = arr[ii].name)
+                    else:
+                        print('channel: {} not found for file: {} '.format(chan, arr[ii].name)) 
+                lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+                if lgcSave:
+                    try:
+                        plt.savefig(savePath+chan+'_PSD_comparison.png' ,bbox_extra_artists=(lgd,), bbox_inches='tight')
+                    except:
+                        print('Invalid save path. Figure not saved')
+                plt.show()
+            else:
+                print('Invalid channel name: {} '.format(chan))
+    else:
+        print("Please provide desired channels in format of a list of numpy.ndarray. ex ['PSA1','PAS2']")
+            
+            
+            
+            
+            
 
 def fill_negatives(arr):
     '''
