@@ -12,6 +12,8 @@ from scipy.signal import csd
 from scipy.optimize import least_squares
 from itertools import product, combinations
 
+import pickle 
+
 import noise_utils 
 
 class noise(object):
@@ -418,6 +420,12 @@ class noise(object):
         noise_utils.plot_deCorrelatedNoise(self, lgc_overlay, lgcData,lgcUnCorrNoise, lgcCorrelated \
                                , lgcSum,lgcSave, savePath)
         
-    
+    ######## save the noise object ##########
+    def save(self, path):
+        
+        with open(path+self.name.replace(" ", "_")+'.pkl','wb') as saveFile:
+            pickle.dump(self, saveFile, pickle.HIGHEST_PROTOCOL)
+            
+            
     
  
