@@ -9,7 +9,7 @@ from cross channel correlated noise.
 
 **Author** :: *Caleb Fink*, phd student, UC Berkeley 
 
-**Link to screen share on DropBox:** https://www.dropbox.com/sh/hzstzru38wuvm0k/AABT3X7GDNX6BjwOO6z9Pyjma?dl=0
+
 
 
 ## Getting Started
@@ -32,7 +32,7 @@ terminal
 ### Requirements
 
 This package was written using Python 3.6.0 and Anaconda 4.3.1
-Care was taken so that the code should be compatible with pythong 2.7, 
+Care was taken so that the code should be compatible with python 2.7, 
 but no guarantee that it will work.
 
 ### Files Included
@@ -204,6 +204,16 @@ All attributes have a 'set' method where the user can supply the value of any at
 	'''
 
 
+````def save(self, path):````
+
+        '''
+        Saves the noise object as a pickle file
+        Input:
+            path: path where the noise object should be saved
+        Returns:
+            None
+        '''
+
 * This function has a few internal function that are not accessable to the whole class:
 
 		equations(parameters,lgcReal, i , j):
@@ -344,6 +354,22 @@ This file contains some helpful plotting and untility functions for the noise cl
     Returns:
     None
     '''
+    
+````def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, savePath = None):````
+    
+    '''
+    Function to plot multiple PSD's from different noise objects on the same figure. Each channel will
+    be plotted in its own figure
+    Input:
+        arr: array of noise objects
+        channels: list of strings, each string is a channel to plot. ex ['PSA1','PAS2']
+        lgc_decorrelatedNoise: boolian. If False, the PSD is for each channel is plotted, if True,
+                               the calculated de-correlated noise is plotted
+        lgcSave: boolian value. If True, the figure is saved in the user provided directory
+        savePath: absolute path for the figure to be saved
+    Returns:
+        None
+    '''
 
 ````fill_negatives(arr):````
 
@@ -354,6 +380,14 @@ This file contains some helpful plotting and untility functions for the noise cl
 	    Returns:
 	        arr: arr with the negative and zero values replace by interpelate values
 	    '''
+
+````def load_noise(file_str):````
+
+    '''
+    load noise object that has been previously saved as pickle file
+    '''
+
+
 
 -----
 -------
