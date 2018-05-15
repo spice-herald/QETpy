@@ -275,6 +275,7 @@ All attributes have a 'set' method where the user can supply the value of any at
 The following plotting methods simply call their counter part in ````noise_utils.py````
 
 ````plot_PSD(self, lgc_overlay = True, lgcSave = False, savePath = None)````
+````plot_ReIm_PSD(noise, lgcSave = False, savePath = None)````
 ````plot_corrCoef(self, lgcSave = False, savePath = None)````
 ````plot_CSD(self, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath = None)````
 ````plot_deCorrelatedNoise````
@@ -299,6 +300,22 @@ This file contains some helpful plotting and untility functions for the noise cl
 	    Returns:
 	    None
 	    '''
+    
+    
+````plot_ReIm_PSD(noise, lgcSave = False, savePath = None):````
+
+        '''
+        Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+        This is done to check for thermal muon tails making it passed the quality cuts
+
+        Input parameters:
+        noise: noise object to be plotted
+        lgcSave: boolian value. If True, the figure is saved in the user provided directory
+        savePath: absolute path for the figure to be saved
+
+        Returns:
+        None
+        '''    
     
 ````plot_corrCoef(noise, lgcSave = False, savePath = None):````
 
@@ -381,11 +398,11 @@ This file contains some helpful plotting and untility functions for the noise cl
 	        arr: arr with the negative and zero values replace by interpelate values
 	    '''
 
-````def load_noise(file_str):````
+````load_noise(file_str):````
 
-    '''
-    load noise object that has been previously saved as pickle file
-    '''
+        '''
+        load noise object that has been previously saved as pickle file
+        '''
 
 
 
