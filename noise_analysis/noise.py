@@ -145,7 +145,7 @@ class noise(object):
         # negative frequencies since they are symmetric
         PSD = np.mean(PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate) 
         real_PSD = np.mean(real_PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate)
-        imag_PSD = np.mean(real_PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate)  
+        imag_PSD = np.mean(imag_PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate)  
       
         self.PSD = PSD
         self.real_PSD = real_PSD
@@ -410,6 +410,11 @@ class noise(object):
     def plot_PSD(self, lgc_overlay = True, lgcSave = False, savePath = None):
 
         noise_utils.plot_PSD(self,lgc_overlay, lgcSave, savePath)
+        
+    def plot_ReIm_PSD(self, lgcSave = False, savePath = None):
+        
+        noise_utils.plot_ReIm_PSD(self, lgcSave = False, savePath = None)
+        
         
                    
     def plot_corrCoeff(self, lgcSave = False, savePath = None):
