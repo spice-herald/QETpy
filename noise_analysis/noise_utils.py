@@ -22,6 +22,7 @@ def plot_PSD(noise, lgc_overlay = True, lgcSave = False, savePath = None):
     Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz)
 
     Input parameters:
+    noise: noise object to be plotted
     lgc_overlay: boolian value. If True, PSD's for all channels are overlayed in a single plot, 
                  if False, each PSD for each channel is plotted in a seperate subplot
     lgcSave: boolian value. If True, the figure is saved in the user provided directory
@@ -85,6 +86,59 @@ def plot_PSD(noise, lgc_overlay = True, lgcSave = False, savePath = None):
                     print('Invalid save path. Figure not saved')
             plt.show()
 
+            
+            
+def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
+    '''
+    Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+    This is done to check for thermal muon tails making it passed the quality cuts
+
+    Input parameters:
+    noise: noise object to be plotted
+    lgcSave: boolian value. If True, the figure is saved in the user provided directory
+    savePath: absolute path for the figure to be saved
+
+    Returns:
+    None
+    '''
+    if noise.real_PSD is None:
+        print('Need to calculate the PSD first')
+        return
+    else:
+        sns.set_context('poster', font_scale = 1.9)
+        num_subplots = len(noise.channNames)
+        nRows = int(ceil(num_subplots/2))
+        nColumns = 2
+        fig, axes = plt.subplots(nRows, nColumns, figsize = (6*num_subplots,6*num_subplots)) 
+        plt.suptitle('{} Real vs Imaginary PSD'.format(noise.name),  fontsize=40)
+        for ii in range(nRows*2):
+            if ii < nRows:
+                iRow = ii
+                jColumn = 0
+            else:
+                iRow = ii - nRows
+                jColumn = 1
+            if ii < num_subplots:    
+                axes[iRow,jColumn].set_title(noise.channNames[ii])
+                axes[iRow,jColumn].set_xlabel('frequency [Hz]')
+                axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[iRow,jColumn].grid(which = 'both')
+                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:], label = 'real'))
+                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:], label = 'imag'))
+                axes[iRow,jColumn].legend()
+            else:
+                axes[iRow,jColumn].axis('off')
+        plt.tight_layout() 
+        plt.subplots_adjust(top=0.95)
+
+        if lgcSave:
+            try:
+                plt.savefig(savePath+noise.name.replace(" ", "_")+'_ReIm_PSD.png')
+            except:
+                print('Invalid save path. Figure not saved')
+        plt.show()        
+            
+            
                 
 def plot_corrCoeff(noise, lgcSave = False, savePath = None):
     '''
@@ -92,6 +146,7 @@ def plot_corrCoeff(noise, lgcSave = False, savePath = None):
     the correlations are often noisy. a savgol_filter is used to smooth out some of the noise
 
     Input parameters:
+    noise: noise object to be plotted
     lgcSave: boolian value. If True, the figure is saved in the user provided directory
     savePath: absolute path for the figure to be saved
 
@@ -131,6 +186,7 @@ def plot_CSD(noise, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath =
     TES line in units of Amperes^2/Hz
 
     Input parameters:
+    noise: noise object to be plotted
     whichCSD: a list of strings, where each element of the list refers to the pair of indices of 
             the desired CSD plot
     lgcReal: boolian value. If Ture, the Re(CSD) is plotted. If False, the Im(CSD) is plotted
@@ -189,6 +245,7 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
     from fitted parameters calculated calculate_deCorrelated_noise
 
     Input parameters:
+    noise: noise object to be plotted
     lgc_overlay: boolian value. If True, de-correlated for all channels are overlayed in a single plot, 
                  if False, the noise for each channel is plotted in a seperate subplot
     lgcData: boolian value. Only applies when lgc_overlay = False. If True, the CSD data is plotted
