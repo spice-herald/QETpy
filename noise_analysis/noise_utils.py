@@ -123,8 +123,8 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
                 axes[iRow,jColumn].set_xlabel('frequency [Hz]')
                 axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
                 axes[iRow,jColumn].grid(which = 'both')
-                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:], label = 'real'))
-                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:], label = 'imag'))
+                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:]), label = 'real')
+                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:]), label = 'imag')
                 axes[iRow,jColumn].legend()
             else:
                 axes[iRow,jColumn].axis('off')
