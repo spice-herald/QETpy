@@ -140,13 +140,15 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
             
             
                 
-def plot_corrCoeff(noise, lgcSave = False, savePath = None):
+def plot_corrCoeff(noise, lgcSmooth = True, nWindow = 7, lgcSave = False, savePath = None):
     '''
     Function to plot the cross channel correlation coefficients. Since there are typically few traces,
     the correlations are often noisy. a savgol_filter is used to smooth out some of the noise
 
     Input parameters:
     noise: noise object to be plotted
+    lgcSmooth: boolian. If True, a savgol_filter will be used when plotting. 
+    nWindow: the number of bins used for the window in the savgol_filter
     lgcSave: boolian value. If True, the figure is saved in the user provided directory
     savePath: absolute path for the figure to be saved
 
@@ -164,7 +166,12 @@ def plot_corrCoeff(noise, lgcSave = False, savePath = None):
             for jj in range(noise.corrCoeff.shape[1]):
                 if ii > jj:
                     label = '{} - {}'.format(noise.channNames[ii],noise.channNames[jj])
-                    plt.plot(noise.freqs, savgol_filter(noise.corrCoeff[ii][jj], 51,3), label = label, alpha = .5)
+                    if lgcSmooth:
+                        plt.plot(noise.freqs[1:], savgol_filter(noise.corrCoeff[ii][jj][1:], nWindow,3, mode = 'nearest') \
+                                 , label = label, alpha = .5)
+                    else:
+                        plt.plot(noise.freqs[1:], noise.corrCoeff[ii][jj][1:] , label = label, alpha = .5)
+                        
                     plt.xscale('log')
         plt.xlabel('frequency [Hz]')
         plt.ylabel(r'Correlation Coeff [COV(x,y)/$\sigma_x \sigma_y$]')
@@ -362,12 +369,12 @@ def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, 
                         if lgc_decorrelatedNoise:
                             #check that de correlated noise has been calculated
                             if arr[ii].unCorrNoise is not None:
-                                plt.loglog(np.sqrt(arr[ii].freqs_fit[1:]), np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
+                                plt.loglog(arr[ii].freqs_fit[1:], np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
                                            , label = arr[ii].name+' de-correlated noise')
                             else:
                                 print('The de-correlated noise for file: {} has not been calculated yet'.format(arr[ii].name))
                         else:
-                            plt.loglog(np.sqrt(arr[ii].freqs[1:]), np.sqrt(arr[ii].PSD[chan_index][1:]), label = arr[ii].name)
+                            plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].PSD[chan_index][1:]), label = arr[ii].name)
                     else:
                         print('channel: {} not found for file: {} '.format(chan, arr[ii].name)) 
                 lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
