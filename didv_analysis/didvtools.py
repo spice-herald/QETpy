@@ -810,9 +810,9 @@ def deconvolvedidv(x, trace, Rsh, sgamp, sgfreq, dutycycle):
     return freq, dIdV, zeroInds
 
 
-class didv(object):
+class DIDV(object):
     
-    def __init__(self, rawtraces, samplerate, sgfreq, sgamp, R0, dR0, Rl, dRl, Rsh, 
+    def __init__(self, rawtraces, samplerate, sgfreq, sgamp, Rsh, R0=0.3, dR0=0.001, Rl=0.01, dRl=0.001,
                  timeoffset=0, tracegain=1.0, dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
         
         self.rawtraces = rawtraces
@@ -1090,22 +1090,17 @@ class didv(object):
         return params, cov
     
     def plot_full_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = ""):
-    
         didvutils.plot_full_trace(self, poles = poles, plotpriors = plotpriors, lgcsave = lgcsave, savepath = savepath)
     
     def plot_single_period_of_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = ""):
-    
         didvutils.plot_single_period_of_trace(self, poles = poles, plotpriors = plotpriors, lgcsave = lgcsave, savepath = savepath)
     
     def plot_zoomed_in_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = ""):
-        
         didvutils.plot_zoomed_in_trace(self, poles = poles, plotpriors = plotpriors, lgcsave = lgcsave, savepath = savepath)
         
     def plot_didv_flipped(self, poles = 2, plotpriors = True, lgcsave = False, savepath = ""):
-        
         didvutils.plot_didv_flipped(self, poles = poles, plotpriors = plotpriors, lgcsave = lgcsave, savepath = savepath)
         
     def plot_re_im_didv(self, poles = 2, plotpriors = True, lgcsave = False, savepath = ""):
-    
         didvutils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, lgcsave = lgcsave, savepath = savepath)
     
