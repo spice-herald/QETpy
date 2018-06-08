@@ -2,7 +2,6 @@ import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
-import matplotlib.pyplot as plt
 import didvutils
 
 
@@ -812,8 +811,8 @@ def deconvolvedidv(x, trace, Rsh, sgamp, sgfreq, dutycycle):
 
 class DIDV(object):
     
-    def __init__(self, rawtraces, samplerate, sgfreq, sgamp, Rsh, R0=0.3, dR0=0.001, Rl=0.01, dRl=0.001,
-                 timeoffset=0, tracegain=1.0, dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
+    def __init__(self, rawtraces, samplerate, sgfreq, sgamp, Rsh, tracegain, R0=0.3, dR0=0.001, Rl=0.01, dRl=0.001,
+                 timeoffset=0, dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
         
         self.rawtraces = rawtraces
         self.samplerate = samplerate
@@ -1023,6 +1022,9 @@ class DIDV(object):
             raise ValueError("The number of poles should be 1, 2, or 3.")
         
     def dopriorsfit(self):
+        if (self.priors is None) or (self.invpriorscov is None):
+            raise ValueError("Cannot do priors fit, priors values or inverse covariance matrix were not set")
+            
         if self.tmean is None:
             self.processtraces()
         
@@ -1065,7 +1067,8 @@ class DIDV(object):
         self.dofit(1)
         self.dofit(2)
         self.dofit(3)
-        self.dopriorsfit()
+        if (self.priors is not None) and (self.invpriorscov is not None):
+            self.dopriorsfit()
     
     def getparams(self, poles, lgcirwin, lgcpriors):
         if lgcpriors == False:
