@@ -163,10 +163,10 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ## plot the real part of the dIdV in frequency domain
     fig,ax=plt.subplots(figsize=(10,6))
 
-    ax.scatter(didv.freq[freqinds],np.real(dIdV)[plotinds],color='blue',label='mean',s=5)
+    ax.scatter(didv.freq[freqinds],np.real(didv.didvmean)[plotinds],color='blue',label='mean',s=5)
     ## plot error in real part of dIdV
-    ax.plot(didv.freq[freqinds],np.real(dIdV+sdIdV)[plotinds],color='black',label='1-$\sigma$ bounds',alpha=0.1)
-    ax.plot(didv.freq[freqinds],np.real(dIdV-sdIdV)[plotinds],color='black',alpha=0.1)
+    ax.plot(didv.freq[freqinds],np.real(didv.didvmean+didv.didvstd)[plotinds],color='black',label='1-$\sigma$ bounds',alpha=0.1)
+    ax.plot(didv.freq[freqinds],np.real(didv.didvmean-didv.didvstd)[plotinds],color='black',alpha=0.1)
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
         ax.plot(didv.freq[freqinds],np.real(didv.didvfit1)[freqinds],color='magenta',label='1-pole fit')
@@ -203,8 +203,8 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ax.scatter(didv.freq[freqinds],np.imag(dIdV)[plotinds],color='blue',label='x(f) mean',s=5)
 
     ## plot error in imaginary part of dIdV
-    ax.plot(didv.freq[freqinds],np.imag(dIdV+sdIdV)[plotinds],color='black',label='x(f) 1-$\sigma$ bounds',alpha=0.1)
-    ax.plot(didv.freq[freqinds],np.imag(dIdV-sdIdV)[plotinds],color='black',alpha=0.1)
+    ax.plot(didv.freq[freqinds],np.imag(dIdV+didv.didvstd)[plotinds],color='black',label='x(f) 1-$\sigma$ bounds',alpha=0.1)
+    ax.plot(didv.freq[freqinds],np.imag(dIdV-didv.didvstd)[plotinds],color='black',alpha=0.1)
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
         ax.plot(didv.freq[freqinds],np.imag(didv.didvfit1)[freqinds],color='magenta',label='1-pole fit')
