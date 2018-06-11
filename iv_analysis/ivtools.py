@@ -269,21 +269,103 @@ class IV(object):
         self.rnorm_err = rnorm_err[:,:,0]
 
     def plot_iv(self, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
+        """
+        Function to plot the IV curves for the data in an IV object.
+
+        Parameters
+        ----------
+            temps : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            chans : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            showfit : boolean, optional
+                Boolean flag to also plot the linear fit to the normal data
+            lgcsave : boolean, optional
+                Boolean flag to save the plot
+            savepath : string, optional
+                Path to save the plot to, saves it to the current directory by default
+            savename : string, optional
+                Name to append to the plot file name, if saving
+        """
         
         ivutils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         
     def plot_rv(self, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+        """
+        Function to plot the resistance curves for the data in an IV object.
+
+        Parameters
+        ----------
+            IVobject : class
+                The IV class object that the data is stored in.
+            temps : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            chans : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            lgcsave : boolean, optional
+                Boolean flag to save the plot
+            savepath : string, optional
+                Path to save the plot to, saves it to the current directory by default
+            savename : string, optional
+                Name to append to the plot file name, if saving
+        """
         
         ivutils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         
     def plot_pv(self, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+        """
+        Function to plot the power curves for the data in an IV object.
+
+        Parameters
+        ----------
+            IVobject : class
+                The IV class object that the data is stored in.
+            temps : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            chans : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            lgcsave : boolean, optional
+                Boolean flag to save the plot
+            savepath : string, optional
+                Path to save the plot to, saves it to the current directory by default
+            savename : string, optional
+                Name to append to the plot file name, if saving
+        """
         
         ivutils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         
     def plot_all_curves(self, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
+        """
+        Function to plot the IV, resistance, and power curves for the data in an IV object.
+
+        Parameters
+        ----------
+            IVobject : class
+                The IV class object that the data is stored in.
+            temps : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            chans : string, array_like, int, optional
+                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+                to a subset of bath temperatures, or just one
+            showfit : boolean, optional
+                Boolean flag to also plot the linear fit to the normal data
+            lgcsave : boolean, optional
+                Boolean flag to save the plot
+            savepath : string, optional
+                Path to save the plot to, saves it to the current directory by default
+            savename : string, optional
+                Name to append to the plot file name, if saving
+        """
         
         ivutils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                                 savepath=savepath, savename=savename)
