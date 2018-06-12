@@ -67,8 +67,9 @@ class IV(object):
     the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
     data for multple bath temperatures, multiple channels, and multiple bias points.
     
-    Note: If using data from multiple bath temperatures that each have different numbers of bias points,
-    be sure to put the data into a
+    Note: If different bath temperatures have different numbers of bias points (iters), then the user
+    should pad the end of the arrays with NaN so that the data can be put into an ndarray and 
+    loaded into this class.
     
     Attributes
     ----------
