@@ -162,7 +162,7 @@ class IV(object):
             nch, niters = dites.shape
 
         elif len(dites.shape)==1:
-            ntemp = 1
+            ntemps = 1
             nch = 1
             niters, = dites.shape
 
@@ -176,8 +176,8 @@ class IV(object):
         self.vb_err = np.reshape(vb_err, (ntemps, nch, niters))
 
         if np.isscalar(rload):
-            self.rload = np.ones_like(dites)*self.rload
-            self.rload_err = np.ones_like(dites)*self.rload_err
+            self.rload = np.ones_like(dites)*rload
+            self.rload_err = np.ones_like(dites)*rload_err
 
         elif rload.shape==(nch,):
             self.rload = np.tile(np.tile(rload,(niters,1)).transpose(),(ntemps,1,1))
