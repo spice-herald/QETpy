@@ -26,6 +26,7 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     """
     
     ntemps, nch, niters = IVobject.dites.shape
+    chan_names = IVobject.chan_names
     
     if temps == "all":
         trange = range(ntemps)
@@ -47,7 +48,11 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
-            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, label=f"Temp {t}, Channel {ch}",
+            if ntemps > 1:
+                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+            else:
+                label_str=f"Channel {chan_names[ich]}"
+            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6,label=label_str ,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, yerr=IVobject.ites_err[t, ch]*1e6,
@@ -70,7 +75,7 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     ax.set_title("$I_0$ vs. $V_b$")
     
     if lgcsave:
-        fig.savefig(savepath+"iv_curve_{savename}.png")
+        fig.savefig(savepath+f"iv_curve_{savename}.png")
         plt.close(fig)
     else:
         plt.show()
@@ -98,6 +103,7 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     """
 
     ntemps, nch, niters = IVobject.r0.shape
+    chan_names = IVobject.chan_names
     
     if temps == "all":
         trange = range(ntemps)
@@ -119,7 +125,11 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
-            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, label=f"Temp {t}, Channel {ch}",
+            if ntemps > 1:
+                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+            else:
+                label_str=f"Channel {chan_names[ich]}"
+            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, yerr=IVobject.r0_err[t, ch]*1e3,
@@ -133,13 +143,13 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     ax.set_title(r"$R_0$ vs. $V_b$")
     
     if lgcsave:
-        fig.savefig(savepath+"rv_curve_{savename}.png")
+        fig.savefig(savepath+f"rv_curve_{savename}.png")
         plt.close(fig)
     else:
         plt.show()
         
 
-def plot_pv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", savename=""):
     """
     Function to plot the power curves for the data in an IV object.
     
@@ -162,6 +172,7 @@ def plot_pv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     """
 
     ntemps, nch, niters = IVobject.ptes.shape
+    chan_names = IVobject.chan_names
     
     if temps == "all":
         trange = range(ntemps)
@@ -183,7 +194,11 @@ def plot_pv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
-            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, label=f"Temp {t}, Channel {ch}",
+            if ntemps > 1:
+                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+            else:
+                label_str=f"Channel {chan_names[ich]}"
+            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, yerr=IVobject.ptes_err[t, ch]*1e12,
@@ -195,14 +210,17 @@ def plot_pv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     ax.grid(linestyle='dotted')
     ax.tick_params(which='both',direction='in',right=True,top=True)
     ax.set_title("$P_0$ vs. $V_b$")
+    ax.set_ylim(0,.8)
+    ax.set_xlim(-.8,0)
+    
     
     if lgcsave:
-        fig.savefig(savepath+"pv_curve_{savename}.png")
+        fig.savefig(savepath+f"pv_curve_{savename}.png")
         plt.close(fig)
     else:
         plt.show()
         
-def plot_all_curves(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
+def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the IV, resistance, and power curves for the data in an IV object.
     
@@ -226,6 +244,6 @@ def plot_all_curves(IVobject, temps="all", chans="all", showfit=True, lgcsave=Fa
             Name to append to the plot file name, if saving
     """
     
-    plot_iv(IVobject, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
-    plot_rv(IVobject, temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
-    plot_pv(IVobject, temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    plot_rv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    plot_pv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
