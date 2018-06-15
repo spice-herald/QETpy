@@ -88,6 +88,9 @@ class IV(object):
         3-dimensional, then this should be with shape (ntemps, nch, niters)
     rload_err : scalar, ndarray
         The corresponding error in the load resistance, should be the same type as rload
+    chan_names : array_like
+        Array of strings corresponding to the names of each channel in the data. Should
+        have the same length as the nch axis in dites
     ioff : ndarray
         The current offset calculated from the fit, shape (ntemps, nch)
     ioff_err : ndarray
@@ -114,7 +117,7 @@ class IV(object):
         The corresponding error in the power of the TES
     """
     
-    def __init__(self, dites, dites_err, vb, vb_err, rload, rload_err, normalinds = None):
+    def __init__(self, dites, dites_err, vb, vb_err, rload, rload_err, chan_names, normalinds = None):
         """
         Initialization of the IV class object.
         
@@ -146,6 +149,9 @@ class IV(object):
             If 3-dimensional, should be shape (ntemps, nch, niters).
         rload_err : ndarray, float
             The corresponding error in the load resistance, should be the same type/shape as rload.
+        chan_names : array_like
+            Array of strings corresponding to the names of each channel in the data. Should
+            have the same length as the nch axis in dites
         normalinds : iterable, array_like, or NoneType, optional
             The indices of the normal resistance points. If None (default value), then the normal
             points are guessed with a simple reduced chi-squared measurement cutoff. Can also be set 
@@ -189,7 +195,9 @@ class IV(object):
 
         elif rload.shape!=(ntemps,nch,niters):
             raise ValueError("the shape of rload doesn't match the data")
-
+        
+        self.chan_names = chan_names
+        
         self.ioff = None
         self.ioff_err = None
         self.rfit = None
