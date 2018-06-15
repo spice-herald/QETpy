@@ -245,7 +245,7 @@ class IV(object):
                 ioff_err[t,ch] = covout[0,0]**0.5
 
                 rfit[t,ch] = xout[1]
-                rfit_err[ch] = covout[1,1]**0.5
+                rfit_err[t,ch] = covout[1,1]**0.5
                 
         rnorm = rfit - self.rload
         rnorm_err = (rfit_err**2 + self.rload_err**2)**0.5
@@ -259,8 +259,9 @@ class IV(object):
                        self.rload_err**2)**0.5
 
         self.ptes = self.ites**2 * self.r0
-        self.ptes_err = ((2*self.ites*self.r0)**2*self.ites_err**2 + \
-                         (self.ites**2)**2 * self.r0_err**2)**0.5
+        self.ptes_err = ((self.vb-2*self.ites*self.rload)**2.0 * self.ites_err**2.0 + \
+                         (self.ites)**2.0 * self.vb_err**2.0 + \
+                         (self.ites**2.0)**2.0 * self.rload_err**2.0)**0.5
         
         self.ioff = ioff[:,:,0]
         self.ioff_err = ioff_err[:,:,0]
