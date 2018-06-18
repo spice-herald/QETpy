@@ -173,7 +173,10 @@ class IV(object):
             niters, = dites.shape
 
         else:
-            raise ValueError(f"dites has too many dimensions, should be 1, 2, or 3")
+            raise ValueError("dites has too many dimensions, should be 1, 2, or 3")
+        if len(chan_names) != nch:
+            raise ValueError("dites has too many dimensions, should be 1, 2, or 3")
+            
 
         # reshape arrays so the same code can be used 
         self.dites = np.reshape(dites, (ntemps, nch, niters))
