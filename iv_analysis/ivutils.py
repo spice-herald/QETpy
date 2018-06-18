@@ -49,9 +49,9 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
             else:
-                label_str=f"Channel {chan_names[ich]}"
+                label_str="Channel {}".format(chan_names[ich])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6,label=label_str ,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -75,7 +75,7 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     ax.set_title("$I_0$ vs. $V_b$")
     
     if lgcsave:
-        fig.savefig(savepath+f"iv_curve_{savename}.png")
+        fig.savefig(savepath+"iv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
         plt.show()
@@ -126,9 +126,9 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
             else:
-                label_str=f"Channel {chan_names[ich]}"
+                label_str="Channel {}".format(chan_names[ich])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -143,7 +143,7 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     ax.set_title(r"$R_0$ vs. $V_b$")
     
     if lgcsave:
-        fig.savefig(savepath+f"rv_curve_{savename}.png")
+        fig.savefig(savepath+"rv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
         plt.show()
@@ -195,9 +195,9 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str=f"Temp {t}, Channel {chan_names[ich]}"
+                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
             else:
-                label_str=f"Channel {chan_names[ich]}"
+                label_str="Channel {}".format(chan_names[ich])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -215,7 +215,7 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     
     
     if lgcsave:
-        fig.savefig(savepath+f"pv_curve_{savename}.png")
+        fig.savefig(savepath+"pv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
         plt.show()
