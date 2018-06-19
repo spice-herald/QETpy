@@ -1573,18 +1573,18 @@ class DIDV(object):
 
         Parameters
         ----------
-            poles : int, string, array_like
+            poles : int, string, array_like, optional
                 The pole fits that we want to plot. If set to "all", then plots
                 all of the fits. Can also be set to just one of the fits. Can be set
                 as an array of different fits, e.g. [1, 2]
-            plotpriors : boolean
+            plotpriors : boolean, optional
                 Boolean value on whether or not the priors fit should be plotted.
-            lgcsave : boolean
+            lgcsave : boolean, optional
                 Boolean value on whether or not the figure should be saved
-            savepath : string
+            savepath : string, optional
                 Where the figure should be saved. Saved in the current directory
                 by default.
-            savename : string
+            savename : string, optional
                 A string to append to the end of the file name if saving. Empty string
                 by default.
         """
@@ -1598,18 +1598,18 @@ class DIDV(object):
 
         Parameters
         ----------
-            poles : int, string, array_like
+            poles : int, string, array_like, optional
                 The pole fits that we want to plot. If set to "all", then plots
                 all of the fits. Can also be set to just one of the fits. Can be set
                 as an array of different fits, e.g. [1, 2]
-            plotpriors : boolean
+            plotpriors : boolean, optional
                 Boolean value on whether or not the priors fit should be plotted.
-            lgcsave : boolean
+            lgcsave : boolean, optional
                 Boolean value on whether or not the figure should be saved
-            savepath : string
+            savepath : string, optional
                 Where the figure should be saved. Saved in the current directory
                 by default.
-            savename : string
+            savename : string, optional
                 A string to append to the end of the file name if saving. Empty string
                 by default.
         """
@@ -1624,18 +1624,20 @@ class DIDV(object):
 
         Parameters
         ----------
-            poles : int, string, array_like
+            poles : int, string, array_like, optional
                 The pole fits that we want to plot. If set to "all", then plots
                 all of the fits. Can also be set to just one of the fits. Can be set
                 as an array of different fits, e.g. [1, 2]
-            plotpriors : boolean
+            zoomfactor : float, optional, optional
+                Number between zero and 1 to show different amounts of the zoomed in trace.
+            plotpriors : boolean, optional
                 Boolean value on whether or not the priors fit should be plotted.
-            lgcsave : boolean
+            lgcsave : boolean, optional
                 Boolean value on whether or not the figure should be saved
-            savepath : string
+            savepath : string, optional
                 Where the figure should be saved. Saved in the current directory
                 by default.
-            savename : string
+            savename : string, optional
                 A string to append to the end of the file name if saving. Empty string
                 by default.
         """
@@ -1650,18 +1652,18 @@ class DIDV(object):
 
         Parameters
         ----------
-            poles : int, string, array_like
+            poles : int, string, array_like, optional
                 The pole fits that we want to plot. If set to "all", then plots
                 all of the fits. Can also be set to just one of the fits. Can be set
                 as an array of different fits, e.g. [1, 2]
-            plotpriors : boolean
+            plotpriors : boolean, optional
                 Boolean value on whether or not the priors fit should be plotted.
-            lgcsave : boolean
+            lgcsave : boolean, optional
                 Boolean value on whether or not the figure should be saved
-            savepath : string
+            savepath : string, optional
                 Where the figure should be saved. Saved in the current directory
                 by default.
-            savename : string
+            savename : string, optional
                 A string to append to the end of the file name if saving. Empty string
                 by default.
         """
@@ -1676,22 +1678,22 @@ class DIDV(object):
 
         Parameters
         ----------
-            poles : int, string, array_like
+            poles : int, string, array_like, optional
                 The pole fits that we want to plot. If set to "all", then plots
                 all of the fits. Can also be set to just one of the fits. Can be set
                 as an array of different fits, e.g. [1, 2]
-            plotpriors : boolean
+            plotpriors : boolean, optional
                 Boolean value on whether or not the priors fit should be plotted.
-            lgcsave : boolean
+            lgcsave : boolean, optional
                 Boolean value on whether or not the figure should be saved
-            savepath : string
+            savepath : string, optional
                 Where the figure should be saved. Saved in the current directory
                 by default.
-            savename : string
+            savename : string, optional
                 A string to append to the end of the file name if saving. Empty string
                 by default.
         """
         
-        didvutils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
+        didvutils.plot_re_im_didv(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
     

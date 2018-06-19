@@ -9,18 +9,18 @@ def plot_full_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ----------
         didv : class
             The DIDV class object that the data is stored in
-        poles : int, string, array_like
+        poles : int, string, array_like, optional
             The pole fits that we want to plot. If set to "all", then plots
             all of the fits. Can also be set to just one of the fits. Can be set
             as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean
+        plotpriors : boolean, optional
             Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean
+        lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
-        savepath : string
+        savepath : string, optional
             Where the figure should be saved. Saved in the current directory
             by default.
-        savename : string
+        savename : string, optional
             A string to append to the end of the file name if saving. Empty string
             by default.
     """
@@ -45,7 +45,7 @@ def plot_full_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
 
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
-    ax.set_xlim(0,max(didv.time)*1e6)
+    ax.set_xlim([0, max(didv.time)*1e6])
 
     ax.legend(loc='upper left')
     ax.set_title("Full Trace of dIdV")
@@ -66,18 +66,18 @@ def plot_single_period_of_trace(didv, poles = 2, plotpriors = True, lgcsave = Fa
     ----------
         didv : class
             The DIDV class object that the data is stored in
-        poles : int, string, array_like
+        poles : int, string, array_like, optional
             The pole fits that we want to plot. If set to "all", then plots
             all of the fits. Can also be set to just one of the fits. Can be set
             as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean
+        plotpriors : boolean, optional
             Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean
+        lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
-        savepath : string
+        savepath : string, optional
             Where the figure should be saved. Saved in the current directory
             by default.
-        savename : string
+        savename : string, optional
             A string to append to the end of the file name if saving. Empty string
             by default.
     """
@@ -104,8 +104,7 @@ def plot_single_period_of_trace(didv, poles = 2, plotpriors = True, lgcsave = Fa
     ax.set_ylabel('Amplitude ($\mu$A)')
 
     period = 1.0/didv.sgfreq
-    halfRange=0.6*period
-    ax.set_xlim((period-halfRange)*1e6,(period+halfRange)*1e6)
+    ax.set_xlim([0, period*1e6])
 
     ax.legend(loc='upper left')
     ax.set_title("Single Period of Trace")
@@ -118,7 +117,7 @@ def plot_single_period_of_trace(didv, poles = 2, plotpriors = True, lgcsave = Fa
     else:
         plt.show()
 
-def plot_zoomed_in_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_zoomed_in_trace(didv, poles = 2, zoomfactor=0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
     overshoot of the didv.
@@ -127,18 +126,20 @@ def plot_zoomed_in_trace(didv, poles = 2, plotpriors = True, lgcsave = False, sa
     ----------
         didv : class
             The DIDV class object that the data is stored in
-        poles : int, string, array_like
+        poles : int, string, array_like, optional
             The pole fits that we want to plot. If set to "all", then plots
             all of the fits. Can also be set to just one of the fits. Can be set
             as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean
+        zoomfactor : float, optional, optional
+            Number between zero and 1 to show different amounts of the zoomed in trace.
+        plotpriors : boolean, optional
             Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean
+        lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
-        savepath : string
+        savepath : string, optional
             Where the figure should be saved. Saved in the current directory
             by default.
-        savename : string
+        savename : string, optional
             A string to append to the end of the file name if saving. Empty string
             by default.
     """
@@ -165,8 +166,7 @@ def plot_zoomed_in_trace(didv, poles = 2, plotpriors = True, lgcsave = False, sa
     ax.set_ylabel('Amplitude ($\mu$A)')
 
     period = 1.0/didv.sgfreq
-    halfRange=0.1*period
-    ax.set_xlim((period-halfRange)*1e6,(period+halfRange)*1e6)
+    ax.set_xlim([(0.5-zoomfactor/2)*period*1e6, (0.5+zoomfactor/2)*period*1e6])
 
     ax.legend(loc='upper left')
     ax.set_title("Zoomed In Portion of Trace")
@@ -187,18 +187,18 @@ def plot_didv_flipped(didv, poles = 2, plotpriors = True, lgcsave = False, savep
     ----------
         didv : class
             The DIDV class object that the data is stored in
-        poles : int, string, array_like
+        poles : int, string, array_like, optional
             The pole fits that we want to plot. If set to "all", then plots
             all of the fits. Can also be set to just one of the fits. Can be set
             as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean
+        plotpriors : boolean, optional
             Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean
+        lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
-        savepath : string
+        savepath : string, optional
             Where the figure should be saved. Saved in the current directory
             by default.
-        savename : string
+        savename : string, optional
             A string to append to the end of the file name if saving. Empty string
             by default.
     """
@@ -247,18 +247,18 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ----------
         didv : class
             The DIDV class object that the data is stored in
-        poles : int, string, array_like
+        poles : int, string, array_like, optional
             The pole fits that we want to plot. If set to "all", then plots
             all of the fits. Can also be set to just one of the fits. Can be set
             as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean
+        plotpriors : boolean, optional
             Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean
+        lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
-        savepath : string
+        savepath : string, optional
             Where the figure should be saved. Saved in the current directory
             by default.
-        savename : string
+        savename : string, optional
             A string to append to the end of the file name if saving. Empty string
             by default.
     """
@@ -302,8 +302,8 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ylow = min(np.real(didv.didvmean)[plotinds][didv.freq[plotinds]<1e5])
     ybnd = np.max([yhigh,-ylow])
     
-    ax.set_ylim([-ybnd,ybnd])
-    ax.set_xlim(min(didv.freq[fitinds]),max(didv.freq[fitinds]))
+    ax.set_ylim([-ybnd, ybnd])
+    ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
     ax.legend(loc='upper left')
     ax.set_title("Real Part of dIdV")
     ax.tick_params(right=True,top=True)
@@ -346,7 +346,7 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ybnd = np.max([yhigh,-ylow])
     
     ax.set_ylim([-ybnd,ybnd])
-    ax.set_xlim(min(didv.freq[fitinds]),max(didv.freq[fitinds]))
+    ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
     ax.legend(loc='upper left')
     ax.set_title("Imaginary Part of dIdV")
     ax.tick_params(which='both',direction='in',right=True,top=True)
