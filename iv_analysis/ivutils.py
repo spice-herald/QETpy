@@ -78,7 +78,8 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
         fig.savefig(savepath+"iv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
-        plt.show()
+        #plt.show()
+        return fig, ax
 
 def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
     """
@@ -146,8 +147,8 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
         fig.savefig(savepath+"rv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
-        plt.show()
-        
+        #plt.show()
+        return fig, ax    
 
 def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", savename=""):
     """
@@ -210,15 +211,16 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     ax.grid(linestyle='dotted')
     ax.tick_params(which='both',direction='in',right=True,top=True)
     ax.set_title("$P_0$ vs. $V_b$")
-    ax.set_ylim(0,.8)
-    ax.set_xlim(-.8,0)
+    #ax.set_ylim(0,.8)
+    #ax.set_xlim(-.8,0)
     
     
     if lgcsave:
         fig.savefig(savepath+"pv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
-        plt.show()
+        #plt.show()
+        return fig, ax
         
 def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """

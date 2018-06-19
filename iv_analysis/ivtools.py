@@ -303,8 +303,9 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        ivutils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
+        axes = ivutils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
+        return axes
         
     def plot_rv(self, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
         """
@@ -328,8 +329,9 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        ivutils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        axes = ivutils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
+        return axes
         
     def plot_pv(self, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
         """
@@ -353,8 +355,9 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        ivutils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        axes = ivutils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
+        return axes
         
     def plot_all_curves(self, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
         """
