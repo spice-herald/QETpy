@@ -1642,7 +1642,7 @@ class DIDV(object):
                 by default.
         """
         
-        didvutils.plot_zoomed_in_trace(self, poles = poles, plotpriors = plotpriors, 
+        didvutils.plot_zoomed_in_trace(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
                                        lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_didv_flipped(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -1694,6 +1694,6 @@ class DIDV(object):
                 by default.
         """
         
-        didvutils.plot_re_im_didv(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
+        didvutils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
     
