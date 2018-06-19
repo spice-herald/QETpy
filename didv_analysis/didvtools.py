@@ -1617,7 +1617,7 @@ class DIDV(object):
         didvutils.plot_single_period_of_trace(self, poles = poles, plotpriors = plotpriors, 
                                               lgcsave = lgcsave, savepath = savepath, savename = savename)
     
-    def plot_zoomed_in_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+    def plot_zoomed_in_trace(self, poles = 2, zoomfactor = 0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
         """
         Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
         overshoot of the didv.
