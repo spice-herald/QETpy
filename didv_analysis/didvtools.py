@@ -411,10 +411,10 @@ def guessdidvparams(trace, flatpts, sgamp, rshunt, L0=1.0e-7):
         # loop gain > 1
         B0 = -1.0/didv0 - A0
         tau10 = -100e-7 # guess a faster tauI
-
+    
     return A0, B0, tau10, tau20, isloopgainsub1
 
-def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5e2), tau20=1.0/(2*pi*1e5), tau30=0.0, dt=-10.0e-6, poles=2):
+def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5e2), tau20=1.0/(2*pi*1e5), tau30=0.0, dt=-10.0e-6, poles=2, isloopgainsub1=None):
     """
     Function to find the fit parameters for either the 1-pole (A, tau2, dt), 
     2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt) fit. 
@@ -446,6 +446,9 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
             Guess of the time shift (in s)
         poles : int
             The number of poles to use in the fit (should be 1, 2, or 3)
+        isloopgainsub1 : boolean, NoneType
+            If set, should be used to specify if the fit should be done assuming
+            that the Irwin loop gain is less than 1 (True) or greater than 1 (False).
         
     Returns
     -------
@@ -505,24 +508,30 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
         z1d[0:z1d.size:2] = diff.real*weights.real
         z1d[1:z1d.size:2] = diff.imag*weights.imag
         return z1d
-
-    # res1 assumes loop gain > 1, where B<0 and tauI<0
-    res1 = least_squares(residual, p0, bounds=bounds1, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
-    # res2 assumes loop gain < 1, where B>0 and tauI>0
-    res2 = least_squares(residual, p02, bounds=bounds2, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
     
-    # check which loop gain casez gave the better fit
-    if (res1['cost'] < res2['cost']):
-        res = res1
+    if isloopgainsub1 is None:
+        # res1 assumes loop gain > 1, where B<0 and tauI<0
+        res1 = least_squares(residual, p0, bounds=bounds1, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
+        # res2 assumes loop gain < 1, where B>0 and tauI>0
+        res2 = least_squares(residual, p02, bounds=bounds2, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
+        # check which loop gain cases gave the better fit
+        if (res1['cost'] < res2['cost']):
+            res = res1
+        else:
+            res = res2
+    elif isloopgainsub1:
+        # assume loop gain < 1, where B>0 and tauI>0
+        res = least_squares(residual, p02, bounds=bounds2, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
     else:
-        res = res2
-        
+        #assume loop gain > 1, where B<0 and tauI<0
+        res = least_squares(residual, p0, bounds=bounds1, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
+     
     popt = res['x']
     cost = res['cost']
         
     # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
-    if (not res1['success'] and not res2['success']):
-        print("Fit failed: "+str(res1['status'])+", "+str(poles)+"-pole Fit")
+    if not res['success'] :
+        print("Fit failed: "+str(res['status'])+", "+str(poles)+"-pole Fit")
         
     # take matrix product of transpose of jac and jac, take the inverse to get the analytic covariance matrix
     pcovinv = np.dot(res["jac"].transpose(), res["jac"])
@@ -1430,23 +1439,25 @@ class DIDV(object):
             
             if self.fitparams2 is None:
                 # Guess the 3-pole fit starting parameters from 2-pole fit guess
-                A0, B0, tau10, tau20, isloopgainsub1 = guessdidvparams(self.tmean, self.tmean[self.flatinds], self.sgamp, self.rshunt, L0=1.0e-7)
+                A0, B0, tau10, tau20 = guessdidvparams(self.tmean, self.tmean[self.flatinds], self.sgamp, self.rshunt, L0=1.0e-7)[:-1]
                 B0 = -abs(B0)
-                C0 = -0.01 
+                C0 = -0.05 
                 tau10 = -abs(tau10)
-                tau30 = 1.0e-4 
+                tau30 = 1.0e-3 
                 dt0 = self.dt0
             else:
                 A0 = self.fitparams2[0] 
                 B0 = -abs(self.fitparams2[1]) 
-                C0 = -0.01 
+                C0 = -0.05 
                 tau10 = -abs(self.fitparams2[2]) 
                 tau20 = self.fitparams2[3] 
-                tau30 = 1.0e-4 
+                tau30 = 1.0e-3 
                 dt0 = self.fitparams2[4]
-            
+                
+            isloopgainsub1 = guessdidvparams(self.tmean, self.tmean[self.flatinds], self.sgamp, self.rshunt, L0=1.0e-7)[-1]
+                
             # 3 pole fitting
-            self.fitparams3, self.fitcov3, self.fitcost3 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0, B0=B0, C0=C0, tau10=tau10, tau20=tau20, tau30=tau30, dt=dt0, poles=3)
+            self.fitparams3, self.fitcov3, self.fitcost3 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0, B0=B0, C0=C0, tau10=tau10, tau20=tau20, tau30=tau30, dt=dt0, poles=3, isloopgainsub1=isloopgainsub1)
         
             # Convert to didv falltimes
             self.falltimes3 = findpolefalltimes(self.fitparams3)
