@@ -55,7 +55,7 @@ def align_traces(traces,lgcJustShifts = False, n_cut = 5000, cut_off_freq = 5000
     
     
     # Filter and truncate all traces to speed up.
-    traces_filt = filter_traces(traces[:,:n_cut], cut_off_freq = 5000, fs = 625e3) 
+    traces_filt = filter_traces_LP(traces[:,:n_cut], cut_off_freq = 5000, fs = 625e3) 
     traces_temp = traces_filt - np.mean(traces_filt, axis = -1,keepdims = True)
     traces_norm = traces_temp/(np.amax(traces_temp, axis = -1,keepdims = True))
     

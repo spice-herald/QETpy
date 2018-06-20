@@ -82,7 +82,7 @@ def calc_offset(x, fs=625000.0, sgFreq=100.0, isDIDV=False):
         period =  1.0/sgFreq
         period_bins = period*fs
         n_periods = int(x.shape[1]/period_bins)
-        x = x[:n_periods*period_bins]
+        x = x[:int(n_periods*period_bins)]
            
     offset = np.mean(np.mean(x,axis = -1))
     std = np.std(np.mean(x,axis = -1))/np.sqrt(num_traces)
