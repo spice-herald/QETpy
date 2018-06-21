@@ -49,7 +49,9 @@ def align_traces(traces,lgcJustShifts = False, n_cut = 5000, cut_off_freq = 5000
     
     Returns:
     ------------
-    (optional) traces_aligned: ndarray of time shift corrected traces, same shape as input traces
+    (optional) masked_aligned: masked ndarray of time shift corrected traces, same shape as input traces
+				The masked array maskes the np.NaN values in the time shifted traces so that
+				normal numpy functions will ignore the nan's in computations
     shifts: ndarray of phase shifts for each trace in units of bins
     """
     
@@ -72,10 +74,13 @@ def align_traces(traces,lgcJustShifts = False, n_cut = 5000, cut_off_freq = 5000
         shifts[ii] = t2_shift
         if not lgcJustShifts:
             traces_aligned[ii] = shift(traces[ii],t2_shift,cval = np.NAN)
+	    
     if lgcJustShifts:
         return shifts
     else:
-        return traces_aligned, shifts
+	flat_aligned = traces_aligned.flatten()
+	masked_aligned = np.ma.array(flat_aligned, mask = np.isnan(flat_aligned)).reshape(traces_aligned.shape)
+        return masked_aligned, shifts
         
         
         
