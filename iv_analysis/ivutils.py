@@ -49,9 +49,9 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
+                label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
-                label_str="Channel {}".format(chan_names[ich])
+                label_str="Channel {}".format(chan_names[ch])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6,label=label_str ,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -127,9 +127,9 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
+                label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
-                label_str="Channel {}".format(chan_names[ich])
+                label_str="Channel {}".format(chan_names[ch])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -196,9 +196,9 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
             if ntemps > 1:
-                label_str="Temp {}, Channel {}".format(t,chan_names[ich])
+                label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
-                label_str="Channel {}".format(chan_names[ich])
+                label_str="Channel {}".format(chan_names[ch])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, label=label_str,
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
@@ -211,9 +211,6 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     ax.grid(linestyle='dotted')
     ax.tick_params(which='both',direction='in',right=True,top=True)
     ax.set_title("$P_0$ vs. $V_b$")
-    #ax.set_ylim(0,.8)
-    #ax.set_xlim(-.8,0)
-    
     
     if lgcsave:
         fig.savefig(savepath+"pv_curve_{}.png".format(savename))
