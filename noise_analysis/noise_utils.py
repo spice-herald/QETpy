@@ -68,12 +68,20 @@ def plot_PSD(noise, lgc_overlay = True, lgcSave = False, savePath = None):
                 else:
                     iRow = ii - nRows
                     jColumn = 1
-                if ii < num_subplots:    
+                if ii < num_subplots and nRows > 1:    
                     axes[iRow,jColumn].set_title(noise.channNames[ii])
                     axes[iRow,jColumn].set_xlabel('frequency [Hz]')
                     axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
                     axes[iRow,jColumn].grid(which = 'both')
                     axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.PSD[ii][1:]))
+                elif ii < num_subplots and nRows==1:
+                    axes[jColumn].set_title(noise.channNames[ii])
+                    axes[jColumn].set_xlabel('frequency [Hz]')
+                    axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jColumn].grid(which = 'both')
+                    axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.PSD[ii][1:]))
+                elif nRows==1:
+                    axes[jColumn].axis('off')
                 else:
                     axes[iRow,jColumn].axis('off')
             plt.tight_layout() 
@@ -105,7 +113,7 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
         print('Need to calculate the PSD first')
         return
     else:
-        sns.set_context('poster', font_scale = 1.9)
+        sns.set_context('notebook', font_scale = 1.9)
         num_subplots = len(noise.channNames)
         nRows = int(ceil(num_subplots/2))
         nColumns = 2
@@ -118,7 +126,7 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
             else:
                 iRow = ii - nRows
                 jColumn = 1
-            if ii < num_subplots:    
+            if ii < num_subplots and nRows > 1:    
                 axes[iRow,jColumn].set_title(noise.channNames[ii])
                 axes[iRow,jColumn].set_xlabel('frequency [Hz]')
                 axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
@@ -126,6 +134,16 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
                 axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:]), label = 'real')
                 axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:]), label = 'imag')
                 axes[iRow,jColumn].legend()
+            elif ii < num_subplots and nRows==1:
+                axes[jColumn].set_title(noise.channNames[ii])
+                axes[jColumn].set_xlabel('frequency [Hz]')
+                axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[jColumn].grid(which = 'both')
+                axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:]), label = 'real')
+                axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:]), label = 'imag')
+                axes[jColumn].legend()
+            elif nRows==1:
+                axes[jColumn].axis('off')
             else:
                 axes[iRow,jColumn].axis('off')
         plt.tight_layout() 
@@ -305,7 +323,7 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
                 else:
                     iRow = ii - nRows
                     jColumn = 1
-                if ii < num_subplots:    
+                if ii < num_subplots and nRows > 1:    
                     axes[iRow,jColumn].set_title(noise.channNames[ii])
                     axes[iRow,jColumn].set_xlabel('frequency [Hz]')
                     axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
@@ -322,7 +340,27 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
                     if lgcSum:
                         axes[iRow,jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
                                    , label = 'total noise' ,alpha = 0.6)
-                    axes[iRow][jColumn].legend()
+                    axes[iRow,jColumn].legend()
+                elif ii < num_subplots and nRows==1:
+                    axes[jColumn].set_title(noise.channNames[ii])
+                    axes[jColumn].set_xlabel('frequency [Hz]')
+                    axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jColumn].grid(which = 'both')
+                    if lgcData:
+                        axes[jColumn].loglog(noise.freqs_CSD[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
+                                                  , label = 'data' ,alpha = 0.4)
+                    if lgcUnCorrNoise:
+                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
+                                                  , label = 'uncorrelated noise',alpha = 0.6)
+                    if lgcCorrelated:
+                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.corrNoise[ii][1:]) \
+                                                  , label = 'correlated noise' ,alpha = 0.6)
+                    if lgcSum:
+                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
+                                   , label = 'total noise' ,alpha = 0.6)
+                    axes[jColumn].legend()
+                elif nRows==1:
+                    axes[jColumn].axis('off')
                 else:
                     axes[iRow,jColumn].axis('off')
             plt.tight_layout() 
