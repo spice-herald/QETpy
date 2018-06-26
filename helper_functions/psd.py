@@ -74,18 +74,14 @@ def calc_offset(x, fs=625000.0, sgFreq=100.0, isDIDV=False):
     
     """
     
-    num_traces = x.shape[0]
-    offset = np.zeros(shape = num_traces)
-    offset_std = np.zeros(shape = num_traces)
-    
     if isDIDV:
         period =  1.0/sgFreq
         period_bins = period*fs
-        n_periods = int(x.shape[1]/period_bins)
-        x = x[:int(n_periods*period_bins)]
+        n_periods = int(x.shape[-1]/period_bins)
+        x = x[..., :int(n_periods*period_bins)]
            
-    offset = np.mean(np.mean(x,axis = -1))
-    std = np.std(np.mean(x,axis = -1))/np.sqrt(num_traces)
+    offset = np.mean(np.mean(x, axis=-1), axis=0)
+    std = np.std(np.mean(x, axis=-1), axis=0)/np.sqrt(x.shape[0])
     
     return offset, std
     
