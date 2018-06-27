@@ -1080,9 +1080,8 @@ class DIDV(object):
         dutycycle : float
             The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
         add180phase : boolean
-            If the signal generator is out of phase (i.e. if it looks like __-- instead of --__), then this
-            should be set to True. Equivalent to truncating the first half period of the signal generator 
-            from the trace
+            If the signal generator is out of phase (i.e. if it looks like --__ instead of __--), then this
+            should be set to True. Adds half a period of the signal generator to the dt0 attribute
         priors : ndarray
             Prior known values of Irwin's TES parameters for the trace. 
             Should be in the order of (rload,r0,beta,l,L,tau0,dt)
@@ -1196,48 +1195,47 @@ class DIDV(object):
         
         Parameters
         ----------
-        rawtraces : ndarray
-            The array of rawtraces to use when fitting the didv. Should be of shape (number of
-            traces, length of trace in bins). This can be any units, as long as tracegain will 
-            convert this to Amps.
-        fs : float
-            Sample rate of the data taken, in Hz
-        sgfreq : float
-            Frequency of the signal generator, in Hz
-        sgamp : float
-            Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
-        rshunt : float
-            Shunt resistance in the circuit, Ohms
-        tracegain : float, optional
-            The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
-            already has units of Amps, then this should be set to 1.0
-        r0 : float, optional
-            Resistance of the TES in Ohms. Should be set if the Irwin parameters are desired.
-        r0_err : float, optional
-            Error in the resistance of the TES (Ohms). Should be set if the Irwin parameters are desired.
-        rload : float, optional
-            Load resistance of the circuit (rload = rshunt + rparasitic), Ohms. Should be set if the
-            Irwin parameters are desired.
-        rload_err : float,optional
-            Error in the load resistance, Ohms. Should be set if the Irwin parameters are desired.
-        dutycycle : float, optional
-            The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
-        add180phase : boolean, optional
-            If the signal generator is out of phase (i.e. if it looks like __-- instead of --__), then this
-            should be set to True. Equivalent to truncating the first half period of the signal generator 
-            from the trace
-        priors : ndarray, optional
-            Prior known values of Irwin's TES parameters for the trace. 
-            Should be in the order of (rload,r0,beta,l,L,tau0,dt)
-        invpriorscov : ndarray, optional
-            Inverse of the covariance matrix of the prior known values of 
-            Irwin's TES parameters for the trace (any values that are set 
-            to zero mean that we have no knowledge of that parameter) 
-        dt0 : float, optional
-            The value of the starting guess for the time offset of the didv when fitting. 
-            The best way to use this value is to run the fit multiple times, setting dt0 equal to the fit's next value,
-            and seeing where the dt0 value converges. The fit has a difficult time finding the value
-            on the first run, so it is best to do this iteratively. 
+            rawtraces : ndarray
+                The array of rawtraces to use when fitting the didv. Should be of shape (number of
+                traces, length of trace in bins). This can be any units, as long as tracegain will 
+                convert this to Amps.
+            fs : float
+                Sample rate of the data taken, in Hz
+            sgfreq : float
+                Frequency of the signal generator, in Hz
+            sgamp : float
+                Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
+            rshunt : float
+                Shunt resistance in the circuit, Ohms
+            tracegain : float, optional
+                The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
+                already has units of Amps, then this should be set to 1.0
+            r0 : float, optional
+                Resistance of the TES in Ohms. Should be set if the Irwin parameters are desired.
+            r0_err : float, optional
+                Error in the resistance of the TES (Ohms). Should be set if the Irwin parameters are desired.
+            rload : float, optional
+                Load resistance of the circuit (rload = rshunt + rparasitic), Ohms. Should be set if the
+                Irwin parameters are desired.
+            rload_err : float,optional
+                Error in the load resistance, Ohms. Should be set if the Irwin parameters are desired.
+            dutycycle : float, optional
+                The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
+            add180phase : boolean, optional
+                If the signal generator is out of phase (i.e. if it looks like --__ instead of __--), then this
+                should be set to True. Adds half a period of the signal generator to the dt0 attribute
+            priors : ndarray, optional
+                Prior known values of Irwin's TES parameters for the trace. 
+                Should be in the order of (rload,r0,beta,l,L,tau0,dt)
+            invpriorscov : ndarray, optional
+                Inverse of the covariance matrix of the prior known values of 
+                Irwin's TES parameters for the trace (any values that are set 
+                to zero mean that we have no knowledge of that parameter) 
+            dt0 : float, optional
+                The value of the starting guess for the time offset of the didv when fitting. 
+                The best way to use this value is to run the fit multiple times, setting dt0 equal to the fit's next value,
+                and seeing where the dt0 value converges. The fit has a difficult time finding the value
+                on the first run, so it is best to do this iteratively. 
         """
         
         
