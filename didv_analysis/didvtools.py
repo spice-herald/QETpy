@@ -464,24 +464,24 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
     if (poles==1):
         # assume the square wave is not inverted
         p0 = (A0, tau20, dt)
-        bounds1 = ((0.0, 0.0, -1.0e-3),(np.inf, np.inf, 1.0e-3))
+        bounds1 = ((0.0, 0.0, -np.inf),(np.inf, np.inf, np.inf))
         # assume the square wave is inverted
         p02 = (-A0, tau20, dt)
-        bounds2 = ((-np.inf, 0.0, -1.0e-3),(0.0, np.inf, 1.0e-3))
+        bounds2 = ((-np.inf, 0.0, -np.inf),(0.0, np.inf, np.inf))
     elif (poles==2):
         # assume loop gain > 1, where B<0 and tauI<0
         p0 = (A0, B0, tau10, tau20, dt)
-        bounds1 = ((0.0, -np.inf, -np.inf, 0.0, -1.0e-3),(np.inf, 0.0, 0.0, np.inf, 1.0e-3))
+        bounds1 = ((0.0, -np.inf, -np.inf, 0.0, -np.inf),(np.inf, 0.0, 0.0, np.inf, np.inf))
         # assume loop gain < 1, where B>0 and tauI>0
         p02 = (A0, -B0, -tau10, tau20, dt)
-        bounds2 = ((0.0, 0.0, 0.0, 0.0, -1.0e-3),(np.inf, np.inf, np.inf, np.inf, 1.0e-3))
+        bounds2 = ((0.0, 0.0, 0.0, 0.0, -np.inf),(np.inf, np.inf, np.inf, np.inf, np.inf))
     elif (poles==3):
         # assume loop gain > 1, where B<0 and tauI<0
         p0 = (A0, B0, C0, tau10, tau20, tau30, dt)
-        bounds1 = ((0.0, -np.inf, -np.inf, -np.inf, 0.0, 0.0, -1.0e-3),(np.inf, 0.0, 0.0, 0.0, np.inf, np.inf, 1.0e-3))
+        bounds1 = ((0.0, -np.inf, -np.inf, -np.inf, 0.0, 0.0, -np.inf),(np.inf, 0.0, 0.0, 0.0, np.inf, np.inf, np.inf))
         # assume loop gain < 1, where B>0 and tauI>0
         p02 = (A0, -B0, -C0, -tau10, tau20, tau30, dt)
-        bounds2 = ((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0e-3),(np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1.0e-3))
+        bounds2 = ((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),(np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf))
         
     def residual(params):
         # define a residual for the nonlinear least squares algorithm 
@@ -721,7 +721,7 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
     """
     
     p0 = (rload, r0, beta, l, L, tau0, dt)
-    bounds=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0e-3),(np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 1.0e-3))
+    bounds=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),(np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf))
     
     def residualpriors(params, priors, invpriorscov):
         # priors = prior known values of rload, r0, beta, l, L, tau0 (2-pole)
@@ -1190,7 +1190,7 @@ class DIDV(object):
     """
     
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0, r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 timeoffset=0, dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
+                 dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
         """
         Initialization of the DIDV class object
         
@@ -1220,10 +1220,6 @@ class DIDV(object):
             Irwin parameters are desired.
         rload_err : float,optional
             Error in the load resistance, Ohms. Should be set if the Irwin parameters are desired.
-        timeoffset : float, optional
-            Absolute offset in time (s) to be manually applied. Should be used to line up the 
-            beginning of a signal generator frequency with the start of the trace. This just
-            truncates the front of the trace by the amount of time specified by this value.
         dutycycle : float, optional
             The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
         add180phase : boolean, optional
@@ -1238,9 +1234,8 @@ class DIDV(object):
             Irwin's TES parameters for the trace (any values that are set 
             to zero mean that we have no knowledge of that parameter) 
         dt0 : float, optional
-            The fine-tuned value of the starting guess for the time offset of the didv when fitting
-            (this should be used after setting the overall timeoffset). The best way to use this value
-            is to run the fit multiple times, setting dt0 equal to the fit's next value,
+            The value of the starting guess for the time offset of the didv when fitting. 
+            The best way to use this value is to run the fit multiple times, setting dt0 equal to the fit's next value,
             and seeing where the dt0 value converges. The fit has a difficult time finding the value
             on the first run, so it is best to do this iteratively. 
         """
@@ -1256,7 +1251,6 @@ class DIDV(object):
         self.rload = rload
         self.rload_err = rload_err
         self.rshunt = rshunt
-        self.timeoffset = timeoffset
         self.tracegain = tracegain
         self.dutycycle = dutycycle
         self.add180phase = add180phase
@@ -1326,21 +1320,19 @@ class DIDV(object):
         #get trace x values (i.e. time) in seconds
         bins = np.arange(0, len(self.rawtraces[0]))
 
-        # add half a period of the square wave frequency if add180phase is True
+        # add half a period of the square wave frequency to the initial offset if add180phase is True
         if (self.add180phase):
-            self.timeoffset = self.timeoffset + 1/(2*self.sgfreq)
+            self.dt0 = self.dt0 + 1/(2*self.sgfreq)
 
-        # apply time offset
-        self.time = bins*dt-self.timeoffset
-        indoffset = int(self.timeoffset*self.fs)
+        self.time = bins*dt
 
         #figure out how many didv periods are in the trace, including the time offset
         period = 1.0/self.sgfreq
-        nperiods = np.floor((max(self.time)-self.time[indoffset])/period)
+        nperiods = np.floor(max(self.time)/period)
 
-        # find which indices to keep in order to have an integer number of periods, as well as the inputted timeoffset
+        # find which indices to keep in order to have an integer number of periods
         indmax = int(nperiods*self.fs/self.sgfreq)
-        good_inds = range(indoffset, indmax+indoffset)
+        good_inds = range(0, indmax)
 
         # ignore the tail of the trace after the last period, as this tail just adds artifacts to the FFTs
         self.time = self.time[good_inds]
@@ -1362,7 +1354,6 @@ class DIDV(object):
         didvs=list()
 
         for trace in self.traces:
-
             # deconvolve the trace from the square wave to get the dI/dV in frequency domain
             didvi = deconvolvedidv(self.time,trace,self.rshunt,self.sgamp,self.sgfreq,self.dutycycle)[1]
             didvs.append(didvi)
@@ -1529,56 +1520,7 @@ class DIDV(object):
         if (self.priors is not None) and (self.invpriorscov is not None):
             self.dopriorsfit()
     
-    def getparams(self, poles, lgcirwin, lgcpriors):
-        """
-        Helper module that outputs parameters and covariance matrices for
-        various fits. This is meant to make the process a little easier, but these
-        values can also accessed directly. If the parameters/covariance matrix are not
-        available, then None is returned.
-        
-        Parameters
-        ----------
-            poles : int
-                The number of poles for the fit that the params/cov are wanted. Should be 1, 2, or 3
-            lgcirwin : boolean
-                Boolean flag on whether we want the irwin parameters (True) or the fit parameters (False)
-            lgcpriors : boolean
-                Boolean flag on whether we want the values from the priors fit (True) or the 
-                non-priors fit (False)
-        
-        Returns
-        -------
-            params : ndarray
-                The corresponding parameters that were asked for. Returns None if the parameters
-                have not been calculated or are not available.
-            cov : ndarray
-                The corresponding covariance matrix that was asked for. Returns None if the covariance
-                matrix has not been calculated or is not available.
-                
-        """
-        
-        if lgcpriors == False:
-            if lgcirwin == True:
-                params = getattr(self, "irwinparams"+str(poles))
-                cov = getattr(self, "irwincov"+str(poles))
-            else:
-                params = getattr(self, "fitparams" + str(poles))
-                cov = getattr(self, "fitcov"+str(poles))
-        else:
-            if poles ==2:
-                if lgcirwin == True:
-                    params = getattr(self, "irwinparams" + str(poles)+"priors")
-                    cov = getattr(self, "irwincov" + str(poles)+"priors")
-                else:
-                    params = getattr(self, "fitparams" + str(poles) + "priors")
-                    cov = getattr(self, "fitcov" + str(poles) + "priors")
-            else:
-                params = None
-                cov = None
-        
-        return params, cov
-    
-    def plot_full_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename=""):
+    def plot_full_trace(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename=""):
         """
         Module to plot the entire trace in time domain
 
@@ -1603,7 +1545,7 @@ class DIDV(object):
         didvutils.plot_full_trace(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
     
-    def plot_single_period_of_trace(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+    def plot_single_period_of_trace(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
         """
         Module to plot a single period of the trace in time domain
 
@@ -1628,7 +1570,7 @@ class DIDV(object):
         didvutils.plot_single_period_of_trace(self, poles = poles, plotpriors = plotpriors, 
                                               lgcsave = lgcsave, savepath = savepath, savename = savename)
     
-    def plot_zoomed_in_trace(self, poles = 2, zoomfactor = 0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+    def plot_zoomed_in_trace(self, poles = "all", zoomfactor = 0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
         """
         Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
         overshoot of the didv.
@@ -1656,7 +1598,7 @@ class DIDV(object):
         didvutils.plot_zoomed_in_trace(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
                                        lgcsave = lgcsave, savepath = savepath, savename = savename)
         
-    def plot_didv_flipped(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+    def plot_didv_flipped(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
         """
         Module to plot the flipped trace in time domain. This function should be used to 
         test if there are nonlinearities in the didv
@@ -1682,7 +1624,7 @@ class DIDV(object):
         didvutils.plot_didv_flipped(self, poles = poles, plotpriors = plotpriors, 
                                     lgcsave = lgcsave, savepath = savepath, savename = savename)
         
-    def plot_re_im_didv(self, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+    def plot_re_im_didv(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
         """
         Module to plot the real and imaginary parts of the didv in frequency space.
         Currently creates two different plots.

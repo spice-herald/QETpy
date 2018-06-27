@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_full_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_full_trace(didv, poles="all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot the entire trace in time domain
     
@@ -58,7 +58,7 @@ def plot_full_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     else:
         plt.show()
 
-def plot_single_period_of_trace(didv, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_single_period_of_trace(didv, poles="all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot a single period of the trace in time domain
     
@@ -117,7 +117,7 @@ def plot_single_period_of_trace(didv, poles = 2, plotpriors = True, lgcsave = Fa
     else:
         plt.show()
 
-def plot_zoomed_in_trace(didv, poles = 2, zoomfactor=0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
     overshoot of the didv.
@@ -178,7 +178,7 @@ def plot_zoomed_in_trace(didv, poles = 2, zoomfactor=0.1, plotpriors = True, lgc
     else:
         plt.show()
 
-def plot_didv_flipped(didv, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_didv_flipped(didv, poles="all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot the flipped trace in time domain. This function should be used to 
     test if there are nonlinearities in the didv
@@ -238,7 +238,7 @@ def plot_didv_flipped(didv, poles = 2, plotpriors = True, lgcsave = False, savep
     else:
         plt.show()
 
-def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+def plot_re_im_didv(didv, poles="all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
     Function to plot the real and imaginary parts of the didv in frequency space.
     Currently creates two different plots.
@@ -282,16 +282,20 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ax.plot(didv.freq[plotinds],np.real(didv.didvmean-didv.didvstd)[plotinds],color='black',alpha=0.1)
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.freq[fitinds],np.real(didv.didvfit1_freqdomain)[fitinds],color='magenta',label='1-pole fit')
+        ax.plot(didv.freq[fitinds],np.real(didv.didvfit1_freqdomain)[fitinds],
+                color='magenta',label='1-pole fit')
         
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.freq[fitinds],np.real(didv.didvfit2_freqdomain)[fitinds],color='green',label='2-pole fit')
+        ax.plot(didv.freq[fitinds],np.real(didv.didvfit2_freqdomain)[fitinds],
+                color='green',label='2-pole fit')
         
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.freq[fitinds],np.real(didv.didvfit3_freqdomain)[fitinds],color='orange',label='3-pole fit')
+        ax.plot(didv.freq[fitinds],np.real(didv.didvfit3_freqdomain)[fitinds],
+                color='orange',label='3-pole fit')
         
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.freq[fitinds],np.real(didv.didvfit2priors_freqdomain)[fitinds],color='cyan',label='2-pole fit with priors')
+        ax.plot(didv.freq[fitinds],np.real(didv.didvfit2priors_freqdomain)[fitinds],
+                color='cyan',label='2-pole fit with priors')
 
 
     ax.set_xlabel('Frequency (Hz)')
@@ -326,16 +330,20 @@ def plot_re_im_didv(didv, poles = 2, plotpriors = True, lgcsave = False, savepat
     ax.plot(didv.freq[plotinds],np.imag(didv.didvmean-didv.didvstd)[plotinds],color='black',alpha=0.1)
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit1_freqdomain)[fitinds],color='magenta',label='1-pole fit')
+        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit1_freqdomain)[fitinds],
+                color='magenta',label='1-pole fit')
         
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit2_freqdomain)[fitinds],color='green',label='2-pole fit')
+        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit2_freqdomain)[fitinds],
+                color='green',label='2-pole fit')
         
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit3_freqdomain)[fitinds],color='orange',label='3-pole fit')
+        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit3_freqdomain)[fitinds],
+                color='orange',label='3-pole fit')
         
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit2priors_freqdomain)[fitinds],color='cyan',label='2-pole fit with priors')
+        ax.plot(didv.freq[fitinds],np.imag(didv.didvfit2priors_freqdomain)[fitinds],
+                color='cyan',label='2-pole fit with priors')
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
