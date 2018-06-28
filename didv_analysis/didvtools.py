@@ -1395,7 +1395,7 @@ class DIDV(object):
             A0_1pole, tau20_1pole = squarewaveguessparams(self.tmean, self.sgamp, self.rshunt)
             
             # 1 pole fitting
-            self.fitparams1, self.fitcov1, self.fitcost1 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0_1pole, tau20=tau20_1pole, dt=self.dt0, poles=poles)
+            self.fitparams1, self.fitcov1, self.fitcost1 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0_1pole, tau20=tau20_1pole, dt=self.dt0, poles=poles, isloopgainsub1=False)
             
             # Convert parameters from 1-pole fit to the Irwin parameters
             self.irwinparams1, self.irwincov1 = converttotesvalues(self.fitparams1, self.fitcov1, self.r0, self.rload, r0_err=self.r0_err, rload_err=self.rload_err)
@@ -1414,7 +1414,7 @@ class DIDV(object):
             A0, B0, tau10, tau20, isloopgainsub1 = guessdidvparams(self.tmean, self.tmean[self.flatinds], self.sgamp, self.rshunt, L0=1.0e-7)
             
             # 2 pole fitting
-            self.fitparams2, self.fitcov2, self.fitcost2 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0, B0=B0, tau10=tau10, tau20=tau20, dt=self.dt0, poles=poles)
+            self.fitparams2, self.fitcov2, self.fitcost2 = fitdidv(self.freq, self.didvmean, yerr=self.didvstd, A0=A0, B0=B0, tau10=tau10, tau20=tau20, dt=self.dt0, poles=poles, isloopgainsub1=isloopgainsub1)
             
             # Convert parameters from 2-pole fit to the Irwin parameters
             self.irwinparams2, self.irwincov2 = converttotesvalues(self.fitparams2, self.fitcov2, self.r0, self.rload, r0_err=self.r0_err, rload_err=self.rload_err)
