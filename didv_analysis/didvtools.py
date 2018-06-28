@@ -1316,17 +1316,18 @@ class DIDV(object):
         dt = (1.0/self.fs) 
 
         #get trace x values (i.e. time) in seconds
-        bins = np.arange(0, len(self.rawtraces[0]))
+        nbins = len(self.rawtraces[0])
+        bins = np.arange(0, nbins)
 
         # add half a period of the square wave frequency to the initial offset if add180phase is True
         if (self.add180phase):
             self.dt0 = self.dt0 + 1/(2*self.sgfreq)
 
-        self.time = bins*dt
+        self.time = bins*dt - self.dt0
 
         #figure out how many didv periods are in the trace, including the time offset
         period = 1.0/self.sgfreq
-        nperiods = np.floor(max(self.time)/period)
+        nperiods = np.floor(nbins*dt/period)
 
         # find which indices to keep in order to have an integer number of periods
         indmax = int(nperiods*self.fs/self.sgfreq)
@@ -1343,10 +1344,12 @@ class DIDV(object):
         flatindstemp = list()
         for i in range(0, int(nperiods)):
             # get index ranges for flat parts of trace
-            flatindlow = int((float(i)+0.25)*period_unscaled)
-            flatindhigh = int((float(i)+0.48)*period_unscaled)
+            flatindlow = int((float(i)+0.25)*period_unscaled)+int(self.dt0*self.fs)
+            flatindhigh = int((float(i)+0.48)*period_unscaled)+int(self.dt0*self.fs)
             flatindstemp.append(range(flatindlow, flatindhigh))
-        self.flatinds = np.array(flatindstemp).flatten()
+        flatinds = np.array(flatindstemp).flatten()
+
+        self.flatinds = flatinds[np.logical_and(flatinds>0,flatinds<nbins)]
         
         #for storing results
         didvs=list()
