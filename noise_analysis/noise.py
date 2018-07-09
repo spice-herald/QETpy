@@ -35,11 +35,7 @@ class noise(object):
     correlations, and provides a fitting routine to de-couple the intrinsic noise
     from cross channel correlated noise. 
     '''
-    def __init__(self, traces, sampleRate, channNames, traceGain = 1.0, name = None, time = None \
-                 , PSD = None , real_PSD = None, imag_PSD = None, corrCoeff = None, unCorrNoise = None \
-                 , corrNoise = None, real_CSD = None, imag_CSD = None, real_CSD_std = None, imag_CSD_std = None \
-                 , CSD = None, freqs_CSD = None, sigR = None, sigC = None, reA = None, imA = None \
-                 , freqs_fit = None, results = None):
+    def __init__(self, traces, sampleRate, channNames, traceGain = 1.0, name = None, time = None):
         if len(traces.shape) == 1:
             raise ValueError("Need more than one trace")
         if len(traces.shape) == 2:
@@ -55,23 +51,18 @@ class noise(object):
         self.name = name
         self.traceGain = traceGain #convertion of trace amplitude from ADC bins to amperes 
         self.freqs = np.fft.rfftfreq(self.traces.shape[2],d = 1/sampleRate)
-        self.PSD = PSD
-        self.real_PSD = real_PSD
-        self.imag_PSD = imag_PSD
-        self.corrCoeff = corrCoeff
-        self.unCorrNoise = unCorrNoise
-        self.corrNoise = corrNoise
-        self.sigR = sigR
-        self.sigC = sigC
-        self.reA = reA
-        self.imA = imA
-        self.freqs_fit = freqs_fit
-        self.real_CSD = real_CSD
-        self.imag_CSD = imag_CSD
-        self.real_CSD_std = real_CSD_std
-        self.imag_CSD_std = imag_CSD_std
-        self.CSD = CSD
-        self.freqs_CSD = freqs_CSD
+        self.PSD = None
+        self.real_PSD = None
+        self.imag_PSD = None
+        self.corrCoeff = None
+        self.unCorrNoise = None
+        self.corrNoise = None
+        self.real_CSD = None
+        self.imag_CSD = None
+        self.real_CSD_std = None
+        self.imag_CSD_std = None
+        self.CSD = None
+
         
         temp_dict = {}
         for ind, chann in enumerate(channNames):
@@ -167,10 +158,28 @@ class noise(object):
             corr_coeff[n] = np.corrcoef(traces_fft_chan[:,:,n])
         
         self.corrCoeff = np.swapaxes(corr_coeff, 0, 2)
+    
+    def calculate_uncorr_noise(self):
+        
+        if self.CSD is None:
+            self.calculate_CSD()
+        else:
+            inv_CSD = np.zeros_like(self.CSD)
+            unCorrNoise = np.zeros(shape = (self.CSD.shape[0],self.CSD.shape[2]))
+            corrNoise = np.zeros(shape = (self.CSD.shape[0],self.CSD.shape[2]))
+            for ii in range(self.CSD.shape[2]):
+                inv_CSD[:,:,ii] = np.linalg.inv(self.CSD[:,:,ii])
+            for jj in range(self.CSD.shape[0]):
+                unCorrNoise[jj] = 1/np.abs(inv_CSD[jj][jj][:])
+                corrNoise[jj] = self.real_CSD[jj][jj]-1/np.abs(inv_CSD[jj][jj][:])
+
+            self.corrNoise = unCorrNoise
+            self.unCorrNoise = corrNoise
+            self.freqs_fit = self.freqs
         
         
        
-######################### de-correlation of noise ##########
+
     def calculate_CSD(self):
         '''
         Calculates the CSD for each channel in traces. Stores CSD in self.CSD
@@ -202,206 +211,24 @@ class noise(object):
         
         for iRow, jColumn in product(list(range(nRows)),repeat = 2):
             for n in range(nTraces):
-                freqs ,temp_CSD = csd(self.traces[n,iRow,:],self.traces[n,jColumn,:] \
+                _ ,temp_CSD = csd(self.traces[n,iRow,:],self.traces[n,jColumn,:] \
                                            , nperseg = lenCSD, fs = self.sampleRate, nfft = lenCSD )            
                 trace_CSD[iRow][jColumn][n] = temp_CSD  
             CSD_mean[iRow][jColumn] =  np.mean(trace_CSD[iRow][jColumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of CSD
-            # it is VERY difficult to get a good fit if this is not done.
             real_CSD_mean[iRow][jColumn] = noise_utils.fill_negatives(np.mean(np.real(trace_CSD[iRow][jColumn]),axis = 0))
             imag_CSD_mean[iRow][jColumn] = noise_utils.fill_negatives(np.mean(np.imag(trace_CSD[iRow][jColumn]),axis = 0))   
             real_CSD_std[iRow][jColumn] = noise_utils.fill_negatives(np.std(np.real(trace_CSD[iRow][jColumn]),axis = 0))
             imag_CSD_std[iRow][jColumn] = noise_utils.fill_negatives(np.std(np.imag(trace_CSD[iRow][jColumn]),axis = 0))
             
-        self.freqs_CSD = freqs
+
         self.CSD = CSD_mean
         self.real_CSD = real_CSD_mean
         self.imag_CSD = imag_CSD_mean
         self.real_CSD_std = real_CSD_std
         self.imag_CSD_std = imag_CSD_std
         
-    def calculate_deCorrelated_noise(self ,lgcReSample = True, nSamples = 1000, verbose = True):
-        '''
-        calculates the correlated and uncorrelated components of the noise spectrums. (See supplimental_note.pdf)
-        loops over all frequncies in freq_range and performs a non-linear least square minimization for each frequency.
-        Inputs: 
-            freq_range: list containg the starting and stopping index of the self.freqs_CSD to 
-                        be used in the fit. 
-            lgc_full_CSD: boolian, defaults to True. If the user wants to calculate the CSD
-                          to less precision, change this to False. This is passed to self.calculate_CSD() 
-                          if not already calulated.
-            lenCSD: int, the number of sample point to be used in the CSD calculation if 
-                    lgc_full_CSD is set to False. Defaults to 256.This is passed to self.calculate_CSD() 
-                    if not already calulated.
-            verbose: boolian. If True, progress of the fit is printed while running. If False, no print 
-                     statements are called.
-        Returns: None
-        '''
-        if self.real_CSD is None:
-            print('calculating CSD')
-            self.calculate_CSD()
-        if self.corrCoeff is None:
-            print('calculating correlation coefficients')
-            self.calculate_corrCoeff()
-        
-        if lgcReSample:
-            mask = np.logspace(start = 0,stop =np.log10(self.freqs.shape[0] - 1),num = nSamples,base = 10, endpoint=True, dtype=int)
-        else:
-            mask = np.ones_like(self.freqs,dtype=bool)
-        
-        
-        traceShape = self.traces.shape
-        nRows = traceShape[1]
-        nTraces = traceShape[0]
-        
-        freqs = self.freqs_CSD[:][mask]
-        fit_Fails = np.zeros(shape = (freqs.shape[0]), dtype = bool)
-        results = []
-        
-           
-        def equations(parameters,lgcReal, i , j):
-            '''
-            Function to return theoretical CSD for given parameters
-            Inputs:
-                parameters: array of variables
-                lgcReal: boolian, to determine if Re(CSD) of Im(CSD) should be
-                         returned
-                i: int, index of first variable
-                j: int, index of second variable
-            Returns:
-                theoretical CSD as a float
-            '''
-            reA = parameters[0:nRows]
-            imA = parameters[nRows:nRows*2]
-            sigR = parameters[nRows*2:-1] 
-            sigC = parameters[-1]
-            if lgcReal:
-                if i == j:
-                    return 2.0*(reA[i]*reA[j] + imA[i]*imA[j])*sigC + 2.0*sigR[i]
-                else:
-                    return 2.0*(reA[i]*reA[j] + imA[i]*imA[j])*sigC
-            else:
-                return 2.0*(imA[i]*reA[j]-reA[i]*imA[j])*sigC
-            
-            
-        def residual(parameters): 
-            '''
-            Calculates the residual. With an applied weight = (self.real_CSD_std[iRow][jColumn]/np.sqrt(nTraces))
-            residual = (real(imaginar)_CSD - equations)/weight
-            Inputs:
-                parameters: array of variables
-            Returns:
-                residual
-            '''
-            res = list()            
-            for iRow in range(nRows):
-                for jColumn in range(nRows):
-                    weight = (self.real_CSD_std[iRow][jColumn][mask][iFreq])/np.sqrt(nTraces)                                         
-                    if iRow >= jColumn:                                                                                                   
-                        temp = (self.real_CSD[iRow][jColumn][mask][iFreq] - equations(parameters,  True, iRow,jColumn))                                         
-                    else:                        
-                        temp = (self.imag_CSD[iRow][jColumn][mask][iFreq] - equations(parameters,  False, iRow,jColumn))                                                                        
-                    res.append(temp/weight)
-            res_ret = np.asarray(res)                      
-            return res_ret
     
-    
-        def get_guess(iFreq):
-            '''
-            Returns a list for the initial guess p0, and the bounds on the guess, for a given frequency
-            The reA and imA's are all guessed to be 0.5 and bounded between 0 and 1
-            sigC is guessed to be the mean of all the values in [CSD/(2*corrCoeff]
-            sigR is then guessed to be CSD/2 -sigC (see supplimentary_note.pdf)
-            
-            Inputs:
-                iFreq: float, a single frequency bin at which to calculate a guess
-            Returns:
-                p0: array of all guessed values
-                bounds: tuple with the lower and upper bounds on the parameters
-            '''        
-            np0 = nRows*3 + 1        
-            p0 = np.zeros(shape = np0, dtype = np.float64) 
-            sigR0 = np.zeros(shape = nRows)
-            sigC0 = []
-            reA0 = np.ones(shape = nRows)*0.5
-            imA0 = np.ones(shape = nRows)*0.5
-            for iRow in range(nRows):
-                for jColumn in range(nRows):
-                    if iRow != jColumn:
-                        sigC0.append(np.abs(self.CSD[iRow][jColumn][mask][iFreq])/(2.0*self.corrCoeff[iRow][jColumn][mask][iFreq]))
-            sigC0 = np.array(sigC0)
-            sigC0 = np.mean(sigC0, axis = 0)
-            sigC0 = np.array([sigC0])
-            for ii in range(nRows):
-                sigR0[ii] = np.abs(self.CSD[ii][ii][mask][iFreq])/2 - sigC0
-            p0 = np.concatenate((reA0,imA0,sigR0,sigC0))
-            imag_uppers = np.ones_like(imA0)
-            bounds_lower = np.concatenate((np.zeros_like(reA0),np.zeros_like(imA0), sigR0/1000.0 - 1.0, sigC0/1000.0 - 1.0))
-            bounds_upper = np.concatenate((np.ones_like(reA0),imag_uppers, sigR0*1000.0 + 1.0, sigC0*1000.0 + 1.0))
-            bounds = (bounds_lower, bounds_upper)
-            return p0, bounds
-                  
-        def results_to_variable(results):
-            '''
-            converts the list of result dictionaries into the original variables. Also uses the fitted 
-            variables to calculate the correlated and uncorrelated components of the nosie
-            
-            Inputs:
-                results: list of dictonaries, where each dectionary is what is returns from the least_squares fitting
-            Returns:
-                reA: array containing the best fit parameter for reA for each channel as a function of frequency
-                imA: array containing the best fit parameter for imA for each channel as a function of frequency
-                sigR: array containing the best fit parameter for sigR for each channel as a function of frequency
-                sigC: array containing the best fit parameter for sigC as a function of frequency
-                corr_noise: array containing the correlated noise calculated from the best fit parameters
-                unCorr_noise: array containing the uncorrelated noise calculated from the best fit parameters
-            '''
-            variables = np.zeros(shape = (len(results),nRows*3+1))
-            corr_noise = np.zeros(shape = (nRows, len(results)))
-            unCorr_noise = np.zeros(shape = (nRows, len(results)))
-            for ii, res in enumerate(results):
-                variables[ii] = results[ii]['x'] 
-            reA = np.swapaxes(variables[:,0:nRows],0,1)
-            imA = np.swapaxes(variables[:,nRows:nRows*2],0,1)
-            sigR = np.swapaxes(variables[:,nRows*2:-1],0,1)
-            sigC = variables[:,-1]
-            for ii in range(nRows):
-                corr_noise[ii] = 2*(reA[ii]**2 + imA[ii]**2)*sigC
-                unCorr_noise[ii] = 2*sigR[ii]
-            return reA, imA, sigR, sigC, corr_noise, unCorr_noise
-            
-        ###### Loop over all Frequencies and perform fit #######
-        for iFreq in range(freqs.shape[0]):
-        
-            
-            if verbose:
-                if iFreq % 50 == 0: 
-                    percentDoneStr = str(round((iFreq+1)/(freqs.shape[0]),3)*100.0)
-                    print('\n Fitting frequency bin ', iFreq , ' out of ',freqs.shape[0])
-                    print('\n ====== ', percentDoneStr ,'percent Done ================ ')
-            #iFreq += freq_range[0]
-            p0, bounds = get_guess(iFreq) #get guess
-            popt1 = least_squares(residual,p0,jac = 'cs',bounds=bounds,x_scale = 'jac' \
-                                  ,loss='linear',max_nfev=1000,verbose=0,xtol=1.0e-17,ftol=1.0e-17,f_scale=1.0)
-            # check if fit fialed, if it did, then we want to remove it from our good values
-            if not popt1['success']:
-                #fit_Fails[iFreq - freq_range[0]] = True
-                fit_Fails[iFreq] = True
-            if np.any(popt1['active_mask'] != 0):
-                #fit_Fails[iFreq - freq_range[0]] = True
-                fit_Fails[iFreq] = True
-            results.append(popt1)
-            reA, imA, sigR, sigC,corr_noise, unCorr_noise = results_to_variable(results)
-            
-        self.sigR = sigR[:,~fit_Fails]
-        self.sigC = sigC[~fit_Fails]
-        self.reA = reA[:,~fit_Fails]
-        self.imA = imA[:,~fit_Fails]
-        self.results = results
-        self.fit_Fails = fit_Fails
-        self.corrNoise = noise_utils.fill_negatives(corr_noise[:,~fit_Fails])
-        self.unCorrNoise = noise_utils.fill_negatives(unCorr_noise[:,~fit_Fails])
-        self.freqs_fit = freqs[~fit_Fails]
       
         
             
@@ -418,10 +245,10 @@ class noise(object):
         
         
                    
-    def plot_corrCoeff(self, lgcSave = False, savePath = None):
+    def plot_corrCoeff(self, lgcSmooth = True, nWindow = 7,lgcSave = False, savePath = None):
 
         
-        noise_utils.plot_corrCoeff(self, lgcSave, savePath)
+        noise_utils.plot_corrCoeff(self,lgcSmooth, nWindow, lgcSave, savePath)
         
                       
     def plot_CSD(self, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath = None):
