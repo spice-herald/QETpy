@@ -38,7 +38,7 @@ def plot_PSD(noise, lgc_overlay = True, lgcSave = False, savePath = None):
         ### Overlay plot
         if lgc_overlay:
             sns.set_context('notebook')
-            plt.figure()
+            plt.figure(figsize = (12,8))
             plt.title('{} PSD'.format(noise.name))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
@@ -113,7 +113,7 @@ def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
         print('Need to calculate the PSD first')
         return
     else:
-        sns.set_context('notebook', font_scale = 1.9)
+        sns.set_context('poster', font_scale = 1.9)
         num_subplots = len(noise.channNames)
         nRows = int(ceil(num_subplots/2))
         nColumns = 2
@@ -178,7 +178,7 @@ def plot_corrCoeff(noise, lgcSmooth = True, nWindow = 7, lgcSave = False, savePa
         return
     else:
         sns.set_context('notebook')
-        plt.figure()
+        plt.figure(figsize = (12,8))
         plt.title('{} \n Cross Channel Correlation Coefficients'.format(noise.name) )
         for ii in range(noise.corrCoeff.shape[0]):
             for jj in range(noise.corrCoeff.shape[1]):
@@ -221,7 +221,7 @@ def plot_CSD(noise, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath =
     Returns:
     None
     '''
-    if ((noise.CSD is None) or (noise.freqs_CSD is None)):
+    if noise.CSD is None:
         print('Must calculate the CSD first')
         return
     else:
@@ -240,19 +240,19 @@ def plot_CSD(noise, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath =
                 return
 
         for ii in range(len(x_plt_label)):
-            plt.figure()
+            plt.figure(figsize = (12,8))
             if lgcReal:
                 title = '{} Re(CSD) for channels: {}-{}'.format(noise.name,noise.channNames[x_plt_label[ii]] \
                                                               ,noise.channNames[y_plt_label[ii]])
 
-                plt.loglog(noise.freqs_CSD[1:],noise.real_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
+                plt.loglog(noise.freqs[1:],noise.real_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
             else:
                 title = '{} Im(CSD) for channels: {}-{}'.format(noise.name,noise.channNames[x_plt_label[ii]] \
                                                               ,noise.channNames[y_plt_label[ii]])
 
-                plt.loglog(noise.freqs_CSD[1:],noise.imag_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
+                plt.loglog(noise.freqs[1:],noise.imag_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
             plt.title(title)
-            plt.grid(which = 'both')
+            plt.grid(True, which = 'both')
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'CSD [A$^2$/Hz]')
             
@@ -293,13 +293,13 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
         ### Overlay plot
         if lgc_overlay:
             sns.set_context('notebook')
-            plt.figure()
+            plt.figure(figsize = (12,8))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
             plt.grid(which = 'both')
             plt.title('{} de-correlated noise'.format(noise.name))
             for ichan, channel in enumerate(noise.channNames):
-                    plt.loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ichan][1:]), label = channel)
+                    plt.loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ichan][1:]), label = channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
             
             if lgcSave:
@@ -329,16 +329,16 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
                     axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
                     axes[iRow,jColumn].grid(which = 'both')
                     if lgcData:
-                        axes[iRow,jColumn].loglog(noise.freqs_CSD[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
+                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
                                                   , label = 'data' ,alpha = 0.4)
                     if lgcUnCorrNoise:
-                        axes[iRow,jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
+                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
                                                   , label = 'uncorrelated noise',alpha = 0.6)
                     if lgcCorrelated:
-                        axes[iRow,jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.corrNoise[ii][1:]) \
+                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.corrNoise[ii][1:]) \
                                                   , label = 'correlated noise' ,alpha = 0.6)
                     if lgcSum:
-                        axes[iRow,jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
+                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
                                    , label = 'total noise' ,alpha = 0.6)
                     axes[iRow,jColumn].legend()
                 elif ii < num_subplots and nRows==1:
@@ -347,16 +347,16 @@ def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrN
                     axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
                     axes[jColumn].grid(which = 'both')
                     if lgcData:
-                        axes[jColumn].loglog(noise.freqs_CSD[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
+                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
                                                   , label = 'data' ,alpha = 0.4)
                     if lgcUnCorrNoise:
-                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
+                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
                                                   , label = 'uncorrelated noise',alpha = 0.6)
                     if lgcCorrelated:
-                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.corrNoise[ii][1:]) \
+                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.corrNoise[ii][1:]) \
                                                   , label = 'correlated noise' ,alpha = 0.6)
                     if lgcSum:
-                        axes[jColumn].loglog(noise.freqs_fit[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
+                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
                                    , label = 'total noise' ,alpha = 0.6)
                     axes[jColumn].legend()
                 elif nRows==1:
@@ -395,7 +395,7 @@ def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, 
         for chan in channels:
             if chan in set(sum([arr[ii].channNames for ii in range(len(arr))],[])): #check if channel is in 
                 # any of the noise objects before creating a figure
-                plt.figure()
+                plt.figure(figsize = (12,8))
                 plt.title(chan) 
                 plt.xlabel('Frequency [Hz]')
                 plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
@@ -407,7 +407,7 @@ def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, 
                         if lgc_decorrelatedNoise:
                             #check that de correlated noise has been calculated
                             if arr[ii].unCorrNoise is not None:
-                                plt.loglog(arr[ii].freqs_fit[1:], np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
+                                plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
                                            , label = arr[ii].name+' de-correlated noise')
                             else:
                                 print('The de-correlated noise for file: {} has not been calculated yet'.format(arr[ii].name))
