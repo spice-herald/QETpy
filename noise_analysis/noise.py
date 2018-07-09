@@ -40,6 +40,10 @@ class noise(object):
                  , corrNoise = None, real_CSD = None, imag_CSD = None, real_CSD_std = None, imag_CSD_std = None \
                  , CSD = None, freqs_CSD = None, sigR = None, sigC = None, reA = None, imA = None \
                  , freqs_fit = None, results = None):
+        if len(traces.shape) == 1:
+            raise ValueError("Need more than one trace")
+        if len(traces.shape) == 2:
+            traces = np.expand_dims(traces,1)
         
         if len(channNames) != traces.shape[1]:
             raise ValueError("the number of channel names must mach the number of channes in traces!")
@@ -82,50 +86,7 @@ class noise(object):
         
         
     
-    def set_freqs(self, freqs):
-        self.freqs = freqs
-    def set_traceGain(self, traceGain):
-        self.traceGain = traceGain
-    def set_sampleRate(self, sampleRate):
-        self.sampleRate = sampleRate
-    def set_channNames(self, channNames):
-        self.channNames = channNames
-    def set_name(self, name):
-        self.name = name
-    def set_PSD(self, PSD):
-        self.PSD = PSD
-    def set_real_PSD(self, real_PSD):
-        self.real_PSD = real_PSD
-    def set_imag_PSD(selt, imag_PSD):
-        self.imag_PSD = imag_PSD
-    def set_corrCoeff(self, corrCoeff):
-        self.corrCoeff = corrCoeff
-    def set_unCorrNoise(self, unCorrNoise):
-        self.unCorrNoise = unCorrNoise
-    def set_corrNoise(self, corrNoise):
-        self.corrNoise = corrNoise
-    def set_sigR(self, sigR):
-        self.sigR = sigR
-    def set_sigC(self,sigC):
-        self.sigC = sigC
-    def set_reA(self,reA):
-        self.reA = reA
-    def set_imA(self, imA):
-        self.imA = imA
-    def set_freqs_fit(self, freqs_fit):
-        self.freqs_fit = freqs_fit
-    def set_real_CSD(self, real_CSD):
-        self.real_CSD = real_CSD
-    def set_imag_CSD(self,imag_CSD):
-        self.imag_CSD = imag_CSD
-    def set_real_CSD_std(self, real_CSD_std):
-        self.real_CSD_std = real_CSD_std
-    def set_imag_CSD_std(self, imag_CSD_std):
-        self.imag_CSD_std = imag_CSD_std
-    def set_CSD(self,CSD):
-        self.CSD = CSD
-    def set_freqs_CSD(self, freqs, CSD):
-        self.freqs_CSD = freqs_CSD
+    
     
     def remove_trace_slope(self):
         '''
@@ -189,6 +150,9 @@ class noise(object):
         Returns: None
         ''' 
         nsizeMatrix = self.traces.shape[1]
+        if nsizeMatrix == 1:
+            raise ValueError("Need more than one channel to calculate cross channel correlations")
+            
         if self.traces.shape[2] % 2 != 0:
             lenPSD = int((self.traces.shape[2] + 1)/2)
         else:
@@ -215,6 +179,8 @@ class noise(object):
         Returns: None
         '''
         traceShape = self.traces.shape
+        if traceShape[1] == 1:
+            raise ValueError("Need more than one channel to calculate CSD")
 
         lenCSD = traceShape[2]
       
