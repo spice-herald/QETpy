@@ -276,7 +276,7 @@ class noise(object):
             pickle.dump(self, saveFile, pickle.HIGHEST_PROTOCOL)
             
             
-class TESvariables:
+class TESnoisesim(object):
 
     def __init__(self,
                  Rl=0.035,
