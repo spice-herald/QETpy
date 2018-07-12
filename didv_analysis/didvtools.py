@@ -1521,6 +1521,41 @@ class DIDV(object):
         if (self.priors is not None) and (self.invpriorscov is not None):
             self.dopriorsfit()
     
+    def get_irwinparams_dict(self,poles):
+        """
+        Returns a dictionary with the irwin fit parameters for a given number of poles
+        """
+        
+        
+        return_dict = {}
+        
+        if (poles == 1 and self.irwinparams1 is not None):
+            return_dict['rtot'] = self.irwinparams1[0]
+            return_dict['L'] = self.irwinparams1[1]
+            return_dict['r0'] = self.irwinparams1[2]
+            return_dict['rload'] = self.irwinparams1[3]
+            return_dict['dt'] = self.irwinparams1[4]   
+            return return_dict
+        if (poles == 2 and self.irwinparams1 is not None):
+            return_dict['rload'] = self.irwinparams2[0]
+            return_dict['r0'] = self.irwinparams2[1]
+            return_dict['beta'] = self.irwinparams2[2]
+            return_dict['l'] = self.irwinparams2[3]
+            return_dict['L'] = self.irwinparams2[4]
+            return_dict['tau0'] = self.irwinparams2[5]
+            return_dict['dt'] = self.irwinparams2[6]
+            return_dict['tau_eff'] = self.falltimes2[-1]
+            return return_dict
+        if poles == 3:
+            print('No Irwin Parameters for 3 pole fit')
+            return 
+        else:
+            raise ValueError('poles must be 1,2, or 3')
+            
+        
+        
+        
+        
     def plot_full_trace(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename=""):
         """
         Module to plot the entire trace in time domain
