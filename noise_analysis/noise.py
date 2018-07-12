@@ -13,6 +13,7 @@ from scipy.signal import csd
 from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 from itertools import product, combinations
+import scipy.constants as constants
 
 pathToTraces = os.path.abspath('/nervascratch/cwfink/scdmsPyTools/scdmsPyTools/Traces/')
 if pathToTraces not in sys.path:
@@ -35,6 +36,7 @@ class noise(object):
     correlations, and provides a fitting routine to de-couple the intrinsic noise
     from cross channel correlated noise. 
     '''
+    
     def __init__(self, traces, sampleRate, channNames, traceGain = 1.0, name = None, time = None):
         if len(traces.shape) == 1:
             raise ValueError("Need more than one trace")
@@ -291,6 +293,7 @@ class TESnoisesim(object):
                  G=5.0e-10,
                  Tb=0.020,
                  n=5.0,
+                 freqs = None,
                  lgcB=True,
                  squidDC=2.5e-12,
                  squidPole=0.0,
@@ -309,8 +312,10 @@ class TESnoisesim(object):
         self.n=n                     # power-law dependence f=of power flow to heat bath
         self.lgcB=lgcB               # logical that determines whether we use the ballistic or diffusive limit when calculating TFN power noise
         
-        
-        self.freqs = np.logspace(0, 5.5, 10000)                 # frequency bins 
+        if freqs is None:
+            self.freqs = np.logspace(0, 5.5, 10000)             # frequency bins 
+        else:
+            self.freqs = freqs
         self.omega = 2.0*np.pi*self.freqs                       # angular frequcny bins
         self.P0 = self.I0**2.0 * self.R0                        # bias power
         self.C=self.tau0*self.G                                 # heat capacity
