@@ -460,7 +460,7 @@ def load_noise(file_str):
     
     
     
-def plot_noise_sim(f,psd, noise_sim, isType, figsize = (12,8),lgcSave=False, savePath = ''):
+def plot_noise_sim(f, psd, noise_sim, isType, figsize = (12,8),lgcSave=False, savePath = ''):
     """
     plots psd with simulated noise model
     
@@ -484,25 +484,25 @@ def plot_noise_sim(f,psd, noise_sim, isType, figsize = (12,8),lgcSave=False, sav
     
     
     plt.figure(figsize=figsize)
-    plt.title(f"{isType} noise for $R_0$ : {noise_sim.R0*1e3:.0f} $m\Omega$")
+    plt.title(f"{isType} noise for $R_0$ : {noise_sim.r0*1e3:.0f} $m\Omega$")
     plt.grid(True, which = 'both')
     plt.xlabel(r'Frequency [Hz]')
     
     if isType is 'current':
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Ites())),label=r'$\sqrt{S_{ITES}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Iload())),label=r'$\sqrt{S_{ILoad}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Itfn())),label=r'$\sqrt{S_{ITFN}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Itot())),label=r'$\sqrt{S_{Itot}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Isquid())),label=r'$\sqrt{S_{Isquid}}$')
-        plt.loglog(freqs,np.sqrt(psd), label ='data')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), label=r'$\sqrt{S_{ITES}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), label=r'$\sqrt{S_{ILoad}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), label=r'$\sqrt{S_{ITFN}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), label=r'$\sqrt{S_{Itot}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), label=r'$\sqrt{S_{Isquid}}$')
+        plt.loglog(freqs, np.sqrt(psd), label ='data')
     
     elif isType is 'power':
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Ptes())),label=r'$\sqrt{S_{PTES}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Pload())),label=r'$\sqrt{S_{PLoad}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Ptfn())),label=r'$\sqrt{S_{PTFN}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Ptot())),label=r'$\sqrt{S_{Ptot}}$')
-        plt.loglog(noise_sim.freqs,np.sqrt(np.abs(noise_sim.S_Psquid())),label=r'$\sqrt{S_{Psquid}}$')
-        plt.loglog(freqs,np.sqrt(psd/(np.abs(noise_sim.dIdP())**2)), label ='data')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), label=r'$\sqrt{S_{PTES}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), label=r'$\sqrt{S_{PLoad}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), label=r'$\sqrt{S_{PTFN}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptot())), label=r'$\sqrt{S_{Ptot}}$')
+        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_psquid())), label=r'$\sqrt{S_{Psquid}}$')
+        plt.loglog(freqs, np.sqrt(psd/(np.abs(noise_sim.dIdP(freqs))**2)), label ='data')
         plt.ylabel(r'Input Referenced Power Noise [W/$\sqrt{\mathrm{Hz}}$]')
         
         
