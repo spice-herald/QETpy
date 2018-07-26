@@ -2,7 +2,7 @@ import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
-import didvutils
+import utils
 
 
 def stdcomplex(x, axis=0):
@@ -365,7 +365,7 @@ def guessdidvparams(trace, flatpts, sgamp, rshunt, L0=1.0e-7):
             The peak-to-peak size of the square wave jitter (in Amps)
         rshunt : float
             Shunt resistance of the TES electronics (in Ohms)
-        L0 : float
+        L0 : float, optional
             The guess of the inductance (in Henries)
         
     Returns
@@ -425,30 +425,33 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
             Frequencies corresponding to the didv
         didv : ndarray
             Complex impedance extracted from the trace in frequency space
-        yerr : ndarray
+        yerr : ndarray, NoneType, optional
             Error at each frequency of the didv. Should be a complex number, 
             e.g. yerr = yerr_real + 1.0j * yerr_imag, where yerr_real is the 
             standard deviation of the real part of the didv, and yerr_imag is 
-            the standard deviation of the imaginary part of the didv
-        A0 : float
-            Guess of the fit parameter A (in Ohms)
-        B0 : float
-            Guess of the fit parameter B (in Ohms)
-        C0 : float
-            Guess of the fit parameter C
-        tau10 : float
-            Guess of the fit parameter tau1 (in s)
-        tau20 : float
-            Guess of the fit parameter tau2 (in s)
-        tau30 : float
-            Guess of the fit parameter tau3 (in s)
-        dt : float
-            Guess of the time shift (in s)
-        poles : int
-            The number of poles to use in the fit (should be 1, 2, or 3)
-        isloopgainsub1 : boolean, NoneType
+            the standard deviation of the imaginary part of the didv. If left as None,
+            then each frequency will be assumed to be equally weighted.
+        A0 : float, optional
+            Guess of the fit parameter A (in Ohms). Default is 0.25.
+        B0 : float, optional
+            Guess of the fit parameter B (in Ohms). Default is -0.6.
+        C0 : float, optional
+            Guess of the fit parameter C (unitless). Default is -0.6.
+        tau10 : float, optional
+            Guess of the fit parameter tau1 (in s). Default is -1.0/(2*pi*5e2).
+        tau20 : float, optional
+            Guess of the fit parameter tau2 (in s). Default is 1.0/(2*pi*1e5).
+        tau30 : float, optional
+            Guess of the fit parameter tau3 (in s). Default is 0.0.
+        dt : float, optional
+            Guess of the time shift (in s). Default is -10.0e-6.
+        poles : int, optional
+            The number of poles to use in the fit (should be 1, 2, or 3). Default is 2.
+        isloopgainsub1 : boolean, NoneType, optional
             If set, should be used to specify if the fit should be done assuming
             that the Irwin loop gain is less than 1 (True) or greater than 1 (False).
+            Default is None, in which case loop gain less than 1 and greater than 1 
+            fits will be done, returning the one with a lower Chi^2.
         
     Returns
     -------
@@ -484,8 +487,20 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
         bounds2 = ((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),(np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf))
         
     def residual(params):
-        # define a residual for the nonlinear least squares algorithm 
-        # different functions for different amounts of poles
+        """
+        Define a residual for the nonlinear least squares algorithm. Different
+        functions for different amounts of poles.
+        
+        Parameters
+        ----------
+            params : array_like
+                The parameters to be used for calculating the residual.
+            
+        Returns
+        -------
+            z1d : ndarray
+                The residual array for the real and imaginary parts for each frequency.
+        """
         if (poles==1):
             A, tau2, dt = params
             ci = onepoleadmittance(freq, A, tau2) * np.exp(-2.0j*pi*freq*dt)
@@ -556,10 +571,10 @@ def converttotesvalues(popt, pcov, r0, rload, r0_err=0.001, rload_err=0.001):
             The resistance of the TES (in Ohms)
         rload : float
             The load resistance of the TES circuit (in Ohms)
-        r0_err : float
-            The error in the r0 value (in Ohms)
-        rload_err : float
-            The error in the rload value (in Ohms)
+        r0_err : float, optional
+            The error in the r0 value (in Ohms). Default is 0.001.
+        rload_err : float, optional
+            The error in the rload value (in Ohms). Default is 0.001.
         
     Returns
     -------
@@ -689,25 +704,26 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
             Inverse of the covariance matrix of the prior known values of 
             Irwin's TES parameters for the trace (any values that are set 
             to zero mean that we have no knowledge of that parameter) 
-        yerr : ndarray
+        yerr : ndarray, optional
             Error at each frequency of the didv. Should be a complex number,
             e.g. yerr = yerr_real + 1.0j * yerr_imag, where yerr_real is the 
             standard deviation of the real part of the didv, and yerr_imag is 
-            the standard deviation of the imaginary part of the didv
-        rload : float
-            Guess of the load resistance of the TES circuit (in Ohms)
-        r0 : float
-            Guess of the resistance of the TES (in Ohms)
-        beta : float
-            Guess of the current sensitivity beta
-        l : float
-            Guess of Irwin's loop gain
-        L : float
-            Guess of the inductance (in Henrys)
-        tau0 : float
-            Guess of the thermal time constant (in s)
-        dt : float
-            Guess of the time shift (in s)
+            the standard deviation of the imaginary part of the didv. If left as None,
+            then each frequency will be assumed to be equally weighted.
+        rload : float, optional
+            Guess of the load resistance of the TES circuit (in Ohms). Default is 0.35.
+        r0 : float, optional
+            Guess of the resistance of the TES (in Ohms). Default is 0.130.
+        beta : float, optional
+            Guess of the current sensitivity beta (unitless). Default is 0.5.
+        l : float, optional
+            Guess of Irwin's loop gain (unitless). Default is 10.0.
+        L : float, optional
+            Guess of the inductance (in Henrys). Default is 500.0e-9.
+        tau0 : float, optional
+            Guess of the thermal time constant (in s). Default is 500.0e-6.
+        dt : float, optional
+            Guess of the time shift (in s). Default is -10.0e-6.
         
     Returns
     -------
@@ -731,8 +747,19 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
         return z1dpriors
         
     def residual(params):
-        # define a residual for the nonlinear least squares algorithm
-        # different functions for different amounts of poles
+        """
+        Define a residual for the nonlinear least squares algorithm for the priors fit.
+        
+        Parameters
+        ----------
+            params : array_like
+                The parameters to be used for calculating the residual.
+            
+        Returns
+        -------
+            z1d : ndarray
+                The residual array for the real and imaginary parts for each frequency.
+        """
         rload, r0, beta, l, L, tau0, dt=params
         ci = twopoleadmittancepriors(freq, rload, r0, beta, l, L, tau0) * np.exp(-2.0j*pi*freq*dt)
         
@@ -752,6 +779,20 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
         return z1d
 
     def jaca(params):
+        """
+        Create the analytic Jacobian matrix for calculating the errors in the 
+        priors parameters.
+        
+        Parameters
+        ----------
+            params : array_like
+                The parameters to be used for calculating the residual.
+            
+        Returns
+        -------
+            jac : ndarray
+                The jacobian matrix for the parameters.
+        """
         # analytically calculate the Jacobian for 2 pole and three pole cases
         popt = params
 
@@ -1578,7 +1619,7 @@ class DIDV(object):
                 by default.
         """
     
-        didvutils.plot_full_trace(self, poles = poles, plotpriors = plotpriors, 
+        utils.plot_full_trace(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
     
     def plot_single_period_of_trace(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -1603,7 +1644,7 @@ class DIDV(object):
                 by default.
         """
     
-        didvutils.plot_single_period_of_trace(self, poles = poles, plotpriors = plotpriors, 
+        utils.plot_single_period_of_trace(self, poles = poles, plotpriors = plotpriors, 
                                               lgcsave = lgcsave, savepath = savepath, savename = savename)
     
     def plot_zoomed_in_trace(self, poles = "all", zoomfactor = 0.1, plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -1631,7 +1672,7 @@ class DIDV(object):
                 by default.
         """
         
-        didvutils.plot_zoomed_in_trace(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
+        utils.plot_zoomed_in_trace(self, poles = poles, zoomfactor = zoomfactor, plotpriors = plotpriors, 
                                        lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_didv_flipped(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -1657,7 +1698,7 @@ class DIDV(object):
                 by default.
         """
     
-        didvutils.plot_didv_flipped(self, poles = poles, plotpriors = plotpriors, 
+        utils.plot_didv_flipped(self, poles = poles, plotpriors = plotpriors, 
                                     lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_re_im_didv(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -1683,6 +1724,6 @@ class DIDV(object):
                 by default.
         """
         
-        didvutils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
+        utils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
     

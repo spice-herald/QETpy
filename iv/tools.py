@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-import ivutils
+import utils
 
 def fitfunc(x, b, m):
     """
@@ -303,7 +303,7 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        axes = ivutils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
+        axes = utils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return axes
         
@@ -329,7 +329,7 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        axes = ivutils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        axes = utils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return axes
         
@@ -355,7 +355,7 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        axes = ivutils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        axes = utils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return axes
         
@@ -383,7 +383,7 @@ class IV(object):
                 Name to append to the plot file name, if saving
         """
         
-        ivutils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
+        utils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                                 savepath=savepath, savename=savename)
         
         
