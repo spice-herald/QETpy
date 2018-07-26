@@ -1521,7 +1521,7 @@ class DIDV(object):
         if (self.priors is not None) and (self.invpriorscov is not None):
             self.dopriorsfit()
     
-    def get_irwinparams_dict(self,poles):
+    def get_irwinparams_dict(self, poles):
         """
         Returns a dictionary with the irwin fit parameters for a given number of poles
         """
@@ -1536,7 +1536,7 @@ class DIDV(object):
             return_dict['rload'] = self.irwinparams1[3]
             return_dict['dt'] = self.irwinparams1[4]   
             return return_dict
-        if (poles == 2 and self.irwinparams1 is not None):
+        if (poles == 2 and self.irwinparams2 is not None):
             return_dict['rload'] = self.irwinparams2[0]
             return_dict['r0'] = self.irwinparams2[1]
             return_dict['beta'] = self.irwinparams2[2]
