@@ -1,11 +1,6 @@
 """ 
 Created by Caleb Fink 5/7/2018
 """
-
-
-import os
-import sys
-
 import numpy as np
 from scipy.signal import savgol_filter
 from math import ceil
@@ -14,266 +9,396 @@ from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 from itertools import product, combinations
 import scipy.constants as constants
-
-pathToTraces = os.path.abspath('/nervascratch/cwfink/scdmsPyTools/scdmsPyTools/Traces/')
-if pathToTraces not in sys.path:
-    sys.path.append(pathToTraces)
-
-#from scdmsPyTools.Traces.Stats import slope
-
-
-
-
 import pickle 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import utils
 
-import noise_utils 
-
-class noise(object):
-    '''
-    This is the beginnings of an analysis package to study noise related
-    parameters of interest in detector R&D work. This class allows the user
-    to cacluate the Power spectral densities of signals from detectors, study 
-    correlations, and provides a fitting routine to de-couple the intrinsic noise
-    from cross channel correlated noise. 
-    '''
+def slope(x, y, removemeans=True):
+    """
+    Computes the maximum likelihood slope of a set of x and y points.
     
-    def __init__(self, traces, sampleRate, channNames, traceGain = 1.0, name = None, time = None):
+    Parameters
+    ----------
+        x : array_like
+            Array of real-valued independent variables.
+        y : array_like
+            Array of real-valued dependent variables.
+        removemeans : boolean
+            Boolean flag for if the mean of x should be subtracted. This
+            should be set to True if x has not already had its mean subtracted.
+            Set to False if the mean has been subtracted. Default is True.
+            
+    Returns
+    -------
+        slope : float
+            Maximum likelihood slope estimate, calculated as
+            sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
+    """
+    
+    if removemeans:
+        slope = np.sum((x-np.mean(x))*(y-np.mean(x)))/np.sum((x-np.mean(x))**2)
+    else:
+        slope = np.sum(x*y)/np.sum(x**2)
+    return slope
+
+class Noise(object):
+    """
+    This class allows the user to calculate the power spectral densities of signals 
+    from detectors, study correlations, and decouple the intrinsic noise from cross 
+    channel correlated noise. 
+    
+    Attributes
+    ----------
+        traces : ndarray
+            Array of the traces to use in the noise analysis. Should be shape 
+            (# of traces, # of channels, # of bins)
+        fs : float
+            The digitization rate of the data in Hz.
+        channames : list
+            A list of strings that name each of the channels.
+        time : ndarray
+            The time values for each bin in each trace.
+        fname : str
+            The file name of the data, this will be used when saving the file.
+        tracegain : float
+            The factor that traces should be divided by to convert the units to Amps. If rawtraces
+            already has units of Amps, then this should be set to 1.0
+        freqs : ndarray
+            The frequencies that correspond to each value in the spectral densities
+        psd : ndarray
+            The power spectral density of the data in A^2/Hz
+        realpsd : ndarray
+            The real power spectral density of the data in A^2/Hz
+        imagpsd : ndarray
+            The imaginary power spectral density of the data in A^2/Hz
+        corrcoeff : ndarray
+            The array of the correlation coefficients between each of the channels
+        uncorrnoise : ndarray
+            The uncorrelated noise psd in A^2/Hz
+        corrnoise : ndarray
+            The correlated noise psd in A^2/Hz
+        realcsd : ndarray
+            The real part of the cross spectral density in A^2/Hz
+        imagcsd : ndarray
+            The imaginary part of the cross spectral density in A^2/Hz
+        realcsdstd : ndarray
+            The standard deviation of the real part of the cross spectral density at each frequency
+        imagcsdstd : ndarray 
+            The standard deviation of the imaginary part of the cross spectral density at each frequency
+        csd : ndarray
+            The cross spectral density of the traces
+        chandict : dict
+            A dictionary that stores the channel number for each channel name.
+    """
+    
+    def __init__(self, traces, fs, channames, tracegain = 1.0, fname = None, time = None):
+        """
+        Initialization of the Noise object.
+        
+        Parameters
+        ----------
+            traces : ndarray
+                Array of the traces to use in the noise analysis. Should be shape 
+                (# of traces, # of channels, # of bins)
+            fs : float
+                The digitization rate of the data in Hz.
+            channames : list
+                A list of strings that name each of the channels.
+            tracegain : float, optional
+                The factor that traces should be divided by to convert the units to Amps. If rawtraces
+                already has units of Amps, then this should be set to 1.0
+            fname : str, optional
+                The file name of the data, this will be used when saving the file.
+            time : ndarray, optional
+                The time values for each bin in each trace.
+        """
         if len(traces.shape) == 1:
             raise ValueError("Need more than one trace")
         if len(traces.shape) == 2:
             traces = np.expand_dims(traces,1)
+        if len(channames) != traces.shape[1]:
+            raise ValueError("The number of channel names must match the number of channels in traces!")
         
-        if len(channNames) != traces.shape[1]:
-            raise ValueError("the number of channel names must mach the number of channes in traces!")
+        self.traces = traces/tracegain
+        self.fs = fs
+        self.channames = channames
         
-        self.traces = traces
-        self.sampleRate = sampleRate
-        self.channNames = channNames
-        self.time = time # array of x-values in units of time [sec]
-        self.name = name
-        self.traceGain = traceGain #convertion of trace amplitude from ADC bins to amperes 
-        self.freqs = np.fft.rfftfreq(self.traces.shape[2],d = 1/sampleRate)
-        self.PSD = None
-        self.real_PSD = None
-        self.imag_PSD = None
-        self.corrCoeff = None
-        self.unCorrNoise = None
-        self.corrNoise = None
-        self.real_CSD = None
-        self.imag_CSD = None
-        self.real_CSD_std = None
-        self.imag_CSD_std = None
-        self.CSD = None
-
-        
-        temp_dict = {}
-        for ind, chann in enumerate(channNames):
-            temp_dict[chann] = ind
+        if time is None:
+            self.time = np.arange(0, traces.shape[-1])/self.fs
+        else:
+            self.time = time # array of x-values in units of time [sec]
             
-        self.chann_dict = temp_dict
-        del temp_dict
-        
+        self.fname = fname
+        self.tracegain = tracegain #conversion of trace amplitude from ADC bins to Amps 
+        self.freqs = np.fft.rfftfreq(self.traces.shape[2],d = 1/fs)
+        self.psd = None
+        self.real_psd = None
+        self.imag_psd = None
+        self.corrcoeff = None
+        self.uncorrnoise = None
+        self.corrnoise = None
+        self.real_csd = None
+        self.imag_csd = None
+        self.real_csd_std = None
+        self.imag_csd_std = None
+        self.csd = None
 
-        
-        
-        
-        
-    
-    
+        temp_dict = {}
+        for ind, chann in enumerate(channames):
+            temp_dict[chann] = ind
+        self.chandict = temp_dict
     
     def remove_trace_slope(self):
-        '''
-        function to remove the slope from each trace. self.traces is changed to be the slope subtracted traces
-        Inputs: None
-        Returns: None
-        '''
+        """
+        Function to remove the slope from each trace. self.traces is changed to be the slope subtracted traces.
+        """
       
-        traceNoSlope = np.empty_like(self.traces)                           
-        xvals=np.arange(0,self.traces.shape[2])
+        tracenoslope = np.empty_like(self.traces)
         for ichan in range(self.traces.shape[1]):
             for itrace in range(self.traces.shape[0]):
-                s = slope(xvals,self.traces[itrace][ichan])
-                traceNoSlope[itrace][ichan] = self.traces[itrace][ichan] - s*xvals
-
-
-        self.traces = traceNoSlope    
+                s = slope(self.time, self.traces[itrace][ichan])
+                tracenoslope[itrace][ichan] = self.traces[itrace][ichan] - s*self.time
         
+        self.traces = tracenoslope
         
-    def calculate_PSD(self): 
-        '''
-        Calculates the PSD for each channel in traces. Stores PSD in self.PSD
-        Inputs: None
-        Returns: None
-        '''
-        
+    def calculate_psd(self): 
+        """
+        Calculates the psd for each channel in traces. Stores psd in self.psd
+        """
   
         # get shape of traces to use for iterating
-        traceShape = self.traces.shape
+        traceshape = self.traces.shape
         #check if length of individual trace is odd of even
-        if traceShape[2] % 2 != 0:
-            lenPSD = int((traceShape[2] + 1)/2)
+        if traceshape[2] % 2 != 0:
+            lenpsd = int((traceshape[2] + 1)/2)
         else:
-            lenPSD = int(traceShape[2]/2 + 1)
+            lenpsd = int(traceshape[2]/2 + 1)
             
-        # initialize empty numpy array to hold the PSDs 
-        PSD = np.empty(shape = (traceShape[1], lenPSD))
-        real_PSD = np.empty(shape = (traceShape[1], lenPSD))
-        imag_PSD = np.empty(shape = (traceShape[1], lenPSD))
+        # initialize empty numpy array to hold the psds 
+        psd = np.empty(shape = (traceshape[1], lenpsd))
+        real_psd = np.empty(shape = (traceshape[1], lenpsd))
+        imag_psd = np.empty(shape = (traceshape[1], lenpsd))
  
         fft = np.fft.rfft(self.traces)
-        PSD_chan = np.abs(fft)**2
-        real_PSD_chan = np.real(fft)**2
-        imag_PSD_chan = np.imag(fft)**2
-        # take the average of the PSD's for each trace, normalize, and fold over the 
+        psd_chan = np.abs(fft)**2
+        real_psd_chan = np.real(fft)**2
+        imag_psd_chan = np.imag(fft)**2
+        # take the average of the psd's for each trace, normalize, and fold over the 
         # negative frequencies since they are symmetric
-        PSD = np.mean(PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate) 
-        real_PSD = np.mean(real_PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate)
-        imag_PSD = np.mean(imag_PSD_chan, axis = 0)*2.0/(traceShape[2]*self.sampleRate)  
+        psd = np.mean(psd_chan, axis = 0)*2.0/(traceshape[2]*self.fs) 
+        real_psd = np.mean(real_psd_chan, axis = 0)*2.0/(traceshape[2]*self.fs)
+        imag_psd = np.mean(imag_psd_chan, axis = 0)*2.0/(traceshape[2]*self.fs)  
       
-        self.PSD = PSD
-        self.real_PSD = real_PSD
-        self.imag_PSD = imag_PSD
+        self.psd = psd
+        self.real_psd = real_psd
+        self.imag_psd = imag_psd
         
         
-    def calculate_corrCoeff(self):
+    def calculate_corrcoeff(self):
         '''
         Calculates the correlations between channels as a function of frequency. Stores
-        results in self.corrCoeff
+        results in self.corrcoeff
         Inputs: None
         Returns: None
         ''' 
-        nsizeMatrix = self.traces.shape[1]
-        if nsizeMatrix == 1:
+        nsizematrix = self.traces.shape[1]
+        if nsizematrix == 1:
             raise ValueError("Need more than one channel to calculate cross channel correlations")
             
         if self.traces.shape[2] % 2 != 0:
-            lenPSD = int((self.traces.shape[2] + 1)/2)
+            lenpsd = int((self.traces.shape[2] + 1)/2)
         else:
-            lenPSD = int(self.traces.shape[2]/2 + 1)
+            lenpsd = int(self.traces.shape[2]/2 + 1)
                 
         nDataPoints = self.traces.shape[0]
         #initialize empty array                           
-        corr_coeff = np.empty(shape=(lenPSD,nsizeMatrix,nsizeMatrix)) 
+        corr_coeff = np.empty(shape=(lenpsd, nsizematrix, nsizematrix)) 
         traces_fft_chan = np.abs(np.fft.rfft(self.traces))
         traces_fft_chan = np.swapaxes(traces_fft_chan, 0,1)
-        for n in range(lenPSD):
+        for n in range(lenpsd):
             corr_coeff[n] = np.corrcoef(traces_fft_chan[:,:,n])
         
-        self.corrCoeff = np.swapaxes(corr_coeff, 0, 2)
+        self.corrcoeff = np.swapaxes(corr_coeff, 0, 2)
     
     def calculate_uncorr_noise(self):
+        """
+        Calculates the uncorrelated and correlated total noise.
+        """
         
-        if self.CSD is None:
-            self.calculate_CSD()
+        if self.csd is None:
+            self.calculate_csd()
         else:
-            inv_CSD = np.zeros_like(self.CSD)
-            unCorrNoise = np.zeros(shape = (self.CSD.shape[0],self.CSD.shape[2]))
-            corrNoise = np.zeros(shape = (self.CSD.shape[0],self.CSD.shape[2]))
-            for ii in range(self.CSD.shape[2]):
-                inv_CSD[:,:,ii] = np.linalg.inv(self.CSD[:,:,ii])
-            for jj in range(self.CSD.shape[0]):
-                unCorrNoise[jj] = 1/np.abs(inv_CSD[jj][jj][:])
-                corrNoise[jj] = self.real_CSD[jj][jj]-1/np.abs(inv_CSD[jj][jj][:])
+            inv_csd = np.zeros_like(self.csd)
+            uncorrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
+            corrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
+            for ii in range(self.csd.shape[2]):
+                inv_csd[:,:,ii] = np.linalg.inv(self.csd[:,:,ii])
+            for jj in range(self.csd.shape[0]):
+                uncorrnoise[jj] = 1/np.abs(inv_csd[jj][jj][:])
+                corrnoise[jj] = self.real_csd[jj][jj]-1/np.abs(inv_csd[jj][jj][:])
 
-            self.corrNoise = unCorrNoise
-            self.unCorrNoise = corrNoise
-            self.freqs_fit = self.freqs
+            self.corrnoise = corrnoise
+            self.uncorrnoise = uncorrnoise
         
+    def calculate_csd(self):
+        """
+        Calculates the csd for each channel in traces. Stores csd in self.csd
+        """
         
-       
+        traceshape = self.traces.shape
+        if traceshape[1] == 1:
+            raise ValueError("Need more than one channel to calculate csd")
 
-    def calculate_CSD(self):
-        '''
-        Calculates the CSD for each channel in traces. Stores CSD in self.CSD
-        Inputs: None
-            
-        Returns: None
-        '''
-        traceShape = self.traces.shape
-        if traceShape[1] == 1:
-            raise ValueError("Need more than one channel to calculate CSD")
-
-        lenCSD = traceShape[2]
+        lencsd = traceshape[2]
       
-        if lenCSD % 2 != 0:
-            nFreqs = int((lenCSD + 1)/2)
+        if lencsd % 2 != 0:
+            nfreqs = int((lencsd + 1)/2)
         else:
-            nFreqs = int(lenCSD/2 + 1)
+            nfreqs = int(lencsd/2 + 1)
        
-        nRows = traceShape[1]
-        nTraces = traceShape[0]
+        nrows = traceshape[1]
+        ntraces = traceshape[0]
            
         # initialize ndarrays
-        trace_CSD = np.zeros(shape=(nRows,nRows,nTraces,nFreqs),dtype = np.complex128)
-        CSD_mean = np.zeros(shape=(nRows,nRows,nFreqs),dtype = np.complex128)
-        real_CSD_mean = np.zeros(shape=(nRows,nRows,nFreqs),dtype = np.float64)
-        imag_CSD_mean = np.zeros(shape=(nRows,nRows,nFreqs),dtype = np.float64)
-        real_CSD_std = np.zeros(shape=(nRows,nRows,nFreqs),dtype = np.float64)
-        imag_CSD_std = np.zeros(shape=(nRows,nRows,nFreqs),dtype = np.float64)
+        trace_csd = np.zeros(shape=(nrows,nrows,ntraces,nfreqs),dtype = np.complex128)
+        csd_mean = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.complex128)
+        real_csd_mean = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
+        imag_csd_mean = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
+        real_csd_std = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
+        imag_csd_std = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
         
-        for iRow, jColumn in product(list(range(nRows)),repeat = 2):
-            for n in range(nTraces):
-                _ ,temp_CSD = csd(self.traces[n,iRow,:],self.traces[n,jColumn,:] \
-                                           , nperseg = lenCSD, fs = self.sampleRate, nfft = lenCSD )            
-                trace_CSD[iRow][jColumn][n] = temp_CSD  
-            CSD_mean[iRow][jColumn] =  np.mean(trace_CSD[iRow][jColumn],axis = 0)
-            # we use fill_negatives() because there are many missing data points in the calculation of CSD
-            real_CSD_mean[iRow][jColumn] = noise_utils.fill_negatives(np.mean(np.real(trace_CSD[iRow][jColumn]),axis = 0))
-            imag_CSD_mean[iRow][jColumn] = noise_utils.fill_negatives(np.mean(np.imag(trace_CSD[iRow][jColumn]),axis = 0))   
-            real_CSD_std[iRow][jColumn] = noise_utils.fill_negatives(np.std(np.real(trace_CSD[iRow][jColumn]),axis = 0))
-            imag_CSD_std[iRow][jColumn] = noise_utils.fill_negatives(np.std(np.imag(trace_CSD[iRow][jColumn]),axis = 0))
+        for irow, jcolumn in product(list(range(nrows)),repeat = 2):
+            for n in range(ntraces):
+                _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
+                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd )            
+                trace_csd[irow][jcolumn][n] = temp_csd  
+            csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
+            # we use fill_negatives() because there are many missing data points in the calculation of csd
+            real_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
+            imag_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0))   
+            real_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.real(trace_csd[irow][jcolumn]),axis = 0))
+            imag_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0))
             
+        self.csd = csd_mean
+        self.real_csd = real_csd_mean
+        self.imag_csd = imag_csd_mean
+        self.real_csd_std = real_csd_std
+        self.imag_csd_std = imag_csd_std
+        
+    def plot_psd(self, lgcoverlay = True, lgcsave = False, savepath = None):
+        """
+        Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
 
-        self.CSD = CSD_mean
-        self.real_CSD = real_CSD_mean
-        self.imag_CSD = imag_CSD_mean
-        self.real_CSD_std = real_CSD_std
-        self.imag_CSD_std = imag_CSD_std
-        
-    
-      
-        
-            
-    
-    
-    ############# plotting ############
-    def plot_PSD(self, lgc_overlay = True, lgcSave = False, savePath = None):
+        Parameters
+        ----------
+            lgcoverlay : boolean, optional
+                If True, psd's for all channels are overlayed in a single plot, 
+                If False, each psd for each channel is plotted in a seperate subplot
+            lgcsave : boolean, optional
+                If True, the figure is saved in the user provided directory
+            savepath : str, optional
+                Absolute path for the figure to be saved
+        """
 
-        noise_utils.plot_PSD(self,lgc_overlay, lgcSave, savePath)
+        utils.plot_psd(self,lgcoverlay, lgcsave, savepath)
         
-    def plot_ReIm_PSD(self, lgcSave = False, savePath = None):
-        
-        noise_utils.plot_ReIm_PSD(self, lgcSave = False, savePath = None)
-        
-        
-                   
-    def plot_corrCoeff(self, lgcSmooth = True, nWindow = 7,lgcSave = False, savePath = None):
+    def plot_reim_psd(self, lgcsave = False, savepath = None):
+        """
+        Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+        This is done to check for thermal muon tails making it passed the quality cuts
 
+        Parameters
+        ----------
+            lgcsave : boolean, optional
+                If True, the figure is saved in the user provided directory
+            savepath : str, optional
+                Absolute path for the figure to be saved
+
+        """
         
-        noise_utils.plot_corrCoeff(self,lgcSmooth, nWindow, lgcSave, savePath)
+        utils.plot_reim_psd(self, lgcsave = False, savepath = None)
         
-                      
-    def plot_CSD(self, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath = None):
+    def plot_corrcoeff(self, lgcsmooth = True, nwindow = 7,lgcsave = False, savepath = None):
+        """
+        Function to plot the cross channel correlation coefficients. Since there are typically few traces,
+        the correlations are often noisy. a savgol_filter is used to smooth out some of the noise
+
+        Parameters
+        ----------
+            lgcsmooth : boolean, optional
+                If True, a savgol_filter will be used when plotting. 
+            nwindow : int, optional
+                the number of bins used for the window in the savgol_filter
+            lgcsave : boolean, optional
+                If True, the figure is saved in the user provided directory
+            savepath : str, optional
+                Absolute path for the figure to be saved
+        """
+
+        utils.plot_corrcoeff(self,lgcsmooth, nwindow, lgcsave, savepath)
         
-        noise_utils.plot_CSD(self, whichCSD, lgcReal, lgcSave, savePath)
+    def plot_csd(self, whichcsd = ['01'],lgcreal = True,lgcsave = False, savepath = None):
+        """
+        Function to plot the cross channel noise spectrum referenced to the TES line in
+        units of Amperes^2/Hz
+
+        Parameters
+        ----------
+            whichcsd : list, optional
+                a list of strings, where each element of the list refers to the pair of 
+                indices of the desired csd plot
+            lgcreal : boolean, optional
+                If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
+            lgcsave : boolean, optional
+                If True, the figure is saved in the user provided directory
+            savepath : str, optional
+                Absolute path for the figure to be saved
+        """
         
-    def plot_deCorrelatedNoise(self, lgc_overlay = False, lgcData = True,lgcUnCorrNoise = True, lgcCorrelated = False \
-                               , lgcSum = False,lgcSave = False, savePath = None):
-        noise_utils.plot_deCorrelatedNoise(self, lgc_overlay, lgcData,lgcUnCorrNoise, lgcCorrelated \
-                               , lgcSum,lgcSave, savePath)
+        utils.plot_csd(self, whichcsd, lgcreal, lgcsave, savepath)
         
-    ######## save the noise object ##########
+    def plot_decorrelatednoise(self, lgcoverlay = False, lgcdata = True, lgcuncorrnoise = True, lgccorrelated = False,
+                               lgcsum = False,lgcsave = False, savepath = None):
+        """
+        Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
+        from fitted parameters calculated calculate_deCorrelated_noise
+
+        Parameters
+        ----------
+            lgcoverlay : boolean, optional
+                If True, de-correlated for all channels are overlayed in a single plot, 
+                If False, the noise for each channel is plotted in a seperate subplot
+            lgcdata : boolean, optional
+                Only applies when lgcoverlay = False. If True, the csd data is plotted
+            lgcuncorrnoise : boolean, optional
+                Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
+            lgccorrelated : boolean, optional
+                Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+                is plotted
+            lgcsum : boolean, optional
+                Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+                and correlated noise is plotted
+            lgcsave : boolean, optional
+                If True, the figure is saved in the user provided directory
+            savepath : str, optional
+                Absolute path for the figure to be saved
+        """  
+        utils.plot_decorrelatednoise(self, lgcoverlay, lgcdata, lgcuncorrnoise, lgccorrelated,
+                                           lgcsum,lgcsave, savepath)
+
     def save(self, path):
-        '''
+        """
         Saves the noise object as a pickle file
-        Input:
-            path: path where the noise object should be saved
-        Returns:
-            None
-        '''
+        
+        Parameters
+        ----------
+            path : str
+                Path where the noise object should be saved.
+        """
         if path[-1] != '/':
             path += '/'
             
-        with open(path+self.name.replace(" ", "_")+'.pkl','wb') as saveFile:
-            pickle.dump(self, saveFile, pickle.HIGHEST_PROTOCOL)
+        with open(path+self.fname.replace(" ", "_")+'.pkl','wb') as savefile:
+            pickle.dump(self, savefile, pickle.HIGHEST_PROTOCOL)
             

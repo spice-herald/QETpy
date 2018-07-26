@@ -11,184 +11,193 @@ from math import ceil
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 import seaborn as sns
-sns.set_style('white')
 
+def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
+    """
+    Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
 
-
-
-
-def plot_PSD(noise, lgc_overlay = True, lgcSave = False, savePath = None):
-    '''
-    Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz)
-
-    Input parameters:
-    noise: noise object to be plotted
-    lgc_overlay: boolian value. If True, PSD's for all channels are overlayed in a single plot, 
-                 if False, each PSD for each channel is plotted in a seperate subplot
-    lgcSave: boolian value. If True, the figure is saved in the user provided directory
-    savePath: absolute path for the figure to be saved
-
-    Returns:
-    None
-    '''
-    if noise.PSD is None:
-        print('Need to calculate the PSD first')
+    Parameters
+    ----------
+        noise : Object
+            Noise object to be plotted
+        lgcoverlay : boolean, optional
+            If True, psd's for all channels are overlayed in a single plot, 
+            If False, each psd for each channel is plotted in a seperate subplot
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+    """
+    
+    if noise.psd is None:
+        print('Need to calculate the psd first')
         return
     else:
         ### Overlay plot
-        if lgc_overlay:
+        if lgcoverlay:
+            sns.set_style('white')
             sns.set_context('notebook')
             plt.figure(figsize = (12,8))
             plt.title('{} PSD'.format(noise.name))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
             plt.grid(which = 'both')
-            for ichan, channel in enumerate(noise.channNames):
-                plt.loglog(noise.freqs[1:], np.sqrt(noise.PSD[ichan][1:]), label = channel)
+            for ichan, channel in enumerate(noise.channames):
+                plt.loglog(noise.freqs[1:], np.sqrt(noise.psd[ichan][1:]), label = channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
             
-            if lgcSave:
+            if lgcsave:
                 try:
-                    plt.savefig(savePath+noise.name.replace(" ", "_")+'_PSD_overlay.png',bbox_extra_artists=(lgd,), bbox_inches='tight')
+                    plt.savefig(savepath+noise.name.replace(" ", "_")+'_PSD_overlay.png',
+                                bbox_extra_artists=(lgd,), bbox_inches='tight')
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
         ### Subplots            
         else:
+            sns.set_style('white')
             sns.set_context('poster', font_scale = 1.9)
-            num_subplots = len(noise.channNames)
-            nRows = int(ceil(num_subplots/2))
-            nColumns = 2
-            fig, axes = plt.subplots(nRows, nColumns, figsize = (6*num_subplots,6*num_subplots)) 
+            num_subplots = len(noise.channames)
+            nrows = int(ceil(num_subplots/2))
+            ncolumns = 2
+            fig, axes = plt.subplots(nrows, ncolumns, figsize = (6*num_subplots,6*num_subplots)) 
             plt.suptitle('{} PSD'.format(noise.name),  fontsize=40)
-            for ii in range(nRows*2):
-                if ii < nRows:
-                    iRow = ii
-                    jColumn = 0
+            for ii in range(nrows*2):
+                if ii < nrows:
+                    irow = ii
+                    jcolumn = 0
                 else:
-                    iRow = ii - nRows
-                    jColumn = 1
-                if ii < num_subplots and nRows > 1:    
-                    axes[iRow,jColumn].set_title(noise.channNames[ii])
-                    axes[iRow,jColumn].set_xlabel('frequency [Hz]')
-                    axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                    axes[iRow,jColumn].grid(which = 'both')
-                    axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.PSD[ii][1:]))
-                elif ii < num_subplots and nRows==1:
-                    axes[jColumn].set_title(noise.channNames[ii])
-                    axes[jColumn].set_xlabel('frequency [Hz]')
-                    axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                    axes[jColumn].grid(which = 'both')
-                    axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.PSD[ii][1:]))
-                elif nRows==1:
-                    axes[jColumn].axis('off')
+                    irow = ii - nrows
+                    jcolumn = 1
+                if ii < num_subplots and nrows > 1:    
+                    axes[irow,jcolumn].set_title(noise.channames[ii])
+                    axes[irow,jcolumn].set_xlabel('frequency [Hz]')
+                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[irow,jcolumn].grid(which = 'both')
+                    axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.psd[ii][1:]))
+                elif ii < num_subplots and nrows==1:
+                    axes[jcolumn].set_title(noise.channames[ii])
+                    axes[jcolumn].set_xlabel('frequency [Hz]')
+                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jcolumn].grid(which = 'both')
+                    axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.psd[ii][1:]))
+                elif nrows==1:
+                    axes[jcolumn].axis('off')
                 else:
-                    axes[iRow,jColumn].axis('off')
+                    axes[irow,jcolumn].axis('off')
             plt.tight_layout() 
             plt.subplots_adjust(top=0.95)
             
-            if lgcSave:
+            if lgcsave:
                 try:
-                    plt.savefig(savePath+noise.name.replace(" ", "_")+'_PSD_subplot.png')
+                    plt.savefig(savepath+noise.name.replace(" ", "_")+'_PSD_subplot.png')
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
 
             
             
-def plot_ReIm_PSD(noise, lgcSave = False, savePath = None):
-    '''
+def plot_reim_psd(noise, lgcsave = False, savepath = None):
+    """
     Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
     This is done to check for thermal muon tails making it passed the quality cuts
 
-    Input parameters:
-    noise: noise object to be plotted
-    lgcSave: boolian value. If True, the figure is saved in the user provided directory
-    savePath: absolute path for the figure to be saved
-
-    Returns:
-    None
-    '''
-    if noise.real_PSD is None:
-        print('Need to calculate the PSD first')
+    Parameters
+    ----------
+        noise : Object
+            Noise object to be plotted
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+            
+    """
+    if noise.real_psd is None:
+        print('Need to calculate the psd first')
         return
     else:
+        sns.set_style('white')
         sns.set_context('poster', font_scale = 1.9)
-        num_subplots = len(noise.channNames)
-        nRows = int(ceil(num_subplots/2))
-        nColumns = 2
-        fig, axes = plt.subplots(nRows, nColumns, figsize = (6*num_subplots,6*num_subplots)) 
+        num_subplots = len(noise.channames)
+        nrows = int(ceil(num_subplots/2))
+        ncolumns = 2
+        fig, axes = plt.subplots(nrows, ncolumns, figsize = (6*num_subplots,6*num_subplots)) 
         plt.suptitle('{} Real vs Imaginary PSD'.format(noise.name),  fontsize=40)
-        for ii in range(nRows*2):
-            if ii < nRows:
-                iRow = ii
-                jColumn = 0
+        for ii in range(nrows*2):
+            if ii < nrows:
+                irow = ii
+                jcolumn = 0
             else:
-                iRow = ii - nRows
-                jColumn = 1
-            if ii < num_subplots and nRows > 1:    
-                axes[iRow,jColumn].set_title(noise.channNames[ii])
-                axes[iRow,jColumn].set_xlabel('frequency [Hz]')
-                axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                axes[iRow,jColumn].grid(which = 'both')
-                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:]), label = 'real')
-                axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:]), label = 'imag')
-                axes[iRow,jColumn].legend()
-            elif ii < num_subplots and nRows==1:
-                axes[jColumn].set_title(noise.channNames[ii])
-                axes[jColumn].set_xlabel('frequency [Hz]')
-                axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                axes[jColumn].grid(which = 'both')
-                axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_PSD[ii][1:]), label = 'real')
-                axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_PSD[ii][1:]), label = 'imag')
-                axes[jColumn].legend()
-            elif nRows==1:
-                axes[jColumn].axis('off')
+                irow = ii - nrows
+                jcolumn = 1
+            if ii < num_subplots and nrows > 1:    
+                axes[irow,jcolumn].set_title(noise.channames[ii])
+                axes[irow,jcolumn].set_xlabel('frequency [Hz]')
+                axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[irow,jcolumn].grid(which = 'both')
+                axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_psd[ii][1:]), label = 'real')
+                axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_psd[ii][1:]), label = 'imag')
+                axes[irow,jcolumn].legend()
+            elif ii < num_subplots and nrows==1:
+                axes[jcolumn].set_title(noise.channames[ii])
+                axes[jcolumn].set_xlabel('frequency [Hz]')
+                axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[jcolumn].grid(which = 'both')
+                axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_psd[ii][1:]), label = 'real')
+                axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_psd[ii][1:]), label = 'imag')
+                axes[jcolumn].legend()
+            elif nrows==1:
+                axes[jcolumn].axis('off')
             else:
-                axes[iRow,jColumn].axis('off')
+                axes[irow,jcolumn].axis('off')
         plt.tight_layout() 
         plt.subplots_adjust(top=0.95)
 
-        if lgcSave:
+        if lgcsave:
             try:
-                plt.savefig(savePath+noise.name.replace(" ", "_")+'_ReIm_PSD.png')
+                plt.savefig(savepath+noise.name.replace(" ", "_")+'_ReIm_PSD.png')
             except:
                 print('Invalid save path. Figure not saved')
         plt.show()        
             
             
                 
-def plot_corrCoeff(noise, lgcSmooth = True, nWindow = 7, lgcSave = False, savePath = None):
-    '''
+def plot_corrcoeff(noise, lgcsmooth = True, nwindow = 7, lgcsave = False, savepath = None):
+    """
     Function to plot the cross channel correlation coefficients. Since there are typically few traces,
     the correlations are often noisy. a savgol_filter is used to smooth out some of the noise
 
-    Input parameters:
-    noise: noise object to be plotted
-    lgcSmooth: boolian. If True, a savgol_filter will be used when plotting. 
-    nWindow: the number of bins used for the window in the savgol_filter
-    lgcSave: boolian value. If True, the figure is saved in the user provided directory
-    savePath: absolute path for the figure to be saved
-
-    Returns:
-    None
-    '''
-    if (noise.corrCoeff is None):
-        print('Need to calculate the corrCoeff first')
+    Parameters
+    ----------
+        noise : Object
+            noise object to be plotted
+        lgcsmooth : boolean, optional
+            If True, a savgol_filter will be used when plotting. 
+        nwindow : int, optional
+            the number of bins used for the window in the savgol_filter
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+    """
+    
+    if (noise.corrcoeff is None):
+        print('Need to calculate the corrcoeff first')
         return
     else:
+        sns.set_style('white')
         sns.set_context('notebook')
         plt.figure(figsize = (12,8))
         plt.title('{} \n Cross Channel Correlation Coefficients'.format(noise.name) )
-        for ii in range(noise.corrCoeff.shape[0]):
-            for jj in range(noise.corrCoeff.shape[1]):
+        for ii in range(noise.corrcoeff.shape[0]):
+            for jj in range(noise.corrcoeff.shape[1]):
                 if ii > jj:
-                    label = '{} - {}'.format(noise.channNames[ii],noise.channNames[jj])
-                    if lgcSmooth:
-                        plt.plot(noise.freqs[1:], savgol_filter(noise.corrCoeff[ii][jj][1:], nWindow,3, mode = 'nearest') \
-                                 , label = label, alpha = .5)
+                    label = '{} - {}'.format(noise.channames[ii],noise.channames[jj])
+                    if lgcsmooth:
+                        plt.plot(noise.freqs[1:], savgol_filter(noise.corrcoeff[ii][jj][1:], nwindow, 3, mode = 'nearest'),
+                                 label = label, alpha = .5)
                     else:
-                        plt.plot(noise.freqs[1:], noise.corrCoeff[ii][jj][1:] , label = label, alpha = .5)
+                        plt.plot(noise.freqs[1:], noise.corrcoeff[ii][jj][1:] , label = label, alpha = .5)
                         
                     plt.xscale('log')
         plt.xlabel('frequency [Hz]')
@@ -196,43 +205,46 @@ def plot_corrCoeff(noise, lgcSmooth = True, nWindow = 7, lgcSave = False, savePa
         plt.grid(which = 'both')
         lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=1.)
         
-        if lgcSave:
+        if lgcsave:
             try:
-                plt.savefig(savePath+noise.name.replace(" ", "_")+'_corrCoeff.png',bbox_extra_artists=(lgd,), bbox_inches='tight')
+                plt.savefig(savepath+noise.name.replace(" ", "_")+'_corrcoeff.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
             except:
                 print('Invalid save path. Figure not saved')
         
         plt.show()
 
+def plot_csd(noise, whichcsd = ['01'], lgcreal = True, lgcsave = False, savepath = None):
+    """
+    Function to plot the cross channel noise spectrum referenced to the TES line in
+    units of Amperes^2/Hz
 
-def plot_CSD(noise, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath = None):
-    '''
-    Function to plot the cross channel noise spectrum referenced to the 
-    TES line in units of Amperes^2/Hz
-
-    Input parameters:
-    noise: noise object to be plotted
-    whichCSD: a list of strings, where each element of the list refers to the pair of indices of 
-            the desired CSD plot
-    lgcReal: boolian value. If Ture, the Re(CSD) is plotted. If False, the Im(CSD) is plotted
-    lgcSave: boolian value. If True, the figure is saved in the user provided directory
-    savePath: absolute path for the figure to be saved
-
-    Returns:
-    None
-    '''
-    if noise.CSD is None:
-        print('Must calculate the CSD first')
+    Parameters
+    ----------
+        noise : Object
+            Noise object to be plotted
+        whichcsd : list, optional
+            a list of strings, where each element of the list refers to the pair of 
+            indices of the desired csd plot
+        lgcreal : boolean, optional
+            If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+    """
+    if noise.csd is None:
+        print('Must calculate the csd first')
         return
     else:
+        sns.set_style('white')
         sns.set_context('notebook')
         x_plt_label = []
         y_plt_label = []
-        for label in whichCSD:
+        for label in whichcsd:
             if type(label) == str:
                 x_plt_label.append(int(label[0]))
                 y_plt_label.append(int(label[1]))
-                if ((int(label[0]) > noise.real_CSD.shape[0]-1) or (int(label[1]) > noise.real_CSD.shape[1]-1)):
+                if ((int(label[0]) > noise.real_csd.shape[0]-1) or (int(label[1]) > noise.real_csd.shape[1]-1)):
                     print('index out of range')
                     return
             else:
@@ -241,159 +253,174 @@ def plot_CSD(noise, whichCSD = ['01'],lgcReal = True,lgcSave = False, savePath =
 
         for ii in range(len(x_plt_label)):
             plt.figure(figsize = (12,8))
-            if lgcReal:
-                title = '{} Re(CSD) for channels: {}-{}'.format(noise.name,noise.channNames[x_plt_label[ii]] \
-                                                              ,noise.channNames[y_plt_label[ii]])
+            if lgcreal:
+                title = '{} Re(CSD) for channels: {}-{}'.format(noise.name, noise.channames[x_plt_label[ii]],
+                                                                noise.channames[y_plt_label[ii]])
 
-                plt.loglog(noise.freqs[1:],noise.real_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
+                plt.loglog(noise.freqs[1:],noise.real_csd[x_plt_label[ii]][y_plt_label[ii]][1:])
             else:
-                title = '{} Im(CSD) for channels: {}-{}'.format(noise.name,noise.channNames[x_plt_label[ii]] \
-                                                              ,noise.channNames[y_plt_label[ii]])
+                title = '{} Im(CSD) for channels: {}-{}'.format(noise.name, noise.channames[x_plt_label[ii]],
+                                                                noise.channames[y_plt_label[ii]])
 
-                plt.loglog(noise.freqs[1:],noise.imag_CSD[x_plt_label[ii]][y_plt_label[ii]][1:])
+                plt.loglog(noise.freqs[1:],noise.imag_csd[x_plt_label[ii]][y_plt_label[ii]][1:])
             plt.title(title)
             plt.grid(True, which = 'both')
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'CSD [A$^2$/Hz]')
             
-            if lgcSave:
+            if lgcsave:
                 try:
-                    plt.savefig(savePath + title.replace(" ", "_"))
+                    plt.savefig(savepath+noise.name.replace(" ", "_")+'_csd{}.png'.format(ii))
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
 
-def plot_deCorrelatedNoise(noise, lgc_overlay = False, lgcData = True,lgcUnCorrNoise = True, lgcCorrelated = False \
-                               , lgcSum = False,lgcSave = False, savePath = None):
-    '''
+def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrnoise = True, lgccorrelated = False,
+                           lgcsum = False,lgcsave = False, savepath = None):
+    """
     Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
     from fitted parameters calculated calculate_deCorrelated_noise
 
-    Input parameters:
-    noise: noise object to be plotted
-    lgc_overlay: boolian value. If True, de-correlated for all channels are overlayed in a single plot, 
-                 if False, the noise for each channel is plotted in a seperate subplot
-    lgcData: boolian value. Only applies when lgc_overlay = False. If True, the CSD data is plotted
-    lgcUnCorrNoise: boolian value. Only applies when lgc_overlay = False. If True, the de-correlated noise is plotted
-    lgcCorrelated: boolian value. Only applies when lgc_overlay = False. If True, the correlated component of the fitted noise 
-                    is plotted
-    lgcSum: boolian value. Only applies when lgc_overlay = False. If True, the sum of the fitted de-correlated noise and
+    Parameters
+    ----------
+        noise : Object
+            Noise object to be plotted
+        lgcoverlay : boolean, optional
+            If True, de-correlated for all channels are overlayed in a single plot, 
+            If False, the noise for each channel is plotted in a seperate subplot
+        lgcdata : boolean, optional
+            Only applies when lgcoverlay = False. If True, the csd data is plotted
+        lgcuncorrnoise : boolean, optional
+            Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
+        lgccorrelated : boolean, optional
+            Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+            is plotted
+        lgcsum : boolean, optional
+            Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
             and correlated noise is plotted
-    lgcSave: boolian value. If True, the figure is saved in the user provided directory
-    savePath: absolute path for the figure to be saved
-
-    Returns:
-    None
-    '''  
-    if noise.unCorrNoise is None:
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+    """  
+    if noise.uncorrnoise is None:
         print('Need to de-correlate the noise first')
         return
     else:
     
         ### Overlay plot
-        if lgc_overlay:
+        if lgcoverlay:
+            sns.set_style('white')
             sns.set_context('notebook')
             plt.figure(figsize = (12,8))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
             plt.grid(which = 'both')
             plt.title('{} de-correlated noise'.format(noise.name))
-            for ichan, channel in enumerate(noise.channNames):
-                    plt.loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ichan][1:]), label = channel)
+            for ichan, channel in enumerate(noise.channames):
+                    plt.loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ichan][1:]), label = channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
             
-            if lgcSave:
+            if lgcsave:
                 try:
-                    plt.savefig(savePath+noise.name.replace(" ", "_")+'_deCorrNoise_overlay.png',bbox_extra_artists=(lgd,), bbox_inches='tight') 
+                    plt.savefig(savepath+noise.name.replace(" ", "_")+'_deCorrNoise_overlay.png', 
+                                bbox_extra_artists=(lgd,), bbox_inches='tight') 
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
         ### Subplots
         else:
+            sns.set_style('white')
             sns.set_context('poster', font_scale = 1.9)
-            num_subplots = len(noise.channNames)
-            nRows = int(ceil(num_subplots/2))
-            nColumns = 2
-            fig, axes = plt.subplots(nRows, nColumns, figsize = (6*num_subplots,6*num_subplots)) 
+            num_subplots = len(noise.channames)
+            nrows = int(ceil(num_subplots/2))
+            ncolumns = 2
+            fig, axes = plt.subplots(nrows, ncolumns, figsize = (6*num_subplots,6*num_subplots)) 
             plt.suptitle('{} de-correlated noise'.format(noise.name),  fontsize=40)
-            for ii in range(nRows*2):
-                if ii < nRows:
-                    iRow = ii
-                    jColumn = 0
+            for ii in range(nrows*2):
+                if ii < nrows:
+                    irow = ii
+                    jcolumn = 0
                 else:
-                    iRow = ii - nRows
-                    jColumn = 1
-                if ii < num_subplots and nRows > 1:    
-                    axes[iRow,jColumn].set_title(noise.channNames[ii])
-                    axes[iRow,jColumn].set_xlabel('frequency [Hz]')
-                    axes[iRow,jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                    axes[iRow,jColumn].grid(which = 'both')
-                    if lgcData:
-                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
+                    irow = ii - nrows
+                    jcolumn = 1
+                if ii < num_subplots and nrows > 1:    
+                    axes[irow,jcolumn].set_title(noise.channames[ii])
+                    axes[irow,jcolumn].set_xlabel('frequency [Hz]')
+                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[irow,jcolumn].grid(which = 'both')
+                    if lgcdata:
+                        axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_csd[ii][ii][1:]) \
                                                   , label = 'data' ,alpha = 0.4)
-                    if lgcUnCorrNoise:
-                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
+                    if lgcuncorrnoise:
+                        axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ii][1:]) \
                                                   , label = 'uncorrelated noise',alpha = 0.6)
-                    if lgcCorrelated:
-                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.corrNoise[ii][1:]) \
+                    if lgccorrelated:
+                        axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.corrnoise[ii][1:]) \
                                                   , label = 'correlated noise' ,alpha = 0.6)
-                    if lgcSum:
-                        axes[iRow,jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
+                    if lgcsum:
+                        axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ii][1:]+noise.corrnoise[ii][1:]) \
                                    , label = 'total noise' ,alpha = 0.6)
-                    axes[iRow,jColumn].legend()
-                elif ii < num_subplots and nRows==1:
-                    axes[jColumn].set_title(noise.channNames[ii])
-                    axes[jColumn].set_xlabel('frequency [Hz]')
-                    axes[jColumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
-                    axes[jColumn].grid(which = 'both')
-                    if lgcData:
-                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.real_CSD[ii][ii][1:]) \
+                    axes[irow,jcolumn].legend()
+                elif ii < num_subplots and nrows==1:
+                    axes[jcolumn].set_title(noise.channames[ii])
+                    axes[jcolumn].set_xlabel('frequency [Hz]')
+                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jcolumn].grid(which = 'both')
+                    if lgcdata:
+                        axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_csd[ii][ii][1:]) \
                                                   , label = 'data' ,alpha = 0.4)
-                    if lgcUnCorrNoise:
-                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]) \
+                    if lgcuncorrnoise:
+                        axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ii][1:]) \
                                                   , label = 'uncorrelated noise',alpha = 0.6)
-                    if lgcCorrelated:
-                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.corrNoise[ii][1:]) \
+                    if lgccorrelated:
+                        axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.corrnoise[ii][1:]) \
                                                   , label = 'correlated noise' ,alpha = 0.6)
-                    if lgcSum:
-                        axes[jColumn].loglog(noise.freqs[1:], np.sqrt(noise.unCorrNoise[ii][1:]+noise.corrNoise[ii][1:]) \
+                    if lgcsum:
+                        axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ii][1:]+noise.corrnoise[ii][1:]) \
                                    , label = 'total noise' ,alpha = 0.6)
-                    axes[jColumn].legend()
-                elif nRows==1:
-                    axes[jColumn].axis('off')
+                    axes[jcolumn].legend()
+                elif nrows==1:
+                    axes[jcolumn].axis('off')
                 else:
-                    axes[iRow,jColumn].axis('off')
+                    axes[irow,jcolumn].axis('off')
             plt.tight_layout() 
             plt.subplots_adjust(top=0.95)
             
-            if lgcSave:
+            if lgcsave:
                 try:
-                    plt.savefig(savePath+noise.name.replace(" ", "_")+'_deCorrNoise_subplot.png')
+                    plt.savefig(savepath+noise.name.replace(" ", "_")+'_deCorrNoise_subplot.png')
                 except:
                     print('Invalid save path. Figure not saved')
             plt.show()
             
             
-def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, savePath = None):
-    '''
-    Function to plot multiple PSD's from different noise objects on the same figure. Each channel will
-    be plotted in its own figure
-    Input:
-        arr: array of noise objects
-        channels: list of strings, each string is a channel to plot. ex ['PSA1','PAS2']
-        lgc_decorrelatedNoise: boolian. If False, the PSD is for each channel is plotted, if True,
-                               the calculated de-correlated noise is plotted
-        lgcSave: boolian value. If True, the figure is saved in the user provided directory
-        savePath: absolute path for the figure to be saved
-    Returns:
-        None
-    '''
+def compare_noise(arr, channels, lgcdecorrelatednoise = False, lgcsave = False, savepath = None):
+    """
+    Function to plot multiple psd's from different noise objects on the same figure. Each channel will
+    be plotted in its own figure.
+    
+    Parameters
+    ----------
+        arr : array_like
+            Array of noise objects
+        channels : list 
+            List of strings, each string is a channel to plot. ex ['PSA1','PAS2']
+        lgcdecorrelatednoise : boolean, optional
+            If False, the psd is for each channel is plotted. If True, the calculated
+            de-correlated noise is plotted
+        lgcsave : boolean , optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
+    """
+    sns.set_style('white')
     sns.set_context('notebook')
     
     #check to make sure channels is a list or array
     if (type(channels) == np.ndarray or type(channels) == list):
         for chan in channels:
-            if chan in set(sum([arr[ii].channNames for ii in range(len(arr))],[])): #check if channel is in 
+            if chan in set(sum([arr[ii].channames for ii in range(len(arr))],[])): #check if channel is in 
                 # any of the noise objects before creating a figure
                 plt.figure(figsize = (12,8))
                 plt.title(chan) 
@@ -404,42 +431,42 @@ def compare_noise(arr,channels, lgc_decorrelatedNoise = False, lgcSave = False, 
                     if chan in arr[ii].chann_dict:
                         chan_index = arr[ii].chann_dict[chan] #check that the channel is in the noise object before plotting
                         #plot the de correlated noise if desired
-                        if lgc_decorrelatedNoise:
+                        if lgcdecorrelatednoise:
                             #check that de correlated noise has been calculated
-                            if arr[ii].unCorrNoise is not None:
-                                plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].unCorrNoise[chan_index][1:]) \
+                            if arr[ii].uncorrnoise is not None:
+                                plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].uncorrnoise[chan_index][1:]) \
                                            , label = arr[ii].name+' de-correlated noise')
                             else:
                                 print('The de-correlated noise for file: {} has not been calculated yet'.format(arr[ii].name))
                         else:
-                            plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].PSD[chan_index][1:]), label = arr[ii].name)
+                            plt.loglog(arr[ii].freqs[1:], np.sqrt(arr[ii].psd[chan_index][1:]), label = arr[ii].name)
                     else:
                         print('channel: {} not found for file: {} '.format(chan, arr[ii].name)) 
                 lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-                if lgcSave:
+                if lgcsave:
                     try:
-                        plt.savefig(savePath+chan+'_PSD_comparison.png' ,bbox_extra_artists=(lgd,), bbox_inches='tight')
+                        plt.savefig(savepath+chan+'_PSD_comparison.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
                     except:
                         print('Invalid save path. Figure not saved')
                 plt.show()
             else:
                 print('Invalid channel name: {} '.format(chan))
     else:
-        print("Please provide desired channels in format of a list of numpy.ndarray. ex ['PSA1','PAS2']")
-            
-            
-            
-            
-            
+        print("Please provide desired channels in format of a list of numpy.ndarray. ex ['PSA1','PAS2']")   
 
 def fill_negatives(arr):
-    '''
-    Simple helper function to remove negative and zero values from PSD's.
-    Input:
-        arr: 1d array
-    Returns:
-        arr: arr with the negative and zero values replace by interpelate values
-    '''
+    """
+    Simple helper function to remove negative and zero values from psd's.
+    
+    Parameters
+    ----------
+        arr : ndarray 
+            1d array
+    Returns
+    -------
+        arr : ndarray
+            arr with the negative and zero values replaced by interpolated values
+    """
     zeros = np.array(arr <= 0)
     inds_zero = np.where(zeros)[0]
     inds_not_zero = np.where(~zeros)[0]
@@ -451,72 +478,86 @@ def fill_negatives(arr):
 
 
 def load_noise(file_str):
-    '''
-    load noise object that has been previously saved as pickle file
-    '''
-    with open(file_str,'rb') as saveFile:
-        return pickle.load( saveFile)
-    
-    
-    
-    
-def plot_noise_sim(f, psd, noise_sim, isType, figsize = (12,8),lgcSave=False, savePath = ''):
     """
-    plots psd with simulated noise model
+    Load noise object that has been previously saved as pickle file
     
-    Parameters:
-    -------------------
-        f: array like, frequency bins for PSD
-        psd: array like, power spectral density
-        isType: str, must be 'current' or 'power'
-            if 'current' the noise is plotted referenced to TES current
-            if 'power' the noise is plotted referenced to TES power
-        figsize: tuple, desired size of figure
-        lgcSave: bool, if True, plot is saved
-        savePath: directory to save trace
-    Returns:
-    ----------------
-        plt: matplotlib.pyplot object
+    Parameters
+    ----------
+        file_str : str
+            The full path to the file to be loaded.
+            
+    Returns
+    -------
+        f : Object
+            The loaded noise object.
+    """
+    with open(file_str,'rb') as savefile:
+        f = pickle.load(savefile)
+    return f
+    
+    
+    
+    
+def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, savepath = ''):
+    """
+    Plots psd with simulated noise model
+    
+    Parameters
+    ----------
+        f : array_like
+            Frequency bins for psd
+        psd : array_like 
+            Power spectral density
+        istype : str
+            Must be 'current' or 'power'
+            If 'current' the noise is plotted referenced to TES current
+            If 'power' the noise is plotted referenced to TES power
+        figsize : tuple, optional
+            Desired size of figure
+        lgcsave : boolean, optional
+            If True, plot is saved
+        savepath : str, optional
+            Directory to save trace
+    Returns
+    -------
+        fig : Object
+            fig object from matplotlib.pyplot
+        ax : Object
+            ax object from matplotlib.pyplot
     """
     
     freqs = f[1:]
     psd = psd[1:]
     
     
-    plt.figure(figsize=figsize)
-    plt.title(f"{isType} noise for $R_0$ : {noise_sim.r0*1e3:.0f} $m\Omega$")
-    plt.grid(True, which = 'both')
-    plt.xlabel(r'Frequency [Hz]')
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_title(f"{istype} noise for $R_0$ : {noise_sim.r0*1e3:.0f} $m\Omega$")
+    ax.grid(True, which = 'both')
+    ax.set_xlabel(r'Frequency [Hz]')
     
-    if isType is 'current':
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), label=r'$\sqrt{S_{ITES}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), label=r'$\sqrt{S_{ILoad}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), label=r'$\sqrt{S_{ITFN}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), label=r'$\sqrt{S_{Itot}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), label=r'$\sqrt{S_{Isquid}}$')
-        plt.loglog(freqs, np.sqrt(psd), label ='data')
+    if istype is 'current':
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), label=r'$\sqrt{S_{ITES}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), label=r'$\sqrt{S_{ILoad}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), label=r'$\sqrt{S_{ITFN}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), label=r'$\sqrt{S_{Itot}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), label=r'$\sqrt{S_{Isquid}}$')
+        ax.loglog(freqs, np.sqrt(psd), label ='data')
     
-    elif isType is 'power':
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), label=r'$\sqrt{S_{PTES}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), label=r'$\sqrt{S_{PLoad}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), label=r'$\sqrt{S_{PTFN}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptot())), label=r'$\sqrt{S_{Ptot}}$')
-        plt.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_psquid())), label=r'$\sqrt{S_{Psquid}}$')
-        plt.loglog(freqs, np.sqrt(psd/(np.abs(noise_sim.dIdP(freqs))**2)), label ='data')
-        plt.ylabel(r'Input Referenced Power Noise [W/$\sqrt{\mathrm{Hz}}$]')
+    elif istype is 'power':
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), label=r'$\sqrt{S_{PTES}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), label=r'$\sqrt{S_{PLoad}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), label=r'$\sqrt{S_{PTFN}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptot())), label=r'$\sqrt{S_{Ptot}}$')
+        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_psquid())), label=r'$\sqrt{S_{Psquid}}$')
+        ax.loglog(freqs, np.sqrt(psd/(np.abs(noise_sim.dIdP(freqs))**2)), label ='data')
+        ax.set_ylabel(r'Input Referenced Power Noise [W/$\sqrt{\mathrm{Hz}}$]')
         
         
     lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    if lgcSave:
-        plt.savefig(savePath+f'{isType}_noise_{noise_sim.R0:.0f}.png',bbox_extra_artists=(lgd,), bbox_inches='tight')
+    if lgcsave:
+        plt.savefig(savepath+f'{istype}_noise_{noise_sim.R0:.0f}.png', bbox_extra_artists=(lgd,), 
+                    bbox_inches='tight')
     else:
         plt.show()
-        return plt
-        
-
-    
-    
-    
-    
-    
-    
+        return fig, ax
+            
