@@ -2,7 +2,7 @@ import numpy as np
 from scipy.signal import butter, filtfilt, fftconvolve
 from scipy.ndimage.interpolation import shift
 import numpy as np
-from numpy.fft import rfft,fft, fftfreq, rfftfreq
+from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
 def calc_psd(x, fs=1.0, folded_over=True):
     """Return the PSD of an n-dimensional array, assuming that we want the PSD of the last axis.

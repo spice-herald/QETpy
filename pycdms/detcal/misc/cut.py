@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.stats import skew
 import random
-from numpy.fft import fft, ifft
 from pycdms.detcal.misc.utils import ofamp
 
 def removeoutliers(x, maxiter=20, skewTarget=0.05):
@@ -164,7 +163,7 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
         
     return cpileup
 
-def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmetrizeflag=False, sgfreq=100.0):
+def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmetrizeflag=False, sgfreq=100.0):
     """
     Function to automatically cut out outliers of the slopes of the inputted traces. Includes a routine that 
     attempts to symmetrize the distribution of slopes around zero, which is useful when the majority of traces 
@@ -174,6 +173,8 @@ def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmet
     ----------
         traces : ndarray
             2-dimensional array of traces to do cuts on
+        fs : float, optional
+            Digitization rate that the data was taken at
         outlieralgo : string, optional
             Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
             removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
@@ -196,12 +197,12 @@ def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmet
             
     """
     
-    nbins = len(traces[0])
-    tracebegin = np.zeros_like(amps)
-    traceend = np.zeros_like(amps)
+    nbin = len(traces[0])
+    tracebegin = np.zeros(len(traces))
+    traceend = np.zeros(len(traces))
     
     # number of periods and bins in period to determine where to calculate slopes and baselines
-    nperiods = np.floor((len(rawtraces[0])/fs)*sgfreq)
+    nperiods = np.floor((nbin/fs)*sgfreq)
     binsinperiod = fs/sgfreq
 
     if is_didv:
@@ -218,44 +219,42 @@ def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmet
         sloperangebegin = range(0, int(nbin/10))
         sloperangeend = range(int(9*nbin/10), nbin)
         
-    tracebegin = np.mean(rawtraces[:, sloperangebegin], axis=1)
-    traceend = np.mean(rawtraces[:, sloperangeend], axis=1)
+    tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
+    traceend = np.mean(traces[:, sloperangeend], axis=1)
     
     # now the slope cut to get rid of muon tails
     # first, create a symmetric distribution about zero slope to get rid of the biased results, 
     # but randomly cutting out events on biased side
     slopes = traceend - tracebegin
-
+    
     # figure out which direction the slopes are usually
-    slopesmean, slopesstd = iterstat(slopes[cpileup1inds], cut=2, precision=10000.0)[:-1]
+    slopesmean, slopesstd = iterstat(slopes, cut=2, precision=10000.0)[:-1]
 
     # if most slopes are positive, flip the sign of them so we can use the same code for both negative and positive slopes
     if slopesmean>0.0:
         slopes= -slopes
 
     # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
-    histupr=max(slopes[cpileup1inds])
+    histupr=max(slopes)
     histlwr=-histupr
 
     # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
-    nbins=int(np.sqrt(len(cpileup1inds)))
-    if np.mod(nbins,2)==0:
-        nbins+=1
+    histbins=int(np.sqrt(nbin))
+    if np.mod(histbins,2)==0:
+        histbins+=1
 
     # create histogram, get number of events in each bin and where the bin edges are
-    hist_num,bin_edges = np.histogram(slopes[cpileup1inds], bins=nbins, range=(histlwr,histupr))
+    hist_num,bin_edges = np.histogram(slopes, bins=histbins, range=(histlwr,histupr))
 
     if len(hist_num)>2 and symmetrizeflag: # otherwise we cannot symmetrize the distribution
         # inititalize the cut that symmetrizes the slopes
-        czeromeangaussianslope = np.zeros(len(cpileup1inds), dtype=bool)
-        czeromeangaussianslope[slopes[cpileup1inds]>bin_edges[nbins//2]] = True
-
-        slopestemp = slopes[cpileup1inds] # temporary variable to write less words
+        czeromeangaussianslope = np.zeros(nbin, dtype=bool)
+        czeromeangaussianslope[slopes>bin_edges[histbins//2]] = True
 
         # go through each bin and remove events until the bin number is symmetric
-        for ibin in range(nbins/2,nbins-1):
-            cslopesinbin = np.logical_and(slopestemp<bin_edges[nbins-ibin-1], slopestemp>=bin_edges[nbins-ibin-2])
-            ntracesinthisbin = hist_num[nbins-ibin-2]
+        for ibin in range(histbins/2,histbins-1):
+            cslopesinbin = np.logical_and(slopes<bin_edges[histbins-ibin-1], slopes>=bin_edges[histbins-ibin-2])
+            ntracesinthisbin = hist_num[histbins-ibin-2]
             ntracesinoppobin = hist_num[ibin+1]
             ntracestoremove = ntracesinthisbin-ntracesinoppobin
             if ntracestoremove>0.0:
@@ -267,8 +266,8 @@ def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmet
         czeromeangaussianslopeinds = np.where(czeromeangaussianslope)[0]
     else:
         # don't do anything about the shape of the distrbution
-        czeromeangaussianslopeinds = np.arange(nbins)
-
+        czeromeangaussianslopeinds = np.arange(len(traces))
+        
     # now get rid of outliers from the symmetrized distribution
     if outlieralgo=="removeoutliers":
         cslope = removeoutliers(slopes[czeromeangaussianslopeinds])
@@ -276,10 +275,14 @@ def slopecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmet
         cslope = iterstat(slopes[czeromeangaussianslopeinds], cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
-        
-    return cslope
+    cslopeinds = czeromeangaussianslopeinds[cslope]
     
-def baselinecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgfreq=100.0):
+    cslopetot = np.ones(len(traces), dtype=bool)
+    cslopetot[cslopeinds] = True
+    
+    return cslopetot
+    
+def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgfreq=100.0):
     """
     Function to automatically cut out outliers of the baselines of the inputted traces.
     
@@ -287,6 +290,8 @@ def baselinecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgf
     ----------
         traces : ndarray
             2-dimensional array of traces to do cuts on
+        fs : float, optional
+            Digitization rate that the data was taken at
         outlieralgo : string, optional
             Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
             removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
@@ -306,11 +311,11 @@ def baselinecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgf
             
     """
     
-    nbins = len(traces[0])
-    tracebegin = np.zeros_like(amps)
+    nbin = len(traces[0])
+    tracebegin = np.zeros(len(traces))
     
     # number of periods and bins in period to determine where to calculate slopes and baselines
-    nperiods = np.floor((len(rawtraces[0])/fs)*sgfreq)
+    nperiods = np.floor((nbin/fs)*sgfreq)
     binsinperiod = fs/sgfreq
 
     if is_didv:
@@ -323,19 +328,19 @@ def baselinecut(traces, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgf
     else:
         sloperangebegin = range(0, int(nbin/10))
         
-    tracebegin = np.mean(rawtraces[:, sloperangebegin], axis=1)
+    tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
     
     # baseline cut
     if outlieralgo=="removeoutliers":
-        cbaseline = removeoutliers(tracebegin[cslopeinds])
+        cbaseline = removeoutliers(tracebegin)
     elif outlieralgo=="iterstat":
-        cbaseline = iterstat(tracebegin[cslopeinds], cut=nsig, precision=10000.0)[2]
+        cbaseline = iterstat(tracebegin, cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
     
     return cbaseline
 
-def chi2cut(traces, outlieralgo="iterstat", nsig=2):
+def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     """
     Function to automatically cut out outliers of the baselines of the inputted traces.
     
@@ -343,6 +348,8 @@ def chi2cut(traces, outlieralgo="iterstat", nsig=2):
     ----------
         traces : ndarray
             2-dimensional array of traces to do cuts on
+        fs : float, optional
+            Digitization rate that the data was taken at
         outlieralgo : string, optional
             Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
             removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
@@ -458,7 +465,7 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     
     #slope cut
     if lgcslope:
-        cslope = slopecut(traces, outlieralgo=outlieralgo, nsig=nsigslope, is_didv=is_didv, 
+        cslope = slopecut(traces[cpileup1inds], fs=fs, outlieralgo=outlieralgo, nsig=nsigslope, is_didv=is_didv, 
                           symmetrizeflag=symmetrizeflag, sgfreq=sgfreq)
     else:
         cslope = np.ones(cpileup1inds.shape, dtype=bool)
@@ -466,7 +473,7 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
 
     # baseline cut
     if lgcbaseline:
-        cbaseline = baselinecut(traces, outlieralgo=outlieralgo, nsig=nsigbaseline, is_didv=is_didv, 
+        cbaseline = baselinecut(traces[cslopeinds], fs=fs, outlieralgo=outlieralgo, nsig=nsigbaseline, is_didv=is_didv, 
                                 sgfreq=sgfreq)
     else:
         cbaseline = np.ones(cslopeinds.shape, dtype=bool)
@@ -475,14 +482,14 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     # do a pileup cut on the mean subtracted data if this is a dIdV, so that we remove pulses
     # that are smaller than the dIdV peaks
     if lgcpileup2 and is_didv:
-        cpileup2 = pileupcut(traces, outlieralgo=outlieralgo, nsig=nsigpileup2, removemeans=True)
+        cpileup2 = pileupcut(traces[cbaselineinds], fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup2, removemeans=True)
     else:
         cpileup2 = np.ones(cbaselineinds.shape, dtype=bool)
     cpileup2inds = cbaselineinds[cpileup2]
 
     #general chi2 cut, this should use iterstat, as there shouldn't be a tail
     if lgcchi2:
-        cchi2 = chi2cut(traces, fs=fs, outlieralgo="iterstat", nsig=nsigchi2)
+        cchi2 = chi2cut(traces[cpileup2inds], fs=fs, outlieralgo="iterstat", nsig=nsigchi2)
     else:
         cchi2 = np.ones(cpileup2inds.shape, dtype=bool)
     cchi2inds = cpileup2inds[cchi2]
