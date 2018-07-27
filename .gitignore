@@ -1,12 +1,11 @@
 ### ignore python compiled code
 
-*/__pycache__/*
+*__pycache__/*
 *.pyc
 
 ### ignore jupyter checkpoints
 
-*/.ipynb_checkpoints/*
-.ipynb_checkpoints/*
+*.ipynb_checkpoints/
 
 ### ignore compiled Python code
 build/*
