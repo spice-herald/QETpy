@@ -5,3 +5,10 @@
 ### ignore jupyter checkpoints
 
 */.ipynb_checkpoints/*
+.ipynb_checkpoints/*
+
+### ignore compiled Python code
+build/*
+dist/*
+pycdms.egg-info/*
+
