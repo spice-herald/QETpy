@@ -53,6 +53,103 @@ def calc_psd(x, fs=1.0, folded_over=True):
         f = fftfreq(x.shape[-1], d=1.0/fs)
     return f, psd
 
+def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
+    """
+    Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
+    and without time delay.
+    
+    Parameters
+    ----------
+        signal : ndarray
+            The signal that we want to apply the optimum filter to.
+        template : ndarray
+            The pulse template to be used for the optimum filter.
+        psd : ndarray
+            The two-sided psd that will be used to describe the noise in the signal
+        fs : float
+            The sample rate of the data being taken
+        withdelay : bool, optional
+            Determines whether or not the optimum amplitude should be calculate with (True) or without
+            (False) using a time delay. With the time delay, the pulse is assumed to be at any time in the trace.
+            Without the time delay, the pulse is assumed to be directly in the middle of the trace. Default
+            is True.
+        coupling : str, optional
+            String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+            when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
+            set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+            
+        Returns
+        -------
+            amp : float
+                The optimum amplitude calculated for the trace.
+            t0 : float
+                The time shift calculated for the pulse. Set to zero if withdelay is False.
+            chi2 : float
+                The Chi^2 value calculated from the optimum filter.
+    """
+
+    nbins = len(signal)
+    timelen = nbins/fs
+
+    #take fft of signal and template
+    v = fft(signal)
+    s = fft(template)
+
+    #check for compatibility between PSD and fft
+    if(len(psd) != len(v)):
+        raise ValueError("PSD length incompatible with signal size")
+    
+    #If AC coupled, the 0 component of the PSD is non-sensical
+    #If DC coupled, ignoring the DC component will still give the correct amplitude
+    if coupling == 'AC':
+        psd[0]=np.inf
+
+    #find optimum filter and norm
+    phi = s.conjugate()/psd
+    norm = np.real(np.dot(phi, s))
+    signalfilt = phi*v/norm
+
+    #this factor is derived from the need to convert the dft to continuous units, and then get a reduced chi-square
+    chiscale = 1/(2*fs*nbins**2)
+
+    #compute OF with delay
+    if withdelay:
+        #have to correct for np fft convention by multiplying by N
+        amps = np.real(ifft(signalfilt))*nbins
+        
+        #signal part of chi-square
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))
+        
+        #fitting part of chi-square
+        chit = (amps**2)*norm
+        
+        #sum parts of chi-square
+        chi = (chi0 - chit)*chiscale
+        
+        #find time of best-fit
+        bestind = np.argmin(chi)
+        amp = amps[bestind]
+        chi2 = chi[bestind]
+        t0 = bestind/fs
+        
+        if(t0 == timelen):
+            t0-=timelen
+
+    #compute OF amplitude no delay
+    else:
+        amp = np.real(np.sum(signalfilt))
+        t0 = 0.0
+    
+        #signal part of chi-square
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))
+
+        #fitting part of chi-square
+        chit = (amp**2)*norm
+
+        chi2 = (chi0-chit)*chiscale
+
+    return amp, t0, chi2
+
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
     Calculates the DC offset of time series trace.
