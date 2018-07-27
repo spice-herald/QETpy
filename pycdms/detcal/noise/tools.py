@@ -12,7 +12,7 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import seaborn as sns
-import utils
+import pycdms.detcal.noise.utils as utils
 
 def slope(x, y, removemeans=True):
     """

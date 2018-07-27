@@ -1,6 +1,7 @@
 ### ignore python compiled code
 
 */__pycache__/*
+*.pyc
 
 ### ignore jupyter checkpoints
 

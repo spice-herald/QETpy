@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-import utils
+import pycdms.detcal.iv.utils as utils
 
 def fitfunc(x, b, m):
     """
