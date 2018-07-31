@@ -1351,8 +1351,6 @@ class DIDV(object):
         up the object for fitting.
         """
         
-        #get number of traces 
-        self.ntraces = len(self.rawtraces)
         #converting sampling rate to time step
         dt = (1.0/self.fs) 
 
@@ -1397,18 +1395,30 @@ class DIDV(object):
 
         for trace in self.traces:
             # deconvolve the trace from the square wave to get the dI/dV in frequency domain
-            didvi = deconvolvedidv(self.time,trace,self.rshunt,self.sgamp,self.sgfreq,self.dutycycle)[1]
+            didvi = deconvolvedidv(self.time, trace, self.rshunt, 
+                                   self.sgamp, self.sgfreq, self.dutycycle)[1]
             didvs.append(didvi)
 
         #convert to numpy structure
         didvs=np.array(didvs)
+        
+        # get rid of any NaNs, as these will break the fit 
+        cut = np.logical_not(np.isnan(didvs).any(axis=1))
+        
+        self.traces = self.traces[cut]
+        didvs = didvs[cut]
+        
 
-        means=np.mean(self.traces,axis=1)
+        means=np.mean(self.traces, axis=1)
 
         #store results
-        self.tmean = np.mean(self.traces,axis=0)
-        self.freq,self.zeroinds = deconvolvedidv(self.time,self.tmean,self.rshunt,self.sgamp,self.sgfreq,self.dutycycle)[::2]
-
+        self.tmean = np.mean(self.traces, axis=0)
+        self.freq,self.zeroinds = deconvolvedidv(self.time, self.tmean, self.rshunt, 
+                                                 self.sgamp, self.sgfreq,self.dutycycle)[::2]
+        
+        #get number of traces 
+        self.ntraces = len(self.traces)
+        
         # divide by sqrt(N) for standard deviation of mean
         self.didvstd = stdcomplex(didvs)/np.sqrt(self.ntraces)
         self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
