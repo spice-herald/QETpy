@@ -36,18 +36,24 @@ def plot_full_trace(didv, poles="all", plotpriors = True, lgcsave = False, savep
     ax.plot(didv.time*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, color='magenta', alpha=0.9, label='1-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, 
+                color='magenta', alpha=0.9, label='1-pole fit')
+        
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, color='green', alpha=0.9, label='2-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, 
+                color='green', alpha=0.9, label='2-pole fit')
+        
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, color='orange', alpha=0.9, label='3-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, 
+                color='orange', alpha=0.9, label='3-pole fit')
+        
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, color='cyan', alpha=0.9, label='2-pole fit with priors')
+        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, 
+                color='cyan', alpha=0.9, label='2-pole fit with priors')
 
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
-    ax.set_xlim([0, max(didv.time)*1e6])
-
+    ax.set_xlim([didv.time[0]*1e6, didv.time[-1]*1e6])
     ax.legend(loc='upper left')
     ax.set_title("Full Trace of dIdV")
     ax.grid(linestyle='dotted')
@@ -88,25 +94,31 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors = True, lgcsave = 
     else:
         poleslist = np.array(poles)
 
+    period = 1.0/didv.sgfreq
+        
     ## plot a single period of the trace
     fig,ax=plt.subplots(figsize=(10,6))
-    ax.plot(didv.time*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
+    ax.plot(didv.time*1e6+dtfit*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, color='magenta', alpha=0.9, label='1-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, 
+                color='magenta', alpha=0.9, label='1-pole fit')
+        
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, color='green', alpha=0.9, label='2-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, 
+                color='green', alpha=0.9, label='2-pole fit')
+        
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, color='orange', alpha=0.9, label='3-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, 
+                color='orange', alpha=0.9, label='3-pole fit')
+        
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, color='cyan', alpha=0.9, label='2-pole fit with priors')
+        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, 
+                color='cyan', alpha=0.9, label='2-pole fit with priors')
 
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
-
-    period = 1.0/didv.sgfreq
-    ax.set_xlim([0, period*1e6])
-
+    ax.set_xlim([didv.time[0]*1e6, didv.time[0]*1e6+period*1e6])
     ax.legend(loc='upper left')
     ax.set_title("Single Period of Trace")
     ax.grid(linestyle='dotted')
@@ -149,24 +161,32 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors = True, l
         poleslist = np.array([1,2,3])
     else:
         poleslist = np.array(poles)
+        
+    period = 1.0/didv.sgfreq
 
     ## plot zoomed in on the trace
     fig,ax=plt.subplots(figsize=(10,6))
     ax.plot(didv.time*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, color='magenta', alpha=0.9, label='1-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, 
+                color='magenta', alpha=0.9, label='1-pole fit')
+        
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, color='green', alpha=0.9, label='2-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, 
+                color='green', alpha=0.9, label='2-pole fit')
+        
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, color='orange', alpha=0.9, label='3-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, 
+                color='orange', alpha=0.9, label='3-pole fit')
+        
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, color='cyan', alpha=0.9, label='2-pole fit with priors')
+        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, 
+                color='cyan', alpha=0.9, label='2-pole fit with priors')
 
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
 
-    period = 1.0/didv.sgfreq
     ax.set_xlim([(0.5-zoomfactor/2)*period*1e6, (0.5+zoomfactor/2)*period*1e6])
 
     ax.legend(loc='upper left')
@@ -219,13 +239,20 @@ def plot_didv_flipped(didv, poles="all", plotpriors = True, lgcsave = False, sav
     ax.plot(time_flipped*1e6,tmean_flipped*1e6,color='blue',label='flipped data')
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, color='magenta', alpha=0.9, label='1-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, 
+                color='magenta', alpha=0.9, label='1-pole fit')
+        
     if (didv.fitparams2 is not None) and (2 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, color='green', alpha=0.9, label='2-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams2[4]*1e6, (didv.didvfit2_timedomain-didv.offset)*1e6, 
+                color='green', alpha=0.9, label='2-pole fit')
+        
     if (didv.fitparams3 is not None) and (3 in poleslist):
-        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, color='orange', alpha=0.9, label='3-pole fit')
+        ax.plot(didv.time*1e6+didv.fitparams3[6]*1e6, (didv.didvfit3_timedomain-didv.offset)*1e6, 
+                color='orange', alpha=0.9, label='3-pole fit')
+        
     if (didv.irwinparams2priors is not None) and (plotpriors):
-        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, color='cyan', alpha=0.9, label='2-pole fit with priors')
+        ax.plot(didv.time*1e6+didv.irwinparams2priors[6]*1e6, (didv.didvfit2priors_timedomain-didv.offset)*1e6, 
+                color='cyan', alpha=0.9, label='2-pole fit with priors')
 
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
