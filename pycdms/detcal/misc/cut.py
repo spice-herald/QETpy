@@ -237,33 +237,41 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
     histupr=max(slopes)
     histlwr=-histupr
+    
+    if histupr<0:
+        # cannot symmetrize distribution, as all the slopes are one sign
+        symmetrizeflag = False
 
     # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
     histbins=int(np.sqrt(nbin))
     if np.mod(histbins,2)==0:
         histbins+=1
 
-    # create histogram, get number of events in each bin and where the bin edges are
-    hist_num,bin_edges = np.histogram(slopes, bins=histbins, range=(histlwr,histupr))
+    if symmetrizeflag:
+        # create histogram, get number of events in each bin and where the bin edges are
+        hist_num,bin_edges = np.histogram(slopes, bins=histbins, range=(histlwr,histupr))
 
-    if len(hist_num)>2 and symmetrizeflag: # otherwise we cannot symmetrize the distribution
-        # inititalize the cut that symmetrizes the slopes
-        czeromeangaussianslope = np.zeros(nbin, dtype=bool)
-        czeromeangaussianslope[slopes>bin_edges[histbins//2]] = True
+        if len(hist_num)>2: # otherwise we cannot symmetrize the distribution
+            # inititalize the cut that symmetrizes the slopes
+            czeromeangaussianslope = np.zeros(nbin, dtype=bool)
+            czeromeangaussianslope[slopes>bin_edges[histbins//2]] = True
 
-        # go through each bin and remove events until the bin number is symmetric
-        for ibin in range(histbins/2,histbins-1):
-            cslopesinbin = np.logical_and(slopes<bin_edges[histbins-ibin-1], slopes>=bin_edges[histbins-ibin-2])
-            ntracesinthisbin = hist_num[histbins-ibin-2]
-            ntracesinoppobin = hist_num[ibin+1]
-            ntracestoremove = ntracesinthisbin-ntracesinoppobin
-            if ntracestoremove>0.0:
-                cslopesinbininds = np.where(cslopesinbin)[0]
-                crandcut = random.sample(cslopesinbininds,ntracestoremove)
-                cslopesinbin[crandcut] = False
-            czeromeangaussianslope += cslopesinbin # update cut to include these events
+            # go through each bin and remove events until the bin number is symmetric
+            for ibin in range(histbins/2,histbins-1):
+                cslopesinbin = np.logical_and(slopes<bin_edges[histbins-ibin-1], slopes>=bin_edges[histbins-ibin-2])
+                ntracesinthisbin = hist_num[histbins-ibin-2]
+                ntracesinoppobin = hist_num[ibin+1]
+                ntracestoremove = ntracesinthisbin-ntracesinoppobin
+                if ntracestoremove>0.0:
+                    cslopesinbininds = np.where(cslopesinbin)[0]
+                    crandcut = random.sample(cslopesinbininds,ntracestoremove)
+                    cslopesinbin[crandcut] = False
+                czeromeangaussianslope += cslopesinbin # update cut to include these events
 
-        czeromeangaussianslopeinds = np.where(czeromeangaussianslope)[0]
+            czeromeangaussianslopeinds = np.where(czeromeangaussianslope)[0]
+        else:
+            # don't do anything about the shape of the distrbution
+            czeromeangaussianslopeinds = np.arange(len(traces))
     else:
         # don't do anything about the shape of the distrbution
         czeromeangaussianslopeinds = np.arange(len(traces))
