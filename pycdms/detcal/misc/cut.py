@@ -100,6 +100,71 @@ def iterstat(data,cut=3,precision=1000.0):
     
     return datamean,datastd,datamask
 
+def symmetrizedist(vals):
+    """
+    Function to symmetrize a distribution about zero. Useful for if the distribution of some value
+    centers around a nonzero value, but should center around zero. An example of this would be when
+    most of the measured slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
+    muon tails, which we want to cut out). To do this, the algorithm randomly chooses points in a histogram
+    to cut out until the histogram is symmetric about zero.
+    
+    Parameters
+    ----------
+        vals : ndarray
+            A 1-d array of the values that will be symmetrized.
+            
+    Returns
+    -------
+        czeromeanslope : ndarray
+            A boolean mask of the values that should be kept.
+    """
+    
+    nvals = len(vals)
+    # figure out which direction the slopes are usually
+    valsmean, valsstd = iterstat(vals, cut=2, precision=10000.0)[:-1]
+
+    # if most vals are positive, flip the sign of them so we can use the same code for both negative and positive vals
+    if valsmean>0.0:
+        vals= vals
+
+    # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
+    histupr=max(vals)
+    histlwr=-histupr
+    
+    # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
+    histbins=int(np.sqrt(nvals))
+    if np.mod(histbins,2)==0:
+        histbins+=1
+
+    if histupr>0:
+        # create histogram, get number of events in each bin and where the bin edges are
+        hist_num, bin_edges = np.histogram(vals, bins=histbins, range=(histlwr, histupr))
+
+        if len(hist_num)>2: # otherwise we cannot symmetrize the distribution
+            # inititalize the cut that symmetrizes the slopes
+            czeromeanvals = np.zeros(nvals, dtype=bool)
+            czeromeanvals[vals>bin_edges[histbins//2]] = True
+
+            # go through each bin and remove events until the bin number is symmetric
+            for ibin in range(histbins//2, histbins-1):
+                cvalsinbin = np.logical_and(vals<bin_edges[histbins-ibin-1], vals>=bin_edges[histbins-ibin-2])
+                ntracesinthisbin = hist_num[histbins-ibin-2]
+                ntracesinoppobin = hist_num[ibin+1]
+                ntracestoremove = ntracesinthisbin-ntracesinoppobin
+                if ntracestoremove>0.0:
+                    cvalsinbininds = np.where(cvalsinbin)[0]
+                    crandcut = np.random.choice(cvalsinbininds, ntracestoremove, replace=False)
+                    cvalsinbin[crandcut] = False
+                czeromeanvals += cvalsinbin # update cut to include these events
+        else:
+            # don't do anything about the shape of the distrbution
+            czeromeanvals = np.ones(nvals, dtype=bool)
+    else:
+        # don't do anything about the shape of the distrbution
+        czeromeanvals = np.ones(nvals, dtype=bool)
+        
+    return czeromeanvals
+
 def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemeans=False):
     """
     Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.
@@ -227,63 +292,21 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     # but randomly cutting out events on biased side
     slopes = traceend - tracebegin
     
-    # figure out which direction the slopes are usually
-    slopesmean, slopesstd = iterstat(slopes, cut=2, precision=10000.0)[:-1]
-
-    # if most slopes are positive, flip the sign of them so we can use the same code for both negative and positive slopes
-    if slopesmean>0.0:
-        slopes= -slopes
-
-    # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
-    histupr=max(slopes)
-    histlwr=-histupr
-    
-    if histupr<0:
-        # cannot symmetrize distribution, as all the slopes are one sign
-        symmetrizeflag = False
-
-    # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
-    histbins=int(np.sqrt(nbin))
-    if np.mod(histbins,2)==0:
-        histbins+=1
-
     if symmetrizeflag:
-        # create histogram, get number of events in each bin and where the bin edges are
-        hist_num,bin_edges = np.histogram(slopes, bins=histbins, range=(histlwr,histupr))
-
-        if len(hist_num)>2: # otherwise we cannot symmetrize the distribution
-            # inititalize the cut that symmetrizes the slopes
-            czeromeangaussianslope = np.zeros(nbin, dtype=bool)
-            czeromeangaussianslope[slopes>bin_edges[histbins//2]] = True
-
-            # go through each bin and remove events until the bin number is symmetric
-            for ibin in range(histbins/2,histbins-1):
-                cslopesinbin = np.logical_and(slopes<bin_edges[histbins-ibin-1], slopes>=bin_edges[histbins-ibin-2])
-                ntracesinthisbin = hist_num[histbins-ibin-2]
-                ntracesinoppobin = hist_num[ibin+1]
-                ntracestoremove = ntracesinthisbin-ntracesinoppobin
-                if ntracestoremove>0.0:
-                    cslopesinbininds = np.where(cslopesinbin)[0]
-                    crandcut = random.sample(cslopesinbininds,ntracestoremove)
-                    cslopesinbin[crandcut] = False
-                czeromeangaussianslope += cslopesinbin # update cut to include these events
-
-            czeromeangaussianslopeinds = np.where(czeromeangaussianslope)[0]
-        else:
-            # don't do anything about the shape of the distrbution
-            czeromeangaussianslopeinds = np.arange(len(traces))
+        czeromeanslope = symmetrizedist(slopes)
+        czeromeanslopeinds = np.where(czeromeanslope)[0]
     else:
         # don't do anything about the shape of the distrbution
-        czeromeangaussianslopeinds = np.arange(len(traces))
+        czeromeanslopeinds = np.arange(len(traces))
         
     # now get rid of outliers from the symmetrized distribution
     if outlieralgo=="removeoutliers":
-        cslope = removeoutliers(slopes[czeromeangaussianslopeinds])
+        cslope = removeoutliers(slopes[czeromeanslopeinds])
     elif outlieralgo=="iterstat":
-        cslope = iterstat(slopes[czeromeangaussianslopeinds], cut=nsig, precision=10000.0)[2]
+        cslope = iterstat(slopes[czeromeanslopeinds], cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
-    cslopeinds = czeromeangaussianslopeinds[cslope]
+    cslopeinds = czeromeanslopeinds[cslope]
     
     cslopetot = np.ones(len(traces), dtype=bool)
     cslopetot[cslopeinds] = True
