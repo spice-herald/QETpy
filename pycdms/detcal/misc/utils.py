@@ -61,13 +61,13 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
     Parameters
     ----------
         signal : ndarray
-            The signal that we want to apply the optimum filter to.
+            The signal that we want to apply the optimum filter to (units should be Amps).
         template : ndarray
-            The pulse template to be used for the optimum filter.
+            The pulse template to be used for the optimum filter (should be normalized beforehand).
         psd : ndarray
-            The two-sided psd that will be used to describe the noise in the signal
+            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
         fs : float
-            The sample rate of the data being taken
+            The sample rate of the data being taken (in Hz).
         withdelay : bool, optional
             Determines whether or not the optimum amplitude should be calculate with (True) or without
             (False) using a time delay. With the time delay, the pulse is assumed to be at any time in the trace.
@@ -81,74 +81,79 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
         Returns
         -------
             amp : float
-                The optimum amplitude calculated for the trace.
+                The optimum amplitude calculated for the trace (in Amps).
             t0 : float
-                The time shift calculated for the pulse. Set to zero if withdelay is False.
+                The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
             chi2 : float
-                The Chi^2 value calculated from the optimum filter.
+                The reduced Chi^2 value calculated from the optimum filter.
+            sigma : float
+                The optimal filter energy resolution (in Amps)
     """
 
     nbins = len(signal)
     timelen = nbins/fs
+    df = fs/nbins
+    
+    # take fft of signal and template, divide by nbins to get correct convention 
+    v = fft(signal)/nbins
+    s = fft(template)/nbins
 
-    #take fft of signal and template
-    v = fft(signal)
-    s = fft(template)
-
-    #check for compatibility between PSD and fft
+    # check for compatibility between PSD and DFT
     if(len(psd) != len(v)):
         raise ValueError("PSD length incompatible with signal size")
     
-    #If AC coupled, the 0 component of the PSD is non-sensical
-    #If DC coupled, ignoring the DC component will still give the correct amplitude
+    # if AC coupled, the 0 component of the PSD is non-sensical
+    # if DC coupled, ignoring the DC component will still give the correct amplitude
     if coupling == 'AC':
         psd[0]=np.inf
 
-    #find optimum filter and norm
+    # find optimum filter and norm
     phi = s.conjugate()/psd
-    norm = np.real(np.dot(phi, s))
+    norm = np.real(np.dot(phi, s))/df
     signalfilt = phi*v/norm
 
-    #this factor is derived from the need to convert the dft to continuous units, and then get a reduced chi-square
-    chiscale = 1/(2*fs*nbins**2)
+    # calculate the expected energy resolution
+    sigma = 1/(np.dot(phi, s).real*timelen)**0.5
 
-    #compute OF with delay
+    # compute OF with delay
     if withdelay:
-        #have to correct for np fft convention by multiplying by N
-        amps = np.real(ifft(signalfilt))*nbins
+        # correct for fft convention by multiplying by nbins
+        amps = np.real(ifft(signalfilt*nbins))/df
         
-        #signal part of chi-square
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))
+        # signal part of chi2
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
         
-        #fitting part of chi-square
+        # fitting part of chi2
         chit = (amps**2)*norm
         
-        #sum parts of chi-square
-        chi = (chi0 - chit)*chiscale
+        # sum parts of chi2, divide by nbins to get reduced chi2
+        chi = (chi0 - chit)/nbins
         
-        #find time of best-fit
+        # find time of best fit
         bestind = np.argmin(chi)
         amp = amps[bestind]
         chi2 = chi[bestind]
         t0 = bestind/fs
         
-        if(t0 == timelen):
+        # make it so that the time shift goes from -timelen/2 to timelen/2
+        if(bestind > nbins//2):
             t0-=timelen
 
-    #compute OF amplitude no delay
+    # compute OF amplitude no delay
     else:
-        amp = np.real(np.sum(signalfilt))
+        amp = np.real(np.sum(signalfilt))/df
         t0 = 0.0
     
-        #signal part of chi-square
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))
-
-        #fitting part of chi-square
+        # signal part of chi2
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
+        
+        # fitting part of chi2
         chit = (amp**2)*norm
+        
+        # reduced chi2
+        chi2 = (chi0-chit)/nbins
 
-        chi2 = (chi0-chit)*chiscale
-
-    return amp, t0, chi2
+    return amp, t0, chi2, sigma
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
