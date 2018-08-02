@@ -53,7 +53,7 @@ def calc_psd(x, fs=1.0, folded_over=True):
         f = fftfreq(x.shape[-1], d=1.0/fs)
     return f, psd
 
-def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
+def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False ):
     """
     Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
     and without time delay.
@@ -77,6 +77,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
             String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
             when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
             set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+	lgcsigma : Boolean, optional
+	    If True, the estimated optimal filter energy resolution will be calculated and returned.
             
         Returns
         -------
@@ -113,7 +115,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
     signalfilt = phi*v/norm
 
     # calculate the expected energy resolution
-    sigma = 1/(np.dot(phi, s).real*timelen)**0.5
+    if lgcsigma:
+    	sigma = 1/(np.dot(phi, s).real*timelen)**0.5
 
     # compute OF with delay
     if withdelay:
@@ -152,8 +155,10 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC'):
         
         # reduced chi2
         chi2 = (chi0-chit)/nbins
-
-    return amp, t0, chi2, sigma
+    if lgcsigma:
+    	return amp, t0, chi2, sigma
+    else:
+	return amp, t0, chi2
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
