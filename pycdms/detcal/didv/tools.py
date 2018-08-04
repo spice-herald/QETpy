@@ -1111,10 +1111,6 @@ class DIDV(object):
             Error in the load resistance, Ohms
         rshunt : float
             Shunt resistance in the circuit, Ohms
-        timeoffset : float
-            Absolute offset in time (s) to be manually applied. Should be used to line up the 
-            beginning of a signal generator frequency with the start of the trace. This just
-            truncates the front of the trace by the amount of time specified by this value.
         tracegain : float
             The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
             already has units of Amps, then this should be set to 1.0
@@ -1131,11 +1127,11 @@ class DIDV(object):
             Irwin's TES parameters for the trace (any values that are set 
             to zero mean that we have no knowledge of that parameter) 
         dt0 : float
-            The fine-tuned value of the starting guess for the time offset of the didv when fitting
-            (this should be used after setting the overall timeoffset). The best way to use this value
-            is to run the fit multiple times, setting dt0 equal to the fit's next value,
-            and seeing where the dt0 value converges. The fit has a difficult time finding the value
-            on the first run, so it is best to do this iteratively. 
+            The value of the starting guess for the time offset of the didv when fitting. 
+            The best way to use this value if it isn't converging well is to run the fit multiple times, 
+            setting dt0 equal to the fit's next value, and seeing where the dt0 value converges. 
+            The fit can have a difficult time finding the value on the first run if it the initial value 
+            is far from the actual value, so a solution is to do this iteratively. 
         freq : ndarray
             The frequencies of the didv fit
         time : ndarray
@@ -1274,9 +1270,10 @@ class DIDV(object):
                 to zero mean that we have no knowledge of that parameter) 
             dt0 : float, optional
                 The value of the starting guess for the time offset of the didv when fitting. 
-                The best way to use this value is to run the fit multiple times, setting dt0 equal to the fit's next value,
-                and seeing where the dt0 value converges. The fit has a difficult time finding the value
-                on the first run, so it is best to do this iteratively. 
+                The best way to use this value if it isn't converging well is to run the fit multiple times, 
+                setting dt0 equal to the fit's next value, and seeing where the dt0 value converges. 
+                The fit can have a difficult time finding the value on the first run if it the initial value 
+                is far from the actual value, so a solution is to do this iteratively. 
         """
         
         
