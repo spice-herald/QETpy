@@ -77,8 +77,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
             String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
             when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
             set to anything else, then the zero frequency bin is kept. Default is 'AC'.
-	lgcsigma : Boolean, optional
-	    If True, the estimated optimal filter energy resolution will be calculated and returned.
+    lgcsigma : Boolean, optional
+        If True, the estimated optimal filter energy resolution will be calculated and returned.
             
         Returns
         -------
@@ -116,7 +116,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
 
     # calculate the expected energy resolution
     if lgcsigma:
-    	sigma = 1/(np.dot(phi, s).real*timelen)**0.5
+        sigma = 1/(np.dot(phi, s).real*timelen)**0.5
 
     # compute OF with delay
     if withdelay:
@@ -155,10 +155,11 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         
         # reduced chi2
         chi2 = (chi0-chit)/nbins
+        
     if lgcsigma:
-    	return amp, t0, chi2, sigma
+        return amp, t0, chi2, sigma
     else:
-	return amp, t0, chi2
+        return amp, t0, chi2
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
