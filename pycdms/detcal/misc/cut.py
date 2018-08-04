@@ -415,7 +415,7 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     
     # First do optimum filter on all traces without mean subtracted
     for itrace in range(0,len(traces)):
-        chi2[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[-1]
+        chi2[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[2]
         
     if outlieralgo=="removeoutliers":
         cchi2 = removeoutliers(chi2)
