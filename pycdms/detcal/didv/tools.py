@@ -27,6 +27,99 @@ def stdcomplex(x, axis=0):
     istd = np.std(x.imag, axis=axis)
     std_complex = rstd+1.0j*istd
     return std_complex
+
+def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq, sgamp, rshunt, 
+                     r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001, priors=None, invpriorscov=None, 
+                     add180phase=False, dt0=10.0e-6):
+    """
+    Function to initialize and process a dIdV dataset without having all of the traces, but just the 
+    parameters that are required for fitting. After running, this returns a DIDV class object that is
+    ready for fitting.
+    
+    Parameters
+    ----------
+        tmean : ndarray
+            The average trace in time domain, units of Amps
+        didvstd : ndarray
+            The complex standard deviation of the didv in frequency space for each frequency
+        didvmean : ndarray
+            The average trace converted to didv
+        offset : float
+            The offset (i.e. baseline value) of the didv trace, in Amps
+        offset_err : float
+            The error in the offset of the didv trace, in Amps
+        fs : float
+            Sample rate of the data taken, in Hz
+        sgfreq : float
+            Frequency of the signal generator, in Hz
+        sgamp : float
+            Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
+        rshunt : float
+            Shunt resistance in the circuit, Ohms
+        r0 : float, optional
+            Resistance of the TES in Ohms
+        r0_err : float, optional
+            Error in the resistance of the TES (Ohms)
+        rload : float, optional
+            Load resistance of the circuit (rload = rshunt + rparasitic), Ohms
+        rload_err : float, optional
+            Error in the load resistance, Ohms
+        priors : ndarray, optional
+            Prior known values of Irwin's TES parameters for the trace. 
+            Should be in the order of (rload,r0,beta,l,L,tau0,dt)
+        invpriorscov : ndarray, optional
+            Inverse of the covariance matrix of the prior known values of 
+            Irwin's TES parameters for the trace (any values that are set 
+            to zero mean that we have no knowledge of that parameter) 
+        add180phase : boolean, optional
+            If the signal generator is out of phase (i.e. if it looks like --__ instead of __--), then this
+            should be set to True. Adds half a period of the signal generator to the dt0 attribute
+        dt0 : float, optional
+            The value of the starting guess for the time offset of the didv when fitting. 
+            The best way to use this value if it isn't converging well is to run the fit multiple times, 
+            setting dt0 equal to the fit's next value, and seeing where the dt0 value converges. 
+            The fit can have a difficult time finding the value on the first run if it the initial value 
+            is far from the actual value, so a solution is to do this iteratively. 
+
+    Returns
+    -------
+        didvobj : Object
+            A DIDV class object that can be used to fit the dIdV and return 
+            the fit parameters.
+    
+    """
+    
+    didvobj = DIDV(None, fs, sgfreq, sgamp, rshunt, r0=r0, r0_err=r0_err, rload=rload, rload_err=rload_err,
+                   add180phase=add180phase, priors=priors, invpriorscov=invpriorscov, dt0=dt0)
+    
+    didvobj.didvmean = didvmean
+    didvobj.didvstd = didvstd
+    didvobj.offset = offset
+    didvobj.offset_err = offset_err
+    didvobj.tmean = tmean
+    didvobj.dt0 = dt0
+    
+    if didvobj.add180phase:
+        didvobj.dt0 = didvobj.dt0 + 1/(2*didvobj.sgfreq)
+
+    didvobj.time = np.arange(len(tmean))/fs - didvobj.dt0
+    didvobj.freq = np.fft.fftfreq(len(tmean),d=1.0/fs)
+
+    nbins = len(didvobj.tmean)
+    nperiods = np.floor(nbins*didvobj.sgfreq/didvobj.fs)
+
+    flatindstemp = list()
+    for i in range(0, int(nperiods)):
+        # get index ranges for flat parts of trace
+        flatindlow = int((float(i)+0.25)*didvobj.fs/didvobj.sgfreq)+int(didvobj.dt0*didvobj.fs)
+        flatindhigh = int((float(i)+0.48)*didvobj.fs/didvobj.sgfreq)+int(didvobj.dt0*didvobj.fs)
+        flatindstemp.append(range(flatindlow, flatindhigh))
+    flatinds = np.array(flatindstemp).flatten()
+
+    didvobj.flatinds = flatinds[np.logical_and(flatinds>0,flatinds<nbins)]
+    
+    return didvobj
+
     
 def onepoleimpedance(freq, A, tau2):
     """
