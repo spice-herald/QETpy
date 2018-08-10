@@ -53,7 +53,7 @@ def calc_psd(x, fs=1.0, folded_over=True):
         f = fftfreq(x.shape[-1], d=1.0/fs)
     return f, psd
 
-def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False ):
+def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, nconstrain=None):
     """
     Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
     and without time delay.
@@ -77,8 +77,11 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
             String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
             when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
             set to anything else, then the zero frequency bin is kept. Default is 'AC'.
-    lgcsigma : Boolean, optional
-        If True, the estimated optimal filter energy resolution will be calculated and returned.
+        lgcsigma : Boolean, optional
+            If True, the estimated optimal filter energy resolution will be calculated and returned.
+        nconstrain : int, NoneType, optional
+            The length of the window to constrain the possible t0 values to, centered on the unshifted 
+            trigger. If left as None, then t0 is uncontrained.
             
         Returns
         -------
@@ -117,9 +120,9 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     # calculate the expected energy resolution
     if lgcsigma:
         sigma = 1/(np.dot(phi, s).real*timelen)**0.5
-
-    # compute OF with delay
+    
     if withdelay:
+        # compute OF with delay
         # correct for fft convention by multiplying by nbins
         amps = np.real(ifft(signalfilt*nbins))/df
         
@@ -132,18 +135,23 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         # sum parts of chi2, divide by nbins to get reduced chi2
         chi = (chi0 - chit)/nbins
         
+        amps = np.roll(amps, nbins//2)
+        chi = np.roll(chi, nbins//2)
+        
         # find time of best fit
-        bestind = np.argmin(chi)
+        if nconstrain is not None:
+            bestind = np.argmin(chi[nbins//2-nconstrain//2:nbins//2+nconstrain//2+nconstrain%2])
+            bestind+=nbins//2-nconstrain//2
+        else:
+            bestind = np.argmin(chi)
+            
         amp = amps[bestind]
         chi2 = chi[bestind]
-        t0 = bestind/fs
+        # time shift goes from -timelen/2 to timelen/2
+        t0 = (bestind-nbins//2)/fs
         
-        # make it so that the time shift goes from -timelen/2 to timelen/2
-        if(bestind > nbins//2):
-            t0-=timelen
-
-    # compute OF amplitude no delay
     else:
+        # compute OF amplitude no delay
         amp = np.real(np.sum(signalfilt))/df
         t0 = 0.0
     
