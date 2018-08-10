@@ -81,7 +81,9 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
             If True, the estimated optimal filter energy resolution will be calculated and returned.
         nconstrain : int, NoneType, optional
             The length of the window to constrain the possible t0 values to, centered on the unshifted 
-            trigger. If left as None, then t0 is uncontrained.
+            trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
+            the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
+            over.
             
         Returns
         -------
@@ -140,6 +142,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         
         # find time of best fit
         if nconstrain is not None:
+            if nconstrain>nbins:
+                nconstrain = nbins
             bestind = np.argmin(chi[nbins//2-nconstrain//2:nbins//2+nconstrain//2+nconstrain%2])
             bestind+=nbins//2-nconstrain//2
         else:
