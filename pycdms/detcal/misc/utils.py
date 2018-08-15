@@ -80,7 +80,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         lgcsigma : Boolean, optional
             If True, the estimated optimal filter energy resolution will be calculated and returned.
         nconstrain : int, NoneType, optional
-            The length of the window to constrain the possible t0 values to, centered on the unshifted 
+            The length of the window (in bins) to constrain the possible t0 values to, centered on the unshifted 
             trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
             the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
             over.
