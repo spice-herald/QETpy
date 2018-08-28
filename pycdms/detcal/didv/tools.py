@@ -1445,8 +1445,8 @@ class DIDV(object):
         dt = (1.0/self.fs) 
 
         #get trace x values (i.e. time) in seconds
-        nbins = len(self.rawtraces[0])
-        bins = np.arange(0, nbins)
+        nbinsraw = len(self.rawtraces[0])
+        bins = np.arange(0, nbinsraw)
 
         # add half a period of the square wave frequency to the initial offset if add180phase is True
         if (self.add180phase):
@@ -1456,7 +1456,7 @@ class DIDV(object):
 
         #figure out how many didv periods are in the trace, including the time offset
         period = 1.0/self.sgfreq
-        nperiods = np.floor(nbins*dt/period)
+        nperiods = np.floor(nbinsraw*dt/period)
 
         # find which indices to keep in order to have an integer number of periods
         indmax = int(nperiods*self.fs/self.sgfreq)
@@ -1465,6 +1465,7 @@ class DIDV(object):
         # ignore the tail of the trace after the last period, as this tail just adds artifacts to the FFTs
         self.time = self.time[good_inds]
         self.traces = self.rawtraces[:,good_inds]/(self.tracegain) # convert to Amps
+        nbins = len(self.traces[0])
 
         #need these x-values to be properly scaled for maximum likelihood slope fitting
         period_unscaled = self.fs/self.sgfreq

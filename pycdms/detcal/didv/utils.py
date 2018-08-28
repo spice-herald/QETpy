@@ -98,7 +98,7 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors = True, lgcsave = 
         
     ## plot a single period of the trace
     fig,ax=plt.subplots(figsize=(10,6))
-    ax.plot(didv.time*1e6+dtfit*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
+    ax.plot(didv.time*1e6, didv.tmean*1e6 - didv.offset*1e6, color='black', label='mean')
 
     if (didv.fitparams1 is not None) and (1 in poleslist):
         ax.plot(didv.time*1e6+didv.fitparams1[2]*1e6, (didv.didvfit1_timedomain-didv.offset)*1e6, 
