@@ -84,17 +84,17 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
             trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
             the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
             over.
-            
-        Returns
-        -------
-            amp : float
-                The optimum amplitude calculated for the trace (in Amps).
-            t0 : float
-                The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
-            chi2 : float
-                The reduced Chi^2 value calculated from the optimum filter.
-            sigma : float
-                The optimal filter energy resolution (in Amps)
+
+    Returns
+    -------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
+        chi2 : float
+            The reduced Chi^2 value calculated from the optimum filter.
+        sigma : float, optional
+            The optimal filter energy resolution (in Amps)
     """
 
     nbins = len(signal)
@@ -172,6 +172,52 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         return amp, t0, chi2, sigma
     else:
         return amp, t0, chi2
+    
+def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
+    """
+    Function for calculating the low frequency chi^2 of the optimum filter, given some cut off 
+    frequency. This function does not calculate the optimum amplitude - it requires that ofamp
+    has been run, and the fit has been loaded to this function.
+    
+    Parameters
+    ----------
+        signal : ndarray
+            The signal that we want to calculate the low frequency chi^2 of (units should be Amps).
+        template : ndarray
+            The pulse template to be used for the low frequency chi^2 calculation (should be 
+            normalized beforehand).
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s).
+        psd : ndarray
+            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
+        fs : float
+            The sample rate of the data being taken (in Hz).
+        fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.
+        
+    Returns
+    -------
+        chi2low : float
+            The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+    """
+    
+    nbins = len(signal)
+    df = fs/nbins
+    
+    v = fft(signal)/nbins
+    s = fft(template)/nbins
+    
+    f = fftfreq(nbins, d=1/fs)
+    
+    chi2tot = df*np.abs(v/df - amp*np.exp(-2.0j*np.pi*f*t0)*s/df)**2/psd
+    
+    chi2inds = np.abs(f)<=fcutoff
+    
+    chi2low = np.sum(chi2tot[chi2inds])
+    
+    return chi2low
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
