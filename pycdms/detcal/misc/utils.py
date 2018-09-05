@@ -457,8 +457,8 @@ class OFnonlin(object):
         """
         delta = tau_r-tau_f
         rat = tau_r/tau_f
-        amp = A1/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
-        pulse1 = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
         return np.roll(pulse, int(t0*self.fs))
 
     def onepole(self, A, tau_f, t0):
@@ -483,9 +483,9 @@ class OFnonlin(object):
         tau_r = self.taurise
         omega = 2*np.pi*self.freqs
         delta = tau_r-tau_f
-        rat = tau_f/tau_r
-        amp = A/(rat**(-tau_f/delta)-rat**(-tau_r/delta))
-        pulse = amp*(tau_f-tau_r)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        rat = tau_r/tau_f
+        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
         return pulse*np.sqrt(self.df)
     
     def residuals(self, params):
@@ -583,34 +583,41 @@ class OFnonlin(object):
                 if len(guess) != 4:
                     raise ValueError(f'Length of guess not compatible with 2-pole fit. Must be of format: guess = (A,taurise,taufall,t0)')
                 else:
-                    p0 = guess
+                    ampguess, tauriseguess, taufallguess, t0guess = guess
             else:
                 if len(guess) != 3:
                     raise ValueError(f'Length of guess not compatible with 1-pole fit. Must be of format: guess = (A,taufall,t0)')
                 else:
-                    p0 = guess
+                    ampguess, taufallguess, t0guess = guess
             
         elif self.template is not None:
-            p = template
+            ampscale = np.max(pulse)-np.min(pulse)
+            maxind = np.argmax(self.template)
+            ampguess = np.mean(self.template[maxind-7:maxind+7])*ampscale
+            tauval = 0.37*ampguess
+            tauind = np.argmin(np.abs(self.template[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
+            taufallguess = (tauind-maxind)/self.fs
+            tauriseguess = 20e-6
+            t0guess = maxind/self.fs
+            if lgcdouble:
+                p0 = (ampguess, tauriseguess, taufallguess, t0guess)
+            else:
+                p0 = (ampguess, taufallguess, t0guess)
         else:
-            p = pulse
-        
-        maxind = np.argmax(p)
-        ampguess = np.mean(p[maxind-7:maxind+7])
-        tauval = 0.37*ampguess
-        tauind = np.where(np.isclose(p[maxind:maxind+300],tauval, rtol=.1))[0][0] + maxind
-        taufallguess = (tauind-maxind)/self.fs
-        t0guess = maxind/self.fs
-        
+            maxind = np.argmax(pulse)
+            ampguess = np.mean(pulse[maxind-7:maxind+7])
+            tauval = 0.37*ampguess
+            tauind = np.argmin(np.abs(pulse[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
+            taufallguess = (tauind-maxind)/self.fs
+            tauriseguess = 20e-6
+            t0guess = maxind/self.fs
         
         if lgcdouble:
             self.dof = 4
-            tauriseguess = 20e-6
             p0 = (ampguess, tauriseguess, taufallguess, t0guess)
             boundslower = (ampguess/100, tauriseguess/4, taufallguess/4, t0guess - 30/self.fs)
             boundsupper = (ampguess*100, tauriseguess*4, taufallguess*4, t0guess + 30/self.fs)
             bounds = (boundslower,boundsupper)
-            
             
         else:
             self.dof = 3
