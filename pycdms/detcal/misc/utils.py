@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.signal import butter, filtfilt, fftconvolve
 from scipy.ndimage.interpolation import shift
+from scipy.optimize import least_squares
 import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
+    
 
 def calc_psd(x, fs=1.0, folded_over=True):
     """Return the PSD of an n-dimensional array, assuming that we want the PSD of the last axis.
@@ -337,3 +339,298 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         masked_aligned = np.ma.array(flat_aligned, mask = np.isnan(flat_aligned)).reshape(traces_aligned.shape)
         return shifts, masked_aligned
 
+    
+class OFnonlin(object):
+    """
+    This class provides the user with a non-linear optimum filter to estimate the amplitude,
+    rise time (optional), fall time, and time offset of a pulse. 
+    
+    Attributes:
+    -----------
+        psd: ndarray 
+            The power spectral density corresponding to the pulses that will be 
+            used in the fit. Must be the full psd (positive and negative frequencies), 
+            and should be properly normalized to whatever units the pulses will be in. 
+        fs: int or float
+            The sample rate of the ADC
+        df: float
+            The delta frequency
+        freqs: ndarray
+            Array of frequencies corresponding to the psd
+        time: ndarray
+            Array of time bins corresponding to the pulse
+        template: ndarray
+            The time series pulse template to use as a guess for initial parameters
+        data: ndarray
+            FFT of the pulse that will be used in the fit
+        lgcdouble: bool
+            If False, only the Pulse hight, fall time, and time offset will be fit.
+            If True, the rise time of the pulse will be fit in addition to the above. 
+        taurise: float
+            The user defined risetime of the pulse
+        error: ndarray
+            The uncertianty per frequency (the square root of the psd, devided by the errorscale)
+        dof: int
+            The number of degrees of freedom in the fit
+        norm: float
+            Normilization factor to go from continuous to FFT
+    
+    """
+    def __init__(self,psd, fs, template = None):
+        """
+        Initialization of OFnonlin object
+        
+        Parameters
+        ----------
+            psd: ndarray 
+                The power spectral density corresponding to the pulses that will be 
+                used in the fit. Must be the full psd (positive and negative frequencies), 
+                and should be properly normalized to whatever units the pulses will be in. 
+            fs: int or float
+                The sample rate of the ADC
+            template: ndarray
+                The time series pulse template to use as a guess for initial parameters
+            
+        """
+        psd[0] = 1e40
+        self.psd = psd
+        self.fs = fs
+        self.df = fs/len(psd)
+        self.freqs = np.fft.fftfreq(len(psd), 1/fs)
+        self.time = np.arange(len(psd))/fs
+        self.template = template
+
+        self.data = None
+        self.lgcdouble = False
+
+        self.taurise = None
+        self.error = None
+        self.dof = None
+        self.norm = np.sqrt(fs*len(psd))
+        
+    def twopole(self,A, tau_r, tau_f,t0):
+        """
+        Functional form of pulse in frequency domain with the amplitude, rise time,
+        fall time, and time offset allowed to float. This is meant to be a private function
+        
+        Parameters
+        ----------
+            A: float
+                Amplitude of pulse
+            tau_r: float
+                Rise time of two-pole pulse
+            tau_f: float
+                Fall time of two-pole pulse
+            t0: float
+                Time offset of two pole pulse
+        Returns
+        -------
+            pulse: ndarray, complex
+                Array of amplitude values as a function of freuqncy
+        """
+        
+        omega = 2*np.pi*self.freqs
+        delta = tau_r-tau_f
+        rat = tau_r/tau_f
+        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        return pulse*np.sqrt(self.df)
+    def twopoletime(self,A,tau_r,tau_f,t0):
+        """
+        Functional form of pulse in time domain with the amplitude, rise time,
+        fall time, and time offset allowed to float 
+        
+        Parameters
+        ----------
+            A: float
+                Amplitude of pulse
+            tau_r: float
+                Rise time of two-pole pulse
+            tau_f: float
+                Fall time of two-pole pulse
+            t0: float
+                Time offset of two pole pulse
+        Returns
+        -------
+            pulse: ndarray
+                Array of amplitude values as a function of time
+        """
+        delta = tau_r-tau_f
+        rat = tau_r/tau_f
+        amp = A1/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        pulse1 = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        return np.roll(pulse, int(t0*self.fs))
+
+    def onepole(self, A, tau_f, t0):
+        """
+        Functional form of pulse in time domain with the amplitude,
+        fall time, and time offset allowed to float, and the rise time 
+        held constant
+        
+        Parameters
+        ----------
+            A: float
+                Amplitude of pulse
+            tau_f: float
+                Fall time of two-pole pulse
+            t0: float
+                Time offset of two pole pulse
+        Returns
+        -------
+            pulse: ndarray, complex
+                Array of amplitude values as a function of freuqncy
+        """
+        tau_r = self.taurise
+        omega = 2*np.pi*self.freqs
+        delta = tau_r-tau_f
+        rat = tau_f/tau_r
+        amp = A/(rat**(-tau_f/delta)-rat**(-tau_r/delta))
+        pulse = amp*(tau_f-tau_r)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        return pulse*np.sqrt(self.df)
+    
+    def residuals(self, params):
+        """
+        Function ot calculate the weighted residuals to be minimized
+        
+        Parameters
+        ----------
+            params: tuple
+                Tuple containing fit parameters
+        Returns
+        -------
+            z1d: ndarray
+                Array containing residuals per frequency bin. The complex data is flatted into
+                single array
+        """
+        if self.lgcdouble:
+            A,tau_r, tau_f, t0 = params
+            delta = (self.data - self.twopole( A, tau_r, tau_f, t0) )
+        else:
+            A, tau_f, t0 = params
+            delta = (self.data - self.onepole( A,  tau_f, t0) )
+        z1d = np.zeros(self.data.size*2, dtype = np.float64)
+        z1d[0:z1d.size:2] = delta.real/self.error
+        z1d[1:z1d.size:2] = delta.imag/self.error
+        return z1d
+    
+    def calcchi2(self, model):
+        """
+        Function to calculate the reduced chi square
+        
+        Parameters
+        ----------
+            model: ndarray
+                Array corresponding to pulse function (twopole or onepole) evaluated
+                at the optimum values
+        Returns
+        -------
+            chi2: float
+                The reduced chi squared statistic
+        """
+        return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
+
+    def fit_falltimes(self,pulse, lgcdouble = False, errscale = 1, guess = None, taurise = None, 
+                      lgcfullrtn = False):
+        """
+        Function to do the fit
+        
+        Parameters
+        ----------
+            pulse: ndarray
+                Time series traces to be fit
+            lgcdouble: bool, optional
+                If False, the twopole fit is done, if True, the one pole fit it done.
+                Note, if True, the user must provide the value of taurise.
+            errscale: float or int, optional
+                A scale factor for the psd. Ex: if fitting an average, the errscale should be
+                set to the number of traces used in the average
+            guess: tuple, optional
+                Guess of initial values for fit, must be the same size as the model being used for fit
+            taurise: float, optional
+                The value of the rise time of the pulse if the single pole function is being use for fit
+            lgcfullrtn: bool, optional
+                If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+                the covariance matrix, and chi squared statistic are returned as well.
+        Returns
+        -------
+            variables: tuple
+                The best fit parameters
+            errors: tuple
+                The corresponding fit errors for the best fit parameters
+            cov: ndarray
+                The convariance matrix returned from the fit
+            chi2: float
+                The reduced chi squared statistic evaluated at the optimum point of the fit
+        Raises
+        ------
+            ValueError
+                if length of guess does not match the number of parameters needed in fit
+                
+        """
+        self.data = np.fft.fft(pulse)/self.norm
+        self.error = np.sqrt(self.psd/errscale)
+        
+        self.lgcdouble = lgcdouble
+        
+        if not lgcdouble:
+            if taurise is None:
+                raise ValueError('taurise must not be None if doing 1-pole fit.')
+            else:
+                self.taurise = taurise
+        
+        if guess is not None:
+            if lgcdouble:
+                if len(guess) != 4:
+                    raise ValueError(f'Length of guess not compatible with 2-pole fit. Must be of format: guess = (A,taurise,taufall,t0)')
+                else:
+                    p0 = guess
+            else:
+                if len(guess) != 3:
+                    raise ValueError(f'Length of guess not compatible with 1-pole fit. Must be of format: guess = (A,taufall,t0)')
+                else:
+                    p0 = guess
+            
+        elif self.template is not None:
+            p = template
+        else:
+            p = pulse
+        
+        maxind = np.argmax(p)
+        ampguess = np.mean(p[maxind-7:maxind+7])
+        tauval = 0.37*ampguess
+        tauind = np.where(np.isclose(p[maxind:maxind+300],tauval, rtol=.1))[0][0] + maxind
+        taufallguess = (tauind-maxind)/self.fs
+        t0guess = maxind/self.fs
+        
+        
+        if lgcdouble:
+            self.dof = 4
+            tauriseguess = 20e-6
+            p0 = (ampguess, tauriseguess, taufallguess, t0guess)
+            boundslower = (ampguess/100, tauriseguess/4, taufallguess/4, t0guess - 30/self.fs)
+            boundsupper = (ampguess*100, tauriseguess*4, taufallguess*4, t0guess + 30/self.fs)
+            bounds = (boundslower,boundsupper)
+            
+            
+        else:
+            self.dof = 3
+            p0 = (ampguess, taufallguess, t0guess)
+            boundslower = (ampguess/100, taufallguess/4, t0guess - 30/self.fs)
+            boundsupper = (ampguess*100,  taufallguess*4, t0guess + 30/self.fs)
+            bounds = (boundslower,boundsupper)
+            
+        result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=p0 , jac = '3-point',
+                               loss = 'linear', xtol = 2.3e-16, ftol = 2.3e-16)
+        variables = result['x']
+        if lgcdouble:        
+            chi2 = self.calcchi2(self.twopole(variables[0], variables[1], variables[2],variables[3]))
+        else:
+            chi2 = self.calcchi2(self.onepole(variables[0], variables[1],variables[2]))
+    
+        jac = result['jac']
+        cov = np.linalg.inv(np.dot(np.transpose(jac),jac))
+        errors = np.sqrt(cov.diagonal())
+        if lgcfullrtn:
+            return variables, errors, cov, chi2
+        else:
+            return variables
