@@ -896,7 +896,7 @@ class MuonTailFit(object):
         chi2 = self.calcchi2(self.muontailfcn(*variables))
 
         jac = result['jac']
-        cov = np.linalg.inv(np.dot(np.transpose(jac),jac))
+        cov = np.linalg.pinv(np.dot(np.transpose(jac),jac))
         errors = np.sqrt(cov.diagonal())
 
         if lgcfullrtn:
