@@ -735,3 +735,172 @@ def plotnonlin(OFnonlinOBJ,pulse, params):
    
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
+
+    
+
+class MuonTailFit(object):
+    """
+    This class provides the user with a fitting routine to estimate the thermal muon tail fall time.
+    
+    Attributes:
+    -----------
+        psd: ndarray 
+            The power spectral density corresponding to the pulses that will be 
+            used in the fit. Must be the full psd (positive and negative frequencies), 
+            and should be properly normalized to whatever units the pulses will be in. 
+        fs: int or float
+            The sample rate of the ADC
+        df: float
+            The delta frequency
+        freqs: ndarray
+            Array of frequencies corresponding to the psd
+        time: ndarray
+            Array of time bins corresponding to the pulse
+        data: ndarray
+            FFT of the pulse that will be used in the fit
+        error: ndarray
+            The uncertainty per frequency (the square root of the psd, divided by the error scale)
+        dof: int
+            The number of degrees of freedom in the fit
+        norm: float
+            Normalization factor to go from continuous to FFT
+    
+    """
+    def __init__(self, psd, fs):
+        """
+        Initialization of MuonTailFit object
+        
+        Parameters
+        ----------
+            psd: ndarray 
+                The power spectral density corresponding to the pulses that will be 
+                used in the fit. Must be the full psd (positive and negative frequencies), 
+                and should be properly normalized to whatever units the pulses will be in. 
+            fs: int or float
+                The sample rate of the ADC
+            
+        """
+        psd[0] = 1e40
+        self.psd = psd
+        self.fs = fs
+        self.df = self.fs/len(self.psd)
+        self.freqs = np.fft.fftfreq(len(psd), d=1/self.fs)
+        self.time = np.arange(len(self.psd))/self.fs
+
+        self.data = None
+
+        self.taurise = None
+        self.error = None
+        self.dof = None
+        self.norm = np.sqrt(self.fs*len(self.psd))
+        
+        
+    def muontailfcn(self, A, tau):
+        """
+        Functional form of pulse in time domain with the amplitude, rise time,
+        fall time, and time offset allowed to float 
+        
+        Parameters
+        ----------
+            A: float
+                Amplitude of pulse
+            tau: float
+                Fall time of muon tail
+        Returns
+        -------
+            pulse: ndarray
+                Array of amplitude values as a function of time
+        """
+        
+        omega = 2*np.pi*self.freqs
+        pulse = A*tau/(1+omega*tau*1j)
+        return pulse*np.sqrt(self.df)
+    
+    def residuals(self, params):
+        """
+        Function to calculate the weighted residuals to be minimized
+        
+        Parameters
+        ----------
+            params: tuple
+                Tuple containing fit parameters
+        Returns
+        -------
+            z1d: ndarray
+                Array containing residuals per frequency bin. The complex data is flatted into
+                single array
+        """
+        A, tau = params
+        delta = self.data - self.muontailfcn(A, tau)
+        z1d = np.zeros(self.data.size*2, dtype = np.float64)
+        z1d[0:z1d.size:2] = delta.real/self.error
+        z1d[1:z1d.size:2] = delta.imag/self.error
+        return z1d
+    
+    def calcchi2(self, model):
+        """
+        Function to calculate the chi square
+        
+        Parameters
+        ----------
+            model: ndarray
+                Array corresponding to pulse function evaluated at the fitted values
+        Returns
+        -------
+            chi2: float
+                The chi squared statistic
+        """
+        return np.sum(np.abs(self.data-model)**2/self.error**2)
+
+    def fitmuontail(self, signal, lgcfullrtn=False, errscale = 1):
+        """
+        Function to do the fit
+        
+        Parameters
+        ----------
+            signal: ndarray
+                Time series traces to be fit
+            lgcfullrtn: bool, optional
+                If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+                the covariance matrix, and chi squared statistic are returned as well.
+            errscale: float or int, optional
+                A scale factor for the psd. Ex: if fitting an average, the errscale should be
+                set to the number of traces used in the average
+
+        Returns
+        -------
+            variables: tuple
+                The best fit parameters
+            errors: tuple
+                The corresponding fit errors for the best fit parameters
+            cov: ndarray
+                The convariance matrix returned from the fit
+            chi2: float
+                The chi squared statistic evaluated at the fit
+        """
+
+        self.data = np.fft.fft(signal)/self.norm
+        self.error = np.sqrt(self.psd/errscale)
+
+        ampguess = np.max(signal) - np.min(signal)
+        tauguess = np.argmin(np.abs(signal-ampguess/np.e))/self.fs
+
+        p0 = (ampguess, tauguess)
+        boundslower = (0, 0)
+        boundsupper = (ampguess*100,  tauguess*100)
+        bounds = (boundslower, boundsupper)
+
+        result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=np.abs(p0) , jac = '3-point',
+                               loss = 'linear', xtol = 2.3e-16, ftol = 2.3e-16)
+        variables = result['x']
+        chi2 = self.calcchi2(self.muontailfcn(*variables))
+
+        jac = result['jac']
+        cov = np.linalg.inv(np.dot(np.transpose(jac),jac))
+        errors = np.sqrt(cov.diagonal())
+
+        if lgcfullrtn:
+            return variables, errors, cov, chi2
+        else:
+            return variables
+    
