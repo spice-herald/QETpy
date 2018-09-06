@@ -528,22 +528,26 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, sa
     
     freqs = f[1:]
     psd = psd[1:]
-    
+    noise_sim.freqs = freqs
     
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_title(f"{istype} noise for $R_0$ : {noise_sim.r0*1e3:.0f} $m\Omega$")
-    ax.grid(True, which = 'both')
+
+    ax.grid(which="major")
+    ax.grid(which="minor", linestyle="dotted", alpha=0.5)
     ax.set_xlabel(r'Frequency [Hz]')
     
     if istype is 'current':
+        ax.set_title(f"Current Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), label=r'$\sqrt{S_{ITES}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), label=r'$\sqrt{S_{ILoad}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), label=r'$\sqrt{S_{ITFN}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), label=r'$\sqrt{S_{Itot}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), label=r'$\sqrt{S_{Isquid}}$')
         ax.loglog(freqs, np.sqrt(psd), label ='data')
+        ax.set_ylabel('TES Current Noise $[A/\sqrt{\mathrm{Hz}}]$')
     
     elif istype is 'power':
+        ax.set_title(f"Power Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), label=r'$\sqrt{S_{PTES}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), label=r'$\sqrt{S_{PLoad}}$')
         ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), label=r'$\sqrt{S_{PTFN}}$')
@@ -558,6 +562,6 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, sa
         plt.savefig(savepath+f'{istype}_noise_{noise_sim.R0:.0f}.png', bbox_extra_artists=(lgd,), 
                     bbox_inches='tight')
     else:
-        plt.show()
+        #plt.show()
         return fig, ax
             

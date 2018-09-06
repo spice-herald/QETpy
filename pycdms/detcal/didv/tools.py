@@ -2,7 +2,7 @@ import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
-import pycdms.detcal.didv.utils as utils
+import pycdms.plotting as utils
 
 
 def stdcomplex(x, axis=0):
