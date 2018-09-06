@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+
+
 ####### Noise Class Plotting Functions #############
 
 def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):

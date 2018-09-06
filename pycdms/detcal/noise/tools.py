@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pycdms.plotting as utils
 
+
 def slope(x, y, removemeans=True):
     """
     Computes the maximum likelihood slope of a set of x and y points.
