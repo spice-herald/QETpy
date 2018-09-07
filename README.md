@@ -1,7 +1,7 @@
 # pycdms Package
 -------
 
-[![Build Status](https://travis-ci.com/berkeleycdms/python_analysis_dev_tools.svg?branch=master)](https://travis-ci.com/berkeleycdms/python_analysis_dev_tools)
+[![Build Status](https://travis-ci.com/berkeleycdms/pycdms.svg?branch=master)](https://travis-ci.com/berkeleycdms/pycdms)
 
 To install pycdms, from the top-level directory of the repo, type the following lines into your command line
 
