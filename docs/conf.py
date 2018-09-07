@@ -20,10 +20,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import sys
-import os
-#sys.path.insert(0,"/Users/cwfink/Documents/School/UC_Berkeley/Research/CDMS/python_scripts/python_analysis_dev_tools/src/")
-os.path.abspath('../src/')
+
 
 
 # -- General configuration ------------------------------------------------
