@@ -574,6 +574,7 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
             z1d : ndarray
                 The residual array for the real and imaginary parts for each frequency.
         """
+        
         if (poles==1):
             A, tau2, dt = params
             ci = onepoleadmittance(freq, A, tau2) * np.exp(-2.0j*pi*freq*dt)
@@ -833,6 +834,7 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
             z1d : ndarray
                 The residual array for the real and imaginary parts for each frequency.
         """
+        
         rload, r0, beta, l, L, tau0, dt=params
         ci = twopoleadmittancepriors(freq, rload, r0, beta, l, L, tau0) * np.exp(-2.0j*pi*freq*dt)
         
@@ -866,6 +868,7 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
             jac : ndarray
                 The jacobian matrix for the parameters.
         """
+        
         # analytically calculate the Jacobian for 2 pole and three pole cases
         popt = params
 

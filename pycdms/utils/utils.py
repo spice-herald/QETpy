@@ -25,6 +25,7 @@ def stdcomplex(x, axis=0):
         std_complex : ndarray
             The complex standard deviation of the inputted array, along the specified axis.
     """
+    
     rstd = np.std(x.real, axis=axis)
     istd = np.std(x.imag, axis=axis)
     std_complex = rstd+1.0j*istd
@@ -315,11 +316,13 @@ def fill_negatives(arr):
     ----------
         arr : ndarray 
             1d array
+            
     Returns
     -------
         arr : ndarray
             arr with the negative and zero values replaced by interpolated values
     """
+    
     zeros = np.array(arr <= 0)
     inds_zero = np.where(zeros)[0]
     inds_not_zero = np.where(~zeros)[0]
@@ -344,6 +347,7 @@ def load_noise(file_str):
         f : Object
             The loaded noise object.
     """
+    
     with open(file_str,'rb') as savefile:
         f = pickle.load(savefile)
     return f

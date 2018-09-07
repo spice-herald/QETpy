@@ -248,6 +248,7 @@ class OFnonlin(object):
             Normilization factor to go from continuous to FFT
     
     """
+    
     def __init__(self,psd, fs, template = None):
         """
         Initialization of OFnonlin object
@@ -263,7 +264,9 @@ class OFnonlin(object):
             template: ndarray
                 The time series pulse template to use as a guess for initial parameters
             
+            
         """
+        
         psd[0] = 1e40
         self.psd = psd
         self.fs = fs
@@ -295,6 +298,7 @@ class OFnonlin(object):
                 Fall time of two-pole pulse
             t0: float
                 Time offset of two pole pulse
+                
         Returns
         -------
             pulse: ndarray, complex
@@ -322,11 +326,13 @@ class OFnonlin(object):
                 Fall time of two-pole pulse
             t0: float
                 Time offset of two pole pulse
+                
         Returns
         -------
             pulse: ndarray
                 Array of amplitude values as a function of time
         """
+        
         delta = tau_r-tau_f
         rat = tau_r/tau_f
         amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
@@ -347,11 +353,13 @@ class OFnonlin(object):
                 Fall time of two-pole pulse
             t0: float
                 Time offset of two pole pulse
+                
         Returns
         -------
             pulse: ndarray, complex
                 Array of amplitude values as a function of freuqncy
         """
+        
         tau_r = self.taurise
         return self.twopole(A, tau_r,tau_f,t0)
     
@@ -363,12 +371,14 @@ class OFnonlin(object):
         ----------
             params: tuple
                 Tuple containing fit parameters
+                
         Returns
         -------
             z1d: ndarray
                 Array containing residuals per frequency bin. The complex data is flatted into
                 single array
         """
+        
         if self.lgcdouble:
             A,tau_r, tau_f, t0 = params
             delta = (self.data - self.twopole( A, tau_r, tau_f, t0) )
@@ -389,11 +399,13 @@ class OFnonlin(object):
             model: ndarray
                 Array corresponding to pulse function (twopole or onepole) evaluated
                 at the optimum values
+                
         Returns
         -------
             chi2: float
                 The reduced chi squared statistic
         """
+        
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
     def fit_falltimes(self,pulse, lgcdouble = False, errscale = 1, guess = None, taurise = None, 
@@ -420,6 +432,7 @@ class OFnonlin(object):
                 the covariance matrix, and chi squared statistic are returned as well.
             lgcplot: bool, optional
                 If True, diagnostic plots are returned. 
+                
         Returns
         -------
             variables: tuple
@@ -430,12 +443,14 @@ class OFnonlin(object):
                 The convariance matrix returned from the fit
             chi2: float
                 The reduced chi squared statistic evaluated at the optimum point of the fit
+                
         Raises
         ------
             ValueError
                 if length of guess does not match the number of parameters needed in fit
                 
         """
+        
         self.data = np.fft.fft(pulse)/self.norm
         self.error = np.sqrt(self.psd/errscale)
         
@@ -549,6 +564,7 @@ class MuonTailFit(object):
             Normalization factor to go from continuous to FFT
     
     """
+    
     def __init__(self, psd, fs):
         """
         Initialization of MuonTailFit object
@@ -563,6 +579,7 @@ class MuonTailFit(object):
                 The sample rate of the ADC
             
         """
+        
         psd[0] = 1e40
         self.psd = psd
         self.fs = fs
@@ -589,6 +606,7 @@ class MuonTailFit(object):
                 Amplitude of pulse
             tau: float
                 Fall time of muon tail
+                
         Returns
         -------
             pulse: ndarray
@@ -607,12 +625,14 @@ class MuonTailFit(object):
         ----------
             params: tuple
                 Tuple containing fit parameters
+                
         Returns
         -------
             z1d: ndarray
                 Array containing residuals per frequency bin. The complex data is flatted into
                 single array
         """
+        
         A, tau = params
         delta = self.data - self.muontailfcn(A, tau)
         z1d = np.zeros(self.data.size*2, dtype = np.float64)
@@ -628,11 +648,13 @@ class MuonTailFit(object):
         ----------
             model: ndarray
                 Array corresponding to pulse function evaluated at the fitted values
+                
         Returns
         -------
             chi2: float
                 The chi squared statistic
         """
+        
         return np.sum(np.abs(self.data-model)**2/self.error**2)
 
     def fitmuontail(self, signal, lgcfullrtn=False, errscale = 1):

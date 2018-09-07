@@ -115,6 +115,7 @@ class Noise(object):
             time : ndarray, optional
                 The time values for each bin in each trace.
         """
+        
         if len(traces.shape) == 1:
             raise ValueError("Need more than one trace")
         if len(traces.shape) == 2:
@@ -198,12 +199,13 @@ class Noise(object):
         
         
     def calculate_corrcoeff(self):
-        '''
+        """
         Calculates the correlations between channels as a function of frequency. Stores
         results in self.corrcoeff
         Inputs: None
         Returns: None
-        ''' 
+        """ 
+        
         nsizematrix = self.traces.shape[1]
         if nsizematrix == 1:
             raise ValueError("Need more than one channel to calculate cross channel correlations")
@@ -386,6 +388,7 @@ class Noise(object):
             savepath : str, optional
                 Absolute path for the figure to be saved
         """  
+        
         utils.plot_decorrelatednoise(self, lgcoverlay, lgcdata, lgcuncorrnoise, lgccorrelated,
                                            lgcsum,lgcsave, savepath)
 
@@ -398,6 +401,7 @@ class Noise(object):
             path : str
                 Path where the noise object should be saved.
         """
+        
         if path[-1] != '/':
             path += '/'
             

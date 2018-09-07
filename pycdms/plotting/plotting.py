@@ -112,6 +112,7 @@ def plot_reim_psd(noise, lgcsave = False, savepath = None):
             Absolute path for the figure to be saved
             
     """
+    
     if noise.real_psd is None:
         print('Need to calculate the psd first')
         return
@@ -232,6 +233,7 @@ def plot_csd(noise, whichcsd = ['01'], lgcreal = True, lgcsave = False, savepath
         savepath : str, optional
             Absolute path for the figure to be saved
     """
+    
     if noise.csd is None:
         print('Must calculate the csd first')
         return
@@ -303,6 +305,7 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
         savepath : str, optional
             Absolute path for the figure to be saved
     """  
+    
     if noise.uncorrnoise is None:
         print('Need to de-correlate the noise first')
         return
@@ -414,6 +417,7 @@ def compare_noise(arr, channels, lgcdecorrelatednoise = False, lgcsave = False, 
         savepath : str, optional
             Absolute path for the figure to be saved
     """
+    
     sns.set_style('white')
     sns.set_context('notebook')
     
@@ -454,47 +458,7 @@ def compare_noise(arr, channels, lgcdecorrelatednoise = False, lgcsave = False, 
     else:
         print("Please provide desired channels in format of a list of numpy.ndarray. ex ['PSA1','PAS2']")   
 
-def fill_negatives(arr):
-    """
-    Simple helper function to remove negative and zero values from psd's.
-    
-    Parameters
-    ----------
-        arr : ndarray 
-            1d array
-    Returns
-    -------
-        arr : ndarray
-            arr with the negative and zero values replaced by interpolated values
-    """
-    zeros = np.array(arr <= 0)
-    inds_zero = np.where(zeros)[0]
-    inds_not_zero = np.where(~zeros)[0]
-    good_vals = arr[~zeros]       
-    if len(good_vals) != 0:
-        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
-    return arr
 
-
-
-def load_noise(file_str):
-    """
-    Load noise object that has been previously saved as pickle file
-    
-    Parameters
-    ----------
-        file_str : str
-            The full path to the file to be loaded.
-            
-    Returns
-    -------
-        f : Object
-            The loaded noise object.
-    """
-    with open(file_str,'rb') as savefile:
-        f = pickle.load(savefile)
-    return f
-    
     
     
     
@@ -518,6 +482,7 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, sa
             If True, plot is saved
         savepath : str, optional
             Directory to save trace
+            
     Returns
     -------
         fig : Object
@@ -1248,6 +1213,7 @@ def plotnonlin(OFnonlinOBJ,pulse, params):
     -------
         None
     """
+    
     if OFnonlinOBJ.lgcdouble:
         A,tau_r,tau_f,t0 = params
     else:

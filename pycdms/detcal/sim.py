@@ -39,6 +39,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=
                 transition : Use the Irwin parameters from the two pole fit as the transition noise model
                 superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
                 normal : Use the Irwin parameters from the one pole fit as the normal noise model
+                
     Returns
     -------
         TESobj : Object
@@ -101,53 +102,53 @@ class TESnoise:
     
     Attributes
     ----------
-        freqs : float, array_like
-            The frequencies for which we will calculate the noise simulation
-        rload : float
-            The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
-        r0 : float
-            The bias resistance of the TES in Ohms
-        rshunt : float
-            The shunt resistance of the TES circuit in Ohms
-        beta : float
-            The current sensitivity of the TES (dlogR/dlogI), unitless
-        loopgain : float
-            The Irwin loop gain of the TES, unitless
-        inductance : float
-            The inductance of the TES circuit in Henries
-        tau0 : float
-            The thermal time constant (equals C/G) in s
-        G : float
-            The thermal conductance of the TES in W/K
-        qetbias : float
-            The QET bias in Amps
-        tc : float
-            The critical temperature of the TES in K
-        tload : float
-            The effective temperature of the load resistor in K
-        tbath : float
-            The bath temperature in K
-        n : float
-            The power-law dependence of the power flow to the heat bath
-        lgcb : boolean
-            Boolean flag that determines whether we use the ballistic (True) or
-            diffusive limit when calculating TFN power noise
-        squiddc : float
-            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidpole : float
-            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidn : float
-            The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        f_tfn : float
-            Function that estimates the noise suppression of the thermal fluctuation noise due
-            to the difference in temperature between the bath and the TES. Supports the ballistic
-            and diffusive limits, which is chosen via lgcb
+    freqs : float, array_like
+        The frequencies for which we will calculate the noise simulation
+    rload : float
+        The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
+    r0 : float
+        The bias resistance of the TES in Ohms
+    rshunt : float
+        The shunt resistance of the TES circuit in Ohms
+    beta : float
+        The current sensitivity of the TES (dlogR/dlogI), unitless
+    loopgain : float
+        The Irwin loop gain of the TES, unitless
+    inductance : float
+        The inductance of the TES circuit in Henries
+    tau0 : float
+        The thermal time constant (equals C/G) in s
+    G : float
+        The thermal conductance of the TES in W/K
+    qetbias : float
+        The QET bias in Amps
+    tc : float
+        The critical temperature of the TES in K
+    tload : float
+        The effective temperature of the load resistor in K
+    tbath : float
+        The bath temperature in K
+    n : float
+        The power-law dependence of the power flow to the heat bath
+    lgcb : boolean
+        Boolean flag that determines whether we use the ballistic (True) or
+        diffusive limit when calculating TFN power noise
+    squiddc : float
+        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    squidpole : float
+        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    squidn : float
+        The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    f_tfn : float
+        Function that estimates the noise suppression of the thermal fluctuation noise due
+        to the difference in temperature between the bath and the TES. Supports the ballistic
+        and diffusive limits, which is chosen via lgcb
         
     """
 
@@ -249,6 +250,7 @@ class TESnoise:
                 The two-pole dIdV function
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         omega = 2.0*np.pi*freqs
@@ -271,6 +273,7 @@ class TESnoise:
                 The two-pole dIdP function
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         omega = 2.0*np.pi*freqs
@@ -294,6 +297,7 @@ class TESnoise:
                 The Johnson load voltage noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return 4.0*constants.k*self.tload*self.rload * np.ones_like(freqs)
@@ -312,8 +316,10 @@ class TESnoise:
         -------
             s_iload : float, ndarray
                 The Johnson load current noise at the specified frequencies
-                
+             
+             
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_vload(freqs)*np.abs(self.dIdV(freqs))**2.0
@@ -334,6 +340,7 @@ class TESnoise:
                 The Johnson load power noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_iload(freqs)/np.abs(self.dIdP(freqs))**2.0
@@ -354,6 +361,7 @@ class TESnoise:
                 The Johnson TES voltage noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return 4.0*constants.k*self.tc*self.r0*(1.0+self.beta)**2.0 * np.ones_like(freqs)
@@ -375,6 +383,7 @@ class TESnoise:
                 The Johnson TES current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_vtes(freqs)*np.abs(self.dIdV(freqs)-self.i0*self.dIdP(freqs))**2.0
@@ -395,6 +404,7 @@ class TESnoise:
                 The Johnson TES power noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_ites(freqs)/np.abs(self.dIdP(freqs))**2.0
@@ -415,6 +425,7 @@ class TESnoise:
                 The thermal fluctuation noise in power at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return 4.0*constants.k*self.tc**2.0 * self.G * self.f_tfn * np.ones_like(freqs)
@@ -435,6 +446,7 @@ class TESnoise:
                 The thermal fluctuation noise in current at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_ptfn(freqs)*np.abs(self.dIdP(freqs))**2.0
@@ -456,6 +468,7 @@ class TESnoise:
                 The SQUID and downstream electronics current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return (self.squiddc*(1.0+(self.squidpole/freqs)**self.squidn))**2.0
@@ -478,6 +491,7 @@ class TESnoise:
                 The SQUID and downstream electronics power noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_isquid(freqs)/np.abs(self.dIdP(freqs))**2.0
@@ -499,6 +513,7 @@ class TESnoise:
                 The total current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_iload(freqs)+self.s_ites(freqs)+self.s_itfn(freqs)+self.s_isquid(freqs)
@@ -520,6 +535,7 @@ class TESnoise:
                 The total power noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_itot(freqs)/np.abs(self.dIdP(freqs))**2.0
@@ -541,6 +557,7 @@ class TESnoise:
                 The one-pole dIdV function for when the TES is normal.
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         omega = 2.0*np.pi*freqs
@@ -562,6 +579,7 @@ class TESnoise:
                 The Johnson load current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_vload(freqs)*np.abs(self.dIdVnormal(freqs))**2.0
@@ -582,6 +600,7 @@ class TESnoise:
                 The Johnson TES voltage noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return 4.0*constants.k*self.tc*self.r0 * np.ones_like(freqs)
@@ -602,6 +621,7 @@ class TESnoise:
                 The Johnson TES current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_vtesnormal(freqs)*np.abs(self.dIdVnormal(freqs))**2.0
@@ -623,6 +643,7 @@ class TESnoise:
                 The total current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_iloadnormal(freqs)+self.s_itesnormal(freqs)+self.s_isquid(freqs)
@@ -644,6 +665,7 @@ class TESnoise:
                 The one-pole dIdV function for when the TES is superconducting.
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         omega = 2.0*np.pi*freqs
@@ -665,6 +687,7 @@ class TESnoise:
                 The Johnson load current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_vload(freqs)*np.abs(self.dIdVsc(freqs))**2.0
@@ -686,6 +709,7 @@ class TESnoise:
                 The total current noise at the specified frequencies
                 
         """
+        
         if freqs is None:
             freqs = self.freqs
         return self.s_iloadsc(freqs)+self.s_isquid(freqs)

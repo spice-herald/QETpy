@@ -17,10 +17,12 @@ def fitfunc(x, b, m):
     
     Returns
     -------
-        m*x + b : array_like
+        linfunc : array_like
             Outputted line for x with slope m and intercept b
     """
-    return m*x + b
+    
+    linfunc = m*x + b
+    return linfunc
 
 def findnormalinds(vb, dites, dites_err, tol=10):
     """
