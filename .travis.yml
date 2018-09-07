@@ -22,7 +22,6 @@ install:
   - conda install matplotlib
   - conda install h5py
   - conda install seaborn
-  - conda install pickle
   # Install pycdms
   - python setup.py install --user
 
