@@ -2,8 +2,33 @@ import numpy as np
 from scipy.signal import butter, filtfilt, fftconvolve
 from scipy.ndimage.interpolation import shift
 from scipy.optimize import least_squares
-import numpy as np
+from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
+
+
+
+def stdcomplex(x, axis=0):
+    """
+    Function to return complex standard deviation (individually computed for real and imaginary 
+    components) for an array of complex values.
+    
+    Parameters
+    ----------
+        x : ndarray
+            An array of complex values from which we want the complex standard deviation.
+        axis : int, optional
+            Which axis to take the standard deviation of (should be used if the 
+            dimension of the array is greater than 1)
+        
+    Returns
+    -------
+        std_complex : ndarray
+            The complex standard deviation of the inputted array, along the specified axis.
+    """
+    rstd = np.std(x.real, axis=axis)
+    istd = np.std(x.imag, axis=axis)
+    std_complex = rstd+1.0j*istd
+    return std_complex
 
 
 def removeoutliers(x, maxiter=20, skewTarget=0.05):
