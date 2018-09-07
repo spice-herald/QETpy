@@ -1,0 +1,3105 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycdms.detcal package &#8212; pycdms 0.2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pycdms.fitting package" href="pycdms.fitting.html" />
+    <link rel="prev" title="pycdms package" href="pycdms.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pycdms-detcal-package">
+<h1>pycdms.detcal package<a class="headerlink" href="#pycdms-detcal-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pycdms.detcal.cut">
+<span id="pycdms-detcal-cut-module"></span><h2>pycdms.detcal.cut module<a class="headerlink" href="#module-pycdms.detcal.cut" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pycdms.detcal.cut.autocuts">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">autocuts</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>is_didv=False</em>, <em>sgfreq=200.0</em>, <em>symmetrizeflag=False</em>, <em>outlieralgo='removeoutliers'</em>, <em>lgcpileup1=True</em>, <em>lgcslope=True</em>, <em>lgcbaseline=True</em>, <em>lgcpileup2=True</em>, <em>lgcchi2=True</em>, <em>nsigpileup1=2</em>, <em>nsigslope=2</em>, <em>nsigbaseline=2</em>, <em>nsigpileup2=2</em>, <em>nsigchi2=3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.autocuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to automatically cut out bad traces based on the optimum filter amplitude, slope, baseline, and chi^2
+of the traces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>2-dimensional array of traces to do cuts on</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Sample rate that the data was taken at</p>
+</dd>
+<dt>is_didv <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Boolean flag on whether or not the trace is a dIdV curve</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be</p>
+</dd>
+<dt>symmetrizeflag <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Flag for whether or not the slopes should be forced to have an average value of zero.
+Should be used if most of the traces have a slope</p>
+</dd>
+<dt>outlieralgo <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Which outlier algorithm to use. If set to “removeoutliers”, uses the removeoutliers algorithm that
+removes data based on the skewness of the dataset. If set to “iterstat”, uses the iterstat algorithm
+to remove data based on being outside a certain number of standard deviations from the mean</p>
+</dd>
+<dt>lgcpileup1 <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not do the pileup1 cut (this is the initial pileup cut
+that is always done whether or not we have dIdV data). Default is True.</p>
+</dd>
+<dt>lgcslope <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not do the slope cut. Default is True.</p>
+</dd>
+<dt>lgcbaseline <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not do the baseline cut. Default is True.</p>
+</dd>
+<dt>lgcpileup2 <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not do the pileup2 cut (this cut is only done when is_didv is
+also True). Default is True.</p>
+</dd>
+<dt>lgcchi2 <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not do the chi2 cut. Default is True.</p>
+</dd>
+<dt>nsigpileup1 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.</p>
+</dd>
+<dt>nsigslope <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the slopes. Default is 2.</p>
+</dd>
+<dt>nsigbaseline <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the baselines. Default is 2.</p>
+</dd>
+<dt>nsigpileup2 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the optimum filter amplitudes after the mean
+has been subtracted. (only used if is_didv is True). Default is 2.</p>
+</dd>
+<dt>nsigchi2 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">This can be used to tune the number of standard deviations from the mean to cut outliers from the data
+when using iterstat on the chi^2 values. Default is 3. This is always used, as iterstat is always used
+for the chi^2 cut.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ctot</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Boolean array giving which indices to keep or throw out based on the autocuts algorithm</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.cut.baselinecut">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">baselinecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.baselinecut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to automatically cut out outliers of the baselines of the inputted traces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>2-dimensional array of traces to do cuts on</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Digitization rate that the data was taken at</p>
+</dd>
+<dt>outlieralgo <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Which outlier algorithm to use. If set to “removeoutliers”, uses the removeoutliers algorithm that
+removes data based on the skewness of the dataset. If set to “iterstat”, uses the iterstat algorithm
+to remove data based on being outside a certain number of standard deviations from the mean</p>
+</dd>
+<dt>nsig <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the baselines. Default is 2.</p>
+</dd>
+<dt>is_didv <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Boolean flag on whether or not the trace is a dIdV curve</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cbaseline</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Boolean array giving which indices to keep or throw out based on the outlier algorithm</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.cut.chi2cut">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">chi2cut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='iterstat'</em>, <em>nsig=2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.chi2cut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to automatically cut out outliers of the baselines of the inputted traces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>2-dimensional array of traces to do cuts on</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Digitization rate that the data was taken at</p>
+</dd>
+<dt>outlieralgo <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Which outlier algorithm to use. If set to “removeoutliers”, uses the removeoutliers algorithm that
+removes data based on the skewness of the dataset. If set to “iterstat”, uses the iterstat algorithm
+to remove data based on being outside a certain number of standard deviations from the mean</p>
+</dd>
+<dt>nsig <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the Chi2s. Default is 2.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cchi2</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Boolean array giving which indices to keep or throw out based on the outlier algorithm</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.cut.pileupcut">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">pileupcut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>removemeans=False</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.pileupcut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>2-dimensional array of traces to do cuts on</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Digitization rate that the data was taken at</p>
+</dd>
+<dt>outlieralgo <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Which outlier algorithm to use. If set to “removeoutliers”, uses the removeoutliers algorithm that
+removes data based on the skewness of the dataset. If set to “iterstat”, uses the iterstat algorithm
+to remove data based on being outside a certain number of standard deviations from the mean</p>
+</dd>
+<dt>nsig <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.</p>
+</dd>
+<dt>removemeans <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag on if the mean of each trace should be removed before doing the optimal filter (True) or
+if the means should not be removed (False). This is useful for dIdV traces, when we want to cut out
+pulses that have smaller amplitude than the dIdV overshoot. Default is False.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cpileup</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Boolean array giving which indices to keep or throw out based on the outlier algorithm</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.cut.slopecut">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">slopecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>symmetrizeflag=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.slopecut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to automatically cut out outliers of the slopes of the inputted traces. Includes a routine that 
+attempts to symmetrize the distribution of slopes around zero, which is useful when the majority of traces 
+have a slope.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>2-dimensional array of traces to do cuts on</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Digitization rate that the data was taken at</p>
+</dd>
+<dt>outlieralgo <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Which outlier algorithm to use. If set to “removeoutliers”, uses the removeoutliers algorithm that
+removes data based on the skewness of the dataset. If set to “iterstat”, uses the iterstat algorithm
+to remove data based on being outside a certain number of standard deviations from the mean</p>
+</dd>
+<dt>nsig <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If outlieralgo is “iterstat”, this can be used to tune the number of standard deviations from the mean
+to cut outliers from the data when using iterstat on the slopes. Default is 2.</p>
+</dd>
+<dt>is_didv <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Boolean flag on whether or not the trace is a dIdV curve</p>
+</dd>
+<dt>symmetrizeflag <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Flag for whether or not the slopes should be forced to have an average value of zero.
+Should be used if most of the traces have a slope</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cslope</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Boolean array giving which indices to keep or throw out based on the outlier algorithm</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.cut.symmetrizedist">
+<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">symmetrizedist</code><span class="sig-paren">(</span><em>vals</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.symmetrizedist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to symmetrize a distribution about zero. Useful for if the distribution of some value
+centers around a nonzero value, but should center around zero. An example of this would be when
+most of the measured slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
+muon tails, which we want to cut out). To do this, the algorithm randomly chooses points in a histogram
+to cut out until the histogram is symmetric about zero.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>vals</strong> : ndarray</p>
+<blockquote>
+<div><p>A 1-d array of the values that will be symmetrized.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>czeromeanslope</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>A boolean mask of the values that should be kept.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.detcal.didv">
+<span id="pycdms-detcal-didv-module"></span><h2>pycdms.detcal.didv module<a class="headerlink" href="#module-pycdms.detcal.didv" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycdms.detcal.didv.DIDV">
+<em class="property">class </em><code class="descclassname">pycdms.detcal.didv.</code><code class="descname">DIDV</code><span class="sig-paren">(</span><em>rawtraces</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>tracegain=1.0</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>dutycycle=0.5</em>, <em>add180phase=False</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for fitting a didv curve for different types of models of the didv. Also gives
+various other useful values pertaining to the didv. This class supports doing 1, 2, and
+3 pole fits, as well as a 2 pole priors fit. This is supported in a way that does
+one dataset at a time.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="94%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>rawtraces</strong></td>
+<td>(ndarray) The array of rawtraces to use when fitting the didv. Should be of shape (number of traces, length of trace in bins). This can be any units, as long as tracegain will convert this to Amps.</td>
+</tr>
+<tr class="row-even"><td><strong>fs</strong></td>
+<td>(float) Sample rate of the data taken, in Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>sgfreq</strong></td>
+<td>(float) Frequency of the signal generator, in Hz</td>
+</tr>
+<tr class="row-even"><td><strong>sgamp</strong></td>
+<td>(float) Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)</td>
+</tr>
+<tr class="row-odd"><td><strong>r0</strong></td>
+<td>(float) Resistance of the TES in Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>r0_err</strong></td>
+<td>(float) Error in the resistance of the TES (Ohms)</td>
+</tr>
+<tr class="row-odd"><td><strong>rload</strong></td>
+<td>(float) Load resistance of the circuit (rload = rshunt + rparasitic), Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>rload_err</strong></td>
+<td>(float) Error in the load resistance, Ohms</td>
+</tr>
+<tr class="row-odd"><td><strong>rshunt</strong></td>
+<td>(float) Shunt resistance in the circuit, Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>tracegain</strong></td>
+<td>(float) The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces already has units of Amps, then this should be set to 1.0</td>
+</tr>
+<tr class="row-odd"><td><strong>dutycycle</strong></td>
+<td>(float) The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default</td>
+</tr>
+<tr class="row-even"><td><strong>add180phase</strong></td>
+<td>(boolean) If the signal generator is out of phase (i.e. if it looks like –__ instead of __–), then this should be set to True. Adds half a period of the signal generator to the dt0 attribute</td>
+</tr>
+<tr class="row-odd"><td><strong>priors</strong></td>
+<td>(ndarray) Prior known values of Irwin’s TES parameters for the trace. Should be in the order of (rload,r0,beta,l,L,tau0,dt)</td>
+</tr>
+<tr class="row-even"><td><strong>invpriorscov</strong></td>
+<td>(ndarray) Inverse of the covariance matrix of the prior known values of Irwin’s TES parameters for the trace (any values that are set to zero mean that we have no knowledge of that parameter)</td>
+</tr>
+<tr class="row-odd"><td><strong>dt0</strong></td>
+<td>(float) The value of the starting guess for the time offset of the didv when fitting. The best way to use this value if it isn’t converging well is to run the fit multiple times, setting dt0 equal to the fit’s next value, and seeing where the dt0 value converges. The fit can have a difficult time finding the value on the first run if it the initial value is far from the actual value, so a solution is to do this iteratively.</td>
+</tr>
+<tr class="row-even"><td><strong>freq</strong></td>
+<td>(ndarray) The frequencies of the didv fit</td>
+</tr>
+<tr class="row-odd"><td><strong>time</strong></td>
+<td>(ndarray) The times the didv trace</td>
+</tr>
+<tr class="row-even"><td><strong>ntraces</strong></td>
+<td>(float) The number of traces in the data</td>
+</tr>
+<tr class="row-odd"><td><strong>traces</strong></td>
+<td>(ndarray) The traces being used in units of Amps and also truncated so as to include only an integer number of signal generator periods</td>
+</tr>
+<tr class="row-even"><td><strong>flatinds</strong></td>
+<td>(ndarray) The indices where the traces are flat</td>
+</tr>
+<tr class="row-odd"><td><strong>tmean</strong></td>
+<td>(ndarray) The average trace in time domain, units of Amps</td>
+</tr>
+<tr class="row-even"><td><strong>zeroinds</strong></td>
+<td>(ndarray) The indices of the didv fit in frequency space where the values should be zero</td>
+</tr>
+<tr class="row-odd"><td><strong>didvstd</strong></td>
+<td>(ndarray) The complex standard deviation of the didv in frequency space for each frequency</td>
+</tr>
+<tr class="row-even"><td><strong>didvmean</strong></td>
+<td>(ndarray) The average trace converted to didv</td>
+</tr>
+<tr class="row-odd"><td><strong>offset</strong></td>
+<td>(float) The offset (i.e. baseline value) of the didv trace, in Amps</td>
+</tr>
+<tr class="row-even"><td><strong>offset_err</strong></td>
+<td>(float) The error in the offset of the didv trace, in Amps</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams1</strong></td>
+<td>(ndarray) The fit parameters of the 1-pole fit, in order of (A, tau2, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov1</strong></td>
+<td>(ndarray) The corresponding covariance for the 1-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost1</strong></td>
+<td>(float) The cost of the 1-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams1</strong></td>
+<td>(ndarray) The Irwin parameters of the 1-pole fit, in order of (rtot, L , r0, rload, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov1</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 1-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes1</strong></td>
+<td>(ndarray) The fall times of the 1-pole fit, same as tau2, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit1_timedomain</strong></td>
+<td>(ndarray) The 1-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit1_freqdomain</strong></td>
+<td>(ndarray) The 1-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams2</strong></td>
+<td>(ndarray) The fit parameters of the 2-pole fit, in order of (A, B, tau1, tau2, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov2</strong></td>
+<td>(ndarray) The corresponding covariance for the 2-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost2</strong></td>
+<td>(float) The cost of the 2-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams2</strong></td>
+<td>(ndarray) The Irwin parameters of the 2-pole fit, in order of (rload, r0, beta, l, L, tau0, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov2</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 2-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes2</strong></td>
+<td>(ndarray) The fall times of the 2-pole fit, tau_plus and tau_minus, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit2_timedomain</strong></td>
+<td>(ndarray) The 2-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit2_freqdomain</strong></td>
+<td>(ndarray) The 2-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams3</strong></td>
+<td>(ndarray) The fit parameters of the 3-pole fit, in order of (A, B, C, tau1, tau2, tau3, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov3</strong></td>
+<td>(ndarray) The corresponding covariance for the 3-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost3</strong></td>
+<td>(float) The cost of the 3-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams3</strong></td>
+<td>(NoneType) The Irwin parameters of the 3-pole fit, this returns None now, as there is no model that we convert to</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov3</strong></td>
+<td>(NoneType) The corresponding covariance for the Irwin parameters for the 3-pole fit, also returns None</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes3</strong></td>
+<td>(ndarray) The fall times of the 3-pole fit in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit3_timedomain</strong></td>
+<td>(ndarray) The 3-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit3_freqdomain</strong></td>
+<td>(ndarray) The 3-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams2priors</strong></td>
+<td>(ndarray) The fit parameters of the 2-pole priors fit, in order of (A, B, tau1, tau2, dt), converted from the Irwin parameters</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov2priors</strong></td>
+<td>(ndarray) The corresponding covariance for the 2-pole priors fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost2priors</strong></td>
+<td>(float) The cost of the 2-pole priors fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams2priors</strong></td>
+<td>(ndarray) The Irwin parameters of the 2-pole priors fit, in order of (rload, r0, beta, l, L, tau0, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov2priors</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 2-pole priors fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes2priors</strong></td>
+<td>(ndarray) The fall times of the 2-pole priors fit, tau_plus and tau_minus, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit2priors_timedomain</strong></td>
+<td>(ndarray) The 2-pole priors fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit2priors_freqdomain</strong></td>
+<td>(ndarray) The 2-pole priors fit in frequency domain</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.doallfits">
+<code class="descname">doallfits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.doallfits" title="Permalink to this definition">¶</a></dt>
+<dd><p>This module does all of the fits consecutively. The priors fit is not done if the 
+attributes priors and invpriorscov have not yet been set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.dofit">
+<code class="descname">dofit</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.dofit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method does the fit that is specified by the variable poles. If the processtraces module
+has not been run yet, then this module will run that first. This module does not do the priors fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int</p>
+<blockquote class="last">
+<div><p>The fit that should be run. Should be 1, 2, or 3.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.dopriorsfit">
+<code class="descname">dopriorsfit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.dopriorsfit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This module runs the priorsfit, assuming that the priors and invpriorscov attributes have been set to
+the proper values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.get_irwinparams_dict">
+<code class="descname">get_irwinparams_dict</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.get_irwinparams_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary with the irwin fit parameters for a given number of poles</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.plot_didv_flipped">
+<code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the flipped trace in time domain. This function should be used to 
+test if there are nonlinearities in the didv</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.plot_full_trace">
+<code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_full_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the entire trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.plot_re_im_didv">
+<code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the real and imaginary parts of the didv in frequency space.
+Currently creates two different plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.plot_single_period_of_trace">
+<code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot a single period of the trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.plot_zoomed_in_trace">
+<code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
+overshoot of the didv.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>zoomfactor <span class="classifier-delimiter">:</span> <span class="classifier">float, optional, optional</span></dt>
+<dd><p class="first last">Number between zero and 1 to show different amounts of the zoomed in trace.</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.didv.DIDV.processtraces">
+<code class="descname">processtraces</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.processtraces" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method processes the traces loaded to the DIDV class object. This sets 
+up the object for fitting.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.convertfromtesvalues">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">convertfromtesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.convertfromtesvalues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to convert from Irwin’s TES parameters (rload, r0, beta,
+l, L, tau0, dt) to the fit parameters (A, B, tau1, tau2, dt)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>popt</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>Irwin’s TES parameters in the order of (rload, r0, beta,
+l, L, tau0, dt), should be a 1-dimensional np.array of length 7</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for Irwin’s TES parameters.
+Should be a 2-dimensional, 7-by-7 np.array</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>popt_out</strong> : ndarray</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The fit parameters in the order of (A, B, tau1, tau2, dt)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov_out <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for the fit parameters</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.converttotesvalues">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">converttotesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em>, <em>r0</em>, <em>rload</em>, <em>r0_err=0.001</em>, <em>rload_err=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.converttotesvalues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to convert the fit parameters for either 1-pole (A, tau2, dt),
+2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt)
+fit to the corresponding TES parameters: 1-pole (rtot, L, r0, rload, dt), 
+2-pole (rload, r0, beta, l, L, tau0, dt), and 3-pole (no conversion done).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>popt</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>The fit parameters for either the 1-pole, 2-pole, or 3-pole fit</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for the fit parameters</p>
+</dd>
+<dt>r0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The resistance of the TES (in Ohms)</p>
+</dd>
+<dt>rload <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The load resistance of the TES circuit (in Ohms)</p>
+</dd>
+<dt>r0_err <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The error in the r0 value (in Ohms). Default is 0.001.</p>
+</dd>
+<dt>rload_err <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The error in the rload value (in Ohms). Default is 0.001.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>popt_out</strong> : ndarray</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The TES parameters for the specified fit</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov_out <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for the TES parameters</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.convolvedidv">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">convolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em>, <em>sgamp</em>, <em>rshunt</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.convolvedidv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to convert the fitted TES parameters for the complex impedance 
+to a TES response to a square wave jitter in time domain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>Time values for the trace (in s)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms)</p>
+</dd>
+<dt>B <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter B in the complex impedance (in Ohms)</p>
+</dd>
+<dt>C <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter C in the complex impedance</p>
+</dd>
+<dt>tau1 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau1 in the complex impedance (in s)</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s)</p>
+</dd>
+<dt>tau3 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau3 in the complex impedance (in s)</p>
+</dd>
+<dt>sgamp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The peak-to-peak size of the square wave jitter (in Amps)</p>
+</dd>
+<dt>rshunt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The shunt resistance of the TES electronics (in Ohms)</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The frequency of the square wave jitter (in Hz)</p>
+</dd>
+<dt>dutycycle <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The duty cycle of the square wave jitter (between 0 and 1)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>np.real(st)</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>The response of a TES to a square wave jitter in time domain
+with the given fit parameters. The real part is taken in order 
+to ensure that the trace is real</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.deconvolvedidv">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">deconvolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>trace</em>, <em>rshunt</em>, <em>sgamp</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.deconvolvedidv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for taking a trace with a known square wave jitter and 
+extracting the complex impedance via deconvolution of the square wave 
+and the TES response in frequency space.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>Time values for the trace</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>trace <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The trace in time domain (in Amps)</p>
+</dd>
+<dt>rshunt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Shunt resistance for electronics (in Ohms)</p>
+</dd>
+<dt>sgamp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Peak to peak value of square wave jitter (in Amps,
+jitter in QET bias)</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Frequency of square wave jitter</p>
+</dd>
+<dt>dutycycle <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">duty cycle of square wave jitter</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>freq</strong> : ndarray</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The frequencies that each point of the trace corresponds to</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>didv <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Complex impedance of the trace in frequency space</p>
+</dd>
+<dt>zeroinds <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Indices of the frequencies where the trace’s Fourier Transform is zero. 
+Since we divide by the FT of the trace, we need to know which values should 
+be zero, so that we can ignore these points in the complex impedance.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.didvinitfromdata">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">didvinitfromdata</code><span class="sig-paren">(</span><em>tmean</em>, <em>didvmean</em>, <em>didvstd</em>, <em>offset</em>, <em>offset_err</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>add180phase=False</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.didvinitfromdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to initialize and process a dIdV dataset without having all of the traces, but just the 
+parameters that are required for fitting. After running, this returns a DIDV class object that is
+ready for fitting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>tmean</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>The average trace in time domain, units of Amps</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>didvstd <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The complex standard deviation of the didv in frequency space for each frequency</p>
+</dd>
+<dt>didvmean <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The average trace converted to didv</p>
+</dd>
+<dt>offset <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The offset (i.e. baseline value) of the didv trace, in Amps</p>
+</dd>
+<dt>offset_err <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The error in the offset of the didv trace, in Amps</p>
+</dd>
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Sample rate of the data taken, in Hz</p>
+</dd>
+<dt>sgfreq <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Frequency of the signal generator, in Hz</p>
+</dd>
+<dt>sgamp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)</p>
+</dd>
+<dt>rshunt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Shunt resistance in the circuit, Ohms</p>
+</dd>
+<dt>r0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Resistance of the TES in Ohms</p>
+</dd>
+<dt>r0_err <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Error in the resistance of the TES (Ohms)</p>
+</dd>
+<dt>rload <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Load resistance of the circuit (rload = rshunt + rparasitic), Ohms</p>
+</dd>
+<dt>rload_err <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Error in the load resistance, Ohms</p>
+</dd>
+<dt>priors <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional</span></dt>
+<dd><p class="first last">Prior known values of Irwin’s TES parameters for the trace. 
+Should be in the order of (rload,r0,beta,l,L,tau0,dt)</p>
+</dd>
+<dt>invpriorscov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional</span></dt>
+<dd><p class="first last">Inverse of the covariance matrix of the prior known values of 
+Irwin’s TES parameters for the trace (any values that are set 
+to zero mean that we have no knowledge of that parameter)</p>
+</dd>
+<dt>add180phase <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If the signal generator is out of phase (i.e. if it looks like –__ instead of __–), then this
+should be set to True. Adds half a period of the signal generator to the dt0 attribute</p>
+</dd>
+<dt>dt0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The value of the starting guess for the time offset of the didv when fitting. 
+The best way to use this value if it isn’t converging well is to run the fit multiple times, 
+setting dt0 equal to the fit’s next value, and seeing where the dt0 value converges. 
+The fit can have a difficult time finding the value on the first run if it the initial value 
+is far from the actual value, so a solution is to do this iteratively.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>didvobj</strong> : Object</p>
+<blockquote class="last">
+<div><p>A DIDV class object that can be used to fit the dIdV and return 
+the fit parameters.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.findpolefalltimes">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">findpolefalltimes</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.findpolefalltimes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for taking TES params from a 1-pole, 2-pole, or 3-pole didv
+and calculating the falltimes (i.e. the values of the poles in the complex plane)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>params</strong> : ndarray</p>
+<blockquote>
+<div><p>TES parameters for either 1-pole, 2-pole, or 3-pole didv. 
+This will be a 1-dimensional np.array of varying length, 
+depending on the fit. 1-pole fit has 3 parameters (A,tau2,dt), 
+2-pole fit has 5 parameters (A,B,tau1,tau2,dt), and 3-pole fit has 7 
+parameters (A,B,C,tau1,tau2,tau3,dt). The parameters should be in that 
+order, and any other number of parameters will print a warning and return zero.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>np.sort(falltimes)</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>The falltimes for the didv fit, sorted from fastest to slowest.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.fitdidv">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">fitdidv</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>yerr=None</em>, <em>A0=0.25</em>, <em>B0=-0.6</em>, <em>C0=-0.6</em>, <em>tau10=-0.0003183098861837907</em>, <em>tau20=1.5915494309189535e-06</em>, <em>tau30=0.0</em>, <em>dt=-1e-05</em>, <em>poles=2</em>, <em>isloopgainsub1=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.fitdidv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to find the fit parameters for either the 1-pole (A, tau2, dt), 
+2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt) fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>Frequencies corresponding to the didv</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>didv <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Complex impedance extracted from the trace in frequency space</p>
+</dd>
+<dt>yerr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, NoneType, optional</span></dt>
+<dd><p class="first last">Error at each frequency of the didv. Should be a complex number, 
+e.g. yerr = yerr_real + 1.0j * yerr_imag, where yerr_real is the 
+standard deviation of the real part of the didv, and yerr_imag is 
+the standard deviation of the imaginary part of the didv. If left as None,
+then each frequency will be assumed to be equally weighted.</p>
+</dd>
+<dt>A0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter A (in Ohms). Default is 0.25.</p>
+</dd>
+<dt>B0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter B (in Ohms). Default is -0.6.</p>
+</dd>
+<dt>C0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter C (unitless). Default is -0.6.</p>
+</dd>
+<dt>tau10 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau1 (in s). Default is -1.0/(2*pi*5e2).</p>
+</dd>
+<dt>tau20 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau2 (in s). Default is 1.0/(2*pi*1e5).</p>
+</dd>
+<dt>tau30 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau3 (in s). Default is 0.0.</p>
+</dd>
+<dt>dt <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the time shift (in s). Default is -10.0e-6.</p>
+</dd>
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">The number of poles to use in the fit (should be 1, 2, or 3). Default is 2.</p>
+</dd>
+<dt>isloopgainsub1 <span class="classifier-delimiter">:</span> <span class="classifier">boolean, NoneType, optional</span></dt>
+<dd><p class="first last">If set, should be used to specify if the fit should be done assuming
+that the Irwin loop gain is less than 1 (True) or greater than 1 (False).
+Default is None, in which case loop gain less than 1 and greater than 1 
+fits will be done, returning the one with a lower Chi^2.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>popt</strong> : ndarray</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The fitted parameters for the specificed number of poles</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for the fitted parameters</p>
+</dd>
+<dt>cost <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The cost of the the fit</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.fitdidvpriors">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">fitdidvpriors</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>priors</em>, <em>invpriorscov</em>, <em>yerr=None</em>, <em>rload=0.35</em>, <em>r0=0.13</em>, <em>beta=0.5</em>, <em>l=10.0</em>, <em>L=5e-07</em>, <em>tau0=0.0005</em>, <em>dt=-1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.fitdidvpriors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to directly fit Irwin’s TES parameters (rload, r0, beta, l, L, tau0, dt)
+with the knowledge of prior known values any number of the parameters. 
+In order for the degeneracy of the parameters to be broken, at least 2 
+fit parameters should have priors knowledge. This is usually rload and r0, as 
+these can be known from IV data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : ndarray</p>
+<blockquote>
+<div><blockquote>
+<div><p>Frequencies corresponding to the didv</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>didv <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Complex impedance extracted from the trace in frequency space</p>
+</dd>
+<dt>priors <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Prior known values of Irwin’s TES parameters for the trace. 
+Should be in the order of (rload,r0,beta,l,L,tau0,dt)</p>
+</dd>
+<dt>invpriorscov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Inverse of the covariance matrix of the prior known values of 
+Irwin’s TES parameters for the trace (any values that are set 
+to zero mean that we have no knowledge of that parameter)</p>
+</dd>
+<dt>yerr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional</span></dt>
+<dd><p class="first last">Error at each frequency of the didv. Should be a complex number,
+e.g. yerr = yerr_real + 1.0j * yerr_imag, where yerr_real is the 
+standard deviation of the real part of the didv, and yerr_imag is 
+the standard deviation of the imaginary part of the didv. If left as None,
+then each frequency will be assumed to be equally weighted.</p>
+</dd>
+<dt>rload <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the load resistance of the TES circuit (in Ohms). Default is 0.35.</p>
+</dd>
+<dt>r0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the resistance of the TES (in Ohms). Default is 0.130.</p>
+</dd>
+<dt>beta <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the current sensitivity beta (unitless). Default is 0.5.</p>
+</dd>
+<dt>l <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of Irwin’s loop gain (unitless). Default is 10.0.</p>
+</dd>
+<dt>L <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the inductance (in Henrys). Default is 500.0e-9.</p>
+</dd>
+<dt>tau0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the thermal time constant (in s). Default is 500.0e-6.</p>
+</dd>
+<dt>dt <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Guess of the time shift (in s). Default is -10.0e-6.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>popt</strong> : ndarray</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The fitted parameters in the order of (rload, r0, beta, l, L, tau0, dt)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pcov <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The corresponding covariance matrix for the fitted parameters</p>
+</dd>
+<dt>cost <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The cost of the the fit</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.guessdidvparams">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">guessdidvparams</code><span class="sig-paren">(</span><em>trace</em>, <em>flatpts</em>, <em>sgamp</em>, <em>rshunt</em>, <em>L0=1e-07</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.guessdidvparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to find the fit parameters for either the 1-pole (A, tau2, dt),
+2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt) fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>trace</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>The trace in time domain (in Amps)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>flatpts <span class="classifier-delimiter">:</span> <span class="classifier">array_like</span></dt>
+<dd><p class="first last">The flat parts of the trace (in Amps)</p>
+</dd>
+<dt>sgamp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The peak-to-peak size of the square wave jitter (in Amps)</p>
+</dd>
+<dt>rshunt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Shunt resistance of the TES electronics (in Ohms)</p>
+</dd>
+<dt>L0 <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The guess of the inductance (in Henries)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>A0</strong> : float</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Guess of the fit parameter A (in Ohms)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>B0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Guess of the fit parameter B (in Ohms)</p>
+</dd>
+<dt>tau10 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau1 (in s)</p>
+</dd>
+<dt>tau20 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau2 (in s)</p>
+</dd>
+<dt>isloopgainsub1 <span class="classifier-delimiter">:</span> <span class="classifier">boolean</span></dt>
+<dd><p class="first last">Boolean flag that gives whether the loop gain is greater than one (False) or less than one (True)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.onepoleadmittance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">onepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.onepoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the admittance (didv) of a TES with the 1-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms), superconducting: A=rload, normal: A = rload+Rn</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s), superconducting: tau2=L/rload, normal: tau2=L/(rload+Rn)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>1.0/dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex admittance of the TES with the 1-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.onepoleimpedance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">onepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.onepoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the impedance (dvdi) of a TES with the 1-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms), superconducting: A=rload, normal: A = rload+Rn</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s), superconducting: tau2=L/rload, normal: tau2=L/(rload+Rn)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex impedance of the TES with the 1-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.squarewaveguessparams">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">squarewaveguessparams</code><span class="sig-paren">(</span><em>trace</em>, <em>sgamp</em>, <em>rshunt</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.squarewaveguessparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to guess the fit parameters for the 1-pole fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>trace</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>The trace in time domain (in Amps).</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>sgamp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The peak-to-peak size of the square wave jitter (in Amps)</p>
+</dd>
+<dt>rshunt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Shunt resistance of the TES electronics (in Ohms)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>A0</strong> : float</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Guess of the fit parameter A (in Ohms)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>tau20 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Guess of the fit parameter tau2 (in s)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.threepoleadmittance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">threepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.threepoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the admittance (didv) of a TES with the 3-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms)</p>
+</dd>
+<dt>B <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter B in the complex impedance (in Ohms)</p>
+</dd>
+<dt>C <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter C in the complex impedance</p>
+</dd>
+<dt>tau1 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau1 in the complex impedance (in s)</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s)</p>
+</dd>
+<dt>tau3 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau3 in the complex impedance (in s)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>1.0/dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex admittance of the TES with the 3-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.threepoleimpedance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">threepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.threepoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the impedance (dvdi) of a TES with the 3-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms)</p>
+</dd>
+<dt>B <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter B in the complex impedance (in Ohms)</p>
+</dd>
+<dt>C <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter C in the complex impedance</p>
+</dd>
+<dt>tau1 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau1 in the complex impedance (in s)</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s)</p>
+</dd>
+<dt>tau3 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau3 in the complex impedance (in s)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex impedance of the TES with the 3-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.twopoleadmittance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the admittance (didv) of a TES with the 2-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms), A = rload + r0*(1+beta)</p>
+</dd>
+<dt>B <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter B in the complex impedance (in Ohms), B = r0*l*(2+beta)/(1-l) (where l is Irwin’s loop gain)</p>
+</dd>
+<dt>tau1 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau1 in the complex impedance (in s), tau1=tau0/(1-l)</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s), tau2=L/(rload+r0*(1+beta))</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>1.0/dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex admittance of the TES with the 2-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.twopoleadmittancepriors">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleadmittancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleadmittancepriors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the admittance (didv) of a TES with the 2-pole fit from Irwin’s TES parameters</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>rload <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The load resistance of the TES (in Ohms)</p>
+</dd>
+<dt>r0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The resistance of the TES (in Ohms)</p>
+</dd>
+<dt>beta <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The current sensitivity of the TES, beta=d(log R)/d(log I)</p>
+</dd>
+<dt>l <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Irwin’s loop gain, l = P0*alpha/(G*Tc)</p>
+</dd>
+<dt>L <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The inductance in the TES circuit (in Henrys)</p>
+</dd>
+<dt>tau0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The thermal time constant of the TES (in s), tau0=C/G</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>1.0/dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex admittance of the TES with the 2-pole fit from Irwin’s TES parameters</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.twopoleimpedance">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the impedance (dvdi) of a TES with the 2-pole fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>A <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter A in the complex impedance (in Ohms), A = rload + r0*(1+beta)</p>
+</dd>
+<dt>B <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter B in the complex impedance (in Ohms), B = r0*l*(2+beta)/(1-l) (where l is Irwin’s loop gain)</p>
+</dd>
+<dt>tau1 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau1 in the complex impedance (in s), tau1=tau0/(1-l)</p>
+</dd>
+<dt>tau2 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The fit parameter tau2 in the complex impedance (in s), tau2=L/(rload+r0*(1+beta))</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex impedance of the TES with the 2-pole fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.didv.twopoleimpedancepriors">
+<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleimpedancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleimpedancepriors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the impedance (dvdi) of a TES with the 2-pole fit from Irwin’s TES parameters</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freq</strong> : array_like, float</p>
+<blockquote>
+<div><blockquote>
+<div><p>The frequencies for which to calculate the admittance (in Hz)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>rload <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The load resistance of the TES (in Ohms)</p>
+</dd>
+<dt>r0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The resistance of the TES (in Ohms)</p>
+</dd>
+<dt>beta <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The current sensitivity of the TES</p>
+</dd>
+<dt>l <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Irwin’s loop gain</p>
+</dd>
+<dt>L <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The inductance in the TES circuit (in Henrys)</p>
+</dd>
+<dt>tau0 <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The thermal time constant of the TES (in s)</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dvdi</strong> : array_like, float</p>
+<blockquote class="last">
+<div><p>The complex impedance of the TES with the 2-pole fit from Irwin’s TES parameters</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.detcal.iv">
+<span id="pycdms-detcal-iv-module"></span><h2>pycdms.detcal.iv module<a class="headerlink" href="#module-pycdms.detcal.iv" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycdms.detcal.iv.IV">
+<em class="property">class </em><code class="descclassname">pycdms.detcal.iv.</code><code class="descname">IV</code><span class="sig-paren">(</span><em>dites</em>, <em>dites_err</em>, <em>vb</em>, <em>vb_err</em>, <em>rload</em>, <em>rload_err</em>, <em>chan_names</em>, <em>normalinds=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for creating the IV curve and calculating various values, such as the normal resistance, 
+the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
+data for multple bath temperatures, multiple channels, and multiple bias points.</p>
+<p>Note: If different bath temperatures have different numbers of bias points (iters), then the user
+should pad the end of the arrays with NaN so that the data can be put into an ndarray and 
+loaded into this class.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="4%" />
+<col width="96%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>dites</strong></td>
+<td>(ndarray) The current read out by the electronics</td>
+</tr>
+<tr class="row-even"><td><strong>dites_err</strong></td>
+<td>(ndarray) The error in the current read out by the electronics</td>
+</tr>
+<tr class="row-odd"><td><strong>vb</strong></td>
+<td>(ndarray) The bias voltage (vb = qet bias * rshunt)</td>
+</tr>
+<tr class="row-even"><td><strong>vb_err</strong></td>
+<td>(ndarray) The corresponding error in the bias voltage</td>
+</tr>
+<tr class="row-odd"><td><strong>rload</strong></td>
+<td>(scalar, ndarray) The load resistance, this can be scalar if using the same rload for all values. If 1-dimensional, then this should be the load resistance for each channel. If 2-dimensional, this should be the load resistance for each bath temperature and each bias point, where the shape is (ntemps, nch). If 3-dimensional, then this should be with shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-even"><td><strong>rload_err</strong></td>
+<td>(scalar, ndarray) The corresponding error in the load resistance, should be the same type as rload</td>
+</tr>
+<tr class="row-odd"><td><strong>chan_names</strong></td>
+<td>(array_like) Array of strings corresponding to the names of each channel in the data. Should have the same length as the nch axis in dites</td>
+</tr>
+<tr class="row-even"><td><strong>ioff</strong></td>
+<td>(ndarray) The current offset calculated from the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>ioff_err</strong></td>
+<td>(ndarray) The corresponding error in the current offset</td>
+</tr>
+<tr class="row-even"><td><strong>rfit</strong></td>
+<td>(ndarray) The total resistance (rnorm + rload) from the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>rfit_err</strong></td>
+<td>(ndarray) The corresponding error in the fit resistance</td>
+</tr>
+<tr class="row-even"><td><strong>rnorm</strong></td>
+<td>(ndarray) The normal resistance of the TES, using the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>rnorm_err</strong></td>
+<td>(ndarray) The corresponding error in the normal resistance</td>
+</tr>
+<tr class="row-even"><td><strong>ites</strong></td>
+<td>(ndarray) The calculated current through the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>ites_err</strong></td>
+<td>(ndarray) The corresponding error in the current through the TES</td>
+</tr>
+<tr class="row-even"><td><strong>r0</strong></td>
+<td>(ndarray) The calculated resistance of the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>r0_err</strong></td>
+<td>(ndarray) The corresponding error in the resistance of the TES</td>
+</tr>
+<tr class="row-even"><td><strong>ptes</strong></td>
+<td>(ndarray) The calculated power of the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>ptes_err</strong></td>
+<td>(ndarray) The corresponding error in the power of the TES</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="pycdms.detcal.iv.IV.calc_iv">
+<code class="descname">calc_iv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.calc_iv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to calculate the IV curve for the intialized object. Calculates the power and resistance of
+each bias point, as well as saving the fit parameters from the fit to the normal points and the calculated
+normal reistance from these points.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.iv.IV.plot_all_curves">
+<code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_all_curves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV, resistance, and power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>showfit <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to also plot the linear fit to the normal data</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.iv.IV.plot_iv">
+<code class="descname">plot_iv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_iv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temps</strong> : string, array_like, int, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>showfit <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to also plot the linear fit to the normal data</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.iv.IV.plot_pv">
+<code class="descname">plot_pv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_pv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.iv.IV.plot_rv">
+<code class="descname">plot_rv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_rv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the resistance curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.iv.findnormalinds">
+<code class="descclassname">pycdms.detcal.iv.</code><code class="descname">findnormalinds</code><span class="sig-paren">(</span><em>vb</em>, <em>dites</em>, <em>dites_err</em>, <em>tol=10</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.findnormalinds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to determine the indices of the normal data in an IV curve</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>vb</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>Bias voltage, should be a 1d array or list</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>dites <span class="classifier-delimiter">:</span> <span class="classifier">array_like</span></dt>
+<dd><p class="first last">The current read out by the electronics with some offset from the true current</p>
+</dd>
+<dt>dites_err <span class="classifier-delimiter">:</span> <span class="classifier">array_like</span></dt>
+<dd><p class="first last">The error in the current</p>
+</dd>
+<dt>tol <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The tolerance in the reduced chi-squared for the cutoff on which points to use</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>normalinds</strong> : iterable</p>
+<blockquote class="last">
+<div><p>The iterable which stores the range of the normal indices</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.iv.fitfunc">
+<code class="descclassname">pycdms.detcal.iv.</code><code class="descname">fitfunc</code><span class="sig-paren">(</span><em>x</em>, <em>b</em>, <em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.fitfunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to use for fitting to a straight line</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>x-values of the data</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>b <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">y-intercept of line</p>
+</dd>
+<dt>m <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">slope of line</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>m*x + b</strong> : array_like</p>
+<blockquote class="last">
+<div><p>Outputted line for x with slope m and intercept b</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.detcal.noise">
+<span id="pycdms-detcal-noise-module"></span><h2>pycdms.detcal.noise module<a class="headerlink" href="#module-pycdms.detcal.noise" title="Permalink to this headline">¶</a></h2>
+<p>Created by Caleb Fink 5/7/2018</p>
+<dl class="class">
+<dt id="pycdms.detcal.noise.Noise">
+<em class="property">class </em><code class="descclassname">pycdms.detcal.noise.</code><code class="descname">Noise</code><span class="sig-paren">(</span><em>traces</em>, <em>fs</em>, <em>channames</em>, <em>tracegain=1.0</em>, <em>fname=None</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>This class allows the user to calculate the power spectral densities of signals 
+from detectors, study correlations, and decouple the intrinsic noise from cross 
+channel correlated noise.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>traces</strong></td>
+<td>(ndarray) Array of the traces to use in the noise analysis. Should be shape (# of traces, # of channels, # of bins)</td>
+</tr>
+<tr class="row-even"><td><strong>fs</strong></td>
+<td>(float) The digitization rate of the data in Hz.</td>
+</tr>
+<tr class="row-odd"><td><strong>channames</strong></td>
+<td>(list) A list of strings that name each of the channels.</td>
+</tr>
+<tr class="row-even"><td><strong>time</strong></td>
+<td>(ndarray) The time values for each bin in each trace.</td>
+</tr>
+<tr class="row-odd"><td><strong>fname</strong></td>
+<td>(str) The file name of the data, this will be used when saving the file.</td>
+</tr>
+<tr class="row-even"><td><strong>tracegain</strong></td>
+<td>(float) The factor that traces should be divided by to convert the units to Amps. If rawtraces already has units of Amps, then this should be set to 1.0</td>
+</tr>
+<tr class="row-odd"><td><strong>freqs</strong></td>
+<td>(ndarray) The frequencies that correspond to each value in the spectral densities</td>
+</tr>
+<tr class="row-even"><td><strong>psd</strong></td>
+<td>(ndarray) The power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>realpsd</strong></td>
+<td>(ndarray) The real power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>imagpsd</strong></td>
+<td>(ndarray) The imaginary power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>corrcoeff</strong></td>
+<td>(ndarray) The array of the correlation coefficients between each of the channels</td>
+</tr>
+<tr class="row-even"><td><strong>uncorrnoise</strong></td>
+<td>(ndarray) The uncorrelated noise psd in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>corrnoise</strong></td>
+<td>(ndarray) The correlated noise psd in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>realcsd</strong></td>
+<td>(ndarray) The real part of the cross spectral density in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>imagcsd</strong></td>
+<td>(ndarray) The imaginary part of the cross spectral density in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>realcsdstd</strong></td>
+<td>(ndarray) The standard deviation of the real part of the cross spectral density at each frequency</td>
+</tr>
+<tr class="row-odd"><td><strong>imagcsdstd</strong></td>
+<td>(ndarray) The standard deviation of the imaginary part of the cross spectral density at each frequency</td>
+</tr>
+<tr class="row-even"><td><strong>csd</strong></td>
+<td>(ndarray) The cross spectral density of the traces</td>
+</tr>
+<tr class="row-odd"><td><strong>chandict</strong></td>
+<td>(dict) A dictionary that stores the channel number for each channel name.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.calculate_corrcoeff">
+<code class="descname">calculate_corrcoeff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the correlations between channels as a function of frequency. Stores
+results in self.corrcoeff
+Inputs: None
+Returns: None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.calculate_csd">
+<code class="descname">calculate_csd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the csd for each channel in traces. Stores csd in self.csd</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.calculate_psd">
+<code class="descname">calculate_psd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the psd for each channel in traces. Stores psd in self.psd</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.calculate_uncorr_noise">
+<code class="descname">calculate_uncorr_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_uncorr_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the uncorrelated and correlated total noise.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.plot_corrcoeff">
+<code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel correlation coefficients. Since there are typically few traces,
+the correlations are often noisy. a savgol_filter is used to smooth out some of the noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcsmooth</strong> : boolean, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>If True, a savgol_filter will be used when plotting.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>nwindow <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">the number of bins used for the window in the savgol_filter</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.plot_csd">
+<code class="descname">plot_csd</code><span class="sig-paren">(</span><em>whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel noise spectrum referenced to the TES line in
+units of Amperes^2/Hz</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>whichcsd</strong> : list, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>a list of strings, where each element of the list refers to the pair of 
+indices of the desired csd plot</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcreal <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the Re(csd) is plotted. If False, the Im(csd) is plotted</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.plot_decorrelatednoise">
+<code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
+from fitted parameters calculated calculate_deCorrelated_noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcoverlay</strong> : boolean, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>If True, de-correlated for all channels are overlayed in a single plot, 
+If False, the noise for each channel is plotted in a seperate subplot</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcdata <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the csd data is plotted</p>
+</dd>
+<dt>lgcuncorrnoise <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted</p>
+</dd>
+<dt>lgccorrelated <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+is plotted</p>
+</dd>
+<dt>lgcsum <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+and correlated noise is plotted</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.plot_psd">
+<code class="descname">plot_psd</code><span class="sig-paren">(</span><em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcoverlay</strong> : boolean, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>If True, psd’s for all channels are overlayed in a single plot, 
+If False, each psd for each channel is plotted in a seperate subplot</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.plot_reim_psd">
+<code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+This is done to check for thermal muon tails making it passed the quality cuts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.remove_trace_slope">
+<code class="descname">remove_trace_slope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.remove_trace_slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to remove the slope from each trace. self.traces is changed to be the slope subtracted traces.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.noise.Noise.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the noise object as a pickle file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str</p>
+<blockquote class="last">
+<div><p>Path where the noise object should be saved.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.noise.slope">
+<code class="descclassname">pycdms.detcal.noise.</code><code class="descname">slope</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>removemeans=True</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the maximum likelihood slope of a set of x and y points.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>Array of real-valued independent variables.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>y <span class="classifier-delimiter">:</span> <span class="classifier">array_like</span></dt>
+<dd><p class="first last">Array of real-valued dependent variables.</p>
+</dd>
+<dt>removemeans <span class="classifier-delimiter">:</span> <span class="classifier">boolean</span></dt>
+<dd><p class="first last">Boolean flag for if the mean of x should be subtracted. This
+should be set to True if x has not already had its mean subtracted.
+Set to False if the mean has been subtracted. Default is True.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>slope</strong> : float</p>
+<blockquote class="last">
+<div><p>Maximum likelihood slope estimate, calculated as
+sum((x-&lt;x&gt;)(y-&lt;y&gt;))/sum((x-&lt;x&gt;)**2)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.detcal.sim">
+<span id="pycdms-detcal-sim-module"></span><h2>pycdms.detcal.sim module<a class="headerlink" href="#module-pycdms.detcal.sim" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pycdms.detcal.sim.TESnoise">
+<em class="property">class </em><code class="descclassname">pycdms.detcal.sim.</code><code class="descname">TESnoise</code><span class="sig-paren">(</span><em>freqs=None</em>, <em>rload=0.012</em>, <em>r0=0.15</em>, <em>rshunt=0.005</em>, <em>beta=1.0</em>, <em>loopgain=10.0</em>, <em>inductance=4e-07</em>, <em>tau0=0.0005</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>n=5.0</em>, <em>lgcb=True</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Class for the simulation of the TES noise using the simple Irwin theory. Supports noise simulation for 
+in transition, superconducting, and normal.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="0%" />
+<col width="100%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>freqs</strong></td>
+<td>(float, array_like) The frequencies for which we will calculate the noise simulation rload : float The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms r0 : float The bias resistance of the TES in Ohms rshunt : float The shunt resistance of the TES circuit in Ohms beta : float The current sensitivity of the TES (dlogR/dlogI), unitless loopgain : float The Irwin loop gain of the TES, unitless inductance : float The inductance of the TES circuit in Henries tau0 : float The thermal time constant (equals C/G) in s G : float The thermal conductance of the TES in W/K qetbias : float The QET bias in Amps tc : float The critical temperature of the TES in K tload : float The effective temperature of the load resistor in K tbath : float The bath temperature in K n : float The power-law dependence of the power flow to the heat bath lgcb : boolean Boolean flag that determines whether we use the ballistic (True) or diffusive limit when calculating TFN power noise squiddc : float The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 squidpole : float The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 squidn : float The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 f_tfn : float Function that estimates the noise suppression of the thermal fluctuation noise due to the difference in temperature between the bath and the TES. Supports the ballistic and diffusive limits, which is chosen via lgcb</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.dIdP">
+<code class="descname">dIdP</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdP" title="Permalink to this definition">¶</a></dt>
+<dd><p>The two-pole dIdP function determined from the TES parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dIdP</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The two-pole dIdP function</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.dIdV">
+<code class="descname">dIdV</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdV" title="Permalink to this definition">¶</a></dt>
+<dd><p>The two-pole dIdV function determined from the TES parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dIdV</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The two-pole dIdV function</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.dIdVnormal">
+<code class="descname">dIdVnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdVnormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The one-pole dIdV function determined from the TES parameters for when the TES
+is normal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dIdVnormal</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The one-pole dIdV function for when the TES is normal.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.dIdVsc">
+<code class="descname">dIdVsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdVsc" title="Permalink to this definition">¶</a></dt>
+<dd><p>The one-pole dIdV function determined from the TES parameters for when the TES
+is superconducting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>dIdVsc</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The one-pole dIdV function for when the TES is superconducting.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_iload">
+<code class="descname">s_iload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iload" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson load current noise determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_iload</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson load current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_iloadnormal">
+<code class="descname">s_iloadnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iloadnormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson load current noise determined from the TES parameters for normal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_iloadnormal</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson load current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_iloadsc">
+<code class="descname">s_iloadsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iloadsc" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson load current noise determined from the TES parameters for superconducting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_iloadsc</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson load current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_isquid">
+<code class="descname">s_isquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_isquid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The SQUID and downstream electronics current noise, currently is using a 1/f model that
+must be specified when initializing the class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_isquid</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The SQUID and downstream electronics current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_ites">
+<code class="descname">s_ites</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ites" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson TES current noise determined from the TES parameters for in transition. 
+This noise has both an electronic and thermal component.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_ites</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson TES current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_itesnormal">
+<code class="descname">s_itesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itesnormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson TES current noise determined from the TES parameters for normal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_itesnormal</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson TES current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_itfn">
+<code class="descname">s_itfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itfn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The thermal fluctuation noise in current determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_itfn</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The thermal fluctuation noise in current at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_itot">
+<code class="descname">s_itot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itot" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total current noise for the TES in transition. This is calculated by summing each of
+the current noise sources together. Units are [A^2/Hz].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_itot</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The total current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_itotnormal">
+<code class="descname">s_itotnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itotnormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total current noise for the TES when normal. This is calculated by summing each of
+the current noise sources together. Units are [A^2/Hz].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_itotnormal</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The total current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_itotsc">
+<code class="descname">s_itotsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itotsc" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total current noise for the TES when superconducting. This is calculated by summing each of
+the current noise sources together. Units are [A^2/Hz].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_itotsc</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The total current noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_pload">
+<code class="descname">s_pload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_pload" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson load power noise determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_pload</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson load power noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_psquid">
+<code class="descname">s_psquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_psquid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The SQUID and downstream electronics power noise, currently is using a 1/f model that
+must be specified when initializing the class. This is only used for when the TES is
+in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_psquid</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The SQUID and downstream electronics power noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_ptes">
+<code class="descname">s_ptes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptes" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson TES power noise determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_ptes</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson TES power noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_ptfn">
+<code class="descname">s_ptfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptfn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The thermal fluctuation noise in power determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_ptfn</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The thermal fluctuation noise in power at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_ptot">
+<code class="descname">s_ptot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptot" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total power noise for the TES in transition. This is calculated by summing each of
+the current noise sources together and using dIdP to convert to power noise. Units are [W^2/Hz].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_ptot</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The total power noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_vload">
+<code class="descname">s_vload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vload" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson load voltage noise determined from the TES parameters. This formula holds no
+matter where we are in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_vload</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson load voltage noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_vtes">
+<code class="descname">s_vtes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vtes" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson TES voltage noise determined from the TES parameters for in transition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_vtes</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson TES voltage noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pycdms.detcal.sim.TESnoise.s_vtesnormal">
+<code class="descname">s_vtesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vtesnormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Johnson TES voltage noise determined from the TES parameters for normal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>freqs</strong> : float, ndarray, optional</p>
+<blockquote>
+<div><p>The frequencies for which we will calculate the noise simulation. If left as None, the 
+function will use the values from the initialization.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>s_vtesnormal</strong> : float, ndarray</p>
+<blockquote class="last">
+<div><p>The Johnson TES voltage noise at the specified frequencies</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.detcal.sim.loadfromdidv">
+<code class="descclassname">pycdms.detcal.sim.</code><code class="descname">loadfromdidv</code><span class="sig-paren">(</span><em>DIDVobj</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em>, <em>noisetype='transition'</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.loadfromdidv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for loading the parameters from a DIDV class object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DIDVobj</strong> : Object</p>
+<blockquote>
+<div><blockquote>
+<div><p>A DIDV class object after a fit has been run, such that there are Irwin parameters that
+can be used to model the noise.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>G <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The thermal conductance of the TES in W/K</p>
+</dd>
+<dt>qetbias <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">The QET bias in Amps</p>
+</dd>
+<dt>tc <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The critical temperature of the TES in K</p>
+</dd>
+<dt>tload <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The effective temperature of the load resistor in K</p>
+</dd>
+<dt>tbath <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The bath temperature in K</p>
+</dd>
+<dt>squiddc <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first">The DC value of the SQUID and downstream electronics noise, in Amps/rtHz. The SQUID/electronics
+noise should have been fit beforehand, using the following model:</p>
+<blockquote class="last">
+<div><p>(squiddc*(1.0+(squidpole/f)**squidn))**2.0</p>
+</div></blockquote>
+</dd>
+<dt>squidpole <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first">The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+noise should have been fit beforehand, using the following model:</p>
+<blockquote class="last">
+<div><p>(squiddc*(1.0+(squidpole/f)**squidn))**2.0</p>
+</div></blockquote>
+</dd>
+<dt>squidn <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first">The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+noise should have been fit beforehand, using the following model:</p>
+<blockquote class="last">
+<div><p>(squiddc*(1.0+(squidpole/f)**squidn))**2.0</p>
+</div></blockquote>
+</dd>
+<dt>noisetype <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><dl class="first last docutils">
+<dt>The type of the noise that is to be loaded. The options are</dt>
+<dd><p class="first last">transition : Use the Irwin parameters from the two pole fit as the transition noise model
+superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
+normal : Use the Irwin parameters from the one pole fit as the normal noise model</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>——-</strong></p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt>TESobj <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
+<dd><p class="first last">A TESnoise class object with all of the fit parameters loaded.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.detcal">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pycdms.detcal" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">pycdms</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="pycdms.html">pycdms package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pycdms.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pycdms.html#module-pycdms">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pycdms.detcal package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.cut">pycdms.detcal.cut module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.didv">pycdms.detcal.didv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.iv">pycdms.detcal.iv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.noise">pycdms.detcal.noise module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.sim">pycdms.detcal.sim module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.plotting.html">pycdms.plotting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="pycdms.html">pycdms package</a><ul>
+      <li>Previous: <a href="pycdms.html" title="previous chapter">pycdms package</a></li>
+      <li>Next: <a href="pycdms.fitting.html" title="next chapter">pycdms.fitting package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Caleb Fink, Sam Watkins.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/pycdms.detcal.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

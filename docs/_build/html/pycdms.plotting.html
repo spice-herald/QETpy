@@ -1,0 +1,851 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pycdms.plotting package &#8212; pycdms 0.2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pycdms.utils package" href="pycdms.utils.html" />
+    <link rel="prev" title="pycdms.fitting package" href="pycdms.fitting.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pycdms-plotting-package">
+<h1>pycdms.plotting package<a class="headerlink" href="#pycdms-plotting-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pycdms.plotting.plotting">
+<span id="pycdms-plotting-plotting-module"></span><h2>pycdms.plotting.plotting module<a class="headerlink" href="#module-pycdms.plotting.plotting" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pycdms.plotting.plotting.compare_noise">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">compare_noise</code><span class="sig-paren">(</span><em>arr</em>, <em>channels</em>, <em>lgcdecorrelatednoise=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.compare_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot multiple psd’s from different noise objects on the same figure. Each channel will
+be plotted in its own figure.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr</strong> : array_like</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Array of noise objects</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>channels <span class="classifier-delimiter">:</span> <span class="classifier">list </span></dt>
+<dd><p class="first last">List of strings, each string is a channel to plot. ex [‘PSA1’,’PAS2’]</p>
+</dd>
+<dt>lgcdecorrelatednoise <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If False, the psd is for each channel is plotted. If True, the calculated
+de-correlated noise is plotted</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean , optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.fill_negatives">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">fill_negatives</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.fill_negatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple helper function to remove negative and zero values from psd’s.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr</strong> : ndarray</p>
+<blockquote>
+<div><p>1d array</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>——-</strong></p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt>arr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">arr with the negative and zero values replaced by interpolated values</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.load_noise">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">load_noise</code><span class="sig-paren">(</span><em>file_str</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.load_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load noise object that has been previously saved as pickle file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>file_str</strong> : str</p>
+<blockquote>
+<div><p>The full path to the file to be loaded.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : Object</p>
+<blockquote class="last">
+<div><p>The loaded noise object.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_all_curves">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_all_curves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV, resistance, and power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>showfit <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to also plot the linear fit to the normal data</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_corrcoeff">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel correlation coefficients. Since there are typically few traces,
+the correlations are often noisy. a savgol_filter is used to smooth out some of the noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>noise</strong> : Object</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>noise object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcsmooth <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, a savgol_filter will be used when plotting.</p>
+</dd>
+<dt>nwindow <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">the number of bins used for the window in the savgol_filter</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_csd">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_csd</code><span class="sig-paren">(</span><em>noise, whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel noise spectrum referenced to the TES line in
+units of Amperes^2/Hz</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>noise</strong> : Object</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Noise object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>whichcsd <span class="classifier-delimiter">:</span> <span class="classifier">list, optional</span></dt>
+<dd><p class="first last">a list of strings, where each element of the list refers to the pair of 
+indices of the desired csd plot</p>
+</dd>
+<dt>lgcreal <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the Re(csd) is plotted. If False, the Im(csd) is plotted</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_decorrelatednoise">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
+from fitted parameters calculated calculate_deCorrelated_noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>noise</strong> : Object</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Noise object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcoverlay <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, de-correlated for all channels are overlayed in a single plot, 
+If False, the noise for each channel is plotted in a seperate subplot</p>
+</dd>
+<dt>lgcdata <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the csd data is plotted</p>
+</dd>
+<dt>lgcuncorrnoise <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted</p>
+</dd>
+<dt>lgccorrelated <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+is plotted</p>
+</dd>
+<dt>lgcsum <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+and correlated noise is plotted</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_didv_flipped">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the flipped trace in time domain. This function should be used to 
+test if there are nonlinearities in the didv</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>didv</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The DIDV class object that the data is stored in</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, string, array_like, optional</span></dt>
+<dd><p class="first last">The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_full_trace">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_full_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the entire trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>didv</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The DIDV class object that the data is stored in</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, string, array_like, optional</span></dt>
+<dd><p class="first last">The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_iv">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_iv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_iv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>showfit <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to also plot the linear fit to the normal data</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_noise_sim">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_noise_sim</code><span class="sig-paren">(</span><em>f</em>, <em>psd</em>, <em>noise_sim</em>, <em>istype</em>, <em>figsize=(12</em>, <em>8)</em>, <em>lgcsave=False</em>, <em>savepath=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_noise_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots psd with simulated noise model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>f</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>Frequency bins for psd</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>psd <span class="classifier-delimiter">:</span> <span class="classifier">array_like </span></dt>
+<dd><p class="first last">Power spectral density</p>
+</dd>
+<dt>istype <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Must be ‘current’ or ‘power’
+If ‘current’ the noise is plotted referenced to TES current
+If ‘power’ the noise is plotted referenced to TES power</p>
+</dd>
+<dt>figsize <span class="classifier-delimiter">:</span> <span class="classifier">tuple, optional</span></dt>
+<dd><p class="first last">Desired size of figure</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, plot is saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Directory to save trace</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<p><strong>——-</strong></p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt>fig <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
+<dd><p class="first last">fig object from matplotlib.pyplot</p>
+</dd>
+<dt>ax <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
+<dd><p class="first last">ax object from matplotlib.pyplot</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_psd">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>noise</strong> : Object</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Noise object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcoverlay <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, psd’s for all channels are overlayed in a single plot, 
+If False, each psd for each channel is plotted in a seperate subplot</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_pv">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_pv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_pv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_re_im_didv">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the real and imaginary parts of the didv in frequency space.
+Currently creates two different plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>didv</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The DIDV class object that the data is stored in</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, string, array_like, optional</span></dt>
+<dd><p class="first last">The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_reim_psd">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+This is done to check for thermal muon tails making it passed the quality cuts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>noise</strong> : Object</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>Noise object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If True, the figure is saved in the user provided directory</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Absolute path for the figure to be saved</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_rv">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_rv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_rv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the resistance curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>IVobject</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The IV class object that the data is stored in.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>temps <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>chans <span class="classifier-delimiter">:</span> <span class="classifier">string, array_like, int, optional</span></dt>
+<dd><p class="first last">Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean flag to save the plot</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Path to save the plot to, saves it to the current directory by default</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Name to append to the plot file name, if saving</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_single_period_of_trace">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot a single period of the trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>didv</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The DIDV class object that the data is stored in</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, string, array_like, optional</span></dt>
+<dd><p class="first last">The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plot_zoomed_in_trace">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
+overshoot of the didv.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>didv</strong> : class</p>
+<blockquote class="last">
+<div><blockquote>
+<div><p>The DIDV class object that the data is stored in</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>poles <span class="classifier-delimiter">:</span> <span class="classifier">int, string, array_like, optional</span></dt>
+<dd><p class="first last">The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</dd>
+<dt>zoomfactor <span class="classifier-delimiter">:</span> <span class="classifier">float, optional, optional</span></dt>
+<dd><p class="first last">Number between zero and 1 to show different amounts of the zoomed in trace.</p>
+</dd>
+<dt>plotpriors <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the priors fit should be plotted.</p>
+</dd>
+<dt>lgcsave <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">Boolean value on whether or not the figure should be saved</p>
+</dd>
+<dt>savepath <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Where the figure should be saved. Saved in the current directory
+by default.</p>
+</dd>
+<dt>savename <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pycdms.plotting.plotting.plotnonlin">
+<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plotnonlin</code><span class="sig-paren">(</span><em>OFnonlinOBJ</em>, <em>pulse</em>, <em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plotnonlin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Diagnostic plotting of non-linear pulse fitting</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>OFnonlinOBJ: OFnonlin object</strong></p>
+<blockquote>
+<div><blockquote>
+<div><p>The OFnonlin fit object to be plotted</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>pulse: ndarray</dt>
+<dd><p class="first last">The raw trace to be fit</p>
+</dd>
+<dt>params: tuple</dt>
+<dd><p class="first last">Tuple containing best fit paramters</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pycdms.plotting">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pycdms.plotting" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">pycdms</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="pycdms.html">pycdms package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pycdms.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pycdms.html#module-pycdms">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.detcal.html">pycdms.detcal package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pycdms.plotting package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.plotting.plotting">pycdms.plotting.plotting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.plotting">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="pycdms.html">pycdms package</a><ul>
+      <li>Previous: <a href="pycdms.fitting.html" title="previous chapter">pycdms.fitting package</a></li>
+      <li>Next: <a href="pycdms.utils.html" title="next chapter">pycdms.utils package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Caleb Fink, Sam Watkins.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/pycdms.plotting.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
