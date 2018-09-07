@@ -263,8 +263,9 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         lgcjustshifts : boolean
             If False, the aligned traces and the phase shifts are returned. 
             If True, just the phase shifts are returned.
-        n_cut: int. The number of bins to use to do the convolution
-                    Just need enough information to see the periodic signal
+        n_cut: int 
+            The number of bins to use to do the convolution
+            Just need enough information to see the periodic signal
         cut_off_freq: float or int, 3dB frequency for filter
         fs: float or int, sample rate of DAQ, defaults to 625e3
     
