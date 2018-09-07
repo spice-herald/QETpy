@@ -3,17 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Sam is Silly
+####################################
+Welcome to the pycdms documentation
+####################################
 ==================================
+
+This code is available on GitHub: https://github.com/berkeleycdms/pycdms.git
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
-
-
-
-
-
 
    pycdms.rst
    pycdms.detcal.rst
@@ -33,4 +33,4 @@ Indices and tables
 
 
 
- 
+ Developed by Caleb Fink (https://github.com/cwfink) and Sam Watkins (https://github.com/slwatkins)
