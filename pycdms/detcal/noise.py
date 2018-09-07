@@ -51,46 +51,47 @@ class Noise(object):
     
     Attributes
     ----------
-        traces : ndarray
-            Array of the traces to use in the noise analysis. Should be shape 
-            (# of traces, # of channels, # of bins)
-        fs : float
-            The digitization rate of the data in Hz.
-        channames : list
-            A list of strings that name each of the channels.
-        time : ndarray
-            The time values for each bin in each trace.
-        fname : str
-            The file name of the data, this will be used when saving the file.
-        tracegain : float
-            The factor that traces should be divided by to convert the units to Amps. If rawtraces
-            already has units of Amps, then this should be set to 1.0
-        freqs : ndarray
-            The frequencies that correspond to each value in the spectral densities
-        psd : ndarray
-            The power spectral density of the data in A^2/Hz
-        realpsd : ndarray
-            The real power spectral density of the data in A^2/Hz
-        imagpsd : ndarray
-            The imaginary power spectral density of the data in A^2/Hz
-        corrcoeff : ndarray
-            The array of the correlation coefficients between each of the channels
-        uncorrnoise : ndarray
-            The uncorrelated noise psd in A^2/Hz
-        corrnoise : ndarray
-            The correlated noise psd in A^2/Hz
-        realcsd : ndarray
-            The real part of the cross spectral density in A^2/Hz
-        imagcsd : ndarray
-            The imaginary part of the cross spectral density in A^2/Hz
-        realcsdstd : ndarray
-            The standard deviation of the real part of the cross spectral density at each frequency
-        imagcsdstd : ndarray 
-            The standard deviation of the imaginary part of the cross spectral density at each frequency
-        csd : ndarray
-            The cross spectral density of the traces
-        chandict : dict
-            A dictionary that stores the channel number for each channel name.
+    traces : ndarray
+        Array of the traces to use in the noise analysis. Should be shape 
+        (# of traces, # of channels, # of bins)
+    fs : float
+        The digitization rate of the data in Hz.
+    channames : list
+        A list of strings that name each of the channels.
+    time : ndarray
+        The time values for each bin in each trace.
+    fname : str
+        The file name of the data, this will be used when saving the file.
+    tracegain : float
+        The factor that traces should be divided by to convert the units to Amps. If rawtraces
+        already has units of Amps, then this should be set to 1.0
+    freqs : ndarray
+        The frequencies that correspond to each value in the spectral densities
+    psd : ndarray
+        The power spectral density of the data in A^2/Hz
+    realpsd : ndarray
+        The real power spectral density of the data in A^2/Hz
+    imagpsd : ndarray
+        The imaginary power spectral density of the data in A^2/Hz
+    corrcoeff : ndarray
+        The array of the correlation coefficients between each of the channels
+    uncorrnoise : ndarray
+        The uncorrelated noise psd in A^2/Hz
+    corrnoise : ndarray
+        The correlated noise psd in A^2/Hz
+    realcsd : ndarray
+        The real part of the cross spectral density in A^2/Hz
+    imagcsd : ndarray
+        The imaginary part of the cross spectral density in A^2/Hz
+    realcsdstd : ndarray
+        The standard deviation of the real part of the cross spectral density at each frequency
+    imagcsdstd : ndarray 
+        The standard deviation of the imaginary part of the cross spectral density at each frequency
+    csd : ndarray
+        The cross spectral density of the traces
+    chandict : dict
+        A dictionary that stores the channel number for each channel name.
+            
     """
     
     def __init__(self, traces, fs, channames, tracegain = 1.0, fname = None, time = None):

@@ -1164,137 +1164,137 @@ class DIDV(object):
     
     Attributes
     ----------
-        rawtraces : ndarray
-            The array of rawtraces to use when fitting the didv. Should be of shape (number of
-            traces, length of trace in bins). This can be any units, as long as tracegain will 
-            convert this to Amps.
-        fs : float
-            Sample rate of the data taken, in Hz
-        sgfreq : float
-            Frequency of the signal generator, in Hz
-        sgamp : float
-            Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
-        r0 : float
-            Resistance of the TES in Ohms
-        r0_err : float
-            Error in the resistance of the TES (Ohms)
-        rload : float
-            Load resistance of the circuit (rload = rshunt + rparasitic), Ohms
-        rload_err : float
-            Error in the load resistance, Ohms
-        rshunt : float
-            Shunt resistance in the circuit, Ohms
-        tracegain : float
-            The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
-            already has units of Amps, then this should be set to 1.0
-        dutycycle : float
-            The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
-        add180phase : boolean
-            If the signal generator is out of phase (i.e. if it looks like --__ instead of __--), then this
-            should be set to True. Adds half a period of the signal generator to the dt0 attribute
-        priors : ndarray
-            Prior known values of Irwin's TES parameters for the trace. 
-            Should be in the order of (rload,r0,beta,l,L,tau0,dt)
-        invpriorscov : ndarray
-            Inverse of the covariance matrix of the prior known values of 
-            Irwin's TES parameters for the trace (any values that are set 
-            to zero mean that we have no knowledge of that parameter) 
-        dt0 : float
-            The value of the starting guess for the time offset of the didv when fitting. 
-            The best way to use this value if it isn't converging well is to run the fit multiple times, 
-            setting dt0 equal to the fit's next value, and seeing where the dt0 value converges. 
-            The fit can have a difficult time finding the value on the first run if it the initial value 
-            is far from the actual value, so a solution is to do this iteratively. 
-        freq : ndarray
-            The frequencies of the didv fit
-        time : ndarray
-            The times the didv trace
-        ntraces : float
-            The number of traces in the data
-        traces : ndarray
-            The traces being used in units of Amps and also truncated so as to include only an integer
-            number of signal generator periods
-        flatinds : ndarray
-            The indices where the traces are flat
-        tmean : ndarray
-            The average trace in time domain, units of Amps
-        zeroinds : ndarray
-            The indices of the didv fit in frequency space where the values should be zero
-        didvstd : ndarray
-            The complex standard deviation of the didv in frequency space for each frequency
-        didvmean : ndarray
-            The average trace converted to didv
-        offset : float
-            The offset (i.e. baseline value) of the didv trace, in Amps
-        offset_err : float
-            The error in the offset of the didv trace, in Amps
-        fitparams1 : ndarray
-            The fit parameters of the 1-pole fit, in order of (A, tau2, dt)
-        fitcov1 : ndarray
-            The corresponding covariance for the 1-pole fit parameters
-        fitcost1 : float
-            The cost of the 1-pole fit
-        irwinparams1 : ndarray
-            The Irwin parameters of the 1-pole fit, in order of (rtot, L , r0, rload, dt)
-        irwincov1 : ndarray
-            The corresponding covariance for the Irwin parameters for the 1-pole fit
-        falltimes1 : ndarray
-            The fall times of the 1-pole fit, same as tau2, in s
-        didvfit1_timedomain : ndarray
-            The 1-pole fit in time domain
-        didvfit1_freqdomain : ndarray
-            The 1-pole fit in frequency domain
-        fitparams2 : ndarray
-            The fit parameters of the 2-pole fit, in order of (A, B, tau1, tau2, dt)
-        fitcov2 : ndarray
-            The corresponding covariance for the 2-pole fit parameters
-        fitcost2 : float
-            The cost of the 2-pole fit
-        irwinparams2 : ndarray
-            The Irwin parameters of the 2-pole fit, in order of (rload, r0, beta, l, L, tau0, dt)
-        irwincov2 : ndarray
-            The corresponding covariance for the Irwin parameters for the 2-pole fit
-        falltimes2 : ndarray
-            The fall times of the 2-pole fit, tau_plus and tau_minus, in s
-        didvfit2_timedomain : ndarray
-            The 2-pole fit in time domain
-        didvfit2_freqdomain : ndarray
-            The 2-pole fit in frequency domain
-        fitparams3 : ndarray
-            The fit parameters of the 3-pole fit, in order of (A, B, C, tau1, tau2, tau3, dt)
-        fitcov3 : ndarray
-            The corresponding covariance for the 3-pole fit parameters
-        fitcost3 : float
-            The cost of the 3-pole fit
-        irwinparams3 : NoneType
-            The Irwin parameters of the 3-pole fit, this returns None now, as there is no model
-            that we convert to
-        irwincov3 : NoneType
-            The corresponding covariance for the Irwin parameters for the 3-pole fit,
-            also returns None
-        falltimes3 : ndarray
-            The fall times of the 3-pole fit in s
-        didvfit3_timedomain : ndarray
-            The 3-pole fit in time domain
-        didvfit3_freqdomain : ndarray
-            The 3-pole fit in frequency domain
-        fitparams2priors : ndarray
-            The fit parameters of the 2-pole priors fit, in order of (A, B, tau1, tau2, dt), converted from 
-            the Irwin parameters
-        fitcov2priors : ndarray
-            The corresponding covariance for the 2-pole priors fit parameters
-        fitcost2priors : float
-            The cost of the 2-pole priors fit
-        irwinparams2priors : ndarray
-            The Irwin parameters of the 2-pole priors fit, in order of (rload, r0, beta, l, L, tau0, dt)
-        irwincov2priors : ndarray
-            The corresponding covariance for the Irwin parameters for the 2-pole priors fit
-        falltimes2priors : ndarray
-            The fall times of the 2-pole priors fit, tau_plus and tau_minus, in s
-        didvfit2priors_timedomain : ndarray
-            The 2-pole priors fit in time domain
-        didvfit2priors_freqdomain : ndarray
-            The 2-pole priors fit in frequency domain
+    rawtraces : ndarray
+        The array of rawtraces to use when fitting the didv. Should be of shape (number of
+        traces, length of trace in bins). This can be any units, as long as tracegain will 
+        convert this to Amps.
+    fs : float
+        Sample rate of the data taken, in Hz
+    sgfreq : float
+        Frequency of the signal generator, in Hz
+    sgamp : float
+        Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
+    r0 : float
+        Resistance of the TES in Ohms
+    r0_err : float
+        Error in the resistance of the TES (Ohms)
+    rload : float
+        Load resistance of the circuit (rload = rshunt + rparasitic), Ohms
+    rload_err : float
+        Error in the load resistance, Ohms
+    rshunt : float
+        Shunt resistance in the circuit, Ohms
+    tracegain : float
+        The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
+        already has units of Amps, then this should be set to 1.0
+    dutycycle : float
+        The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
+    add180phase : boolean
+        If the signal generator is out of phase (i.e. if it looks like --__ instead of __--), then this
+        should be set to True. Adds half a period of the signal generator to the dt0 attribute
+    priors : ndarray
+        Prior known values of Irwin's TES parameters for the trace. 
+        Should be in the order of (rload,r0,beta,l,L,tau0,dt)
+    invpriorscov : ndarray
+        Inverse of the covariance matrix of the prior known values of 
+        Irwin's TES parameters for the trace (any values that are set 
+        to zero mean that we have no knowledge of that parameter) 
+    dt0 : float
+        The value of the starting guess for the time offset of the didv when fitting. 
+        The best way to use this value if it isn't converging well is to run the fit multiple times, 
+        setting dt0 equal to the fit's next value, and seeing where the dt0 value converges. 
+        The fit can have a difficult time finding the value on the first run if it the initial value 
+        is far from the actual value, so a solution is to do this iteratively. 
+    freq : ndarray
+        The frequencies of the didv fit
+    time : ndarray
+        The times the didv trace
+    ntraces : float
+        The number of traces in the data
+    traces : ndarray
+        The traces being used in units of Amps and also truncated so as to include only an integer
+        number of signal generator periods
+    flatinds : ndarray
+        The indices where the traces are flat
+    tmean : ndarray
+        The average trace in time domain, units of Amps
+    zeroinds : ndarray
+        The indices of the didv fit in frequency space where the values should be zero
+    didvstd : ndarray
+        The complex standard deviation of the didv in frequency space for each frequency
+    didvmean : ndarray
+        The average trace converted to didv
+    offset : float
+        The offset (i.e. baseline value) of the didv trace, in Amps
+    offset_err : float
+        The error in the offset of the didv trace, in Amps
+    fitparams1 : ndarray
+        The fit parameters of the 1-pole fit, in order of (A, tau2, dt)
+    fitcov1 : ndarray
+        The corresponding covariance for the 1-pole fit parameters
+    fitcost1 : float
+        The cost of the 1-pole fit
+    irwinparams1 : ndarray
+        The Irwin parameters of the 1-pole fit, in order of (rtot, L , r0, rload, dt)
+    irwincov1 : ndarray
+        The corresponding covariance for the Irwin parameters for the 1-pole fit
+    falltimes1 : ndarray
+        The fall times of the 1-pole fit, same as tau2, in s
+    didvfit1_timedomain : ndarray
+        The 1-pole fit in time domain
+    didvfit1_freqdomain : ndarray
+        The 1-pole fit in frequency domain
+    fitparams2 : ndarray
+        The fit parameters of the 2-pole fit, in order of (A, B, tau1, tau2, dt)
+    fitcov2 : ndarray
+        The corresponding covariance for the 2-pole fit parameters
+    fitcost2 : float
+        The cost of the 2-pole fit
+    irwinparams2 : ndarray
+        The Irwin parameters of the 2-pole fit, in order of (rload, r0, beta, l, L, tau0, dt)
+    irwincov2 : ndarray
+        The corresponding covariance for the Irwin parameters for the 2-pole fit
+    falltimes2 : ndarray
+        The fall times of the 2-pole fit, tau_plus and tau_minus, in s
+    didvfit2_timedomain : ndarray
+        The 2-pole fit in time domain
+    didvfit2_freqdomain : ndarray
+        The 2-pole fit in frequency domain
+    fitparams3 : ndarray
+        The fit parameters of the 3-pole fit, in order of (A, B, C, tau1, tau2, tau3, dt)
+    fitcov3 : ndarray
+        The corresponding covariance for the 3-pole fit parameters
+    fitcost3 : float
+        The cost of the 3-pole fit
+    irwinparams3 : NoneType
+        The Irwin parameters of the 3-pole fit, this returns None now, as there is no model
+        that we convert to
+    irwincov3 : NoneType
+        The corresponding covariance for the Irwin parameters for the 3-pole fit,
+        also returns None
+    falltimes3 : ndarray
+        The fall times of the 3-pole fit in s
+    didvfit3_timedomain : ndarray
+        The 3-pole fit in time domain
+    didvfit3_freqdomain : ndarray
+        The 3-pole fit in frequency domain
+    fitparams2priors : ndarray
+        The fit parameters of the 2-pole priors fit, in order of (A, B, tau1, tau2, dt), converted from 
+        the Irwin parameters
+    fitcov2priors : ndarray
+        The corresponding covariance for the 2-pole priors fit parameters
+    fitcost2priors : float
+        The cost of the 2-pole priors fit
+    irwinparams2priors : ndarray
+        The Irwin parameters of the 2-pole priors fit, in order of (rload, r0, beta, l, L, tau0, dt)
+    irwincov2priors : ndarray
+        The corresponding covariance for the Irwin parameters for the 2-pole priors fit
+    falltimes2priors : ndarray
+        The fall times of the 2-pole priors fit, tau_plus and tau_minus, in s
+    didvfit2priors_timedomain : ndarray
+        The 2-pole priors fit in time domain
+    didvfit2priors_freqdomain : ndarray
+        The 2-pole priors fit in frequency domain
             
     """
     
