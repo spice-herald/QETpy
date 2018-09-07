@@ -4,5 +4,6 @@ numpy==1.14.3
 numpydoc==0.8.0
 scipy==1.1.0
 seaborn==0.8.1
-sphinx==1.7.4
+Sphinx==1.6.3
 sphinx-rtd-theme==0.4.1
+sphinxcontrib-websupport==1.0.1
