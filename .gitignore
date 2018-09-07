@@ -15,3 +15,8 @@ pycdms.egg-info/*
 ### ignore autosaved files
 
 *.*~
+
+### ignore pytest files
+
+.pytest_cache/*
+
