@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import skew
 import random
-from pycdms.detcal.misc.utils import ofamp
+from pycdms.utils import ofamp
 from pycdms.utils import removeoutliers, iterstat 
 
 
