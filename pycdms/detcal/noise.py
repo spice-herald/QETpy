@@ -279,10 +279,14 @@ class Noise(object):
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
-            real_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
-            imag_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0))   
-            real_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.real(trace_csd[irow][jcolumn]),axis = 0))
-            imag_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0))
+#             real_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
+#             imag_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0))   
+#             real_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.real(trace_csd[irow][jcolumn]),axis = 0))
+#             imag_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0))
+            real_csd_mean[irow][jcolumn] = np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0)
+            imag_csd_mean[irow][jcolumn] = np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0)
+            real_csd_std[irow][jcolumn] = np.std(np.real(trace_csd[irow][jcolumn]),axis = 0)
+            imag_csd_std[irow][jcolumn] = np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0)
             
         self.csd = csd_mean
         self.real_csd = real_csd_mean

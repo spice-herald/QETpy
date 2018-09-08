@@ -1627,10 +1627,10 @@ class DIDV(object):
         self.fitparams2priors, self.fitcov2priors = convertfromtesvalues(self.irwinparams2priors, self.irwincov2priors)
 
         # Find the didv falltimes
-        self.falltimes2priors = findpolefalltimes(fitparams2priors)
+        self.falltimes2priors = findpolefalltimes(self.fitparams2priors)
 
         # save the fits with priors in time and frequency domain
-        self.didvfit2priors_timedomain = convolvedidv(self.time, fitparams2priors[0], fitparams2priors[1], 0.0, fitparams2priors[2], fitparams2priors[3], 0.0, self.sgamp, self.rshunt, self.sgfreq, self.dutycycle)+self.offset
+        self.didvfit2priors_timedomain = convolvedidv(self.time, self.fitparams2priors[0], self.fitparams2priors[1], 0.0, self.fitparams2priors[2], self.fitparams2priors[3], 0.0, self.sgamp, self.rshunt, self.sgfreq, self.dutycycle)+self.offset
         
         self.didvfit2priors_freqdomain = twopoleadmittancepriors(self.freq, self.irwinparams2priors[0], self.irwinparams2priors[1], self.irwinparams2priors[2], self.irwinparams2priors[3], self.irwinparams2priors[4], self.irwinparams2priors[5]) * np.exp(-2.0j*pi*self.freq*self.irwinparams2priors[6])
         
