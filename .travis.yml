@@ -22,6 +22,9 @@ install:
   - conda install matplotlib
   - conda install h5py
   - conda install seaborn
+  # Copy matplotlib configuration so it does not try and plot to 
+  # screen, which can cause matplotlib tests to fail.
+  - cp test/packages/matplotlibrc .
   # Install pycdms
   - python setup.py install --user
 
@@ -29,3 +32,4 @@ script:
   # Run pytest with 'v' (verbose) to show test function names and  
   # 'rs' to show reasons for skipped tests
   - pytest -v -rs test
+
