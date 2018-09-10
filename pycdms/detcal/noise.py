@@ -279,14 +279,11 @@ class Noise(object):
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
-#             real_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
-#             imag_csd_mean[irow][jcolumn] = utils.fill_negatives(np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0))   
-#             real_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.real(trace_csd[irow][jcolumn]),axis = 0))
-#             imag_csd_std[irow][jcolumn] = utils.fill_negatives(np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0))
-            real_csd_mean[irow][jcolumn] = np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0)
-            imag_csd_mean[irow][jcolumn] = np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0)
-            real_csd_std[irow][jcolumn] = np.std(np.real(trace_csd[irow][jcolumn]),axis = 0)
-            imag_csd_std[irow][jcolumn] = np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0)
+            real_csd_mean[irow][jcolumn] = fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
+            imag_csd_mean[irow][jcolumn] = fill_negatives(np.mean(np.imag(trace_csd[irow][jcolumn]),axis = 0))   
+            real_csd_std[irow][jcolumn] = fill_negatives(np.std(np.real(trace_csd[irow][jcolumn]),axis = 0))
+            imag_csd_std[irow][jcolumn] = fill_negatives(np.std(np.imag(trace_csd[irow][jcolumn]),axis = 0))
+            
             
         self.csd = csd_mean
         self.real_csd = real_csd_mean
@@ -411,4 +408,32 @@ class Noise(object):
             
         with open(path+self.fname.replace(" ", "_")+'.pkl','wb') as savefile:
             pickle.dump(self, savefile, pickle.HIGHEST_PROTOCOL)
+            
+            
+            
+            
+def fill_negatives(arr):
+    '''
+    Simple helper function to remove negative and zero values from PSD's and replace
+    them with interpolated values.
+    
+    Parameters
+    ----------
+        arr: ndarray
+            Array of values to replace neagive values on
+            
+    Returns
+    -------
+        arr: ndarray
+            Modified input array with the negative and zero values replace by interpelate values
+            
+    '''
+    
+    zeros = np.array(arr <= 0)
+    inds_zero = np.where(zeros)[0]
+    inds_not_zero = np.where(~zeros)[0]
+    good_vals = arr[~zeros]       
+    if len(good_vals) != 0:
+        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
+    return arr
             
