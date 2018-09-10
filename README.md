@@ -3,6 +3,10 @@
 
 [![Build Status](https://travis-ci.com/berkeleycdms/pycdms.svg?branch=master)](https://travis-ci.com/berkeleycdms/pycdms)
 
+[![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest)
+
+
+
 To install pycdms, from the top-level directory of the repo, type the following lines into your command line
 
 `python setup.py clean`  
