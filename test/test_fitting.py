@@ -1,5 +1,5 @@
 import numpy as np
-from pycdms.fitting import ofamp, chi2lowfreq, calc_offset, OFnonlin, MuonTailFit
+from pycdms.fitting import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
 
 
 def test_ofamp():
