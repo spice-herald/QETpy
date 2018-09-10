@@ -15,7 +15,8 @@ install:
   - source activate test-environment
   # Install py.test explicitly else Travis CI will use the one in its
   # virtualenv which can't use the Miniconda environment.
-  - conda install pytest
+  - pip install pytest pytest-cov
+  - pip install codecov
   # Install packages needed for testing pycdms
   - conda install numpy
   - conda install scipy
@@ -31,5 +32,7 @@ install:
 script:
   # Run pytest with 'v' (verbose) to show test function names and  
   # 'rs' to show reasons for skipped tests
-  - pytest -v -rs test
+  - pytest --cov=./ -v -rs test
 
+after_success:
+  - codecov
