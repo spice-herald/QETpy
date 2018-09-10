@@ -1,7 +1,9 @@
 # pycdms Package
 -------
 
-[![Build Status](https://travis-ci.com/berkeleycdms/pycdms.svg?branch=master)](https://travis-ci.com/berkeleycdms/pycdms) [![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/pycdms/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/pycdms)
+[![Build Status](https://travis-ci.com/berkeleycdms/pycdms.svg?branch=master)](https://travis-ci.com/berkeleycdms/pycdms) [![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/pycdms/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/pycdms) 
+![Conda](https://img.shields.io/conda/pn/conda-forge/python.svg)
+
 
 This package provides tools for detector/TES calibration and Dark Matter search analysis.
 
