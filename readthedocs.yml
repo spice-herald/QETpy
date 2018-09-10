@@ -8,5 +8,5 @@ python:
   setup_py_install: true
 
 conda:
-  file: test1e.yml
+  file: sillyenv.yml
   
