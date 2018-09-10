@@ -32,7 +32,7 @@ install:
 script:
   # Run pytest with 'v' (verbose) to show test function names and  
   # 'rs' to show reasons for skipped tests
-  - pytest --cov=pycdms -v -rs test
+  - py.test --cov=pycdms -v -rs test/
 
 after_success:
   - codecov
