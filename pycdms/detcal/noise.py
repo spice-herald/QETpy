@@ -42,6 +42,32 @@ def slope(x, y, removemeans=True):
     else:
         slope = np.sum(x*y)/np.sum(x**2)
     return slope
+            
+def fill_negatives(arr):
+    '''
+    Simple helper function to remove negative and zero values from PSD's and replace
+    them with interpolated values.
+    
+    Parameters
+    ----------
+        arr: ndarray
+            Array of values to replace neagive values on
+            
+    Returns
+    -------
+        arr: ndarray
+            Modified input array with the negative and zero values replace by interpelate values
+            
+    '''
+    
+    zeros = np.array(arr <= 0)
+    inds_zero = np.where(zeros)[0]
+    inds_not_zero = np.where(~zeros)[0]
+    good_vals = arr[~zeros]       
+    if len(good_vals) != 0:
+        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
+    return arr
+
 
 class Noise(object):
     """
@@ -408,32 +434,4 @@ class Noise(object):
             
         with open(path+self.fname.replace(" ", "_")+'.pkl','wb') as savefile:
             pickle.dump(self, savefile, pickle.HIGHEST_PROTOCOL)
-            
-            
-            
-            
-def fill_negatives(arr):
-    '''
-    Simple helper function to remove negative and zero values from PSD's and replace
-    them with interpolated values.
-    
-    Parameters
-    ----------
-        arr: ndarray
-            Array of values to replace neagive values on
-            
-    Returns
-    -------
-        arr: ndarray
-            Modified input array with the negative and zero values replace by interpelate values
-            
-    '''
-    
-    zeros = np.array(arr <= 0)
-    inds_zero = np.where(zeros)[0]
-    inds_not_zero = np.where(~zeros)[0]
-    good_vals = arr[~zeros]       
-    if len(good_vals) != 0:
-        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
-    return arr
             

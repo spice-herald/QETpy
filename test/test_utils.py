@@ -1,6 +1,5 @@
 import numpy as np
-from pycdms.utils import (align_traces, calc_offset, calc_psd, fill_negatives, 
-                          iterstat, lowpassfilter, removeoutliers, stdcomplex)
+from pycdms.utils import align_traces, calc_offset, calc_psd, iterstat, lowpassfilter, removeoutliers, stdcomplex
 
 def test_align_traces():
     traces = np.random.randn(100, 32000)
@@ -45,11 +44,3 @@ def test_lowpassfilter():
     res = lowpassfilter(traces)
     
     assert res.shape == traces.shape
-
-def test_fill_negatives():
-    traces = np.random.randn(100, 32000)
-    res = fill_negatives(traces)
-    
-    assert res.shape == traces.shape
-    
-    
