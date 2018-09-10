@@ -173,45 +173,7 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     
     return chi2low
 
-def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
-    """
-    Calculates the DC offset of time series trace.
-    
-    Parameters
-    ----------
-        x : ndarray
-            Array to calculate offsets of.
-        fs : float, optional
-            Sample rate of the data being taken, assumed to be in units of Hz.
-        sgfreq : float, optional
-            The frequency of signal generator (if is_didv is True. If False, then this is ignored).
-        is_didv : bool, optional
-            If False, average of full trace is returned. If True, then the average of
-            n Periods is returned (where n is the max number of full periods present in a trace).
-    
-    Returns
-    -------
-        offset : ndarray
-            Array of offsets with same shape as input x minus the last dimension
-        std : ndarray
-            Array of std with same shape as offset
-    
-    """
-    
-    if is_didv:
-        period =  1.0/sgfreq
-        period_bins = period*fs
-        n_periods = int(x.shape[-1]/period_bins)
-        x = x[..., :int(n_periods*period_bins)]
-           
-    offset = np.mean(np.mean(x, axis=-1), axis=0)
-    std = np.std(np.mean(x, axis=-1), axis=0)/np.sqrt(x.shape[0])
-    
-    return offset, std
-    
 
-
-    
 class OFnonlin(object):
     """
     This class provides the user with a non-linear optimum filter to estimate the amplitude,
@@ -311,6 +273,7 @@ class OFnonlin(object):
         amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
         pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
         return pulse*np.sqrt(self.df)
+    
     def twopoletime(self,A,tau_r,tau_f,t0):
         """
         Functional form of pulse in time domain with the amplitude, rise time,
