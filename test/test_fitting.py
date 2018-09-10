@@ -21,7 +21,7 @@ def test_ofamp():
     template = template/max(template)
     signal = template + np.random.randn(len(template))/10
     signal = np.roll(signal,20)
-    res = ofamp(signal, testtemplate, psd, fs, lgcsigma=True, nconstrain=100, withdelay=True)
+    res = ofamp(signal, template, psd, fs, lgcsigma=True, nconstrain=100, withdelay=True)
     
     assert len(res)>0
     
@@ -44,7 +44,7 @@ def test_chi2lowfreq():
     template = template/max(template)
     signal = template + np.random.randn(len(template))/10
     signal = np.roll(signal,20)
-    res = ofamp(signal, testtemplate, psd, fs, lgcsigma=True, nconstrain=100)
+    res = ofamp(signal, template, psd, fs, lgcsigma=True, nconstrain=100)
 
     chi2low = chi2lowfreq(signal, template, res[0], res[1], psd, fs)
     
