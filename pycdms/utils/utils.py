@@ -6,6 +6,32 @@ from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
 
+def inrange(vals, bounds):
+    """
+    Function for returning a boolean mask that specifies which values
+    in an array are between the specified bounds (inclusive of the bounds).
+    
+    Parameters
+    ----------
+        vals : array_like
+            A 1-d array of values.
+        bounds : array_like
+            The bounds for which we will check if each value in vals
+            is in between. This should be an array of shape (2,). However,
+            a longer array will not throw an error, as the function will just
+            use the first two values
+            
+    Returns
+    -------
+        mask : ndarray
+            A boolean array of the same shape as vals. True means that the
+            value was between the bounds, False means that the value was not.
+    
+    """
+    
+    mask = np.array([bounds[0] <= val <= bounds[1] for val in vals])
+    
+    return mask
 
 def stdcomplex(x, axis=0):
     """
@@ -24,6 +50,7 @@ def stdcomplex(x, axis=0):
     -------
         std_complex : ndarray
             The complex standard deviation of the inputted array, along the specified axis.
+            
     """
     
     rstd = np.std(x.real, axis=axis)
@@ -47,7 +74,7 @@ def removeoutliers(x, maxiter=20, skewTarget=0.05):
     
     Returns
     -------
-        inds : 
+        inds : ndarray
             Boolean indices indicating which values to select/reject, same length as x.
     """
     
@@ -128,6 +155,32 @@ def iterstat(data,cut=3,precision=1000.0):
     datamask = mask
     
     return datamean,datastd,datamask
+
+def foldpsd(psd, fs):
+    """
+    Return the one-sided version of the inputted two-sided psd.
+    
+    Parameters
+    ----------
+        psd : ndarray
+            A two-sided psd to be converted to one-sided
+        fs : float
+            The sample rate used for the psd
+            
+    Returns
+    -------
+        f : ndarray
+            The frequencies corresponding to the outputted one-sided psd
+        psd_folded : ndarray
+            The one-sided (folded over) psd corresponding to the inputted two-sided psd
+            
+    """
+    
+    psd_folded = np.copy(psd[:len(psd)//2+1])
+    psd_folded[1:len(psd)//2+(len(psd))%2] *= 2.0
+    f = rfftfreq(len(psd),d=1.0/fs)
+    
+    return f, psd_folded
 
 
 def calc_psd(x, fs=1.0, folded_over=True):
@@ -225,21 +278,22 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     """
     Applies a low pass filter to the inputted time series traces
     
-    Paramters
-    ---------
+    Parameters
+    ----------
         traces : ndarray
             An array of shape (# traces, # bins per trace).
         cut_off_freq : float, int, optional
             The cut off 3dB frequency for the low pass filter, defaults to 100kHz.
-        fs: float, int, optional
+        fs : float, int, optional
             Digitization rate of data, defaults to 625e3 Hz.
-        order: int, optional
+        order : int, optional
             The order of the low pass filter, defaults to 1.
     
-    Returns:
-    -----------
+    Returns
+    -------
         filt_traces : ndarray
             Array of low pass filtered traces with the same shape as inputted traces.
+            
     """
     
     nyq = 0.5*fs
@@ -260,14 +314,16 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
     ----------
         traces : ndarray
             Array of shape (# traces, # bins per trace).
-        lgcjustshifts : boolean
-            If False, the aligned traces and the phase shifts are returned. 
-            If True, just the phase shifts are returned.
-        n_cut: int 
-            The number of bins to use to do the convolution
-            Just need enough information to see the periodic signal
-        cut_off_freq: float or int, 3dB frequency for filter
-        fs: float or int, sample rate of DAQ, defaults to 625e3
+        lgcjustshifts : boolean, optional
+            If False, the aligned traces and the phase shifts are returned.
+            If True, just the phase shifts are returned. Default is False.
+        n_cut : int, optional
+            The number of bins to use to do the convolution. Just need enough 
+            information to see the periodic signal. Default is 5000.
+        cut_off_freq : float or int, optional
+            3dB cut off frequency for filter. Default is 5000 Hz.
+        fs : float or int, optional
+            Sample rate of data in Hz. Default is 625e3 Hz.
     
     Returns
     -------
@@ -277,6 +333,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
             Array of time shift corrected traces, same shape as input traces.
             The masked array masks the np.NaN values in the time shifted traces so that
             normal numpy functions will ignore the nan's in computations.
+            
     """
     
     
