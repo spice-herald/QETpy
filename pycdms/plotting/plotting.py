@@ -35,8 +35,6 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
     else:
         ### Overlay plot
         if lgcoverlay:
-            sns.set_style('white')
-            sns.set_context('notebook')
             plt.figure(figsize = (12,8))
             plt.title('{} PSD'.format(noise.name))
             plt.xlabel('frequency [Hz]')
@@ -55,8 +53,6 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
             plt.show()
         ### Subplots            
         else:
-            sns.set_style('white')
-            sns.set_context('poster', font_scale = 1.9)
             num_subplots = len(noise.channames)
             nrows = int(ceil(num_subplots/2))
             ncolumns = 2
@@ -117,8 +113,6 @@ def plot_reim_psd(noise, lgcsave = False, savepath = None):
         print('Need to calculate the psd first')
         return
     else:
-        sns.set_style('white')
-        sns.set_context('poster', font_scale = 1.9)
         num_subplots = len(noise.channames)
         nrows = int(ceil(num_subplots/2))
         ncolumns = 2
@@ -186,8 +180,6 @@ def plot_corrcoeff(noise, lgcsmooth = True, nwindow = 7, lgcsave = False, savepa
         print('Need to calculate the corrcoeff first')
         return
     else:
-        sns.set_style('white')
-        sns.set_context('notebook')
         plt.figure(figsize = (12,8))
         plt.title('{} \n Cross Channel Correlation Coefficients'.format(noise.name) )
         for ii in range(noise.corrcoeff.shape[0]):
@@ -238,8 +230,6 @@ def plot_csd(noise, whichcsd = ['01'], lgcreal = True, lgcsave = False, savepath
         print('Must calculate the csd first')
         return
     else:
-        sns.set_style('white')
-        sns.set_context('notebook')
         x_plt_label = []
         y_plt_label = []
         for label in whichcsd:
@@ -313,8 +303,6 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
     
         ### Overlay plot
         if lgcoverlay:
-            sns.set_style('white')
-            sns.set_context('notebook')
             plt.figure(figsize = (12,8))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
@@ -333,8 +321,6 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
             plt.show()
         ### Subplots
         else:
-            sns.set_style('white')
-            sns.set_context('poster', font_scale = 1.9)
             num_subplots = len(noise.channames)
             nrows = int(ceil(num_subplots/2))
             ncolumns = 2
@@ -418,8 +404,6 @@ def compare_noise(arr, channels, lgcdecorrelatednoise = False, lgcsave = False, 
             Absolute path for the figure to be saved
     """
     
-    sns.set_style('white')
-    sns.set_context('notebook')
     
     #check to make sure channels is a list or array
     if (type(channels) == np.ndarray or type(channels) == list):
