@@ -4,6 +4,7 @@ from pycdms.io import loadstanfordfile
 from pycdms.trigger import rand_sections_wrapper, optimumfilt_wrapper
 from pycdms.detcal import autocuts
 from pycdms.utils import calc_psd
+from glob import glob
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
