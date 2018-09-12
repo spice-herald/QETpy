@@ -1,5 +1,5 @@
 import numpy as np
-from pycdms.utils import align_traces, calc_offset, calc_psd, iterstat, lowpassfilter, removeoutliers, stdcomplex
+from tescal.utils import align_traces, calc_offset, calc_psd, iterstat, lowpassfilter, removeoutliers, stdcomplex
 
 def test_align_traces():
     traces = np.random.randn(100, 32000)

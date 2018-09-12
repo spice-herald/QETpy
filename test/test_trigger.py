@@ -1,9 +1,9 @@
 import os
 import numpy as np
-from pycdms.io import loadstanfordfile
-from pycdms.trigger import rand_sections_wrapper, optimumfilt_wrapper
-from pycdms.detcal import autocuts
-from pycdms.utils import calc_psd
+from tescal.io import loadstanfordfile
+from tescal.trigger import rand_sections_wrapper, optimumfilt_wrapper
+from tescal.detcal import autocuts
+from tescal.utils import calc_psd
 from glob import glob
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
