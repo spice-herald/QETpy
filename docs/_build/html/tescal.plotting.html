@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pycdms.plotting package &mdash; pycdms 0.2.0 documentation</title>
+  <title>tescal.plotting package &mdash; tescal 0.2.2 documentation</title>
   
 
   
@@ -28,8 +28,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="pycdms.utils package" href="pycdms.utils.html" />
-    <link rel="prev" title="pycdms.fitting package" href="pycdms.fitting.html" /> 
+    <link rel="next" title="tescal.trigger package" href="tescal.trigger.html" />
+    <link rel="prev" title="tescal.io package" href="tescal.io.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> pycdms
+            <a href="index.html" class="icon icon-home"> tescal
           
 
           
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.2.0
+                0.2.2
               </div>
             
           
@@ -83,31 +83,35 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="pycdms.html">pycdms package</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="pycdms.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="pycdms.detcal.html">pycdms.detcal package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">pycdms.plotting package</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="tescal.html">tescal package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tescal.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tescal.detcal.html">tescal.detcal package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tescal.plotting package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.plotting.plotting">pycdms.plotting.plotting module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.plotting">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.plotting.plotting">tescal.plotting.plotting module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.plotting">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.utils.html">tescal.utils package</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="pycdms.html#module-pycdms">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tescal.html#module-tescal">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.detcal.html">pycdms.detcal package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">pycdms.plotting package</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="tescal.detcal.html">tescal.detcal package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">tescal.plotting package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.plotting.plotting">pycdms.plotting.plotting module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.plotting">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.plotting.plotting">tescal.plotting.plotting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.plotting">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.utils.html">tescal.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
 </ul>
 
             
@@ -122,7 +126,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">pycdms</a>
+          <a href="index.html">tescal</a>
         
       </nav>
 
@@ -153,15 +157,15 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-          <li><a href="pycdms.html">pycdms package</a> &raquo;</li>
+          <li><a href="tescal.html">tescal package</a> &raquo;</li>
         
-      <li>pycdms.plotting package</li>
+      <li>tescal.plotting package</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/pycdms.plotting.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/tescal.plotting.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -174,16 +178,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="pycdms-plotting-package">
-<h1>pycdms.plotting package<a class="headerlink" href="#pycdms-plotting-package" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="tescal-plotting-package">
+<h1>tescal.plotting package<a class="headerlink" href="#tescal-plotting-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-pycdms.plotting.plotting">
-<span id="pycdms-plotting-plotting-module"></span><h2>pycdms.plotting.plotting module<a class="headerlink" href="#module-pycdms.plotting.plotting" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.plotting.plotting">
+<span id="tescal-plotting-plotting-module"></span><h2>tescal.plotting.plotting module<a class="headerlink" href="#module-tescal.plotting.plotting" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="pycdms.plotting.plotting.compare_noise">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">compare_noise</code><span class="sig-paren">(</span><em>arr</em>, <em>channels</em>, <em>lgcdecorrelatednoise=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.compare_noise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.compare_noise">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">compare_noise</code><span class="sig-paren">(</span><em>arr</em>, <em>channels</em>, <em>lgcdecorrelatednoise=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.compare_noise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot multiple psd’s from different noise objects on the same figure. Each channel will
 be plotted in its own figure.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -218,59 +222,8 @@ de-correlated noise is plotted</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.fill_negatives">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">fill_negatives</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.fill_negatives" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simple helper function to remove negative and zero values from psd’s.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr</strong> : ndarray</p>
-<blockquote>
-<div><p>1d array</p>
-</div></blockquote>
-<p><strong>Returns</strong></p>
-<p><strong>——-</strong></p>
-<blockquote class="last">
-<div><dl class="docutils">
-<dt>arr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">arr with the negative and zero values replaced by interpolated values</p>
-</dd>
-</dl>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pycdms.plotting.plotting.load_noise">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">load_noise</code><span class="sig-paren">(</span><em>file_str</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.load_noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load noise object that has been previously saved as pickle file</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>file_str</strong> : str</p>
-<blockquote>
-<div><p>The full path to the file to be loaded.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : Object</p>
-<blockquote class="last">
-<div><p>The loaded noise object.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pycdms.plotting.plotting.plot_all_curves">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_all_curves" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_all_curves">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_all_curves" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the IV, resistance, and power curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -311,8 +264,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_corrcoeff">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_corrcoeff">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the cross channel correlation coefficients. Since there are typically few traces,
 the correlations are often noisy. a savgol_filter is used to smooth out some of the noise</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -346,8 +299,8 @@ the correlations are often noisy. a savgol_filter is used to smooth out some of 
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_csd">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_csd</code><span class="sig-paren">(</span><em>noise, whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_csd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_csd">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_csd</code><span class="sig-paren">(</span><em>noise, whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_csd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the cross channel noise spectrum referenced to the TES line in
 units of Amperes^2/Hz</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -382,8 +335,8 @@ indices of the desired csd plot</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_decorrelatednoise">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_decorrelatednoise">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
 from fitted parameters calculated calculate_deCorrelated_noise</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -429,8 +382,8 @@ and correlated noise is plotted</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_didv_flipped">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_didv_flipped">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the flipped trace in time domain. This function should be used to 
 test if there are nonlinearities in the didv</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -471,8 +424,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_full_trace">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_full_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_full_trace">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_full_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the entire trace in time domain</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -512,8 +465,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_iv">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_iv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_iv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_iv">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_iv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_iv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the IV curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -554,8 +507,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_noise_sim">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_noise_sim</code><span class="sig-paren">(</span><em>f</em>, <em>psd</em>, <em>noise_sim</em>, <em>istype</em>, <em>figsize=(12</em>, <em>8)</em>, <em>lgcsave=False</em>, <em>savepath=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_noise_sim" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_noise_sim">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_noise_sim</code><span class="sig-paren">(</span><em>f</em>, <em>psd</em>, <em>noise_sim</em>, <em>istype</em>, <em>figsize=(12</em>, <em>8)</em>, <em>lgcsave=False</em>, <em>savepath=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_noise_sim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plots psd with simulated noise model</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -586,13 +539,14 @@ If ‘power’ the noise is plotted referenced to TES power</p>
 </dd>
 </dl>
 </div></blockquote>
-<p><strong>Returns</strong></p>
-<p><strong>——-</strong></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>fig</strong> : Object</p>
 <blockquote class="last">
-<div><dl class="docutils">
-<dt>fig <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
-<dd><p class="first last">fig object from matplotlib.pyplot</p>
-</dd>
+<div><blockquote>
+<div><p>fig object from matplotlib.pyplot</p>
+</div></blockquote>
+<dl class="docutils">
 <dt>ax <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
 <dd><p class="first last">ax object from matplotlib.pyplot</p>
 </dd>
@@ -605,8 +559,8 @@ If ‘power’ the noise is plotted referenced to TES power</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_psd">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_psd">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -637,8 +591,8 @@ If False, each psd for each channel is plotted in a seperate subplot</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_pv">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_pv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_pv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_pv">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_pv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_pv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the power curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -676,8 +630,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_re_im_didv">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_re_im_didv">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the real and imaginary parts of the didv in frequency space.
 Currently creates two different plots.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -718,8 +672,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_reim_psd">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_reim_psd">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>noise</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
 This is done to check for thermal muon tails making it passed the quality cuts</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -747,8 +701,8 @@ This is done to check for thermal muon tails making it passed the quality cuts</
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_rv">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_rv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_rv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_rv">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_rv</code><span class="sig-paren">(</span><em>IVobject</em>, <em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_rv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the resistance curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -786,8 +740,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_single_period_of_trace">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_single_period_of_trace">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot a single period of the trace in time domain</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -827,8 +781,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plot_zoomed_in_trace">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plot_zoomed_in_trace">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>didv</em>, <em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
 overshoot of the didv.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -872,8 +826,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.plotting.plotting.plotnonlin">
-<code class="descclassname">pycdms.plotting.plotting.</code><code class="descname">plotnonlin</code><span class="sig-paren">(</span><em>OFnonlinOBJ</em>, <em>pulse</em>, <em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.plotting.plotting.plotnonlin" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.plotting.plotting.plotnonlin">
+<code class="descclassname">tescal.plotting.plotting.</code><code class="descname">plotnonlin</code><span class="sig-paren">(</span><em>OFnonlinOBJ</em>, <em>pulse</em>, <em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.plotting.plotting.plotnonlin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Diagnostic plotting of non-linear pulse fitting</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -903,8 +857,8 @@ by default.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.plotting">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pycdms.plotting" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.plotting">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tescal.plotting" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -916,10 +870,10 @@ by default.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="pycdms.utils.html" class="btn btn-neutral float-right" title="pycdms.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tescal.trigger.html" class="btn btn-neutral float-right" title="tescal.trigger package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="pycdms.fitting.html" class="btn btn-neutral" title="pycdms.fitting package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tescal.io.html" class="btn btn-neutral" title="tescal.io package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -950,7 +904,7 @@ by default.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2.0',
+            VERSION:'0.2.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

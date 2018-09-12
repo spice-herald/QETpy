@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pycdms.utils package &mdash; pycdms 0.2.0 documentation</title>
+  <title>tescal.utils package &mdash; tescal 0.2.2 documentation</title>
   
 
   
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="pycdms.plotting package" href="pycdms.plotting.html" /> 
+    <link rel="prev" title="tescal.trigger package" href="tescal.trigger.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -47,7 +47,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> pycdms
+            <a href="index.html" class="icon icon-home"> tescal
           
 
           
@@ -57,7 +57,7 @@
             
             
               <div class="version">
-                0.2.0
+                0.2.2
               </div>
             
           
@@ -82,31 +82,35 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="pycdms.html">pycdms package</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="pycdms.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="pycdms.detcal.html">pycdms.detcal package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.plotting.html">pycdms.plotting package</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">pycdms.utils package</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="tescal.html">tescal package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tescal.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tescal.detcal.html">tescal.detcal package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.plotting.html">tescal.plotting package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tescal.utils package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.utils.utils">pycdms.utils.utils module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.utils">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.utils.utils">tescal.utils.utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.utils">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="pycdms.html#module-pycdms">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tescal.html#module-tescal">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.detcal.html">pycdms.detcal package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.plotting.html">pycdms.plotting package</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">pycdms.utils package</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="tescal.detcal.html">tescal.detcal package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.plotting.html">tescal.plotting package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">tescal.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.utils.utils">pycdms.utils.utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.utils">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.utils.utils">tescal.utils.utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.utils">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
 </ul>
 
             
@@ -121,7 +125,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">pycdms</a>
+          <a href="index.html">tescal</a>
         
       </nav>
 
@@ -152,15 +156,15 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-          <li><a href="pycdms.html">pycdms package</a> &raquo;</li>
+          <li><a href="tescal.html">tescal package</a> &raquo;</li>
         
-      <li>pycdms.utils package</li>
+      <li>tescal.utils package</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/pycdms.utils.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/tescal.utils.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -173,16 +177,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="pycdms-utils-package">
-<h1>pycdms.utils package<a class="headerlink" href="#pycdms-utils-package" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="tescal-utils-package">
+<h1>tescal.utils package<a class="headerlink" href="#tescal-utils-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-pycdms.utils.utils">
-<span id="pycdms-utils-utils-module"></span><h2>pycdms.utils.utils module<a class="headerlink" href="#module-pycdms.utils.utils" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.utils.utils">
+<span id="tescal-utils-utils-module"></span><h2>tescal.utils.utils module<a class="headerlink" href="#module-tescal.utils.utils" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="pycdms.utils.utils.align_traces">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">align_traces</code><span class="sig-paren">(</span><em>traces</em>, <em>lgcjustshifts=False</em>, <em>n_cut=5000</em>, <em>cut_off_freq=5000.0</em>, <em>fs=625000.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.align_traces" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.align_traces">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">align_traces</code><span class="sig-paren">(</span><em>traces</em>, <em>lgcjustshifts=False</em>, <em>n_cut=5000</em>, <em>cut_off_freq=5000.0</em>, <em>fs=625000.0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.align_traces" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to align dIdV traces if each trace does not trigger at the same point. Uses
 a convolution of the traces to find the time offset.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -195,16 +199,21 @@ a convolution of the traces to find the time offset.</p>
 <div><p>Array of shape (# traces, # bins per trace).</p>
 </div></blockquote>
 <dl class="docutils">
-<dt>lgcjustshifts <span class="classifier-delimiter">:</span> <span class="classifier">boolean</span></dt>
-<dd><p class="first last">If False, the aligned traces and the phase shifts are returned. 
-If True, just the phase shifts are returned.</p>
+<dt>lgcjustshifts <span class="classifier-delimiter">:</span> <span class="classifier">boolean, optional</span></dt>
+<dd><p class="first last">If False, the aligned traces and the phase shifts are returned.
+If True, just the phase shifts are returned. Default is False.</p>
 </dd>
-<dt>n_cut: int. The number of bins to use to do the convolution</dt>
-<dd><p class="first last">Just need enough information to see the periodic signal</p>
+<dt>n_cut <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">The number of bins to use to do the convolution. Just need enough 
+information to see the periodic signal. Default is 5000.</p>
+</dd>
+<dt>cut_off_freq <span class="classifier-delimiter">:</span> <span class="classifier">float or int, optional</span></dt>
+<dd><p class="first last">3dB cut off frequency for filter. Default is 5000 Hz.</p>
+</dd>
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float or int, optional</span></dt>
+<dd><p class="first last">Sample rate of data in Hz. Default is 625e3 Hz.</p>
 </dd>
 </dl>
-<p>cut_off_freq: float or int, 3dB frequency for filter
-fs: float or int, sample rate of DAQ, defaults to 625e3</p>
 </div></blockquote>
 </td>
 </tr>
@@ -228,8 +237,8 @@ normal numpy functions will ignore the nan’s in computations.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.calc_offset">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">calc_offset</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>sgfreq=100.0</em>, <em>is_didv=False</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.calc_offset" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.calc_offset">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">calc_offset</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>sgfreq=100.0</em>, <em>is_didv=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.calc_offset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the DC offset of time series trace.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -273,8 +282,8 @@ n Periods is returned (where n is the max number of full periods present in a tr
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.calc_psd">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">calc_psd</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>folded_over=True</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.calc_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.calc_psd">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">calc_psd</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>folded_over=True</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.calc_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the PSD of an n-dimensional array, assuming that we want the PSD of the last axis.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -318,23 +327,34 @@ over the PSD.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.fill_negatives">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">fill_negatives</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.fill_negatives" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simple helper function to remove negative and zero values from psd’s.</p>
+<dt id="tescal.utils.utils.foldpsd">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">foldpsd</code><span class="sig-paren">(</span><em>psd</em>, <em>fs</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.foldpsd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the one-sided version of the inputted two-sided psd.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr</strong> : ndarray</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>psd</strong> : ndarray</p>
 <blockquote>
-<div><p>1d array</p>
+<div><blockquote>
+<div><p>A two-sided psd to be converted to one-sided</p>
 </div></blockquote>
-<p><strong>Returns</strong></p>
-<p><strong>——-</strong></p>
+<dl class="docutils">
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The sample rate used for the psd</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : ndarray</p>
 <blockquote class="last">
-<div><dl class="docutils">
-<dt>arr <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">arr with the negative and zero values replaced by interpolated values</p>
+<div><blockquote>
+<div><p>The frequencies corresponding to the outputted one-sided psd</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>psd_folded <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The one-sided (folded over) psd corresponding to the inputted two-sided psd</p>
 </dd>
 </dl>
 </div></blockquote>
@@ -345,8 +365,44 @@ over the PSD.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.iterstat">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">iterstat</code><span class="sig-paren">(</span><em>data</em>, <em>cut=3</em>, <em>precision=1000.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.iterstat" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.inrange">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">inrange</code><span class="sig-paren">(</span><em>vals</em>, <em>bounds</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.inrange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for returning a boolean mask that specifies which values
+in an array are between the specified bounds (inclusive of the bounds).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>vals</strong> : array_like</p>
+<blockquote>
+<div><blockquote>
+<div><p>A 1-d array of values.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>bounds <span class="classifier-delimiter">:</span> <span class="classifier">array_like</span></dt>
+<dd><p class="first last">The bounds for which we will check if each value in vals
+is in between. This should be an array of shape (2,). However,
+a longer array will not throw an error, as the function will just
+use the first two values</p>
+</dd>
+</dl>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mask</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>A boolean array of the same shape as vals. True means that the
+value was between the bounds, False means that the value was not.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tescal.utils.utils.iterstat">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">iterstat</code><span class="sig-paren">(</span><em>data</em>, <em>cut=3</em>, <em>precision=1000.0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.iterstat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to iteratively remove outliers based on how many standard deviations they are from the mean,
 where the mean and standard deviation are recalculated after each cut.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -392,22 +448,35 @@ threshold (i.e. more iterations).</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.load_noise">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">load_noise</code><span class="sig-paren">(</span><em>file_str</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.load_noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load noise object that has been previously saved as pickle file</p>
+<dt id="tescal.utils.utils.lowpassfilter">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">lowpassfilter</code><span class="sig-paren">(</span><em>traces</em>, <em>cut_off_freq=100000</em>, <em>fs=625000.0</em>, <em>order=1</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.lowpassfilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a low pass filter to the inputted time series traces</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>file_str</strong> : str</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
 <blockquote>
-<div><p>The full path to the file to be loaded.</p>
+<div><blockquote>
+<div><p>An array of shape (# traces, # bins per trace).</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>cut_off_freq <span class="classifier-delimiter">:</span> <span class="classifier">float, int, optional</span></dt>
+<dd><p class="first last">The cut off 3dB frequency for the low pass filter, defaults to 100kHz.</p>
+</dd>
+<dt>fs <span class="classifier-delimiter">:</span> <span class="classifier">float, int, optional</span></dt>
+<dd><p class="first last">Digitization rate of data, defaults to 625e3 Hz.</p>
+</dd>
+<dt>order <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">The order of the low pass filter, defaults to 1.</p>
+</dd>
+</dl>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : Object</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>filt_traces</strong> : ndarray</p>
 <blockquote class="last">
-<div><p>The loaded noise object.</p>
+<div><p>Array of low pass filtered traces with the same shape as inputted traces.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -416,14 +485,8 @@ threshold (i.e. more iterations).</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.lowpassfilter">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">lowpassfilter</code><span class="sig-paren">(</span><em>traces</em>, <em>cut_off_freq=100000</em>, <em>fs=625000.0</em>, <em>order=1</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.lowpassfilter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies a low pass filter to the inputted time series traces</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pycdms.utils.utils.removeoutliers">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">removeoutliers</code><span class="sig-paren">(</span><em>x</em>, <em>maxiter=20</em>, <em>skewTarget=0.05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.removeoutliers" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.removeoutliers">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">removeoutliers</code><span class="sig-paren">(</span><em>x</em>, <em>maxiter=20</em>, <em>skewTarget=0.05</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.removeoutliers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to return indices of inlying points, removing points by minimizing the skewness</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -445,7 +508,7 @@ threshold (i.e. more iterations).</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">inds :</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>inds</strong> : ndarray</p>
 <blockquote class="last">
 <div><p>Boolean indices indicating which values to select/reject, same length as x.</p>
 </div></blockquote>
@@ -456,8 +519,8 @@ threshold (i.e. more iterations).</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.utils.utils.stdcomplex">
-<code class="descclassname">pycdms.utils.utils.</code><code class="descname">stdcomplex</code><span class="sig-paren">(</span><em>x</em>, <em>axis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.utils.utils.stdcomplex" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.utils.utils.stdcomplex">
+<code class="descclassname">tescal.utils.utils.</code><code class="descname">stdcomplex</code><span class="sig-paren">(</span><em>x</em>, <em>axis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.utils.utils.stdcomplex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to return complex standard deviation (individually computed for real and imaginary 
 components) for an array of complex values.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -489,8 +552,8 @@ dimension of the array is greater than 1)</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.utils">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pycdms.utils" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tescal.utils" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -503,7 +566,7 @@ dimension of the array is greater than 1)</p>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="pycdms.plotting.html" class="btn btn-neutral" title="pycdms.plotting package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tescal.trigger.html" class="btn btn-neutral" title="tescal.trigger package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -534,7 +597,7 @@ dimension of the array is greater than 1)</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2.0',
+            VERSION:'0.2.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

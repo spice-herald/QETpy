@@ -1,13 +1,13 @@
-pycdms\.fitting package
+tescal\.fitting package
 =======================
 
 Submodules
 ----------
 
-pycdms\.fitting\.fitting module
+tescal\.fitting\.fitting module
 -------------------------------
 
-.. automodule:: pycdms.fitting.fitting
+.. automodule:: tescal.fitting.fitting
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ pycdms\.fitting\.fitting module
 Module contents
 ---------------
 
-.. automodule:: pycdms.fitting
+.. automodule:: tescal.fitting
     :members:
     :undoc-members:
     :show-inheritance:

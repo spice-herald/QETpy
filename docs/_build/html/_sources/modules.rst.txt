@@ -1,7 +1,7 @@
-pycdms
+tescal
 ======
 
 .. toctree::
    :maxdepth: 4
 
-   pycdms
+   tescal

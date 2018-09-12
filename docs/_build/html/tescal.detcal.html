@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>pycdms.detcal package &mdash; pycdms 0.2.0 documentation</title>
+  <title>tescal.detcal package &mdash; tescal 0.2.2 documentation</title>
   
 
   
@@ -28,8 +28,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="pycdms.fitting package" href="pycdms.fitting.html" />
-    <link rel="prev" title="pycdms package" href="pycdms.html" /> 
+    <link rel="next" title="tescal.fitting package" href="tescal.fitting.html" />
+    <link rel="prev" title="tescal package" href="tescal.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> pycdms
+            <a href="index.html" class="icon icon-home"> tescal
           
 
           
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.2.0
+                0.2.2
               </div>
             
           
@@ -83,39 +83,43 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="pycdms.html">pycdms package</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="pycdms.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">pycdms.detcal package</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="tescal.html">tescal package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tescal.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tescal.detcal package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal.cut">pycdms.detcal.cut module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal.didv">pycdms.detcal.didv module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal.iv">pycdms.detcal.iv module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal.noise">pycdms.detcal.noise module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal.sim">pycdms.detcal.sim module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-pycdms.detcal">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal.cut">tescal.detcal.cut module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal.didv">tescal.detcal.didv module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal.iv">tescal.detcal.iv module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal.noise">tescal.detcal.noise module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal.sim">tescal.detcal.sim module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-tescal.detcal">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.plotting.html">pycdms.plotting package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.plotting.html">tescal.plotting package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tescal.utils.html">tescal.utils package</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="pycdms.html#module-pycdms">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tescal.html#module-tescal">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">pycdms.detcal package</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">tescal.detcal package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.cut">pycdms.detcal.cut module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.didv">pycdms.detcal.didv module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.iv">pycdms.detcal.iv module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.noise">pycdms.detcal.noise module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal.sim">pycdms.detcal.sim module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-pycdms.detcal">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal.cut">tescal.detcal.cut module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal.didv">tescal.detcal.didv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal.iv">tescal.detcal.iv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal.noise">tescal.detcal.noise module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal.sim">tescal.detcal.sim module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tescal.detcal">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.fitting.html">pycdms.fitting package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.plotting.html">pycdms.plotting package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pycdms.utils.html">pycdms.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.fitting.html">tescal.fitting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.plotting.html">tescal.plotting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.utils.html">tescal.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.trigger.html">tescal.trigger package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tescal.io.html">tescal.io package</a></li>
 </ul>
 
             
@@ -130,7 +134,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">pycdms</a>
+          <a href="index.html">tescal</a>
         
       </nav>
 
@@ -161,15 +165,15 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-          <li><a href="pycdms.html">pycdms package</a> &raquo;</li>
+          <li><a href="tescal.html">tescal package</a> &raquo;</li>
         
-      <li>pycdms.detcal package</li>
+      <li>tescal.detcal package</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/pycdms.detcal.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/tescal.detcal.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -182,16 +186,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="pycdms-detcal-package">
-<h1>pycdms.detcal package<a class="headerlink" href="#pycdms-detcal-package" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="tescal-detcal-package">
+<h1>tescal.detcal package<a class="headerlink" href="#tescal-detcal-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-pycdms.detcal.cut">
-<span id="pycdms-detcal-cut-module"></span><h2>pycdms.detcal.cut module<a class="headerlink" href="#module-pycdms.detcal.cut" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal.cut">
+<span id="tescal-detcal-cut-module"></span><h2>tescal.detcal.cut module<a class="headerlink" href="#module-tescal.detcal.cut" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="pycdms.detcal.cut.autocuts">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">autocuts</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>is_didv=False</em>, <em>sgfreq=200.0</em>, <em>symmetrizeflag=False</em>, <em>outlieralgo='removeoutliers'</em>, <em>lgcpileup1=True</em>, <em>lgcslope=True</em>, <em>lgcbaseline=True</em>, <em>lgcpileup2=True</em>, <em>lgcchi2=True</em>, <em>nsigpileup1=2</em>, <em>nsigslope=2</em>, <em>nsigbaseline=2</em>, <em>nsigpileup2=2</em>, <em>nsigchi2=3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.autocuts" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.autocuts">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">autocuts</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>is_didv=False</em>, <em>sgfreq=200.0</em>, <em>symmetrizeflag=False</em>, <em>outlieralgo='removeoutliers'</em>, <em>lgcpileup1=True</em>, <em>lgcslope=True</em>, <em>lgcbaseline=True</em>, <em>lgcpileup2=True</em>, <em>lgcchi2=True</em>, <em>nsigpileup1=2</em>, <em>nsigslope=2</em>, <em>nsigbaseline=2</em>, <em>nsigpileup2=2</em>, <em>nsigchi2=3</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.autocuts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to automatically cut out bad traces based on the optimum filter amplitude, slope, baseline, and chi^2
 of the traces.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -276,8 +280,8 @@ for the chi^2 cut.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.cut.baselinecut">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">baselinecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.baselinecut" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.baselinecut">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">baselinecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.baselinecut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to automatically cut out outliers of the baselines of the inputted traces.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -322,8 +326,8 @@ to cut outliers from the data when using iterstat on the baselines. Default is 2
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.cut.chi2cut">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">chi2cut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='iterstat'</em>, <em>nsig=2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.chi2cut" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.chi2cut">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">chi2cut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='iterstat'</em>, <em>nsig=2</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.chi2cut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to automatically cut out outliers of the baselines of the inputted traces.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -362,8 +366,8 @@ to cut outliers from the data when using iterstat on the Chi2s. Default is 2.</p
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.cut.pileupcut">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">pileupcut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>removemeans=False</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.pileupcut" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.pileupcut">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">pileupcut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>removemeans=False</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.pileupcut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -407,8 +411,8 @@ pulses that have smaller amplitude than the dIdV overshoot. Default is False.</p
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.cut.slopecut">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">slopecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>symmetrizeflag=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.slopecut" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.slopecut">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">slopecut</code><span class="sig-paren">(</span><em>traces</em>, <em>fs=625000.0</em>, <em>outlieralgo='removeoutliers'</em>, <em>nsig=2</em>, <em>is_didv=False</em>, <em>symmetrizeflag=False</em>, <em>sgfreq=100.0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.slopecut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to automatically cut out outliers of the slopes of the inputted traces. Includes a routine that 
 attempts to symmetrize the distribution of slopes around zero, which is useful when the majority of traces 
 have a slope.</p>
@@ -459,8 +463,8 @@ Should be used if most of the traces have a slope</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.cut.symmetrizedist">
-<code class="descclassname">pycdms.detcal.cut.</code><code class="descname">symmetrizedist</code><span class="sig-paren">(</span><em>vals</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.cut.symmetrizedist" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.cut.symmetrizedist">
+<code class="descclassname">tescal.detcal.cut.</code><code class="descname">symmetrizedist</code><span class="sig-paren">(</span><em>vals</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.cut.symmetrizedist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to symmetrize a distribution about zero. Useful for if the distribution of some value
 centers around a nonzero value, but should center around zero. An example of this would be when
 most of the measured slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
@@ -487,11 +491,11 @@ to cut out until the histogram is symmetric about zero.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.detcal.didv">
-<span id="pycdms-detcal-didv-module"></span><h2>pycdms.detcal.didv module<a class="headerlink" href="#module-pycdms.detcal.didv" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal.didv">
+<span id="tescal-detcal-didv-module"></span><h2>tescal.detcal.didv module<a class="headerlink" href="#module-tescal.detcal.didv" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pycdms.detcal.didv.DIDV">
-<em class="property">class </em><code class="descclassname">pycdms.detcal.didv.</code><code class="descname">DIDV</code><span class="sig-paren">(</span><em>rawtraces</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>tracegain=1.0</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>dutycycle=0.5</em>, <em>add180phase=False</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV">
+<em class="property">class </em><code class="descclassname">tescal.detcal.didv.</code><code class="descname">DIDV</code><span class="sig-paren">(</span><em>rawtraces</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>tracegain=1.0</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>dutycycle=0.5</em>, <em>add180phase=False</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>Class for fitting a didv curve for different types of models of the didv. Also gives
 various other useful values pertaining to the didv. This class supports doing 1, 2, and
@@ -682,15 +686,15 @@ one dataset at a time.</p>
 </table>
 <p class="rubric">Methods</p>
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.doallfits">
-<code class="descname">doallfits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.doallfits" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.doallfits">
+<code class="descname">doallfits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.doallfits" title="Permalink to this definition">¶</a></dt>
 <dd><p>This module does all of the fits consecutively. The priors fit is not done if the 
 attributes priors and invpriorscov have not yet been set.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.dofit">
-<code class="descname">dofit</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.dofit" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.dofit">
+<code class="descname">dofit</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.dofit" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method does the fit that is specified by the variable poles. If the processtraces module
 has not been run yet, then this module will run that first. This module does not do the priors fit.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -708,21 +712,21 @@ has not been run yet, then this module will run that first. This module does not
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.dopriorsfit">
-<code class="descname">dopriorsfit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.dopriorsfit" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.dopriorsfit">
+<code class="descname">dopriorsfit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.dopriorsfit" title="Permalink to this definition">¶</a></dt>
 <dd><p>This module runs the priorsfit, assuming that the priors and invpriorscov attributes have been set to
 the proper values.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.get_irwinparams_dict">
-<code class="descname">get_irwinparams_dict</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.get_irwinparams_dict" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.get_irwinparams_dict">
+<code class="descname">get_irwinparams_dict</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.get_irwinparams_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary with the irwin fit parameters for a given number of poles</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.plot_didv_flipped">
-<code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.plot_didv_flipped">
+<code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module to plot the flipped trace in time domain. This function should be used to 
 test if there are nonlinearities in the didv</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -760,8 +764,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.plot_full_trace">
-<code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_full_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.plot_full_trace">
+<code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.plot_full_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module to plot the entire trace in time domain</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -798,8 +802,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.plot_re_im_didv">
-<code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.plot_re_im_didv">
+<code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module to plot the real and imaginary parts of the didv in frequency space.
 Currently creates two different plots.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -837,8 +841,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.plot_single_period_of_trace">
-<code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.plot_single_period_of_trace">
+<code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module to plot a single period of the trace in time domain</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -875,8 +879,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.plot_zoomed_in_trace">
-<code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.plot_zoomed_in_trace">
+<code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
 overshoot of the didv.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -917,8 +921,8 @@ by default.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.didv.DIDV.processtraces">
-<code class="descname">processtraces</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.DIDV.processtraces" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.DIDV.processtraces">
+<code class="descname">processtraces</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.DIDV.processtraces" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method processes the traces loaded to the DIDV class object. This sets 
 up the object for fitting.</p>
 </dd></dl>
@@ -926,8 +930,8 @@ up the object for fitting.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.convertfromtesvalues">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">convertfromtesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.convertfromtesvalues" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.convertfromtesvalues">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">convertfromtesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.convertfromtesvalues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to convert from Irwin’s TES parameters (rload, r0, beta,
 l, L, tau0, dt) to the fit parameters (A, B, tau1, tau2, dt)</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -967,8 +971,8 @@ Should be a 2-dimensional, 7-by-7 np.array</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.converttotesvalues">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">converttotesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em>, <em>r0</em>, <em>rload</em>, <em>r0_err=0.001</em>, <em>rload_err=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.converttotesvalues" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.converttotesvalues">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">converttotesvalues</code><span class="sig-paren">(</span><em>popt</em>, <em>pcov</em>, <em>r0</em>, <em>rload</em>, <em>r0_err=0.001</em>, <em>rload_err=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.converttotesvalues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to convert the fit parameters for either 1-pole (A, tau2, dt),
 2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt)
 fit to the corresponding TES parameters: 1-pole (rtot, L, r0, rload, dt), 
@@ -1020,8 +1024,8 @@ fit to the corresponding TES parameters: 1-pole (rtot, L, r0, rload, dt),
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.convolvedidv">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">convolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em>, <em>sgamp</em>, <em>rshunt</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.convolvedidv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.convolvedidv">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">convolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em>, <em>sgamp</em>, <em>rshunt</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.convolvedidv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to convert the fitted TES parameters for the complex impedance 
 to a TES response to a square wave jitter in time domain.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1081,8 +1085,8 @@ to ensure that the trace is real</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.deconvolvedidv">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">deconvolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>trace</em>, <em>rshunt</em>, <em>sgamp</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.deconvolvedidv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.deconvolvedidv">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">deconvolvedidv</code><span class="sig-paren">(</span><em>x</em>, <em>trace</em>, <em>rshunt</em>, <em>sgamp</em>, <em>sgfreq</em>, <em>dutycycle</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.deconvolvedidv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function for taking a trace with a known square wave jitter and 
 extracting the complex impedance via deconvolution of the square wave 
 and the TES response in frequency space.</p>
@@ -1139,8 +1143,8 @@ be zero, so that we can ignore these points in the complex impedance.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.didvinitfromdata">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">didvinitfromdata</code><span class="sig-paren">(</span><em>tmean</em>, <em>didvmean</em>, <em>didvstd</em>, <em>offset</em>, <em>offset_err</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>add180phase=False</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.didvinitfromdata" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.didvinitfromdata">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">didvinitfromdata</code><span class="sig-paren">(</span><em>tmean</em>, <em>didvmean</em>, <em>didvstd</em>, <em>offset</em>, <em>offset_err</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>add180phase=False</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.didvinitfromdata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to initialize and process a dIdV dataset without having all of the traces, but just the 
 parameters that are required for fitting. After running, this returns a DIDV class object that is
 ready for fitting.</p>
@@ -1226,8 +1230,8 @@ the fit parameters.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.findpolefalltimes">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">findpolefalltimes</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.findpolefalltimes" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.findpolefalltimes">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">findpolefalltimes</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.findpolefalltimes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function for taking TES params from a 1-pole, 2-pole, or 3-pole didv
 and calculating the falltimes (i.e. the values of the poles in the complex plane)</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1256,8 +1260,8 @@ order, and any other number of parameters will print a warning and return zero.<
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.fitdidv">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">fitdidv</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>yerr=None</em>, <em>A0=0.25</em>, <em>B0=-0.6</em>, <em>C0=-0.6</em>, <em>tau10=-0.0003183098861837907</em>, <em>tau20=1.5915494309189535e-06</em>, <em>tau30=0.0</em>, <em>dt=-1e-05</em>, <em>poles=2</em>, <em>isloopgainsub1=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.fitdidv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.fitdidv">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">fitdidv</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>yerr=None</em>, <em>A0=0.25</em>, <em>B0=-0.6</em>, <em>C0=-0.6</em>, <em>tau10=-0.0003183098861837907</em>, <em>tau20=1.5915494309189535e-06</em>, <em>tau30=0.0</em>, <em>dt=-1e-05</em>, <em>poles=2</em>, <em>isloopgainsub1=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.fitdidv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to find the fit parameters for either the 1-pole (A, tau2, dt), 
 2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt) fit.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1335,8 +1339,8 @@ fits will be done, returning the one with a lower Chi^2.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.fitdidvpriors">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">fitdidvpriors</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>priors</em>, <em>invpriorscov</em>, <em>yerr=None</em>, <em>rload=0.35</em>, <em>r0=0.13</em>, <em>beta=0.5</em>, <em>l=10.0</em>, <em>L=5e-07</em>, <em>tau0=0.0005</em>, <em>dt=-1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.fitdidvpriors" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.fitdidvpriors">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">fitdidvpriors</code><span class="sig-paren">(</span><em>freq</em>, <em>didv</em>, <em>priors</em>, <em>invpriorscov</em>, <em>yerr=None</em>, <em>rload=0.35</em>, <em>r0=0.13</em>, <em>beta=0.5</em>, <em>l=10.0</em>, <em>L=5e-07</em>, <em>tau0=0.0005</em>, <em>dt=-1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.fitdidvpriors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to directly fit Irwin’s TES parameters (rload, r0, beta, l, L, tau0, dt)
 with the knowledge of prior known values any number of the parameters. 
 In order for the degeneracy of the parameters to be broken, at least 2 
@@ -1417,8 +1421,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.guessdidvparams">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">guessdidvparams</code><span class="sig-paren">(</span><em>trace</em>, <em>flatpts</em>, <em>sgamp</em>, <em>rshunt</em>, <em>L0=1e-07</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.guessdidvparams" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.guessdidvparams">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">guessdidvparams</code><span class="sig-paren">(</span><em>trace</em>, <em>flatpts</em>, <em>sgamp</em>, <em>rshunt</em>, <em>L0=1e-07</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.guessdidvparams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to find the fit parameters for either the 1-pole (A, tau2, dt),
 2-pole (A, B, tau1, tau2, dt), or 3-pole (A, B, C, tau1, tau2, tau3, dt) fit.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1474,8 +1478,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.onepoleadmittance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">onepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.onepoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.onepoleadmittance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">onepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.onepoleadmittance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the admittance (didv) of a TES with the 1-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1508,8 +1512,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.onepoleimpedance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">onepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.onepoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.onepoleimpedance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">onepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.onepoleimpedance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the impedance (dvdi) of a TES with the 1-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1542,8 +1546,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.squarewaveguessparams">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">squarewaveguessparams</code><span class="sig-paren">(</span><em>trace</em>, <em>sgamp</em>, <em>rshunt</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.squarewaveguessparams" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.squarewaveguessparams">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">squarewaveguessparams</code><span class="sig-paren">(</span><em>trace</em>, <em>sgamp</em>, <em>rshunt</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.squarewaveguessparams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to guess the fit parameters for the 1-pole fit.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1583,8 +1587,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.threepoleadmittance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">threepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.threepoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.threepoleadmittance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">threepoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.threepoleadmittance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the admittance (didv) of a TES with the 3-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1629,8 +1633,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.threepoleimpedance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">threepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.threepoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.threepoleimpedance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">threepoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>C</em>, <em>tau1</em>, <em>tau2</em>, <em>tau3</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.threepoleimpedance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the impedance (dvdi) of a TES with the 3-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1675,8 +1679,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.twopoleadmittance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleadmittance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.twopoleadmittance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">twopoleadmittance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.twopoleadmittance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the admittance (didv) of a TES with the 2-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1715,8 +1719,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.twopoleadmittancepriors">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleadmittancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleadmittancepriors" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.twopoleadmittancepriors">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">twopoleadmittancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.twopoleadmittancepriors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the admittance (didv) of a TES with the 2-pole fit from Irwin’s TES parameters</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1761,8 +1765,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.twopoleimpedance">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleimpedance" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.twopoleimpedance">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">twopoleimpedance</code><span class="sig-paren">(</span><em>freq</em>, <em>A</em>, <em>B</em>, <em>tau1</em>, <em>tau2</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.twopoleimpedance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the impedance (dvdi) of a TES with the 2-pole fit</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1801,8 +1805,8 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.didv.twopoleimpedancepriors">
-<code class="descclassname">pycdms.detcal.didv.</code><code class="descname">twopoleimpedancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.didv.twopoleimpedancepriors" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.didv.twopoleimpedancepriors">
+<code class="descclassname">tescal.detcal.didv.</code><code class="descname">twopoleimpedancepriors</code><span class="sig-paren">(</span><em>freq</em>, <em>rload</em>, <em>r0</em>, <em>beta</em>, <em>l</em>, <em>L</em>, <em>tau0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.didv.twopoleimpedancepriors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to calculate the impedance (dvdi) of a TES with the 2-pole fit from Irwin’s TES parameters</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1847,11 +1851,11 @@ then each frequency will be assumed to be equally weighted.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.detcal.iv">
-<span id="pycdms-detcal-iv-module"></span><h2>pycdms.detcal.iv module<a class="headerlink" href="#module-pycdms.detcal.iv" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal.iv">
+<span id="tescal-detcal-iv-module"></span><h2>tescal.detcal.iv module<a class="headerlink" href="#module-tescal.detcal.iv" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pycdms.detcal.iv.IV">
-<em class="property">class </em><code class="descclassname">pycdms.detcal.iv.</code><code class="descname">IV</code><span class="sig-paren">(</span><em>dites</em>, <em>dites_err</em>, <em>vb</em>, <em>vb_err</em>, <em>rload</em>, <em>rload_err</em>, <em>chan_names</em>, <em>normalinds=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV">
+<em class="property">class </em><code class="descclassname">tescal.detcal.iv.</code><code class="descname">IV</code><span class="sig-paren">(</span><em>dites</em>, <em>dites_err</em>, <em>vb</em>, <em>vb_err</em>, <em>rload</em>, <em>rload_err</em>, <em>chan_names</em>, <em>normalinds=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>Class for creating the IV curve and calculating various values, such as the normal resistance, 
 the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
@@ -1927,16 +1931,16 @@ loaded into this class.</p>
 </table>
 <p class="rubric">Methods</p>
 <dl class="method">
-<dt id="pycdms.detcal.iv.IV.calc_iv">
-<code class="descname">calc_iv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.calc_iv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV.calc_iv">
+<code class="descname">calc_iv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV.calc_iv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method to calculate the IV curve for the intialized object. Calculates the power and resistance of
 each bias point, as well as saving the fit parameters from the fit to the normal points and the calculated
 normal reistance from these points.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.iv.IV.plot_all_curves">
-<code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_all_curves" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV.plot_all_curves">
+<code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV.plot_all_curves" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the IV, resistance, and power curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1977,8 +1981,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.iv.IV.plot_iv">
-<code class="descname">plot_iv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_iv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV.plot_iv">
+<code class="descname">plot_iv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV.plot_iv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the IV curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2016,8 +2020,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.iv.IV.plot_pv">
-<code class="descname">plot_pv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_pv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV.plot_pv">
+<code class="descname">plot_pv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV.plot_pv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the power curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2055,8 +2059,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.iv.IV.plot_rv">
-<code class="descname">plot_rv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.IV.plot_rv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.IV.plot_rv">
+<code class="descname">plot_rv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.IV.plot_rv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the resistance curves for the data in an IV object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2096,8 +2100,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.iv.findnormalinds">
-<code class="descclassname">pycdms.detcal.iv.</code><code class="descname">findnormalinds</code><span class="sig-paren">(</span><em>vb</em>, <em>dites</em>, <em>dites_err</em>, <em>tol=10</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.findnormalinds" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.findnormalinds">
+<code class="descclassname">tescal.detcal.iv.</code><code class="descname">findnormalinds</code><span class="sig-paren">(</span><em>vb</em>, <em>dites</em>, <em>dites_err</em>, <em>tol=10</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.findnormalinds" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to determine the indices of the normal data in an IV curve</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2133,8 +2137,8 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.iv.fitfunc">
-<code class="descclassname">pycdms.detcal.iv.</code><code class="descname">fitfunc</code><span class="sig-paren">(</span><em>x</em>, <em>b</em>, <em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.iv.fitfunc" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.iv.fitfunc">
+<code class="descclassname">tescal.detcal.iv.</code><code class="descname">fitfunc</code><span class="sig-paren">(</span><em>x</em>, <em>b</em>, <em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.iv.fitfunc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to use for fitting to a straight line</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2156,7 +2160,7 @@ to a subset of bath temperatures, or just one</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>m*x + b</strong> : array_like</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>linfunc</strong> : array_like</p>
 <blockquote class="last">
 <div><p>Outputted line for x with slope m and intercept b</p>
 </div></blockquote>
@@ -2167,12 +2171,12 @@ to a subset of bath temperatures, or just one</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.detcal.noise">
-<span id="pycdms-detcal-noise-module"></span><h2>pycdms.detcal.noise module<a class="headerlink" href="#module-pycdms.detcal.noise" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal.noise">
+<span id="tescal-detcal-noise-module"></span><h2>tescal.detcal.noise module<a class="headerlink" href="#module-tescal.detcal.noise" title="Permalink to this headline">¶</a></h2>
 <p>Created by Caleb Fink 5/7/2018</p>
 <dl class="class">
-<dt id="pycdms.detcal.noise.Noise">
-<em class="property">class </em><code class="descclassname">pycdms.detcal.noise.</code><code class="descname">Noise</code><span class="sig-paren">(</span><em>traces</em>, <em>fs</em>, <em>channames</em>, <em>tracegain=1.0</em>, <em>fname=None</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise">
+<em class="property">class </em><code class="descclassname">tescal.detcal.noise.</code><code class="descname">Noise</code><span class="sig-paren">(</span><em>traces</em>, <em>fs</em>, <em>channames</em>, <em>tracegain=1.0</em>, <em>fname=None</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>This class allows the user to calculate the power spectral densities of signals 
 from detectors, study correlations, and decouple the intrinsic noise from cross 
@@ -2245,8 +2249,8 @@ channel correlated noise.</p>
 </table>
 <p class="rubric">Methods</p>
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.calculate_corrcoeff">
-<code class="descname">calculate_corrcoeff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.calculate_corrcoeff">
+<code class="descname">calculate_corrcoeff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.calculate_corrcoeff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the correlations between channels as a function of frequency. Stores
 results in self.corrcoeff
 Inputs: None
@@ -2254,26 +2258,26 @@ Returns: None</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.calculate_csd">
-<code class="descname">calculate_csd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_csd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.calculate_csd">
+<code class="descname">calculate_csd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.calculate_csd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the csd for each channel in traces. Stores csd in self.csd</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.calculate_psd">
-<code class="descname">calculate_psd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.calculate_psd">
+<code class="descname">calculate_psd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.calculate_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the psd for each channel in traces. Stores psd in self.psd</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.calculate_uncorr_noise">
-<code class="descname">calculate_uncorr_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.calculate_uncorr_noise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.calculate_uncorr_noise">
+<code class="descname">calculate_uncorr_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.calculate_uncorr_noise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the uncorrelated and correlated total noise.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.plot_corrcoeff">
-<code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.plot_corrcoeff">
+<code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the cross channel correlation coefficients. Since there are typically few traces,
 the correlations are often noisy. a savgol_filter is used to smooth out some of the noise</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2304,8 +2308,8 @@ the correlations are often noisy. a savgol_filter is used to smooth out some of 
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.plot_csd">
-<code class="descname">plot_csd</code><span class="sig-paren">(</span><em>whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_csd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.plot_csd">
+<code class="descname">plot_csd</code><span class="sig-paren">(</span><em>whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.plot_csd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the cross channel noise spectrum referenced to the TES line in
 units of Amperes^2/Hz</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2337,8 +2341,8 @@ indices of the desired csd plot</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.plot_decorrelatednoise">
-<code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.plot_decorrelatednoise">
+<code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
 from fitted parameters calculated calculate_deCorrelated_noise</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2381,8 +2385,8 @@ and correlated noise is plotted</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.plot_psd">
-<code class="descname">plot_psd</code><span class="sig-paren">(</span><em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.plot_psd">
+<code class="descname">plot_psd</code><span class="sig-paren">(</span><em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.plot_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2410,8 +2414,8 @@ If False, each psd for each channel is plotted in a seperate subplot</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.plot_reim_psd">
-<code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.plot_reim_psd">
+<code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
 This is done to check for thermal muon tails making it passed the quality cuts</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2436,14 +2440,14 @@ This is done to check for thermal muon tails making it passed the quality cuts</
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.remove_trace_slope">
-<code class="descname">remove_trace_slope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.remove_trace_slope" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.remove_trace_slope">
+<code class="descname">remove_trace_slope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.remove_trace_slope" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to remove the slope from each trace. self.traces is changed to be the slope subtracted traces.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.noise.Noise.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.Noise.save" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.Noise.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.Noise.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves the noise object as a pickle file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2462,8 +2466,33 @@ This is done to check for thermal muon tails making it passed the quality cuts</
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.noise.slope">
-<code class="descclassname">pycdms.detcal.noise.</code><code class="descname">slope</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>removemeans=True</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.noise.slope" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.noise.fill_negatives">
+<code class="descclassname">tescal.detcal.noise.</code><code class="descname">fill_negatives</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.fill_negatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple helper function to remove negative and zero values from PSD’s and replace
+them with interpolated values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr: ndarray</strong></p>
+<blockquote>
+<div><p>Array of values to replace neagive values on</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">arr: ndarray</p>
+<blockquote class="last">
+<div><p>Modified input array with the negative and zero values replace by interpelate values</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tescal.detcal.noise.slope">
+<code class="descclassname">tescal.detcal.noise.</code><code class="descname">slope</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>removemeans=True</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.noise.slope" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the maximum likelihood slope of a set of x and y points.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2499,30 +2528,84 @@ sum((x-&lt;x&gt;)(y-&lt;y&gt;))/sum((x-&lt;x&gt;)**2)</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.detcal.sim">
-<span id="pycdms-detcal-sim-module"></span><h2>pycdms.detcal.sim module<a class="headerlink" href="#module-pycdms.detcal.sim" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal.sim">
+<span id="tescal-detcal-sim-module"></span><h2>tescal.detcal.sim module<a class="headerlink" href="#module-tescal.detcal.sim" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pycdms.detcal.sim.TESnoise">
-<em class="property">class </em><code class="descclassname">pycdms.detcal.sim.</code><code class="descname">TESnoise</code><span class="sig-paren">(</span><em>freqs=None</em>, <em>rload=0.012</em>, <em>r0=0.15</em>, <em>rshunt=0.005</em>, <em>beta=1.0</em>, <em>loopgain=10.0</em>, <em>inductance=4e-07</em>, <em>tau0=0.0005</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>n=5.0</em>, <em>lgcb=True</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise">
+<em class="property">class </em><code class="descclassname">tescal.detcal.sim.</code><code class="descname">TESnoise</code><span class="sig-paren">(</span><em>freqs=None</em>, <em>rload=0.012</em>, <em>r0=0.15</em>, <em>rshunt=0.005</em>, <em>beta=1.0</em>, <em>loopgain=10.0</em>, <em>inductance=4e-07</em>, <em>tau0=0.0005</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>n=5.0</em>, <em>lgcb=True</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>Class for the simulation of the TES noise using the simple Irwin theory. Supports noise simulation for 
 in transition, superconducting, and normal.</p>
 <p class="rubric">Attributes</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="0%" />
-<col width="100%" />
+<col width="6%" />
+<col width="94%" />
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><strong>freqs</strong></td>
-<td>(float, array_like) The frequencies for which we will calculate the noise simulation rload : float The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms r0 : float The bias resistance of the TES in Ohms rshunt : float The shunt resistance of the TES circuit in Ohms beta : float The current sensitivity of the TES (dlogR/dlogI), unitless loopgain : float The Irwin loop gain of the TES, unitless inductance : float The inductance of the TES circuit in Henries tau0 : float The thermal time constant (equals C/G) in s G : float The thermal conductance of the TES in W/K qetbias : float The QET bias in Amps tc : float The critical temperature of the TES in K tload : float The effective temperature of the load resistor in K tbath : float The bath temperature in K n : float The power-law dependence of the power flow to the heat bath lgcb : boolean Boolean flag that determines whether we use the ballistic (True) or diffusive limit when calculating TFN power noise squiddc : float The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 squidpole : float The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 squidn : float The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0 f_tfn : float Function that estimates the noise suppression of the thermal fluctuation noise due to the difference in temperature between the bath and the TES. Supports the ballistic and diffusive limits, which is chosen via lgcb</td>
+<td>(float, array_like) The frequencies for which we will calculate the noise simulation</td>
+</tr>
+<tr class="row-even"><td><strong>rload</strong></td>
+<td>(float) The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms</td>
+</tr>
+<tr class="row-odd"><td><strong>r0</strong></td>
+<td>(float) The bias resistance of the TES in Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>rshunt</strong></td>
+<td>(float) The shunt resistance of the TES circuit in Ohms</td>
+</tr>
+<tr class="row-odd"><td><strong>beta</strong></td>
+<td>(float) The current sensitivity of the TES (dlogR/dlogI), unitless</td>
+</tr>
+<tr class="row-even"><td><strong>loopgain</strong></td>
+<td>(float) The Irwin loop gain of the TES, unitless</td>
+</tr>
+<tr class="row-odd"><td><strong>inductance</strong></td>
+<td>(float) The inductance of the TES circuit in Henries</td>
+</tr>
+<tr class="row-even"><td><strong>tau0</strong></td>
+<td>(float) The thermal time constant (equals C/G) in s</td>
+</tr>
+<tr class="row-odd"><td><strong>G</strong></td>
+<td>(float) The thermal conductance of the TES in W/K</td>
+</tr>
+<tr class="row-even"><td><strong>qetbias</strong></td>
+<td>(float) The QET bias in Amps</td>
+</tr>
+<tr class="row-odd"><td><strong>tc</strong></td>
+<td>(float) The critical temperature of the TES in K</td>
+</tr>
+<tr class="row-even"><td><strong>tload</strong></td>
+<td>(float) The effective temperature of the load resistor in K</td>
+</tr>
+<tr class="row-odd"><td><strong>tbath</strong></td>
+<td>(float) The bath temperature in K</td>
+</tr>
+<tr class="row-even"><td><strong>n</strong></td>
+<td>(float) The power-law dependence of the power flow to the heat bath</td>
+</tr>
+<tr class="row-odd"><td><strong>lgcb</strong></td>
+<td>(boolean) Boolean flag that determines whether we use the ballistic (True) or diffusive limit when calculating TFN power noise</td>
+</tr>
+<tr class="row-even"><td><strong>squiddc</strong></td>
+<td>(float) The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0</td>
+</tr>
+<tr class="row-odd"><td><strong>squidpole</strong></td>
+<td>(float) The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0</td>
+</tr>
+<tr class="row-even"><td><strong>squidn</strong></td>
+<td>(float) The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics noise should have been fit beforehand, using the following model: (squiddc*(1.0+(squidpole/f)**squidn))**2.0</td>
+</tr>
+<tr class="row-odd"><td><strong>f_tfn</strong></td>
+<td>(float) Function that estimates the noise suppression of the thermal fluctuation noise due to the difference in temperature between the bath and the TES. Supports the ballistic and diffusive limits, which is chosen via lgcb</td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Methods</p>
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.dIdP">
-<code class="descname">dIdP</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdP" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.dIdP">
+<code class="descname">dIdP</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.dIdP" title="Permalink to this definition">¶</a></dt>
 <dd><p>The two-pole dIdP function determined from the TES parameters.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2546,8 +2629,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.dIdV">
-<code class="descname">dIdV</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdV" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.dIdV">
+<code class="descname">dIdV</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.dIdV" title="Permalink to this definition">¶</a></dt>
 <dd><p>The two-pole dIdV function determined from the TES parameters.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2571,8 +2654,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.dIdVnormal">
-<code class="descname">dIdVnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdVnormal" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.dIdVnormal">
+<code class="descname">dIdVnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.dIdVnormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The one-pole dIdV function determined from the TES parameters for when the TES
 is normal.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2597,8 +2680,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.dIdVsc">
-<code class="descname">dIdVsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.dIdVsc" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.dIdVsc">
+<code class="descname">dIdVsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.dIdVsc" title="Permalink to this definition">¶</a></dt>
 <dd><p>The one-pole dIdV function determined from the TES parameters for when the TES
 is superconducting.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2623,8 +2706,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_iload">
-<code class="descname">s_iload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iload" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_iload">
+<code class="descname">s_iload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_iload" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson load current noise determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2648,8 +2731,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_iloadnormal">
-<code class="descname">s_iloadnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iloadnormal" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_iloadnormal">
+<code class="descname">s_iloadnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_iloadnormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson load current noise determined from the TES parameters for normal.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2673,8 +2756,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_iloadsc">
-<code class="descname">s_iloadsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_iloadsc" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_iloadsc">
+<code class="descname">s_iloadsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_iloadsc" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson load current noise determined from the TES parameters for superconducting.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2698,8 +2781,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_isquid">
-<code class="descname">s_isquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_isquid" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_isquid">
+<code class="descname">s_isquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_isquid" title="Permalink to this definition">¶</a></dt>
 <dd><p>The SQUID and downstream electronics current noise, currently is using a 1/f model that
 must be specified when initializing the class.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2724,8 +2807,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_ites">
-<code class="descname">s_ites</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ites" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_ites">
+<code class="descname">s_ites</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_ites" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson TES current noise determined from the TES parameters for in transition. 
 This noise has both an electronic and thermal component.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2750,8 +2833,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_itesnormal">
-<code class="descname">s_itesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itesnormal" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_itesnormal">
+<code class="descname">s_itesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_itesnormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson TES current noise determined from the TES parameters for normal.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2775,8 +2858,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_itfn">
-<code class="descname">s_itfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itfn" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_itfn">
+<code class="descname">s_itfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_itfn" title="Permalink to this definition">¶</a></dt>
 <dd><p>The thermal fluctuation noise in current determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2800,8 +2883,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_itot">
-<code class="descname">s_itot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itot" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_itot">
+<code class="descname">s_itot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_itot" title="Permalink to this definition">¶</a></dt>
 <dd><p>The total current noise for the TES in transition. This is calculated by summing each of
 the current noise sources together. Units are [A^2/Hz].</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2826,8 +2909,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_itotnormal">
-<code class="descname">s_itotnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itotnormal" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_itotnormal">
+<code class="descname">s_itotnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_itotnormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The total current noise for the TES when normal. This is calculated by summing each of
 the current noise sources together. Units are [A^2/Hz].</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2852,8 +2935,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_itotsc">
-<code class="descname">s_itotsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_itotsc" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_itotsc">
+<code class="descname">s_itotsc</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_itotsc" title="Permalink to this definition">¶</a></dt>
 <dd><p>The total current noise for the TES when superconducting. This is calculated by summing each of
 the current noise sources together. Units are [A^2/Hz].</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2878,8 +2961,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_pload">
-<code class="descname">s_pload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_pload" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_pload">
+<code class="descname">s_pload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_pload" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson load power noise determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2903,8 +2986,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_psquid">
-<code class="descname">s_psquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_psquid" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_psquid">
+<code class="descname">s_psquid</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_psquid" title="Permalink to this definition">¶</a></dt>
 <dd><p>The SQUID and downstream electronics power noise, currently is using a 1/f model that
 must be specified when initializing the class. This is only used for when the TES is
 in transition.</p>
@@ -2930,8 +3013,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_ptes">
-<code class="descname">s_ptes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptes" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_ptes">
+<code class="descname">s_ptes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_ptes" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson TES power noise determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2955,8 +3038,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_ptfn">
-<code class="descname">s_ptfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptfn" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_ptfn">
+<code class="descname">s_ptfn</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_ptfn" title="Permalink to this definition">¶</a></dt>
 <dd><p>The thermal fluctuation noise in power determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2980,8 +3063,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_ptot">
-<code class="descname">s_ptot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_ptot" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_ptot">
+<code class="descname">s_ptot</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_ptot" title="Permalink to this definition">¶</a></dt>
 <dd><p>The total power noise for the TES in transition. This is calculated by summing each of
 the current noise sources together and using dIdP to convert to power noise. Units are [W^2/Hz].</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -3006,8 +3089,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_vload">
-<code class="descname">s_vload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vload" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_vload">
+<code class="descname">s_vload</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_vload" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson load voltage noise determined from the TES parameters. This formula holds no
 matter where we are in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -3032,8 +3115,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_vtes">
-<code class="descname">s_vtes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vtes" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_vtes">
+<code class="descname">s_vtes</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_vtes" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson TES voltage noise determined from the TES parameters for in transition.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -3057,8 +3140,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="pycdms.detcal.sim.TESnoise.s_vtesnormal">
-<code class="descname">s_vtesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.TESnoise.s_vtesnormal" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.TESnoise.s_vtesnormal">
+<code class="descname">s_vtesnormal</code><span class="sig-paren">(</span><em>freqs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.TESnoise.s_vtesnormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>The Johnson TES voltage noise determined from the TES parameters for normal.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -3084,8 +3167,8 @@ function will use the values from the initialization.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pycdms.detcal.sim.loadfromdidv">
-<code class="descclassname">pycdms.detcal.sim.</code><code class="descname">loadfromdidv</code><span class="sig-paren">(</span><em>DIDVobj</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em>, <em>noisetype='transition'</em><span class="sig-paren">)</span><a class="headerlink" href="#pycdms.detcal.sim.loadfromdidv" title="Permalink to this definition">¶</a></dt>
+<dt id="tescal.detcal.sim.loadfromdidv">
+<code class="descclassname">tescal.detcal.sim.</code><code class="descname">loadfromdidv</code><span class="sig-paren">(</span><em>DIDVobj</em>, <em>G=5e-10</em>, <em>qetbias=0.00016</em>, <em>tc=0.04</em>, <em>tload=0.9</em>, <em>tbath=0.02</em>, <em>squiddc=2.5e-12</em>, <em>squidpole=0.0</em>, <em>squidn=1.0</em>, <em>noisetype='transition'</em><span class="sig-paren">)</span><a class="headerlink" href="#tescal.detcal.sim.loadfromdidv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function for loading the parameters from a DIDV class object.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -3145,14 +3228,11 @@ normal : Use the Irwin parameters from the one pole fit as the normal noise mode
 </dd>
 </dl>
 </div></blockquote>
-<p><strong>Returns</strong></p>
-<p><strong>——-</strong></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>TESobj</strong> : Object</p>
 <blockquote class="last">
-<div><dl class="docutils">
-<dt>TESobj <span class="classifier-delimiter">:</span> <span class="classifier">Object</span></dt>
-<dd><p class="first last">A TESnoise class object with all of the fit parameters loaded.</p>
-</dd>
-</dl>
+<div><p>A TESnoise class object with all of the fit parameters loaded.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -3161,8 +3241,8 @@ normal : Use the Irwin parameters from the one pole fit as the normal noise mode
 </dd></dl>
 
 </div>
-<div class="section" id="module-pycdms.detcal">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pycdms.detcal" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tescal.detcal">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-tescal.detcal" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -3174,10 +3254,10 @@ normal : Use the Irwin parameters from the one pole fit as the normal noise mode
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="pycdms.fitting.html" class="btn btn-neutral float-right" title="pycdms.fitting package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tescal.fitting.html" class="btn btn-neutral float-right" title="tescal.fitting package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="pycdms.html" class="btn btn-neutral" title="pycdms package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tescal.html" class="btn btn-neutral" title="tescal package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -3208,7 +3288,7 @@ normal : Use the Irwin parameters from the one pole fit as the normal noise mode
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2.0',
+            VERSION:'0.2.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

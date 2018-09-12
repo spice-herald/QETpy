@@ -32,10 +32,10 @@ class CleanCommand(Command):
 setup(
     name="pycdms", 
     version="0.2.0", 
-    description="SuperCDMS Python Tools", 
+    description="TES detector calibration Python Tools", 
     author="Samuel Watkins, Caleb Fink", 
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu", 
-    url="https://github.com/cwfink/python_analysis_dev_tools", 
+    url="https://github.com/berkeleycdms/TEScal", 
     packages=find_packages(), 
     zip_safe=False,
     cmdclass={

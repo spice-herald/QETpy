@@ -1,13 +1,13 @@
-pycdms\.utils package
-=====================
+tescal\.io package
+==================
 
 Submodules
 ----------
 
-pycdms\.utils\.utils module
----------------------------
+tescal\.io\.io module
+---------------------
 
-.. automodule:: pycdms.utils.utils
+.. automodule:: tescal.io.io
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ pycdms\.utils\.utils module
 Module contents
 ---------------
 
-.. automodule:: pycdms.utils
+.. automodule:: tescal.io
     :members:
     :undoc-members:
     :show-inheritance:

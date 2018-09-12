@@ -1,4 +1,4 @@
-pycdms package
+tescal package
 ==============
 
 Subpackages
@@ -6,15 +6,17 @@ Subpackages
 
 .. toctree::
 
-    pycdms.detcal
-    pycdms.fitting
-    pycdms.plotting
-    pycdms.utils
+    tescal.detcal
+    tescal.fitting
+    tescal.io
+    tescal.plotting
+    tescal.trigger
+    tescal.utils
 
 Module contents
 ---------------
 
-.. automodule:: pycdms
+.. automodule:: tescal
     :members:
     :undoc-members:
     :show-inheritance:

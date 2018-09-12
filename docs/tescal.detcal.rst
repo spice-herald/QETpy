@@ -1,45 +1,45 @@
-pycdms\.detcal package
+tescal\.detcal package
 ======================
 
 Submodules
 ----------
 
-pycdms\.detcal\.cut module
+tescal\.detcal\.cut module
 --------------------------
 
-.. automodule:: pycdms.detcal.cut
+.. automodule:: tescal.detcal.cut
     :members:
     :undoc-members:
     :show-inheritance:
 
-pycdms\.detcal\.didv module
+tescal\.detcal\.didv module
 ---------------------------
 
-.. automodule:: pycdms.detcal.didv
+.. automodule:: tescal.detcal.didv
     :members:
     :undoc-members:
     :show-inheritance:
 
-pycdms\.detcal\.iv module
+tescal\.detcal\.iv module
 -------------------------
 
-.. automodule:: pycdms.detcal.iv
+.. automodule:: tescal.detcal.iv
     :members:
     :undoc-members:
     :show-inheritance:
 
-pycdms\.detcal\.noise module
+tescal\.detcal\.noise module
 ----------------------------
 
-.. automodule:: pycdms.detcal.noise
+.. automodule:: tescal.detcal.noise
     :members:
     :undoc-members:
     :show-inheritance:
 
-pycdms\.detcal\.sim module
+tescal\.detcal\.sim module
 --------------------------
 
-.. automodule:: pycdms.detcal.sim
+.. automodule:: tescal.detcal.sim
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,7 +48,7 @@ pycdms\.detcal\.sim module
 Module contents
 ---------------
 
-.. automodule:: pycdms.detcal
+.. automodule:: tescal.detcal
     :members:
     :undoc-members:
     :show-inheritance:

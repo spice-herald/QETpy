@@ -1,13 +1,13 @@
-pycdms\.plotting package
+tescal\.plotting package
 ========================
 
 Submodules
 ----------
 
-pycdms\.plotting\.plotting module
+tescal\.plotting\.plotting module
 ---------------------------------
 
-.. automodule:: pycdms.plotting.plotting
+.. automodule:: tescal.plotting.plotting
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ pycdms\.plotting\.plotting module
 Module contents
 ---------------
 
-.. automodule:: pycdms.plotting
+.. automodule:: tescal.plotting
     :members:
     :undoc-members:
     :show-inheritance:
