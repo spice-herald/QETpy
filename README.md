@@ -2,7 +2,7 @@
 -------
 
 [![Build Status](https://travis-ci.com/berkeleycdms/TEScal.svg?branch=master)](https://travis-ci.com/berkeleycdms/TEScal) [![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/TEScal/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/TEScal) 
-![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
 This package provides tools for TES based detector calibration and analysis.
