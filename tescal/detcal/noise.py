@@ -12,7 +12,7 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pycdms.plotting as utils
+import tescal.plotting as utils
 
 
 def slope(x, y, removemeans=True):

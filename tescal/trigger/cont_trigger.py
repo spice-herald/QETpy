@@ -5,7 +5,7 @@ from numpy.random import choice
 from collections import Counter
 from pycdms.io import loadstanfordfile
 from math import log10, floor
-from pycdms.utils import inrange
+from tescal.utils import inrange
 
 
 def getchangeslessthanthresh(x, threshold):

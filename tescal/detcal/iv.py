@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-import pycdms.plotting as utils
+import tescal.plotting as utils
 
 def fitfunc(x, b, m):
     """

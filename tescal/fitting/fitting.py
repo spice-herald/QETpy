@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import least_squares
 import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
-from pycdms.plotting import plotnonlin
+from tescal.plotting import plotnonlin
    
 
 

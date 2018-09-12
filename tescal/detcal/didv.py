@@ -2,8 +2,8 @@ import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
-import pycdms.plotting as utils
-from pycdms.utils import stdcomplex
+import tescal.plotting as utils
+from tescal.utils import stdcomplex
 
 
 
