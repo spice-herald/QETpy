@@ -1,13 +1,13 @@
-# pycdms Package
+# TEScal Package
 -------
 
-[![Build Status](https://travis-ci.com/berkeleycdms/pycdms.svg?branch=master)](https://travis-ci.com/berkeleycdms/pycdms) [![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/pycdms/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/pycdms) 
+[![Build Status](https://travis-ci.com/berkeleycdms/TEScal.svg?branch=master)](https://travis-ci.com/berkeleycdms/TEScal) [![Documentation Status](https://readthedocs.org/projects/pycdms/badge/?version=latest)](https://pycdms.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/TEScal/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/TEScal) 
 ![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
 
 
-This package provides tools for detector/TES calibration and Dark Matter search analysis.
+This package provides tools for TES based detector calibration and analysis.
 
-To install pycdms, from the top-level directory of the repo, type the following lines into your command line
+To install TEScal, from the top-level directory of the repo, type the following lines into your command line
 
 `python setup.py clean`  
 `python setup.py install --user`
