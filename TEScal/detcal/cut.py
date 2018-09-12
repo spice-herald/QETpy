@@ -1,7 +1,7 @@
 import numpy as np
 import random
-from pycdms.fitting import ofamp
-from pycdms.utils import removeoutliers, iterstat 
+from tescal.fitting import ofamp
+from tescal.utils import removeoutliers, iterstat 
 
 
 
