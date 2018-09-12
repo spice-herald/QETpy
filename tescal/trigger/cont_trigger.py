@@ -3,8 +3,8 @@ from scipy.signal import correlate
 from numpy.fft import ifft, fft, fftfreq, rfft, rfftfreq
 from numpy.random import choice
 from collections import Counter
-from pycdms.io import loadstanfordfile
 from math import log10, floor
+from tescal.io import loadstanfordfile
 from tescal.utils import inrange
 
 
