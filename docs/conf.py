@@ -52,7 +52,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'tescal'
+project = 'qetpy'
 copyright = '2018, Caleb Fink, Sam Watkins'
 author = 'Caleb Fink, Sam Watkins'
 
@@ -122,7 +122,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'tescaldoc'
+htmlhelp_basename = 'qetpydoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -149,7 +149,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'tescal.tex', 'tescal Documentation',
+    (master_doc, 'qetpy.tex', 'qetpy Documentation',
      'Caleb Fink, Sam Watkins', 'manual'),
 ]
 
@@ -159,7 +159,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'tescal', 'tescal Documentation',
+    (master_doc, 'qetpy', 'qetpy Documentation',
      [author], 1)
 ]
 
@@ -170,8 +170,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'tescal', 'tescal Documentation',
-     author, 'tescal', 'One line description of project.',
+    (master_doc, 'qetpy', 'qetpy Documentation',
+     author, 'qetpy', 'One line description of project.',
      'Miscellaneous'),
 ]
 

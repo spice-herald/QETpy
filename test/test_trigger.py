@@ -1,9 +1,9 @@
 import os
 import numpy as np
-from tescal.io import loadstanfordfile
-from tescal.trigger import rand_sections_wrapper, optimumfilt_wrapper
-from tescal.detcal import autocuts
-from tescal.utils import calc_psd
+from qetpy.io import loadstanfordfile
+from qetpy.trigger import rand_sections_wrapper, optimumfilt_wrapper
+from qetpy.detcal import autocuts
+from qetpy.utils import calc_psd
 from glob import glob
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

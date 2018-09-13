@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from tescal.detcal import autocuts, DIDV, IV, Noise, TESnoise
-from tescal.utils import calc_psd
-from tescal.plotting import compare_noise, plot_noise_sim
+from qetpy.detcal import autocuts, DIDV, IV, Noise, TESnoise
+from qetpy.utils import calc_psd
+from qetpy.plotting import compare_noise, plot_noise_sim
 import h5py
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

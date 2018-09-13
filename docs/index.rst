@@ -4,11 +4,11 @@
    contain the root `toctree` directive.
 
 ####################################
-Welcome to the TEScal documentation
+Welcome to the QETpy documentation
 ####################################
 ==================================
 
-This code is available on GitHub: https://github.com/berkeleycdms/tescal.git
+This code is available on GitHub: https://github.com/berkeleycdms/qetpy.git
 
 Contents:
 
@@ -16,13 +16,13 @@ Contents:
    :maxdepth: 2
 
    
-   tescal.rst
-   tescal.detcal.rst
-   tescal.fitting.rst
-   tescal.plotting.rst
-   tescal.utils.rst
-   tescal.trigger.rst
-   tescal.io.rst
+   qetpy.rst
+   qetpy.detcal.rst
+   qetpy.fitting.rst
+   qetpy.plotting.rst
+   qetpy.utils.rst
+   qetpy.trigger.rst
+   qetpy.io.rst
 
 
 

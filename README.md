@@ -1,21 +1,21 @@
-# TEScal Package
+# QETpy Package
 -------
 
-[![Build Status](https://travis-ci.com/berkeleycdms/TEScal.svg?branch=master)](https://travis-ci.com/berkeleycdms/TEScal) [![Documentation Status](https://readthedocs.org/projects/tescal/badge/?version=latest)](https://tescal.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/TEScal/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/TEScal) 
+[![Build Status](https://travis-ci.com/berkeleycdms/QETpy.svg?branch=master)](https://travis-ci.com/berkeleycdms/QETpy) [![Documentation Status](https://readthedocs.org/projects/qetpy/badge/?version=latest)](https://qetpy.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/berkeleycdms/QETpy/branch/master/graph/badge.svg)](https://codecov.io/gh/berkeleycdms/QETpy) 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.6](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360/)
-[![PyPI version](https://badge.fury.io/py/tescal.svg)](https://badge.fury.io/py/tescal)
+[![PyPI version](https://badge.fury.io/py/qetpy.svg)](https://badge.fury.io/py/qetpy)
 
 
 This package provides tools for TES based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, non-linear optimum filter pulse fitting, and many other useful detector R&D analysis tools.
 
-The full documentation can be found at https://tescal.readthedocs.io/en/latest/
+The full documentation can be found at https://qetpy.readthedocs.io/en/latest/
 
-To install the current stable version of TEScal, from the command line type
+To install the current stable version of QETpy, from the command line type
 
-`pip install --upgrade TEScal`
+`pip install --upgrade qetpy`
 
-To install the most recent development version of TEScal, clone this repo, then from the top-level directory of the repo, type the following lines into your command line
+To install the most recent development version of QETpy, clone this repo, then from the top-level directory of the repo, type the following lines into your command line
 
 `python setup.py clean`  
 `python setup.py install --user`

@@ -30,12 +30,12 @@ class CleanCommand(Command):
                 shutil.rmtree(path)
 
 setup(
-    name="TEScal", 
+    name="QETpy", 
     version="0.3.0", 
-    description="TES detector calibration Python Tools", 
+    description="TES Detector Calibration and Analysis Python Tools", 
     author="Samuel Watkins, Caleb Fink", 
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu", 
-    url="https://github.com/berkeleycdms/TEScal", 
+    url="https://github.com/berkeleycdms/QETpy", 
     packages=find_packages(), 
     zip_safe=False,
     cmdclass={

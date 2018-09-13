@@ -10,7 +10,7 @@
 ### ignore compiled Python code
 build/*
 dist/*
-pycdms.egg-info/*
+*.egg-info/*
 
 ### ignore autosaved files
 
