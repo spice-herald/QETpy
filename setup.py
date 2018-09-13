@@ -30,8 +30,8 @@ class CleanCommand(Command):
                 shutil.rmtree(path)
 
 setup(
-    name="tescal", 
-    version="0.2.2", 
+    name="TEScal", 
+    version="0.3.0", 
     description="TES detector calibration Python Tools", 
     author="Samuel Watkins, Caleb Fink", 
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu", 
