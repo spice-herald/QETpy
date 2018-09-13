@@ -7,7 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/QETpy.svg)](https://badge.fury.io/py/QETpy)
 
 
-This package provides tools for TES based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, non-linear optimum filter pulse fitting, and many other useful detector R&D analysis tools.
+QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge sensors) provides tools for TES based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, non-linear optimum filter pulse fitting, and many other useful detector R&D analysis tools.
 
 The full documentation can be found at https://qetpy.readthedocs.io/en/latest/
 
