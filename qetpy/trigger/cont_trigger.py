@@ -158,7 +158,7 @@ def rand_sections_wrapper(filelist, n, l, datashape=None, iotype="stanford"):
             is opened, and the shape of the data in it is used.
         iotype : string, optional
             Type of file to open, uses a different IO function. Default is "stanford".
-                "stanford" : Use pycdms.io.loadstanfordfile to open the files
+                "stanford" : Use qetpy.io.loadstanfordfile to open the files
                 
     Returns
     -------
@@ -568,7 +568,7 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
             Default is True.
         iotype : string, optional
             Type of file to open, uses a different IO function. Default is "stanford".
-                "stanford" : Use pycdms.io.loadstanfordfile to open the files
+                "stanford" : Use qetpy.io.loadstanfordfile to open the files
                 
     Returns
     -------
