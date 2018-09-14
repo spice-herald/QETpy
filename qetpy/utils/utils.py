@@ -59,7 +59,7 @@ def stdcomplex(x, axis=0):
     return std_complex
 
 
-def removeoutliers(x, maxiter=20, skewTarget=0.05):
+def removeoutliers(x, maxiter=20, skewtarget=0.05):
     """
     Function to return indices of inlying points, removing points by minimizing the skewness
     
@@ -69,7 +69,7 @@ def removeoutliers(x, maxiter=20, skewTarget=0.05):
             Array of real-valued variables from which to remove outliers.
         maxiter : float, optional
             Maximum number of iterations to continue to minimize skewness. Default is 20.
-        skewTarget : float, optional
+        skewtarget : float, optional
             Desired residual skewness of distribution. Default is 0.05.
     
     Returns
@@ -81,7 +81,7 @@ def removeoutliers(x, maxiter=20, skewTarget=0.05):
     i=1
     inds=(x != np.inf)
     sk=skew(x[inds])
-    while(sk > skewTarget):
+    while(sk > skewtarget):
         dmed=x-np.median(x[inds])
         dist=np.min([abs(min(dmed)),abs(max(dmed))])
         inds=inds & (abs(dmed) < dist)
