@@ -7,7 +7,8 @@ from qetpy.plotting import plotnonlin
 
 
 
-def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, nconstrain=None):
+def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
+          nconstrain=None, lgcoutsidewindow=False):
     """
     Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
     and without time delay.
@@ -38,6 +39,13 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
             trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
             the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
             over.
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether ofamp should look inside nconstrain or outside it. 
+            If False, ofamp will minimize the chi^2 in the bins specified by nconstrain, which is the 
+            default behavior. If True, then ofamp will minimize the chi^2 in the bins that do not contain the
+            constrained window. This is useful for simple detection of pileup. If there is a pulse outside the
+            window, then ofamp should find the amplitude of that pulse instead. Otherwise, ofamp will run into
+            the edge of the window specified by nconstrain.
 
     Returns
     -------
@@ -98,11 +106,18 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         if nconstrain is not None:
             if nconstrain>nbins:
                 nconstrain = nbins
-            bestind = np.argmin(chi[nbins//2-nconstrain//2:nbins//2+nconstrain//2+nconstrain%2])
-            bestind+=nbins//2-nconstrain//2
-        else:
-            bestind = np.argmin(chi)
+                
+            inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
+            inds_mask = np.zeros(len(chi), dtype=bool)
+            inds_mask[inds] = True
             
+            if lgcoutsidewindow:
+                chi[inds_mask] = np.inf
+            else:
+                chi[~inds_mask] = np.inf
+                
+        bestind = np.argmin(chi)
+        
         amp = amps[bestind]
         chi2 = chi[bestind]
         # time shift goes from -timelen/2 to timelen/2
