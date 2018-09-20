@@ -3,7 +3,7 @@ import scipy.constants as constants
 
 
 def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=0.020, 
-                 squiddc=2.5e-12, squidpole=0.0, squidn=1.0, noisetype="transition"):
+                 squiddc=2.5e-12, squidpole=0.0, squidn=1.0, noisetype="transition", lgcpriors = False):
     """
     Function for loading the parameters from a DIDV class object.
     
@@ -36,9 +36,13 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=
                 (squiddc*(1.0+(squidpole/f)**squidn))**2.0
         noisetype : str, optional
             The type of the noise that is to be loaded. The options are
-                transition : Use the Irwin parameters from the two pole fit as the transition noise model
-                superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
-                normal : Use the Irwin parameters from the one pole fit as the normal noise model
+            transition : Use the Irwin parameters from the two pole fit as the transition noise model
+            superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
+            normal : Use the Irwin parameters from the one pole fit as the normal noise model
+        lgcpriors : bool, optional
+            If True, the priors fit values are loaded from the didv object, if False, the regular fit values are 
+            loaded
+            
                 
     Returns
     -------
@@ -77,7 +81,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=
                           squiddc=squiddc, squidpole=squidpole, squidn=squidn)
         
     elif noisetype is "transition":
-        didv_dict = DIDVobj.get_irwinparams_dict(2)
+        didv_dict = DIDVobj.get_irwinparams_dict(2, lgcpriors)
         rshunt = DIDVobj.rshunt
         rload = didv_dict['rload']
         inductance = didv_dict['L']

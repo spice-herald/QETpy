@@ -1646,31 +1646,61 @@ class DIDV(object):
         if (self.priors is not None) and (self.invpriorscov is not None):
             self.dopriorsfit()
     
-    def get_irwinparams_dict(self, poles):
+    def get_irwinparams_dict(self, poles, lgcpriors = False):
         """
         Returns a dictionary with the irwin fit parameters for a given number of poles
+        
+        Parameters
+        ----------
+            poles: int
+                The number of poles used for the fit
+            lgcpriors: bool, optional
+                If true, the values from the priors fit are returned
+                
+        Returns
+        -------
+            return_dict: dictionary
+                The irwim parameters stored in a dictionary
         """
         
         
         return_dict = {}
         
         if (poles == 1 and self.irwinparams1 is not None):
-            return_dict['rtot'] = self.irwinparams1[0]
-            return_dict['L'] = self.irwinparams1[1]
-            return_dict['r0'] = self.irwinparams1[2]
-            return_dict['rload'] = self.irwinparams1[3]
-            return_dict['dt'] = self.irwinparams1[4]   
+            if not lgcpriors:
+                return_dict['rtot'] = self.irwinparams1[0]
+                return_dict['L'] = self.irwinparams1[1]
+                return_dict['r0'] = self.irwinparams1[2]
+                return_dict['rload'] = self.irwinparams1[3]
+                return_dict['dt'] = self.irwinparams1[4]   
+            else:
+                print('Priors fit does not apply for single pole fit')
+                return
             return return_dict
-        if (poles == 2 and self.irwinparams2 is not None):
-            return_dict['rload'] = self.irwinparams2[0]
-            return_dict['r0'] = self.irwinparams2[1]
-            return_dict['beta'] = self.irwinparams2[2]
-            return_dict['l'] = self.irwinparams2[3]
-            return_dict['L'] = self.irwinparams2[4]
-            return_dict['tau0'] = self.irwinparams2[5]
-            return_dict['dt'] = self.irwinparams2[6]
-            return_dict['tau_eff'] = self.falltimes2[-1]
-            return return_dict
+        if poles == 2 :
+            if (not lgcpriors and self.irwinparams2 is not None):
+                return_dict['rload'] = self.irwinparams2[0]
+                return_dict['r0'] = self.irwinparams2[1]
+                return_dict['beta'] = self.irwinparams2[2]
+                return_dict['l'] = self.irwinparams2[3]
+                return_dict['L'] = self.irwinparams2[4]
+                return_dict['tau0'] = self.irwinparams2[5]
+                return_dict['dt'] = self.irwinparams2[6]
+                return_dict['tau_eff'] = self.falltimes2[-1]
+                return return_dict
+            elif (lgcpriors & (self.irwinparams2priors is not None)):
+                return_dict['rload'] = self.irwinparams2priors[0]
+                return_dict['r0'] = self.irwinparams2priors[1]
+                return_dict['beta'] = self.irwinparams2priors[2]
+                return_dict['l'] = self.irwinparams2priors[3]
+                return_dict['L'] = self.irwinparams2priors[4]
+                return_dict['tau0'] = self.irwinparams2priors[5]
+                return_dict['dt'] = self.irwinparams2priors[6]
+                return_dict['tau_eff'] = self.falltimes2priors[-1]
+                return return_dict
+            else:
+                print('Priors fit has not been done yet')
+                return
         if poles == 3:
             print('No Irwin Parameters for 3 pole fit')
             return 
