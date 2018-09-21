@@ -474,15 +474,15 @@ class OFnonlin(object):
         if lgcdouble:
             self.dof = 4
             p0 = (ampguess, tauriseguess, taufallguess, t0guess)
-            boundslower = (ampguess/100, tauriseguess/4, taufallguess/4, t0guess - 30/self.fs)
-            boundsupper = (ampguess*100, tauriseguess*4, taufallguess*4, t0guess + 30/self.fs)
+            boundslower = (ampguess/100, tauriseguess/10, taufallguess/10, t0guess - 30/self.fs)
+            boundsupper = (ampguess*100, tauriseguess*10, taufallguess*10, t0guess + 30/self.fs)
             bounds = (boundslower,boundsupper)
             
         else:
             self.dof = 3
             p0 = (ampguess, taufallguess, t0guess)
-            boundslower = (ampguess/100, taufallguess/4, t0guess - 30/self.fs)
-            boundsupper = (ampguess*100,  taufallguess*4, t0guess + 30/self.fs)
+            boundslower = (ampguess/100, taufallguess/10, t0guess - 30/self.fs)
+            boundsupper = (ampguess*100,  taufallguess*10, t0guess + 30/self.fs)
             bounds = (boundslower,boundsupper)
             
         result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=p0 , jac = '3-point',
