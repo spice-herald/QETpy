@@ -142,6 +142,102 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     else:
         return amp, t0, chi2
     
+def ofamp_pileup(signal, template, psd, fs, a1, t1, coupling='AC'):
+    """
+    Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
+    and without time delay.
+    
+    Parameters
+    ----------
+        signal : ndarray
+            The signal that we want to apply the optimum filter to (units should be Amps).
+        template : ndarray
+            The pulse template to be used for the optimum filter (should be normalized beforehand).
+        psd : ndarray
+            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+        fs : float
+            The sample rate of the data being taken (in Hz).
+        a1 : float
+            The OF amplitude (in Amps) to use for the "main" pulse, e.g. the triggered pulse. This 
+            should be calculated beforehand using ofamp.
+        t1 : float
+            The corresponding time offset (in seconds) to use for the "main" pulse, e.g. the triggered
+            pulse. As with a1, this should be calculated beforehand using ofamp.
+        coupling : str, optional
+            String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+            when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
+            set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+
+    Returns
+    -------
+        a2 : float
+            The optimum amplitude calculated for the pileup pulse (in Amps).
+        t2 : float
+            The time shift calculated for the pileup pulse (in s)
+        chi2 : float
+            The reduced chi^2 value calculated for the pileup optimum filter.
+    """
+
+    nbins = len(signal)
+    timelen = nbins/fs
+    df = fs/nbins
+    freqs = fftfreq(nbins, d=1.0/fs)
+    omega = 2.0*np.pi*freqs
+    
+    # take fft of signal and template, divide by nbins to get correct convention 
+    v = fft(signal)/nbins
+    s = fft(template)/nbins
+
+    # check for compatibility between PSD and DFT
+    if(len(psd) != len(v)):
+        raise ValueError("PSD length incompatible with signal size")
+    
+    # if AC coupled, the 0 component of the PSD is non-sensical
+    # if DC coupled, ignoring the DC component will still give the correct amplitude
+    if coupling == 'AC':
+        psd[0]=np.inf
+
+    # find optimum filter and norm
+    phi = s.conjugate()/psd
+    norm = np.real(np.dot(phi, s))/df
+    signalfilt = phi*v/norm
+    
+    times = np.arange(-(nbins//2), nbins//2+nbins%2)/fs
+    
+    # compute OF with delay
+    # correct for fft convention by multiplying by nbins
+    a2s = np.real(ifft(signalfilt*nbins))/df - a1*np.real(ifft(np.exp(-1.0j*omega*t1)*phi*s*nbins))/df/norm
+    
+    # signal part of chi^2
+    chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
+
+    # first fitting part of chi2
+    chit = (a1**2+a2s**2)*norm + 2*a1*a2s*np.real(ifft(np.exp(-1.0j*omega*t1)*phi*s*nbins))/df/norm
+    
+    if t1<0:
+        t1ind = int(t1*fs+nbins)
+    else:
+        t1ind = int(t1*fs)
+        
+    # last part of chi2
+    chil = 2*a1*np.real(ifft(signalfilt*norm*nbins)[t1ind])/df + 2*a2s*np.real(ifft(signalfilt*norm*nbins))/df
+    
+    # add all parts of chi2, divide by nbins to get reduced chi2
+    chi = (chi0 + chit - chil)/nbins
+
+    a2s = np.roll(a2s, nbins//2)
+    chi = np.roll(chi, nbins//2)
+    
+    # find time of best fit
+    bestind = np.argmin(chi)
+
+    # get best fit values
+    a2 = a2s[bestind]
+    chi2 = chi[bestind]
+    t2 = times[bestind]
+    
+    return a2, t2, chi2
+    
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
     Function for calculating the low frequency chi^2 of the optimum filter, given some cut off 
