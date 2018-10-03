@@ -13,19 +13,19 @@ def inrange(vals, bounds):
     
     Parameters
     ----------
-        vals : array_like
-            A 1-d array of values.
-        bounds : array_like
-            The bounds for which we will check if each value in vals
-            is in between. This should be an array of shape (2,). However,
-            a longer array will not throw an error, as the function will just
-            use the first two values
+    vals : array_like
+        A 1-d array of values.
+    bounds : array_like
+        The bounds for which we will check if each value in vals
+        is in between. This should be an array of shape (2,). However,
+        a longer array will not throw an error, as the function will just
+        use the first two values
             
     Returns
     -------
-        mask : ndarray
-            A boolean array of the same shape as vals. True means that the
-            value was between the bounds, False means that the value was not.
+    mask : ndarray
+        A boolean array of the same shape as vals. True means that the
+        value was between the bounds, False means that the value was not.
     
     """
     
@@ -40,16 +40,16 @@ def stdcomplex(x, axis=0):
     
     Parameters
     ----------
-        x : ndarray
-            An array of complex values from which we want the complex standard deviation.
-        axis : int, optional
-            Which axis to take the standard deviation of (should be used if the 
-            dimension of the array is greater than 1)
+    x : ndarray
+        An array of complex values from which we want the complex standard deviation.
+    axis : int, optional
+        Which axis to take the standard deviation of (should be used if the 
+        dimension of the array is greater than 1)
         
     Returns
     -------
-        std_complex : ndarray
-            The complex standard deviation of the inputted array, along the specified axis.
+    std_complex : ndarray
+        The complex standard deviation of the inputted array, along the specified axis.
             
     """
     
@@ -65,17 +65,17 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
     
     Parameters
     ----------
-        x : ndarray
-            Array of real-valued variables from which to remove outliers.
-        maxiter : float, optional
-            Maximum number of iterations to continue to minimize skewness. Default is 20.
-        skewtarget : float, optional
-            Desired residual skewness of distribution. Default is 0.05.
+    x : ndarray
+        Array of real-valued variables from which to remove outliers.
+    maxiter : float, optional
+        Maximum number of iterations to continue to minimize skewness. Default is 20.
+    skewtarget : float, optional
+        Desired residual skewness of distribution. Default is 0.05.
     
     Returns
     -------
-        inds : ndarray
-            Boolean indices indicating which values to select/reject, same length as x.
+    inds : ndarray
+        Boolean indices indicating which values to select/reject, same length as x.
     """
     
     i=1
@@ -99,23 +99,23 @@ def iterstat(data,cut=3,precision=1000.0):
     
     Parameters
     ----------
-        data : ndarray
-            Array of data that we want to remove outliers from
-        cut : float, optional
-            Number of standard deviations from the mean to be used for outlier rejection
-        precision : float, optional
-            Threshold for change in mean or standard deviation such that we stop iterating. The threshold is 
-            determined by np.std(data)/precision. This means that a higher number for precision means a lower
-            threshold (i.e. more iterations).
+    data : ndarray
+        Array of data that we want to remove outliers from
+    cut : float, optional
+        Number of standard deviations from the mean to be used for outlier rejection
+    precision : float, optional
+        Threshold for change in mean or standard deviation such that we stop iterating. The threshold is 
+        determined by np.std(data)/precision. This means that a higher number for precision means a lower
+        threshold (i.e. more iterations).
             
     Returns
     -------
-        datamean : float
-            Mean of the data after outliers have been removed.
-        datastd : float
-            Standard deviation of the data after outliers have been removed
-        datamask : ndarray
-            Boolean array indicating which values to keep or reject in data, same length as data.
+    datamean : float
+        Mean of the data after outliers have been removed.
+    datastd : float
+        Standard deviation of the data after outliers have been removed
+    datamask : ndarray
+        Boolean array indicating which values to keep or reject in data, same length as data.
     """
     
     stdcutoff = np.std(data)/precision
@@ -162,17 +162,17 @@ def foldpsd(psd, fs):
     
     Parameters
     ----------
-        psd : ndarray
-            A two-sided psd to be converted to one-sided
-        fs : float
-            The sample rate used for the psd
+    psd : ndarray
+        A two-sided psd to be converted to one-sided
+    fs : float
+        The sample rate used for the psd
             
     Returns
     -------
-        f : ndarray
-            The frequencies corresponding to the outputted one-sided psd
-        psd_folded : ndarray
-            The one-sided (folded over) psd corresponding to the inputted two-sided psd
+    f : ndarray
+        The frequencies corresponding to the outputted one-sided psd
+    psd_folded : ndarray
+        The one-sided (folded over) psd corresponding to the inputted two-sided psd
             
     """
     
@@ -188,23 +188,23 @@ def calc_psd(x, fs=1.0, folded_over=True):
     
     Parameters
     ----------
-        x : array_like
-            Array to calculate PSD of.
-        fs : float, optional
-            Sample rate of the data being taken, assumed to be in units of Hz.
-        folded_over : bool, optional
-            Boolean value specifying whether or not the PSD should be folded over. 
-            If True, then the symmetric values of the PSD are multiplied by two, and
-            we keep only the positive frequencies. If False, then the entire PSD is 
-            saved, including positive and negative frequencies. Default is to fold
-            over the PSD.
+    x : array_like
+        Array to calculate PSD of.
+    fs : float, optional
+        Sample rate of the data being taken, assumed to be in units of Hz.
+    folded_over : bool, optional
+        Boolean value specifying whether or not the PSD should be folded over. 
+        If True, then the symmetric values of the PSD are multiplied by two, and
+        we keep only the positive frequencies. If False, then the entire PSD is 
+        saved, including positive and negative frequencies. Default is to fold
+        over the PSD.
             
     Returns
     -------
-        f : ndarray
-            Array of sample frequencies
-        psd : ndarray
-            Power spectral density of 'x'
+    f : ndarray
+        Array of sample frequencies
+    psd : ndarray
+        Power spectral density of 'x'
         
     """
     
@@ -241,22 +241,22 @@ def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     
     Parameters
     ----------
-        x : ndarray
-            Array to calculate offsets of.
-        fs : float, optional
-            Sample rate of the data being taken, assumed to be in units of Hz.
-        sgfreq : float, optional
-            The frequency of signal generator (if is_didv is True. If False, then this is ignored).
-        is_didv : bool, optional
-            If False, average of full trace is returned. If True, then the average of
-            n Periods is returned (where n is the max number of full periods present in a trace).
+    x : ndarray
+        Array to calculate offsets of.
+    fs : float, optional
+        Sample rate of the data being taken, assumed to be in units of Hz.
+    sgfreq : float, optional
+        The frequency of signal generator (if is_didv is True. If False, then this is ignored).
+    is_didv : bool, optional
+        If False, average of full trace is returned. If True, then the average of
+        n Periods is returned (where n is the max number of full periods present in a trace).
     
     Returns
     -------
-        offset : ndarray
-            Array of offsets with same shape as input x minus the last dimension
-        std : ndarray
-            Array of std with same shape as offset
+    offset : ndarray
+        Array of offsets with same shape as input x minus the last dimension
+    std : ndarray
+        Array of std with same shape as offset
     
     """
     
@@ -280,19 +280,19 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     
     Parameters
     ----------
-        traces : ndarray
-            An array of shape (# traces, # bins per trace).
-        cut_off_freq : float, int, optional
-            The cut off 3dB frequency for the low pass filter, defaults to 100kHz.
-        fs : float, int, optional
-            Digitization rate of data, defaults to 625e3 Hz.
-        order : int, optional
-            The order of the low pass filter, defaults to 1.
+    traces : ndarray
+        An array of shape (# traces, # bins per trace).
+    cut_off_freq : float, int, optional
+        The cut off 3dB frequency for the low pass filter, defaults to 100kHz.
+    fs : float, int, optional
+        Digitization rate of data, defaults to 625e3 Hz.
+    order : int, optional
+        The order of the low pass filter, defaults to 1.
     
     Returns
     -------
-        filt_traces : ndarray
-            Array of low pass filtered traces with the same shape as inputted traces.
+    filt_traces : ndarray
+        Array of low pass filtered traces with the same shape as inputted traces.
             
     """
     
@@ -312,27 +312,27 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
     
     Parameters
     ----------
-        traces : ndarray
-            Array of shape (# traces, # bins per trace).
-        lgcjustshifts : boolean, optional
-            If False, the aligned traces and the phase shifts are returned.
-            If True, just the phase shifts are returned. Default is False.
-        n_cut : int, optional
-            The number of bins to use to do the convolution. Just need enough 
-            information to see the periodic signal. Default is 5000.
-        cut_off_freq : float or int, optional
-            3dB cut off frequency for filter. Default is 5000 Hz.
-        fs : float or int, optional
-            Sample rate of data in Hz. Default is 625e3 Hz.
+    traces : ndarray
+        Array of shape (# traces, # bins per trace).
+    lgcjustshifts : boolean, optional
+        If False, the aligned traces and the phase shifts are returned.
+        If True, just the phase shifts are returned. Default is False.
+    n_cut : int, optional
+        The number of bins to use to do the convolution. Just need enough 
+        information to see the periodic signal. Default is 5000.
+    cut_off_freq : float or int, optional
+        3dB cut off frequency for filter. Default is 5000 Hz.
+    fs : float or int, optional
+        Sample rate of data in Hz. Default is 625e3 Hz.
     
     Returns
     -------
-        shifts : ndarray
-            Array of phase shifts for each trace in units of bins.
-        masked_aligned : masked ndarray, optional
-            Array of time shift corrected traces, same shape as input traces.
-            The masked array masks the np.NaN values in the time shifted traces so that
-            normal numpy functions will ignore the nan's in computations.
+    shifts : ndarray
+        Array of phase shifts for each trace in units of bins.
+    masked_aligned : masked ndarray, optional
+        Array of time shift corrected traces, same shape as input traces.
+        The masked array masks the np.NaN values in the time shifted traces so that
+        normal numpy functions will ignore the nan's in computations.
             
     """
     

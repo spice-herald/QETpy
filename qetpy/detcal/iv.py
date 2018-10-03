@@ -8,17 +8,17 @@ def fitfunc(x, b, m):
     
     Parameters
     ----------
-        x : array_like
-            x-values of the data
-        b : float
-            y-intercept of line
-        m : float
-            slope of line
+    x : array_like
+        x-values of the data
+    b : float
+        y-intercept of line
+    m : float
+        slope of line
     
     Returns
     -------
-        linfunc : array_like
-            Outputted line for x with slope m and intercept b
+    linfunc : array_like
+        Outputted line for x with slope m and intercept b
     """
     
     linfunc = m*x + b
@@ -30,19 +30,19 @@ def findnormalinds(vb, dites, dites_err, tol=10):
     
     Parameters
     ----------
-        vb : array_like
-            Bias voltage, should be a 1d array or list
-        dites : array_like
-            The current read out by the electronics with some offset from the true current
-        dites_err : array_like
-            The error in the current
-        tol : float, optional
-            The tolerance in the reduced chi-squared for the cutoff on which points to use
+    vb : array_like
+        Bias voltage, should be a 1d array or list
+    dites : array_like
+        The current read out by the electronics with some offset from the true current
+    dites_err : array_like
+        The error in the current
+    tol : float, optional
+        The tolerance in the reduced chi-squared for the cutoff on which points to use
             
     Returns
     -------
-        normalinds : iterable
-            The iterable which stores the range of the normal indices
+    normalinds : iterable
+        The iterable which stores the range of the normal indices
     """
     
     end_ind = 2
@@ -289,20 +289,20 @@ class IV(object):
 
         Parameters
         ----------
-            temps : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            chans : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            showfit : boolean, optional
-                Boolean flag to also plot the linear fit to the normal data
-            lgcsave : boolean, optional
-                Boolean flag to save the plot
-            savepath : string, optional
-                Path to save the plot to, saves it to the current directory by default
-            savename : string, optional
-                Name to append to the plot file name, if saving
+        temps : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        chans : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        showfit : boolean, optional
+            Boolean flag to also plot the linear fit to the normal data
+        lgcsave : boolean, optional
+            Boolean flag to save the plot
+        savepath : string, optional
+            Path to save the plot to, saves it to the current directory by default
+        savename : string, optional
+            Name to append to the plot file name, if saving
         """
         
         fig, ax = utils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
@@ -315,20 +315,18 @@ class IV(object):
 
         Parameters
         ----------
-            IVobject : class
-                The IV class object that the data is stored in.
-            temps : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            chans : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            lgcsave : boolean, optional
-                Boolean flag to save the plot
-            savepath : string, optional
-                Path to save the plot to, saves it to the current directory by default
-            savename : string, optional
-                Name to append to the plot file name, if saving
+        temps : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        chans : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        lgcsave : boolean, optional
+            Boolean flag to save the plot
+        savepath : string, optional
+            Path to save the plot to, saves it to the current directory by default
+        savename : string, optional
+            Name to append to the plot file name, if saving
         """
         
         fig, ax = utils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
@@ -341,20 +339,18 @@ class IV(object):
 
         Parameters
         ----------
-            IVobject : class
-                The IV class object that the data is stored in.
-            temps : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            chans : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            lgcsave : boolean, optional
-                Boolean flag to save the plot
-            savepath : string, optional
-                Path to save the plot to, saves it to the current directory by default
-            savename : string, optional
-                Name to append to the plot file name, if saving
+        temps : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        chans : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        lgcsave : boolean, optional
+            Boolean flag to save the plot
+        savepath : string, optional
+            Path to save the plot to, saves it to the current directory by default
+        savename : string, optional
+            Name to append to the plot file name, if saving
         """
         
         fig, ax = utils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
@@ -367,22 +363,20 @@ class IV(object):
 
         Parameters
         ----------
-            IVobject : class
-                The IV class object that the data is stored in.
-            temps : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            chans : string, array_like, int, optional
-                Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-                to a subset of bath temperatures, or just one
-            showfit : boolean, optional
-                Boolean flag to also plot the linear fit to the normal data
-            lgcsave : boolean, optional
-                Boolean flag to save the plot
-            savepath : string, optional
-                Path to save the plot to, saves it to the current directory by default
-            savename : string, optional
-                Name to append to the plot file name, if saving
+        temps : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        chans : string, array_like, int, optional
+            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+            to a subset of bath temperatures, or just one
+        showfit : boolean, optional
+            Boolean flag to also plot the linear fit to the normal data
+        lgcsave : boolean, optional
+            Boolean flag to save the plot
+        savepath : string, optional
+            Path to save the plot to, saves it to the current directory by default
+        savename : string, optional
+            Name to append to the plot file name, if saving
         """
         
         utils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 

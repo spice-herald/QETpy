@@ -8,32 +8,32 @@ def loadstanfordfile(f, convtoamps=1024, lgcfullrtn=False):
     
     Parameters
     ----------
-        f : list, str
-            A list of filenames that should be opened (or just one filename). These
-            files should be Stanford DAQ .mat files.
-        convtoamps : float, optional
-            Correction factor to convert the data to Amps. The traces are divided by this
-            factor, as is the TTL channel (if it exists). Default is 1024.
-        lgcfullrtn : bool, optional
-            Boolean flag that also returns a dict of all extracted data from the file(s).
-            Set to False by default.
+    f : list, str
+        A list of filenames that should be opened (or just one filename). These
+        files should be Stanford DAQ .mat files.
+    convtoamps : float, optional
+        Correction factor to convert the data to Amps. The traces are divided by this
+        factor, as is the TTL channel (if it exists). Default is 1024.
+    lgcfullrtn : bool, optional
+        Boolean flag that also returns a dict of all extracted data from the file(s).
+        Set to False by default.
             
     Returns
     -------
-        traces : ndarray
-            An array of shape (# of traces, # of channels, # of bins) that contains
-            the traces extracted from the .mat file.
-        times : ndarray
-            An array of shape (# of traces,) that contains the starting time (in s) for 
-            each trace in the traces array. The zero point of the times is arbitrary. 
-        fs : float
-            The digitization rate (in Hz) of the data.
-        ttl : ndarray, None
-            The TTL channel data, if it exists in the inputted data. This is set to None
-            if there is no TTL data.
-        data : dict, optional
-            The dictionary of all of the data in the data file(s). Only returned if 
-            lgcfullrtn is set to True.
+    traces : ndarray
+        An array of shape (# of traces, # of channels, # of bins) that contains
+        the traces extracted from the .mat file.
+    times : ndarray
+        An array of shape (# of traces,) that contains the starting time (in s) for 
+        each trace in the traces array. The zero point of the times is arbitrary. 
+    fs : float
+        The digitization rate (in Hz) of the data.
+    ttl : ndarray, None
+        The TTL channel data, if it exists in the inputted data. This is set to None
+        if there is no TTL data.
+    data : dict, optional
+        The dictionary of all of the data in the data file(s). Only returned if 
+        lgcfullrtn is set to True.
     
     """
     
@@ -59,14 +59,14 @@ def getchannels_singlefile(filename):
     
     Parameters
     ----------
-        filename : str
-            The filename that will be opened. Should be a Stanford DAQ .mat file.
+    filename : str
+        The filename that will be opened. Should be a Stanford DAQ .mat file.
             
     Returns
     -------
-        res : dict
-            A dictionary that has all of the needed data taken from a Stanford DAQ 
-            .mat file. 
+    res : dict
+        A dictionary that has all of the needed data taken from a Stanford DAQ 
+        .mat file. 
     
     """
     
@@ -145,14 +145,14 @@ def getchannels(filelist):
     
     Parameters
     ----------
-        filelist : list, str
-            The list of files that will be opened. Should be Stanford DAQ .mat files.
+    filelist : list, str
+        The list of files that will be opened. Should be Stanford DAQ .mat files.
             
     Returns
     -------
-        combined : dict
-            A dictionary that has all of the needed data taken from all of the 
-            inputted Stanford DAQ .mat files. 
+    combined : dict
+        A dictionary that has all of the needed data taken from all of the 
+        inputted Stanford DAQ .mat files. 
     
     """
     

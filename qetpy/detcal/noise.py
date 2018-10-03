@@ -18,20 +18,20 @@ def slope(x, y, removemeans=True):
     
     Parameters
     ----------
-        x : array_like
-            Array of real-valued independent variables.
-        y : array_like
-            Array of real-valued dependent variables.
-        removemeans : boolean
-            Boolean flag for if the mean of x should be subtracted. This
-            should be set to True if x has not already had its mean subtracted.
-            Set to False if the mean has been subtracted. Default is True.
+    x : array_like
+        Array of real-valued independent variables.
+    y : array_like
+        Array of real-valued dependent variables.
+    removemeans : boolean
+        Boolean flag for if the mean of x should be subtracted. This
+        should be set to True if x has not already had its mean subtracted.
+        Set to False if the mean has been subtracted. Default is True.
             
     Returns
     -------
-        slope : float
-            Maximum likelihood slope estimate, calculated as
-            sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
+    slope : float
+        Maximum likelihood slope estimate, calculated as
+        sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
     """
     
     if removemeans:
@@ -47,13 +47,13 @@ def fill_negatives(arr):
     
     Parameters
     ----------
-        arr: ndarray
-            Array of values to replace neagive values on
+    arr: ndarray
+        Array of values to replace neagive values on
             
     Returns
     -------
-        arr: ndarray
-            Modified input array with the negative and zero values replace by interpelate values
+    arr: ndarray
+        Modified input array with the negative and zero values replace by interpelate values
             
     '''
     
@@ -123,20 +123,20 @@ class Noise(object):
         
         Parameters
         ----------
-            traces : ndarray
-                Array of the traces to use in the noise analysis. Should be shape 
-                (# of traces, # of channels, # of bins)
-            fs : float
-                The digitization rate of the data in Hz.
-            channames : list
-                A list of strings that name each of the channels.
-            tracegain : float, optional
-                The factor that traces should be divided by to convert the units to Amps. If rawtraces
-                already has units of Amps, then this should be set to 1.0
-            fname : str, optional
-                The file name of the data, this will be used when saving the file.
-            time : ndarray, optional
-                The time values for each bin in each trace.
+        traces : ndarray
+            Array of the traces to use in the noise analysis. Should be shape 
+            (# of traces, # of channels, # of bins)
+        fs : float
+            The digitization rate of the data in Hz.
+        channames : list
+            A list of strings that name each of the channels.
+        tracegain : float, optional
+            The factor that traces should be divided by to convert the units to Amps. If rawtraces
+            already has units of Amps, then this should be set to 1.0
+        fname : str, optional
+            The file name of the data, this will be used when saving the file.
+        time : ndarray, optional
+            The time values for each bin in each trace.
         """
         
         if len(traces.shape) == 1:
@@ -225,8 +225,6 @@ class Noise(object):
         """
         Calculates the correlations between channels as a function of frequency. Stores
         results in self.corrcoeff
-        Inputs: None
-        Returns: None
         """ 
         
         nsizematrix = self.traces.shape[1]
@@ -320,13 +318,13 @@ class Noise(object):
 
         Parameters
         ----------
-            lgcoverlay : boolean, optional
-                If True, psd's for all channels are overlayed in a single plot, 
-                If False, each psd for each channel is plotted in a seperate subplot
-            lgcsave : boolean, optional
-                If True, the figure is saved in the user provided directory
-            savepath : str, optional
-                Absolute path for the figure to be saved
+        lgcoverlay : boolean, optional
+            If True, psd's for all channels are overlayed in a single plot, 
+            If False, each psd for each channel is plotted in a seperate subplot
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
         """
 
         utils.plot_psd(self,lgcoverlay, lgcsave, savepath)
@@ -338,10 +336,10 @@ class Noise(object):
 
         Parameters
         ----------
-            lgcsave : boolean, optional
-                If True, the figure is saved in the user provided directory
-            savepath : str, optional
-                Absolute path for the figure to be saved
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
 
         """
         
@@ -354,14 +352,14 @@ class Noise(object):
 
         Parameters
         ----------
-            lgcsmooth : boolean, optional
-                If True, a savgol_filter will be used when plotting. 
-            nwindow : int, optional
-                the number of bins used for the window in the savgol_filter
-            lgcsave : boolean, optional
-                If True, the figure is saved in the user provided directory
-            savepath : str, optional
-                Absolute path for the figure to be saved
+        lgcsmooth : boolean, optional
+            If True, a savgol_filter will be used when plotting. 
+        nwindow : int, optional
+            the number of bins used for the window in the savgol_filter
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
         """
 
         utils.plot_corrcoeff(self,lgcsmooth, nwindow, lgcsave, savepath)
@@ -373,15 +371,15 @@ class Noise(object):
 
         Parameters
         ----------
-            whichcsd : list, optional
-                a list of strings, where each element of the list refers to the pair of 
-                indices of the desired csd plot
-            lgcreal : boolean, optional
-                If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
-            lgcsave : boolean, optional
-                If True, the figure is saved in the user provided directory
-            savepath : str, optional
-                Absolute path for the figure to be saved
+        whichcsd : list, optional
+            a list of strings, where each element of the list refers to the pair of 
+            indices of the desired csd plot
+        lgcreal : boolean, optional
+            If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
         """
         
         utils.plot_csd(self, whichcsd, lgcreal, lgcsave, savepath)
@@ -394,23 +392,23 @@ class Noise(object):
 
         Parameters
         ----------
-            lgcoverlay : boolean, optional
-                If True, de-correlated for all channels are overlayed in a single plot, 
-                If False, the noise for each channel is plotted in a seperate subplot
-            lgcdata : boolean, optional
-                Only applies when lgcoverlay = False. If True, the csd data is plotted
-            lgcuncorrnoise : boolean, optional
-                Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
-            lgccorrelated : boolean, optional
-                Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
-                is plotted
-            lgcsum : boolean, optional
-                Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
-                and correlated noise is plotted
-            lgcsave : boolean, optional
-                If True, the figure is saved in the user provided directory
-            savepath : str, optional
-                Absolute path for the figure to be saved
+        lgcoverlay : boolean, optional
+            If True, de-correlated for all channels are overlayed in a single plot, 
+            If False, the noise for each channel is plotted in a seperate subplot
+        lgcdata : boolean, optional
+            Only applies when lgcoverlay = False. If True, the csd data is plotted
+        lgcuncorrnoise : boolean, optional
+            Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
+        lgccorrelated : boolean, optional
+            Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+            is plotted
+        lgcsum : boolean, optional
+            Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+            and correlated noise is plotted
+        lgcsave : boolean, optional
+            If True, the figure is saved in the user provided directory
+        savepath : str, optional
+            Absolute path for the figure to be saved
         """  
         
         utils.plot_decorrelatednoise(self, lgcoverlay, lgcdata, lgcuncorrnoise, lgccorrelated,
@@ -422,8 +420,8 @@ class Noise(object):
         
         Parameters
         ----------
-            path : str
-                Path where the noise object should be saved.
+        path : str
+            Path where the noise object should be saved.
         """
         
         if path[-1] != '/':

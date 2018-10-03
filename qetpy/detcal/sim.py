@@ -9,45 +9,45 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=
     
     Parameters
     ----------
-        DIDVobj : Object
-            A DIDV class object after a fit has been run, such that there are Irwin parameters that
-            can be used to model the noise.
-        G : float, optional
-            The thermal conductance of the TES in W/K
-        qetbias : float, optional
-            The QET bias in Amps
-        tc : float
-            The critical temperature of the TES in K
-        tload : float
-            The effective temperature of the load resistor in K
-        tbath : float
-            The bath temperature in K
-        squiddc : float, optional
-            The DC value of the SQUID and downstream electronics noise, in Amps/rtHz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidpole : float, optional
-            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidn : float, optional
-            The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        noisetype : str, optional
-            The type of the noise that is to be loaded. The options are
-            transition : Use the Irwin parameters from the two pole fit as the transition noise model
-            superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
-            normal : Use the Irwin parameters from the one pole fit as the normal noise model
-        lgcpriors : bool, optional
-            If True, the priors fit values are loaded from the didv object, if False, the regular fit values are 
-            loaded
+    DIDVobj : Object
+        A DIDV class object after a fit has been run, such that there are Irwin parameters that
+        can be used to model the noise.
+    G : float, optional
+        The thermal conductance of the TES in W/K
+    qetbias : float, optional
+        The QET bias in Amps
+    tc : float
+        The critical temperature of the TES in K
+    tload : float
+        The effective temperature of the load resistor in K
+    tbath : float
+        The bath temperature in K
+    squiddc : float, optional
+        The DC value of the SQUID and downstream electronics noise, in Amps/rtHz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    squidpole : float, optional
+        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    squidn : float, optional
+        The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+        noise should have been fit beforehand, using the following model:
+            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    noisetype : str, optional
+        The type of the noise that is to be loaded. The options are
+        transition : Use the Irwin parameters from the two pole fit as the transition noise model
+        superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
+        normal : Use the Irwin parameters from the one pole fit as the normal noise model
+    lgcpriors : bool, optional
+        If True, the priors fit values are loaded from the didv object, if False, the regular fit values are 
+        loaded
             
                 
     Returns
     -------
-        TESobj : Object
-            A TESnoise class object with all of the fit parameters loaded.
+    TESobj : Object
+        A TESnoise class object with all of the fit parameters loaded.
     """
 
     if noisetype is "superconducting":
@@ -164,49 +164,49 @@ class TESnoise:
 
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation
-            rload : float, optional
-                The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
-            r0 : float, optional
-                The bias resistance of the TES in Ohms
-            rshunt : float, optional
-                The shunt resistance of the TES circuit in Ohms
-            beta : float, optional
-                The current sensitivity of the TES (dlogR/dlogI), unitless
-            loopgain : float, optional
-                The Irwin loop gain of the TES, unitless
-            inductance : float, optional
-                The inductance of the TES circuit in Henries
-            tau0 : float, optional
-                The thermal time constant (equals C/G) in s
-            G : float, optional
-                The thermal conductance of the TES in W/K
-            qetbias : float, optional
-                The QET bias in Amps
-            tc : float, optional
-                The critical temperature of the TES in K
-            tload : float, optional
-                The effective temperature of the load resistor in K
-            tbath : float, optional
-                The bath temperature in K
-            n : float, optional
-                The power-law dependence of the power flow to the heat bath
-            lgcb : boolean, optional
-                Boolean flag that determines whether we use the ballistic (True) or
-                diffusive limit when calculating TFN power noise
-            squiddc : float, optional
-                The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-                noise should have been fit beforehand, using the following model:
-                    (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-            squidpole : float, optional
-                The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-                noise should have been fit beforehand, using the following model:
-                    (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-            squidn : float, optional
-                The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-                noise should have been fit beforehand, using the following model:
-                    (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation
+        rload : float, optional
+            The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
+        r0 : float, optional
+            The bias resistance of the TES in Ohms
+        rshunt : float, optional
+            The shunt resistance of the TES circuit in Ohms
+        beta : float, optional
+            The current sensitivity of the TES (dlogR/dlogI), unitless
+        loopgain : float, optional
+            The Irwin loop gain of the TES, unitless
+        inductance : float, optional
+            The inductance of the TES circuit in Henries
+        tau0 : float, optional
+            The thermal time constant (equals C/G) in s
+        G : float, optional
+            The thermal conductance of the TES in W/K
+        qetbias : float, optional
+            The QET bias in Amps
+        tc : float, optional
+            The critical temperature of the TES in K
+        tload : float, optional
+            The effective temperature of the load resistor in K
+        tbath : float, optional
+            The bath temperature in K
+        n : float, optional
+            The power-law dependence of the power flow to the heat bath
+        lgcb : boolean, optional
+            Boolean flag that determines whether we use the ballistic (True) or
+            diffusive limit when calculating TFN power noise
+        squiddc : float, optional
+            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+            noise should have been fit beforehand, using the following model:
+                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+        squidpole : float, optional
+            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+            noise should have been fit beforehand, using the following model:
+                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+        squidn : float, optional
+            The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
+            noise should have been fit beforehand, using the following model:
+                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
 
         """
     
@@ -244,14 +244,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            dIdV : float, ndarray
-                The two-pole dIdV function
+        dIdV : float, ndarray
+            The two-pole dIdV function
                 
         """
         
@@ -267,14 +267,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            dIdP : float, ndarray
-                The two-pole dIdP function
+        dIdP : float, ndarray
+            The two-pole dIdP function
                 
         """
         
@@ -291,14 +291,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_vload : float, ndarray
-                The Johnson load voltage noise at the specified frequencies
+        s_vload : float, ndarray
+            The Johnson load voltage noise at the specified frequencies
                 
         """
         
@@ -312,14 +312,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_iload : float, ndarray
-                The Johnson load current noise at the specified frequencies
+        s_iload : float, ndarray
+            The Johnson load current noise at the specified frequencies
              
              
         """
@@ -334,14 +334,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_pload : float, ndarray
-                The Johnson load power noise at the specified frequencies
+        s_pload : float, ndarray
+            The Johnson load power noise at the specified frequencies
                 
         """
         
@@ -355,14 +355,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_vtes : float, ndarray
-                The Johnson TES voltage noise at the specified frequencies
+        s_vtes : float, ndarray
+            The Johnson TES voltage noise at the specified frequencies
                 
         """
         
@@ -377,14 +377,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_ites : float, ndarray
-                The Johnson TES current noise at the specified frequencies
+        s_ites : float, ndarray
+            The Johnson TES current noise at the specified frequencies
                 
         """
         
@@ -398,14 +398,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_ptes : float, ndarray
-                The Johnson TES power noise at the specified frequencies
+        s_ptes : float, ndarray
+            The Johnson TES power noise at the specified frequencies
                 
         """
         
@@ -419,14 +419,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_ptfn : float, ndarray
-                The thermal fluctuation noise in power at the specified frequencies
+        s_ptfn : float, ndarray
+            The thermal fluctuation noise in power at the specified frequencies
                 
         """
         
@@ -440,14 +440,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_itfn : float, ndarray
-                The thermal fluctuation noise in current at the specified frequencies
+        s_itfn : float, ndarray
+            The thermal fluctuation noise in current at the specified frequencies
                 
         """
         
@@ -462,14 +462,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_isquid : float, ndarray
-                The SQUID and downstream electronics current noise at the specified frequencies
+        s_isquid : float, ndarray
+            The SQUID and downstream electronics current noise at the specified frequencies
                 
         """
         
@@ -485,14 +485,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_psquid : float, ndarray
-                The SQUID and downstream electronics power noise at the specified frequencies
+        s_psquid : float, ndarray
+            The SQUID and downstream electronics power noise at the specified frequencies
                 
         """
         
@@ -507,14 +507,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_itot : float, ndarray
-                The total current noise at the specified frequencies
+        s_itot : float, ndarray
+            The total current noise at the specified frequencies
                 
         """
         
@@ -529,14 +529,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_ptot : float, ndarray
-                The total power noise at the specified frequencies
+        s_ptot : float, ndarray
+            The total power noise at the specified frequencies
                 
         """
         
@@ -551,14 +551,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            dIdVnormal : float, ndarray
-                The one-pole dIdV function for when the TES is normal.
+        dIdVnormal : float, ndarray
+            The one-pole dIdV function for when the TES is normal.
                 
         """
         
@@ -573,14 +573,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_iloadnormal : float, ndarray
-                The Johnson load current noise at the specified frequencies
+        s_iloadnormal : float, ndarray
+            The Johnson load current noise at the specified frequencies
                 
         """
         
@@ -594,14 +594,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_vtesnormal : float, ndarray
-                The Johnson TES voltage noise at the specified frequencies
+        s_vtesnormal : float, ndarray
+            The Johnson TES voltage noise at the specified frequencies
                 
         """
         
@@ -615,14 +615,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_itesnormal : float, ndarray
-                The Johnson TES current noise at the specified frequencies
+        s_itesnormal : float, ndarray
+            The Johnson TES current noise at the specified frequencies
                 
         """
         
@@ -637,14 +637,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_itotnormal : float, ndarray
-                The total current noise at the specified frequencies
+        s_itotnormal : float, ndarray
+            The total current noise at the specified frequencies
                 
         """
         
@@ -659,14 +659,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            dIdVsc : float, ndarray
-                The one-pole dIdV function for when the TES is superconducting.
+        dIdVsc : float, ndarray
+            The one-pole dIdV function for when the TES is superconducting.
                 
         """
         
@@ -681,14 +681,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_iloadsc : float, ndarray
-                The Johnson load current noise at the specified frequencies
+        s_iloadsc : float, ndarray
+            The Johnson load current noise at the specified frequencies
                 
         """
         
@@ -703,14 +703,14 @@ class TESnoise:
         
         Parameters
         ----------
-            freqs : float, ndarray, optional
-                The frequencies for which we will calculate the noise simulation. If left as None, the 
-                function will use the values from the initialization.
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
                 
         Returns
         -------
-            s_itotsc : float, ndarray
-                The total current noise at the specified frequencies
+        s_itotsc : float, ndarray
+            The total current noise at the specified frequencies
                 
         """
         

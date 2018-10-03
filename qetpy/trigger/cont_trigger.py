@@ -15,19 +15,19 @@ def getchangeslessthanthresh(x, threshold):
        
     Parameters
     ----------
-        x : ndarray
-            1-dimensional of values.
-        threshold : int
-            Value to detect the different ranges of vals that change by less than this threshold value.
+    x : ndarray
+        1-dimensional of values.
+    threshold : int
+        Value to detect the different ranges of vals that change by less than this threshold value.
         
     Returns
     -------
-        ranges : ndarray
-            List of tuples that each store the start and ending index of each range.
-            For example, vals[ranges[0][0]:ranges[0][1]] gives the first section of values that change by less than 
-            the specified threshold.
-        vals : ndarray
-            The corresponding starting and ending values for each range in x.
+    ranges : ndarray
+        List of tuples that each store the start and ending index of each range.
+        For example, vals[ranges[0][0]:ranges[0][1]] gives the first section of values that change by less than 
+        the specified threshold.
+    vals : ndarray
+        The corresponding starting and ending values for each range in x.
     
     """
     
@@ -58,23 +58,23 @@ def rand_sections(x, n, l, t=None, fs=1.0):
     
     Parameters
     ----------
-        x : ndarray
-            n dimensional array to choose sections from
-        n : int
-            Number of sections to choose
-        l : int
-            Length in bins of sections
-        t : array_like or float, optional
-            Start times (in s) associated with x
-        fs : float, optional
-            Sample rate of data (in Hz)
+    x : ndarray
+        n dimensional array to choose sections from
+    n : int
+        Number of sections to choose
+    l : int
+        Length in bins of sections
+    t : array_like or float, optional
+        Start times (in s) associated with x
+    fs : float, optional
+        Sample rate of data (in Hz)
             
     Returns
     -------
-        evttimes : ndarray
-            Array of the corresponding event times for each section
-        res : ndarray
-            Array of the n sections of x, each with length l
+    evttimes : ndarray
+        Array of the corresponding event times for each section
+    res : ndarray
+        Array of the n sections of x, each with length l
         
     """
     
@@ -146,26 +146,26 @@ def rand_sections_wrapper(filelist, n, l, datashape=None, iotype="stanford"):
     
     Parameters
     ----------
-        filelist : list of strings
-            List of files to be opened to take random sections from (should be full paths)
-        n : int
-            Number of sections to choose
-        l : int
-            Length in bins of sections
-        datashape : tuple, NoneType, optional
-            The shape of the data in each file. If inputted, this should be a tuple that is 
-            (# of traces in a dataset, # of bins in each trace). If left as None, then the first file in filelist
-            is opened, and the shape of the data in it is used.
-        iotype : string, optional
-            Type of file to open, uses a different IO function. Default is "stanford".
-                "stanford" : Use qetpy.io.loadstanfordfile to open the files
+    filelist : list of strings
+        List of files to be opened to take random sections from (should be full paths)
+    n : int
+        Number of sections to choose
+    l : int
+        Length in bins of sections
+    datashape : tuple, NoneType, optional
+        The shape of the data in each file. If inputted, this should be a tuple that is 
+        (# of traces in a dataset, # of bins in each trace). If left as None, then the first file in filelist
+        is opened, and the shape of the data in it is used.
+    iotype : string, optional
+        Type of file to open, uses a different IO function. Default is "stanford".
+            "stanford" : Use qetpy.io.loadstanfordfile to open the files
                 
     Returns
     -------
-        evttimes : ndarray
-            Array of the corresponding event times for each section
-        res : ndarray
-            Array of the n sections of x, each with length l
+    evttimes : ndarray
+        Array of the corresponding event times for each section
+    res : ndarray
+        Array of the n sections of x, each with length l
         
     """
     
@@ -208,45 +208,45 @@ class OptimumFilt(object):
     
     Attributes
     ----------
-        phi : ndarray 
-            The optimum filter in time-domain, equal to the inverse FT of (FT of the template/power 
-            spectral density of noise)
-        norm : float
-            The normalization of the optimal amplitude.
-        tracelength : int
-            The desired trace length (in bins) to be saved when triggering on events.
-        fs : float
-            The sample rate of the data (Hz).
-        pulse_range : int
-            If detected events are this far away from one another (in bins), 
-            then they are to be treated as the same event.
-        traces : ndarray
-            All of the traces to be filtered, assumed to be an ndarray of 
-            shape = (# of traces, # of channels, # of trace bins). Should be in units of Amps.
-        template : ndarray
-            The template that will be used for the Optimum Filter.
-        noisepsd : ndarray
-            The two-sided noise PSD that will be used to create the Optimum Filter.
-        filts : ndarray 
-            The result of the FIR filter on each of the traces.
-        resolution : float
-            The expected energy resolution in Amps given by the template and the noisepsd, calculated
-            from the Optimum Filter.
-        times : ndarray
-            The absolute start time of each trace (in s), should be a 1-dimensional ndarray.
-        pulsetimes : ndarray
-            If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
-        pulseamps : 
-            If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
-        trigtimes : ndarray
-            If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
-        pulseamps : 
-            If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
-        traces : ndarray
-            The corresponding trace for each detected event.
-        trigtypes: ndarray
-            Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
-            The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
+    phi : ndarray 
+        The optimum filter in time-domain, equal to the inverse FT of (FT of the template/power 
+        spectral density of noise)
+    norm : float
+        The normalization of the optimal amplitude.
+    tracelength : int
+        The desired trace length (in bins) to be saved when triggering on events.
+    fs : float
+        The sample rate of the data (Hz).
+    pulse_range : int
+        If detected events are this far away from one another (in bins), 
+        then they are to be treated as the same event.
+    traces : ndarray
+        All of the traces to be filtered, assumed to be an ndarray of 
+        shape = (# of traces, # of channels, # of trace bins). Should be in units of Amps.
+    template : ndarray
+        The template that will be used for the Optimum Filter.
+    noisepsd : ndarray
+        The two-sided noise PSD that will be used to create the Optimum Filter.
+    filts : ndarray 
+        The result of the FIR filter on each of the traces.
+    resolution : float
+        The expected energy resolution in Amps given by the template and the noisepsd, calculated
+        from the Optimum Filter.
+    times : ndarray
+        The absolute start time of each trace (in s), should be a 1-dimensional ndarray.
+    pulsetimes : ndarray
+        If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
+    pulseamps : 
+        If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
+    trigtimes : ndarray
+        If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
+    pulseamps : 
+        If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
+    traces : ndarray
+        The corresponding trace for each detected event.
+    trigtypes: ndarray
+        Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
+        The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
             
     """
 
@@ -256,17 +256,17 @@ class OptimumFilt(object):
         
         Parameters
         ----------
-            fs : float
-                The sample rate of the data (Hz)
-            template : ndarray
-                The pulse template to be used when creating the optimum filter (assumed to be normalized)
-            noisepsd : ndarray
-                The two-sided power spectral density in units of A^2/Hz
-            tracelength : int
-                The desired trace length (in bins) to be saved when triggering on events.
-            trigtemplate : NoneType, ndarray, optional
-                The template for the trigger channel pulse. If left as None, then the trigger channel will not
-                be analyzed.
+        fs : float
+            The sample rate of the data (Hz)
+        template : ndarray
+            The pulse template to be used when creating the optimum filter (assumed to be normalized)
+        noisepsd : ndarray
+            The two-sided power spectral density in units of A^2/Hz
+        tracelength : int
+            The desired trace length (in bins) to be saved when triggering on events.
+        trigtemplate : NoneType, ndarray, optional
+            The template for the trigger channel pulse. If left as None, then the trigger channel will not
+            be analyzed.
         
         """
         
@@ -319,15 +319,15 @@ class OptimumFilt(object):
         
         Parameters
         ----------
-            traces : ndarray
-                All of the traces to be filtered, assumed to be an ndarray of 
-                shape = (# of traces, # of channels, # of trace bins). Should be in units of Amps.
-            times : ndarray
-                The absolute start time of each trace (in s), should be a 1-dimensional ndarray.
-            trig : NoneType, ndarray, optional
-                The trigger channel traces to be filtered using the trigtemplate (if it exists). If
-                left as None, then only the traces are analyzed. If the trigtemplate attribute
-                has not been set, but this was set, then an error is raised.
+        traces : ndarray
+            All of the traces to be filtered, assumed to be an ndarray of 
+            shape = (# of traces, # of channels, # of trace bins). Should be in units of Amps.
+        times : ndarray
+            The absolute start time of each trace (in s), should be a 1-dimensional ndarray.
+        trig : NoneType, ndarray, optional
+            The trigger channel traces to be filtered using the trigtemplate (if it exists). If
+            left as None, then only the traces are analyzed. If the trigtemplate attribute
+            has not been set, but this was set, then an error is raised.
         
         """
         
@@ -368,16 +368,16 @@ class OptimumFilt(object):
            
         Parameters
         ----------
-            thresh : float
-                The number of standard deviations of the energy resolution to use as the threshold for which events
-                will be detected as a pulse.
-            trigthresh : NoneType, float, optional
-                The threshold value (in units of the trigger channel) such that any amplitudes higher than this will be 
-                detected as ttl trigger event. If left as None, then only the pulses are analyzed.
-            positivepulses : boolean, optional
-                Boolean flag for which direction the pulses go in the traces. If they go in the positive direction, 
-                then this should be set to True. If they go in the negative direction, then this should be set to False.
-                Default is True.
+        thresh : float
+            The number of standard deviations of the energy resolution to use as the threshold for which events
+            will be detected as a pulse.
+        trigthresh : NoneType, float, optional
+            The threshold value (in units of the trigger channel) such that any amplitudes higher than this will be 
+            detected as ttl trigger event. If left as None, then only the pulses are analyzed.
+        positivepulses : boolean, optional
+            Boolean flag for which direction the pulses go in the traces. If they go in the positive direction, 
+            then this should be set to True. If they go in the negative direction, then this should be set to False.
+            Default is True.
         
         """
         
@@ -545,46 +545,46 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
     
     Parameters
     ----------
-        filelist : list of strings
-            List of files to be opened to take random sections from (should be full paths)
-        template : ndarray
-            The pulse template to be used when creating the optimum filter (assumed to be normalized)
-        noisepsd : ndarray
-            The two-sided power spectral density in units of A^2/Hz
-        tracelength : int
-            The desired trace length (in bins) to be saved when triggering on events.
-        thresh : float
-            The number of standard deviations of the energy resolution to use as the threshold for which events
-            will be detected as a pulse.
-        trigtemplate : NoneType, ndarray, optional
-            The template for the trigger channel pulse. If left as None, then the trigger channel will not
-            be analyzed.
-        trigthresh : NoneType, float, optional
-            The threshold value (in units of the trigger channel) such that any amplitudes higher than this will be 
-            detected as ttl trigger event. If left as None, then only the pulses are analyzed.
-        positivepulses : boolean, optional
-            Boolean flag for which direction the pulses go in the traces. If they go in the positive direction, 
-            then this should be set to True. If they go in the negative direction, then this should be set to False.
-            Default is True.
-        iotype : string, optional
-            Type of file to open, uses a different IO function. Default is "stanford".
-                "stanford" : Use qetpy.io.loadstanfordfile to open the files
+    filelist : list of strings
+        List of files to be opened to take random sections from (should be full paths)
+    template : ndarray
+        The pulse template to be used when creating the optimum filter (assumed to be normalized)
+    noisepsd : ndarray
+        The two-sided power spectral density in units of A^2/Hz
+    tracelength : int
+        The desired trace length (in bins) to be saved when triggering on events.
+    thresh : float
+        The number of standard deviations of the energy resolution to use as the threshold for which events
+        will be detected as a pulse.
+    trigtemplate : NoneType, ndarray, optional
+        The template for the trigger channel pulse. If left as None, then the trigger channel will not
+        be analyzed.
+    trigthresh : NoneType, float, optional
+        The threshold value (in units of the trigger channel) such that any amplitudes higher than this will be 
+        detected as ttl trigger event. If left as None, then only the pulses are analyzed.
+    positivepulses : boolean, optional
+        Boolean flag for which direction the pulses go in the traces. If they go in the positive direction, 
+        then this should be set to True. If they go in the negative direction, then this should be set to False.
+        Default is True.
+    iotype : string, optional
+        Type of file to open, uses a different IO function. Default is "stanford".
+            "stanford" : Use qetpy.io.loadstanfordfile to open the files
                 
     Returns
     -------
-        pulsetimes : ndarray
-            If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
-        pulseamps : 
-            If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
-        trigtimes : ndarray
-            If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
-        trigamps : 
-            If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
-        traces : ndarray
-            The corresponding trace for each detected event.
-        trigtypes: ndarray
-            Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
-            The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
+    pulsetimes : ndarray
+        If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
+    pulseamps : 
+        If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
+    trigtimes : ndarray
+        If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
+    trigamps : 
+        If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
+    traces : ndarray
+        The corresponding trace for each detected event.
+    trigtypes: ndarray
+        Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
+        The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
             
     """
     

@@ -18,15 +18,15 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
 
     Parameters
     ----------
-        noise : Object
-            Noise object to be plotted
-        lgcoverlay : boolean, optional
-            If True, psd's for all channels are overlayed in a single plot, 
-            If False, each psd for each channel is plotted in a seperate subplot
-        lgcsave : boolean, optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    noise : Object
+        Noise object to be plotted
+    lgcoverlay : boolean, optional
+        If True, psd's for all channels are overlayed in a single plot, 
+        If False, each psd for each channel is plotted in a seperate subplot
+    lgcsave : boolean, optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
     """
     
     if noise.psd is None:
@@ -100,12 +100,12 @@ def plot_reim_psd(noise, lgcsave = False, savepath = None):
 
     Parameters
     ----------
-        noise : Object
-            Noise object to be plotted
-        lgcsave : boolean, optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    noise : Object
+        Noise object to be plotted
+    lgcsave : boolean, optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
             
     """
     
@@ -164,16 +164,16 @@ def plot_corrcoeff(noise, lgcsmooth = True, nwindow = 7, lgcsave = False, savepa
 
     Parameters
     ----------
-        noise : Object
-            noise object to be plotted
-        lgcsmooth : boolean, optional
-            If True, a savgol_filter will be used when plotting. 
-        nwindow : int, optional
-            the number of bins used for the window in the savgol_filter
-        lgcsave : boolean, optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    noise : Object
+        noise object to be plotted
+    lgcsmooth : boolean, optional
+        If True, a savgol_filter will be used when plotting. 
+    nwindow : int, optional
+        the number of bins used for the window in the savgol_filter
+    lgcsave : boolean, optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
     """
     
     if (noise.corrcoeff is None):
@@ -213,17 +213,17 @@ def plot_csd(noise, whichcsd = ['01'], lgcreal = True, lgcsave = False, savepath
 
     Parameters
     ----------
-        noise : Object
-            Noise object to be plotted
-        whichcsd : list, optional
-            a list of strings, where each element of the list refers to the pair of 
-            indices of the desired csd plot
-        lgcreal : boolean, optional
-            If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
-        lgcsave : boolean, optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    noise : Object
+        Noise object to be plotted
+    whichcsd : list, optional
+        a list of strings, where each element of the list refers to the pair of 
+        indices of the desired csd plot
+    lgcreal : boolean, optional
+        If True, the Re(csd) is plotted. If False, the Im(csd) is plotted
+    lgcsave : boolean, optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
     """
     
     if noise.csd is None:
@@ -275,25 +275,25 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
 
     Parameters
     ----------
-        noise : Object
-            Noise object to be plotted
-        lgcoverlay : boolean, optional
-            If True, de-correlated for all channels are overlayed in a single plot, 
-            If False, the noise for each channel is plotted in a seperate subplot
-        lgcdata : boolean, optional
-            Only applies when lgcoverlay = False. If True, the csd data is plotted
-        lgcuncorrnoise : boolean, optional
-            Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
-        lgccorrelated : boolean, optional
-            Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
-            is plotted
-        lgcsum : boolean, optional
-            Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
-            and correlated noise is plotted
-        lgcsave : boolean, optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    noise : Object
+        Noise object to be plotted
+    lgcoverlay : boolean, optional
+        If True, de-correlated for all channels are overlayed in a single plot, 
+        If False, the noise for each channel is plotted in a seperate subplot
+    lgcdata : boolean, optional
+        Only applies when lgcoverlay = False. If True, the csd data is plotted
+    lgcuncorrnoise : boolean, optional
+        Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted
+    lgccorrelated : boolean, optional
+        Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+        is plotted
+    lgcsum : boolean, optional
+        Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+        and correlated noise is plotted
+    lgcsave : boolean, optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
     """  
     
     if noise.uncorrnoise is None:
@@ -391,17 +391,17 @@ def compare_noise(arr, channels, lgcdecorrelatednoise = False, lgcsave = False, 
     
     Parameters
     ----------
-        arr : array_like
-            Array of noise objects
-        channels : list 
-            List of strings, each string is a channel to plot. ex ['PSA1','PAS2']
-        lgcdecorrelatednoise : boolean, optional
-            If False, the psd is for each channel is plotted. If True, the calculated
-            de-correlated noise is plotted
-        lgcsave : boolean , optional
-            If True, the figure is saved in the user provided directory
-        savepath : str, optional
-            Absolute path for the figure to be saved
+    arr : array_like
+        Array of noise objects
+    channels : list 
+        List of strings, each string is a channel to plot. ex ['PSA1','PAS2']
+    lgcdecorrelatednoise : boolean, optional
+        If False, the psd is for each channel is plotted. If True, the calculated
+        de-correlated noise is plotted
+    lgcsave : boolean , optional
+        If True, the figure is saved in the user provided directory
+    savepath : str, optional
+        Absolute path for the figure to be saved
     """
     
     
@@ -452,27 +452,27 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, sa
     
     Parameters
     ----------
-        f : array_like
-            Frequency bins for psd
-        psd : array_like 
-            Power spectral density
-        istype : str
-            Must be 'current' or 'power'
-            If 'current' the noise is plotted referenced to TES current
-            If 'power' the noise is plotted referenced to TES power
-        figsize : tuple, optional
-            Desired size of figure
-        lgcsave : boolean, optional
-            If True, plot is saved
-        savepath : str, optional
-            Directory to save trace
+    f : array_like
+        Frequency bins for psd
+    psd : array_like 
+        Power spectral density
+    istype : str
+        Must be 'current' or 'power'
+        If 'current' the noise is plotted referenced to TES current
+        If 'power' the noise is plotted referenced to TES power
+    figsize : tuple, optional
+        Desired size of figure
+    lgcsave : boolean, optional
+        If True, plot is saved
+    savepath : str, optional
+        Directory to save trace
             
     Returns
     -------
-        fig : Object
-            fig object from matplotlib.pyplot
-        ax : Object
-            ax object from matplotlib.pyplot
+    fig : Object
+        fig object from matplotlib.pyplot
+    ax : Object
+        ax object from matplotlib.pyplot
     """
     
     freqs = f[1:]
@@ -526,22 +526,22 @@ def plot_full_trace(didv, poles="all", plotpriors = True, lgcsave = False, savep
     
     Parameters
     ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can be set
-            as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current directory
-            by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty string
-            by default.
+    didv : class
+        The DIDV class object that the data is stored in
+    poles : int, string, array_like, optional
+        The pole fits that we want to plot. If set to "all", then plots
+        all of the fits. Can also be set to just one of the fits. Can be set
+        as an array of different fits, e.g. [1, 2]
+    plotpriors : boolean, optional
+        Boolean value on whether or not the priors fit should be plotted.
+    lgcsave : boolean, optional
+        Boolean value on whether or not the figure should be saved
+    savepath : string, optional
+        Where the figure should be saved. Saved in the current directory
+        by default.
+    savename : string, optional
+        A string to append to the end of the file name if saving. Empty string
+        by default.
     """
 
     if poles == "all":
@@ -589,22 +589,22 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors = True, lgcsave = 
     
     Parameters
     ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can be set
-            as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current directory
-            by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty string
-            by default.
+    didv : class
+        The DIDV class object that the data is stored in
+    poles : int, string, array_like, optional
+        The pole fits that we want to plot. If set to "all", then plots
+        all of the fits. Can also be set to just one of the fits. Can be set
+        as an array of different fits, e.g. [1, 2]
+    plotpriors : boolean, optional
+        Boolean value on whether or not the priors fit should be plotted.
+    lgcsave : boolean, optional
+        Boolean value on whether or not the figure should be saved
+    savepath : string, optional
+        Where the figure should be saved. Saved in the current directory
+        by default.
+    savename : string, optional
+        A string to append to the end of the file name if saving. Empty string
+        by default.
     """
 
     if poles == "all":
@@ -655,24 +655,24 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors = True, l
     
     Parameters
     ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can be set
-            as an array of different fits, e.g. [1, 2]
-        zoomfactor : float, optional, optional
-            Number between zero and 1 to show different amounts of the zoomed in trace.
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current directory
-            by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty string
-            by default.
+    didv : class
+        The DIDV class object that the data is stored in
+    poles : int, string, array_like, optional
+        The pole fits that we want to plot. If set to "all", then plots
+        all of the fits. Can also be set to just one of the fits. Can be set
+        as an array of different fits, e.g. [1, 2]
+    zoomfactor : float, optional, optional
+        Number between zero and 1 to show different amounts of the zoomed in trace.
+    plotpriors : boolean, optional
+        Boolean value on whether or not the priors fit should be plotted.
+    lgcsave : boolean, optional
+        Boolean value on whether or not the figure should be saved
+    savepath : string, optional
+        Where the figure should be saved. Saved in the current directory
+        by default.
+    savename : string, optional
+        A string to append to the end of the file name if saving. Empty string
+        by default.
     """
 
     if poles == "all":
@@ -724,22 +724,22 @@ def plot_didv_flipped(didv, poles="all", plotpriors = True, lgcsave = False, sav
     
     Parameters
     ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can be set
-            as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current directory
-            by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty string
-            by default.
+    didv : class
+        The DIDV class object that the data is stored in
+    poles : int, string, array_like, optional
+        The pole fits that we want to plot. If set to "all", then plots
+        all of the fits. Can also be set to just one of the fits. Can be set
+        as an array of different fits, e.g. [1, 2]
+    plotpriors : boolean, optional
+        Boolean value on whether or not the priors fit should be plotted.
+    lgcsave : boolean, optional
+        Boolean value on whether or not the figure should be saved
+    savepath : string, optional
+        Where the figure should be saved. Saved in the current directory
+        by default.
+    savename : string, optional
+        A string to append to the end of the file name if saving. Empty string
+        by default.
     """
 
     if poles == "all":
@@ -791,22 +791,22 @@ def plot_re_im_didv(didv, poles="all", plotpriors = True, lgcsave = False, savep
     
     Parameters
     ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can be set
-            as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be plotted.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current directory
-            by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty string
-            by default.
+    didv : class
+        The DIDV class object that the data is stored in
+    poles : int, string, array_like, optional
+        The pole fits that we want to plot. If set to "all", then plots
+        all of the fits. Can also be set to just one of the fits. Can be set
+        as an array of different fits, e.g. [1, 2]
+    plotpriors : boolean, optional
+        Boolean value on whether or not the priors fit should be plotted.
+    lgcsave : boolean, optional
+        Boolean value on whether or not the figure should be saved
+    savepath : string, optional
+        Where the figure should be saved. Saved in the current directory
+        by default.
+    savename : string, optional
+        A string to append to the end of the file name if saving. Empty string
+        by default.
     """
 
     if poles == "all":
@@ -936,22 +936,22 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
     
     Parameters
     ----------
-        IVobject : class
-            The IV class object that the data is stored in.
-        temps : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        chans : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        showfit : boolean, optional
-            Boolean flag to also plot the linear fit to the normal data
-        lgcsave : boolean, optional
-            Boolean flag to save the plot
-        savepath : string, optional
-            Path to save the plot to, saves it to the current directory by default
-        savename : string, optional
-            Name to append to the plot file name, if saving
+    IVobject : class
+        The IV class object that the data is stored in.
+    temps : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    chans : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    showfit : boolean, optional
+        Boolean flag to also plot the linear fit to the normal data
+    lgcsave : boolean, optional
+        Boolean flag to save the plot
+    savepath : string, optional
+        Path to save the plot to, saves it to the current directory by default
+    savename : string, optional
+        Name to append to the plot file name, if saving
     """
     
     ntemps, nch, niters = IVobject.dites.shape
@@ -1016,20 +1016,20 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
     
     Parameters
     ----------
-        IVobject : class
-            The IV class object that the data is stored in.
-        temps : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        chans : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        lgcsave : boolean, optional
-            Boolean flag to save the plot
-        savepath : string, optional
-            Path to save the plot to, saves it to the current directory by default
-        savename : string, optional
-            Name to append to the plot file name, if saving
+    IVobject : class
+        The IV class object that the data is stored in.
+    temps : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    chans : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    lgcsave : boolean, optional
+        Boolean flag to save the plot
+    savepath : string, optional
+        Path to save the plot to, saves it to the current directory by default
+    savename : string, optional
+        Name to append to the plot file name, if saving
     """
 
     ntemps, nch, niters = IVobject.r0.shape
@@ -1085,20 +1085,20 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
     
     Parameters
     ----------
-        IVobject : class
-            The IV class object that the data is stored in.
-        temps : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        chans : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        lgcsave : boolean, optional
-            Boolean flag to save the plot
-        savepath : string, optional
-            Path to save the plot to, saves it to the current directory by default
-        savename : string, optional
-            Name to append to the plot file name, if saving
+    IVobject : class
+        The IV class object that the data is stored in.
+    temps : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    chans : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    lgcsave : boolean, optional
+        Boolean flag to save the plot
+    savepath : string, optional
+        Path to save the plot to, saves it to the current directory by default
+    savename : string, optional
+        Name to append to the plot file name, if saving
     """
 
     ntemps, nch, niters = IVobject.ptes.shape
@@ -1154,22 +1154,22 @@ def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=F
     
     Parameters
     ----------
-        IVobject : class
-            The IV class object that the data is stored in.
-        temps : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        chans : string, array_like, int, optional
-            Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
-            to a subset of bath temperatures, or just one
-        showfit : boolean, optional
-            Boolean flag to also plot the linear fit to the normal data
-        lgcsave : boolean, optional
-            Boolean flag to save the plot
-        savepath : string, optional
-            Path to save the plot to, saves it to the current directory by default
-        savename : string, optional
-            Name to append to the plot file name, if saving
+    IVobject : class
+        The IV class object that the data is stored in.
+    temps : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    chans : string, array_like, int, optional
+        Which bath temperatures to plot. Setting to "all" plots all of them. Can also set
+        to a subset of bath temperatures, or just one
+    showfit : boolean, optional
+        Boolean flag to also plot the linear fit to the normal data
+    lgcsave : boolean, optional
+        Boolean flag to save the plot
+    savepath : string, optional
+        Path to save the plot to, saves it to the current directory by default
+    savename : string, optional
+        Name to append to the plot file name, if saving
     """
     
     plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
@@ -1186,16 +1186,13 @@ def plotnonlin(OFnonlinOBJ,pulse, params):
     
     Parameters
     ----------
-        OFnonlinOBJ: OFnonlin object
-            The OFnonlin fit object to be plotted
-        pulse: ndarray
-            The raw trace to be fit
-        params: tuple
-            Tuple containing best fit paramters
+    OFnonlinOBJ: OFnonlin object
+        The OFnonlin fit object to be plotted
+    pulse: ndarray
+        The raw trace to be fit
+    params: tuple
+        Tuple containing best fit paramters
             
-    Returns
-    -------
-        None
     """
     
     if OFnonlinOBJ.lgcdouble:

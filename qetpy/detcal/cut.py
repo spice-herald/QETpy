@@ -15,13 +15,13 @@ def symmetrizedist(vals):
     
     Parameters
     ----------
-        vals : ndarray
-            A 1-d array of the values that will be symmetrized.
+    vals : ndarray
+        A 1-d array of the values that will be symmetrized.
             
     Returns
     -------
-        czeromeanslope : ndarray
-            A boolean mask of the values that should be kept.
+    czeromeanslope : ndarray
+        A boolean mask of the values that should be kept.
     """
     
     nvals = len(vals)
@@ -76,26 +76,26 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
     
     Parameters
     ----------
-        traces : ndarray
-            2-dimensional array of traces to do cuts on
-        fs : float, optional
-            Digitization rate that the data was taken at
-        outlieralgo : string, optional
-            Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-            removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-            to remove data based on being outside a certain number of standard deviations from the mean
-        nsig : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
-        removemeans : boolean, optional
-            Boolean flag on if the mean of each trace should be removed before doing the optimal filter (True) or
-            if the means should not be removed (False). This is useful for dIdV traces, when we want to cut out
-            pulses that have smaller amplitude than the dIdV overshoot. Default is False.
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Digitization rate that the data was taken at
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
+        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard deviations from the mean
+    nsig : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
+    removemeans : boolean, optional
+        Boolean flag on if the mean of each trace should be removed before doing the optimal filter (True) or
+        if the means should not be removed (False). This is useful for dIdV traces, when we want to cut out
+        pulses that have smaller amplitude than the dIdV overshoot. Default is False.
             
     Returns
     -------
-        cpileup : ndarray
-            Boolean array giving which indices to keep or throw out based on the outlier algorithm
+    cpileup : ndarray
+        Boolean array giving which indices to keep or throw out based on the outlier algorithm
             
     """
     
@@ -140,30 +140,30 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     have a slope.
     
     Parameters
-    ----------
-        traces : ndarray
-            2-dimensional array of traces to do cuts on
-        fs : float, optional
-            Digitization rate that the data was taken at
-        outlieralgo : string, optional
-            Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-            removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-            to remove data based on being outside a certain number of standard deviations from the mean
-        nsig : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the slopes. Default is 2.
-        is_didv : bool, optional
-            Boolean flag on whether or not the trace is a dIdV curve
-        symmetrizeflag : bool, optional
-            Flag for whether or not the slopes should be forced to have an average value of zero.
-            Should be used if most of the traces have a slope
-        sgfreq : float, optional
-            If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
+----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Digitization rate that the data was taken at
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
+        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard deviations from the mean
+    nsig : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the slopes. Default is 2.
+    is_didv : bool, optional
+        Boolean flag on whether or not the trace is a dIdV curve
+    symmetrizeflag : bool, optional
+        Flag for whether or not the slopes should be forced to have an average value of zero.
+        Should be used if most of the traces have a slope
+    sgfreq : float, optional
+        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
             
     Returns
     -------
-        cslope : ndarray
-            Boolean array giving which indices to keep or throw out based on the outlier algorithm
+    cslope : ndarray
+        Boolean array giving which indices to keep or throw out based on the outlier algorithm
             
     """
     
@@ -224,26 +224,26 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
     
     Parameters
     ----------
-        traces : ndarray
-            2-dimensional array of traces to do cuts on
-        fs : float, optional
-            Digitization rate that the data was taken at
-        outlieralgo : string, optional
-            Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-            removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-            to remove data based on being outside a certain number of standard deviations from the mean
-        nsig : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the baselines. Default is 2.
-        is_didv : bool, optional
-            Boolean flag on whether or not the trace is a dIdV curve
-        sgfreq : float, optional
-            If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Digitization rate that the data was taken at
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
+        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard deviations from the mean
+    nsig : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the baselines. Default is 2.
+    is_didv : bool, optional
+        Boolean flag on whether or not the trace is a dIdV curve
+    sgfreq : float, optional
+        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
             
     Returns
     -------
-        cbaseline : ndarray
-            Boolean array giving which indices to keep or throw out based on the outlier algorithm
+    cbaseline : ndarray
+        Boolean array giving which indices to keep or throw out based on the outlier algorithm
             
     """
     
@@ -282,22 +282,22 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     
     Parameters
     ----------
-        traces : ndarray
-            2-dimensional array of traces to do cuts on
-        fs : float, optional
-            Digitization rate that the data was taken at
-        outlieralgo : string, optional
-            Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-            removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-            to remove data based on being outside a certain number of standard deviations from the mean
-        nsig : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the Chi2s. Default is 2.
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Digitization rate that the data was taken at
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
+        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard deviations from the mean
+    nsig : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the Chi2s. Default is 2.
             
     Returns
     -------
-        cchi2 : ndarray
-            Boolean array giving which indices to keep or throw out based on the outlier algorithm
+    cchi2 : ndarray
+        Boolean array giving which indices to keep or throw out based on the outlier algorithm
             
     """
     
@@ -340,55 +340,55 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     
     Parameters
     ----------
-        traces : ndarray
-            2-dimensional array of traces to do cuts on
-        fs : float, optional
-            Sample rate that the data was taken at
-        is_didv : bool, optional
-            Boolean flag on whether or not the trace is a dIdV curve
-        sgfreq : float, optional
-            If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
-        symmetrizeflag : bool, optional
-            Flag for whether or not the slopes should be forced to have an average value of zero.
-            Should be used if most of the traces have a slope
-        outlieralgo : string, optional
-            Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-            removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-            to remove data based on being outside a certain number of standard deviations from the mean
-        lgcpileup1 : boolean, optional
-            Boolean value on whether or not do the pileup1 cut (this is the initial pileup cut
-            that is always done whether or not we have dIdV data). Default is True.
-        lgcslope : boolean, optional
-            Boolean value on whether or not do the slope cut. Default is True.
-        lgcbaseline : boolean, optional
-            Boolean value on whether or not do the baseline cut. Default is True.
-        lgcpileup2 : boolean, optional
-            Boolean value on whether or not do the pileup2 cut (this cut is only done when is_didv is
-            also True). Default is True.
-        lgcchi2 : boolean, optional
-            Boolean value on whether or not do the chi2 cut. Default is True.
-        nsigpileup1 : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
-        nsigslope : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the slopes. Default is 2.
-        nsigbaseline : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the baselines. Default is 2.
-        nsigpileup2 : float, optional
-            If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-            to cut outliers from the data when using iterstat on the optimum filter amplitudes after the mean
-            has been subtracted. (only used if is_didv is True). Default is 2.
-        nsigchi2 : float, optional
-            This can be used to tune the number of standard deviations from the mean to cut outliers from the data
-            when using iterstat on the chi^2 values. Default is 3. This is always used, as iterstat is always used
-            for the chi^2 cut.
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Sample rate that the data was taken at
+    is_didv : bool, optional
+        Boolean flag on whether or not the trace is a dIdV curve
+    sgfreq : float, optional
+        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
+    symmetrizeflag : bool, optional
+        Flag for whether or not the slopes should be forced to have an average value of zero.
+        Should be used if most of the traces have a slope
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
+        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard deviations from the mean
+    lgcpileup1 : boolean, optional
+        Boolean value on whether or not do the pileup1 cut (this is the initial pileup cut
+        that is always done whether or not we have dIdV data). Default is True.
+    lgcslope : boolean, optional
+        Boolean value on whether or not do the slope cut. Default is True.
+    lgcbaseline : boolean, optional
+        Boolean value on whether or not do the baseline cut. Default is True.
+    lgcpileup2 : boolean, optional
+        Boolean value on whether or not do the pileup2 cut (this cut is only done when is_didv is
+        also True). Default is True.
+    lgcchi2 : boolean, optional
+        Boolean value on whether or not do the chi2 cut. Default is True.
+    nsigpileup1 : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
+    nsigslope : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the slopes. Default is 2.
+    nsigbaseline : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the baselines. Default is 2.
+    nsigpileup2 : float, optional
+        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
+        to cut outliers from the data when using iterstat on the optimum filter amplitudes after the mean
+        has been subtracted. (only used if is_didv is True). Default is 2.
+    nsigchi2 : float, optional
+        This can be used to tune the number of standard deviations from the mean to cut outliers from the data
+        when using iterstat on the chi^2 values. Default is 3. This is always used, as iterstat is always used
+        for the chi^2 cut.
             
     Returns
     -------
-        ctot : ndarray
-            Boolean array giving which indices to keep or throw out based on the autocuts algorithm
+    ctot : ndarray
+        Boolean array giving which indices to keep or throw out based on the autocuts algorithm
             
     """
     
