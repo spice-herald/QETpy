@@ -15,48 +15,49 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     
     Parameters
     ----------
-        signal : ndarray
-            The signal that we want to apply the optimum filter to (units should be Amps).
-        template : ndarray
-            The pulse template to be used for the optimum filter (should be normalized beforehand).
-        psd : ndarray
-            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
-        fs : float
-            The sample rate of the data being taken (in Hz).
-        withdelay : bool, optional
-            Determines whether or not the optimum amplitude should be calculate with (True) or without
-            (False) using a time delay. With the time delay, the pulse is assumed to be at any time in the trace.
-            Without the time delay, the pulse is assumed to be directly in the middle of the trace. Default
-            is True.
-        coupling : str, optional
-            String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
-            when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
-            set to anything else, then the zero frequency bin is kept. Default is 'AC'.
-        lgcsigma : Boolean, optional
-            If True, the estimated optimal filter energy resolution will be calculated and returned.
-        nconstrain : int, NoneType, optional
-            The length of the window (in bins) to constrain the possible t0 values to, centered on the unshifted 
-            trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
-            the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
-            over.
-        lgcoutsidewindow : bool, optional
-            Boolean flag that is used to specify whether ofamp should look inside nconstrain or outside it. 
-            If False, ofamp will minimize the chi^2 in the bins specified by nconstrain, which is the 
-            default behavior. If True, then ofamp will minimize the chi^2 in the bins that do not contain the
-            constrained window. This is useful for simple detection of pileup. If there is a pulse outside the
-            window, then ofamp should find the amplitude of that pulse instead. Otherwise, ofamp will run into
-            the edge of the window specified by nconstrain.
+    signal : ndarray
+        The signal that we want to apply the optimum filter to (units should be Amps).
+    template : ndarray
+        The pulse template to be used for the optimum filter (should be normalized beforehand).
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    withdelay : bool, optional
+        Determines whether or not the optimum amplitude should be calculate with (True) or without
+        (False) using a time delay. With the time delay, the pulse is assumed to be at any time in the trace.
+        Without the time delay, the pulse is assumed to be directly in the middle of the trace. Default
+        is True.
+    coupling : str, optional
+        String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+        when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
+        set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+    lgcsigma : Boolean, optional
+        If True, the estimated optimal filter energy resolution will be calculated and returned.
+    nconstrain : int, NoneType, optional
+        The length of the window (in bins) to constrain the possible t0 values to, centered on the unshifted 
+        trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
+        the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
+        over.
+    lgcoutsidewindow : bool, optional
+        Boolean flag that is used to specify whether ofamp should look inside nconstrain or outside it. 
+        If False, ofamp will minimize the chi^2 in the bins specified by nconstrain, which is the 
+        default behavior. If True, then ofamp will minimize the chi^2 in the bins that do not contain the
+        constrained window. This is useful for simple detection of pileup. If there is a pulse outside the
+        window, then ofamp should find the amplitude of that pulse instead. Otherwise, ofamp will run into
+        the edge of the window specified by nconstrain.
 
     Returns
     -------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float
-            The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
-        chi2 : float
-            The reduced Chi^2 value calculated from the optimum filter.
-        sigma : float, optional
-            The optimal filter energy resolution (in Amps)
+    amp : float
+        The optimum amplitude calculated for the trace (in Amps).
+    t0 : float
+        The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
+    chi2 : float
+        The reduced Chi^2 value calculated from the optimum filter.
+    sigma : float, optional
+        The optimal filter energy resolution (in Amps)
+        
     """
 
     nbins = len(signal)
@@ -142,40 +143,61 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     else:
         return amp, t0, chi2
     
-def ofamp_pileup(signal, template, psd, fs, a1, t1, coupling='AC'):
+from numpy.fft import fft, ifft, fftfreq
+
+def ofamp_pileup_dev(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
+                     nconstrain1=None, nconstrain2=None):
     """
-    Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
-    and without time delay.
+    Function for calculating the optimum amplitude of a pileup pulse in data. Supports inputted the
+    values of a previously known pulse for increased computational speed, but can be used on its
+    own.
     
     Parameters
     ----------
-        signal : ndarray
-            The signal that we want to apply the optimum filter to (units should be Amps).
-        template : ndarray
-            The pulse template to be used for the optimum filter (should be normalized beforehand).
-        psd : ndarray
-            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
-        fs : float
-            The sample rate of the data being taken (in Hz).
-        a1 : float
-            The OF amplitude (in Amps) to use for the "main" pulse, e.g. the triggered pulse. This 
-            should be calculated beforehand using ofamp.
-        t1 : float
-            The corresponding time offset (in seconds) to use for the "main" pulse, e.g. the triggered
-            pulse. As with a1, this should be calculated beforehand using ofamp.
-        coupling : str, optional
-            String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
-            when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
-            set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+    signal : ndarray
+        The signal that we want to apply the optimum filter to (units should be Amps).
+    template : ndarray
+        The pulse template to be used for the optimum filter (should be normalized beforehand).
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    a1 : float, optional
+        The OF amplitude (in Amps) to use for the "main" pulse, e.g. the triggered pulse. This 
+        should be calculated beforehand using ofamp. This is only used if t1 is also inputted.
+    t1 : float, optional
+        The corresponding time offset (in seconds) to use for the "main" pulse, e.g. the triggered
+        pulse. As with a1, this should be calculated beforehand using ofamp. This is only used if a1
+        is also inputted.
+    coupling : str, optional
+        String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+        when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
+        set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+    nconstrain1 : int, NoneType, optional
+        If t1 is left as None, this is the length of the window (in bins) to constrain the possible 
+        t1 values to for the first pulse, centered on the unshifted trigger. If left as None, then 
+        t1 is uncontrained. If nconstrain1 is larger than nbins, then the function sets nconstrain1 to 
+        nbins, as this is the maximum number of values that t1 can vary over. This is only used if
+        a1 or t1 is not given.
+    nconstrain2 : int, NoneType, optional
+        This is the length of the window (in bins) out of which to constrain the possible 
+        t2 values to for the pileup pulse, centered on the unshifted trigger. If left as None, then 
+        t2 is uncontrained. The value of nconstrain2 should be less than nbins.
 
     Returns
     -------
-        a2 : float
-            The optimum amplitude calculated for the pileup pulse (in Amps).
-        t2 : float
-            The time shift calculated for the pileup pulse (in s)
-        chi2 : float
-            The reduced chi^2 value calculated for the pileup optimum filter.
+    a1 : float
+        The optimum amplitude (in Amps) calculated for the first pulse that was found, which
+        is generally the triggered pulse.
+    t1 : float
+        The time shift calculated for the first pulse that was found (in s)
+    a2 : float
+        The optimum amplitude calculated for the pileup pulse (in Amps).
+    t2 : float
+        The time shift calculated for the pileup pulse (in s)
+    chi2 : float
+        The reduced chi^2 value calculated for the pileup optimum filter.
+        
     """
 
     nbins = len(signal)
@@ -183,6 +205,10 @@ def ofamp_pileup(signal, template, psd, fs, a1, t1, coupling='AC'):
     df = fs/nbins
     freqs = fftfreq(nbins, d=1.0/fs)
     omega = 2.0*np.pi*freqs
+    
+    if a1 is None or t1 is None:
+        a1, t1, _ = ofamp(signal, template, psd, fs, withdelay=True, 
+                          coupling=coupling, nconstrain=nconstrain1)
     
     # take fft of signal and template, divide by nbins to get correct convention 
     v = fft(signal)/nbins
@@ -229,6 +255,16 @@ def ofamp_pileup(signal, template, psd, fs, a1, t1, coupling='AC'):
     chi = np.roll(chi, nbins//2)
     
     # find time of best fit
+    if nconstrain2 is not None:
+        if nconstrain2>nbins:
+            nconstrain2 = nbins
+
+        inds = np.arange(nbins//2-nconstrain2//2, nbins//2+nconstrain2//2+nconstrain2%2)
+        inds_mask = np.zeros(len(chi), dtype=bool)
+        inds_mask[inds] = True
+
+        chi[inds_mask] = np.inf
+    
     bestind = np.argmin(chi)
 
     # get best fit values
@@ -236,7 +272,7 @@ def ofamp_pileup(signal, template, psd, fs, a1, t1, coupling='AC'):
     chi2 = chi[bestind]
     t2 = times[bestind]
     
-    return a2, t2, chi2
+    return a1, t1, a2, t2, chi2
     
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
@@ -246,26 +282,27 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     
     Parameters
     ----------
-        signal : ndarray
-            The signal that we want to calculate the low frequency chi^2 of (units should be Amps).
-        template : ndarray
-            The pulse template to be used for the low frequency chi^2 calculation (should be 
-            normalized beforehand).
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float
-            The time shift calculated for the pulse (in s).
-        psd : ndarray
-            The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
-        fs : float
-            The sample rate of the data being taken (in Hz).
-        fcutoff : float, optional
-            The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.
+    signal : ndarray
+        The signal that we want to calculate the low frequency chi^2 of (units should be Amps).
+    template : ndarray
+        The pulse template to be used for the low frequency chi^2 calculation (should be 
+        normalized beforehand).
+    amp : float
+        The optimum amplitude calculated for the trace (in Amps).
+    t0 : float
+        The time shift calculated for the pulse (in s).
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    fcutoff : float, optional
+        The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.
         
     Returns
     -------
-        chi2low : float
-            The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+    chi2low : float
+        The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+        
     """
     
     nbins = len(signal)
@@ -292,33 +329,33 @@ class OFnonlin(object):
     
     Attributes:
     -----------
-        psd: ndarray 
-            The power spectral density corresponding to the pulses that will be 
-            used in the fit. Must be the full psd (positive and negative frequencies), 
-            and should be properly normalized to whatever units the pulses will be in. 
-        fs: int or float
-            The sample rate of the ADC
-        df: float
-            The delta frequency
-        freqs: ndarray
-            Array of frequencies corresponding to the psd
-        time: ndarray
-            Array of time bins corresponding to the pulse
-        template: ndarray
-            The time series pulse template to use as a guess for initial parameters
-        data: ndarray
-            FFT of the pulse that will be used in the fit
-        lgcdouble: bool
-            If False, only the Pulse hight, fall time, and time offset will be fit.
-            If True, the rise time of the pulse will be fit in addition to the above. 
-        taurise: float
-            The user defined risetime of the pulse
-        error: ndarray
-            The uncertianty per frequency (the square root of the psd, devided by the errorscale)
-        dof: int
-            The number of degrees of freedom in the fit
-        norm: float
-            Normilization factor to go from continuous to FFT
+    psd: ndarray 
+        The power spectral density corresponding to the pulses that will be 
+        used in the fit. Must be the full psd (positive and negative frequencies), 
+        and should be properly normalized to whatever units the pulses will be in. 
+    fs: int or float
+        The sample rate of the ADC
+    df: float
+        The delta frequency
+    freqs: ndarray
+        Array of frequencies corresponding to the psd
+    time: ndarray
+        Array of time bins corresponding to the pulse
+    template: ndarray
+        The time series pulse template to use as a guess for initial parameters
+    data: ndarray
+        FFT of the pulse that will be used in the fit
+    lgcdouble: bool
+        If False, only the Pulse hight, fall time, and time offset will be fit.
+        If True, the rise time of the pulse will be fit in addition to the above. 
+    taurise: float
+        The user defined risetime of the pulse
+    error: ndarray
+        The uncertianty per frequency (the square root of the psd, devided by the errorscale)
+    dof: int
+        The number of degrees of freedom in the fit
+    norm: float
+        Normalization factor to go from continuous to FFT
     
     """
     
@@ -328,15 +365,14 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            psd: ndarray 
-                The power spectral density corresponding to the pulses that will be 
-                used in the fit. Must be the full psd (positive and negative frequencies), 
-                and should be properly normalized to whatever units the pulses will be in. 
-            fs: int or float
-                The sample rate of the ADC
-            template: ndarray
-                The time series pulse template to use as a guess for initial parameters
-            
+        psd: ndarray 
+            The power spectral density corresponding to the pulses that will be 
+            used in the fit. Must be the full psd (positive and negative frequencies), 
+            and should be properly normalized to whatever units the pulses will be in. 
+        fs: int or float
+            The sample rate of the ADC
+        template: ndarray
+            The time series pulse template to use as a guess for initial parameters
             
         """
         
@@ -363,19 +399,20 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            A: float
-                Amplitude of pulse
-            tau_r: float
-                Rise time of two-pole pulse
-            tau_f: float
-                Fall time of two-pole pulse
-            t0: float
-                Time offset of two pole pulse
+        A: float
+            Amplitude of pulse
+        tau_r: float
+            Rise time of two-pole pulse
+        tau_f: float
+            Fall time of two-pole pulse
+        t0: float
+            Time offset of two pole pulse
                 
         Returns
         -------
-            pulse: ndarray, complex
-                Array of amplitude values as a function of freuqncy
+        pulse: ndarray, complex
+            Array of amplitude values as a function of frequency
+            
         """
         
         omega = 2*np.pi*self.freqs
@@ -392,19 +429,19 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            A: float
-                Amplitude of pulse
-            tau_r: float
-                Rise time of two-pole pulse
-            tau_f: float
-                Fall time of two-pole pulse
-            t0: float
-                Time offset of two pole pulse
+        A: float
+            Amplitude of pulse
+        tau_r: float
+            Rise time of two-pole pulse
+        tau_f: float
+            Fall time of two-pole pulse
+        t0: float
+            Time offset of two pole pulse
                 
         Returns
         -------
-            pulse: ndarray
-                Array of amplitude values as a function of time
+        pulse: ndarray
+            Array of amplitude values as a function of time
         """
         
         delta = tau_r-tau_f
@@ -421,17 +458,17 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            A: float
-                Amplitude of pulse
-            tau_f: float
-                Fall time of two-pole pulse
-            t0: float
-                Time offset of two pole pulse
+        A: float
+            Amplitude of pulse
+        tau_f: float
+            Fall time of two-pole pulse
+        t0: float
+            Time offset of two pole pulse
                 
         Returns
         -------
-            pulse: ndarray, complex
-                Array of amplitude values as a function of freuqncy
+        pulse: ndarray, complex
+            Array of amplitude values as a function of freuqncy
         """
         
         tau_r = self.taurise
@@ -443,14 +480,14 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            params: tuple
-                Tuple containing fit parameters
+        params: tuple
+            Tuple containing fit parameters
                 
         Returns
         -------
-            z1d: ndarray
-                Array containing residuals per frequency bin. The complex data is flatted into
-                single array
+        z1d: ndarray
+            Array containing residuals per frequency bin. The complex data is flatted into
+            single array
         """
         
         if self.lgcdouble:
@@ -470,14 +507,14 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            model: ndarray
-                Array corresponding to pulse function (twopole or onepole) evaluated
-                at the optimum values
+        model: ndarray
+            Array corresponding to pulse function (twopole or onepole) evaluated
+            at the optimum values
                 
         Returns
         -------
-            chi2: float
-                The reduced chi squared statistic
+        chi2: float
+            The reduced chi squared statistic
         """
         
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
@@ -489,39 +526,39 @@ class OFnonlin(object):
         
         Parameters
         ----------
-            pulse: ndarray
-                Time series traces to be fit
-            lgcdouble: bool, optional
-                If False, the twopole fit is done, if True, the one pole fit it done.
-                Note, if True, the user must provide the value of taurise.
-            errscale: float or int, optional
-                A scale factor for the psd. Ex: if fitting an average, the errscale should be
-                set to the number of traces used in the average
-            guess: tuple, optional
-                Guess of initial values for fit, must be the same size as the model being used for fit
-            taurise: float, optional
-                The value of the rise time of the pulse if the single pole function is being use for fit
-            lgcfullrtn: bool, optional
-                If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
-                the covariance matrix, and chi squared statistic are returned as well.
-            lgcplot: bool, optional
-                If True, diagnostic plots are returned. 
+        pulse: ndarray
+            Time series traces to be fit
+        lgcdouble: bool, optional
+            If False, the twopole fit is done, if True, the one pole fit it done.
+            Note, if True, the user must provide the value of taurise.
+        errscale: float or int, optional
+            A scale factor for the psd. Ex: if fitting an average, the errscale should be
+            set to the number of traces used in the average
+        guess: tuple, optional
+            Guess of initial values for fit, must be the same size as the model being used for fit
+        taurise: float, optional
+            The value of the rise time of the pulse if the single pole function is being use for fit
+        lgcfullrtn: bool, optional
+            If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+            the covariance matrix, and chi squared statistic are returned as well.
+        lgcplot: bool, optional
+            If True, diagnostic plots are returned. 
                 
         Returns
         -------
-            variables: tuple
-                The best fit parameters
-            errors: tuple
-                The corresponding fit errors for the best fit parameters
-            cov: ndarray
-                The convariance matrix returned from the fit
-            chi2: float
-                The reduced chi squared statistic evaluated at the optimum point of the fit
+        variables: tuple
+            The best fit parameters
+        errors: tuple
+            The corresponding fit errors for the best fit parameters
+        cov: ndarray
+            The convariance matrix returned from the fit
+        chi2: float
+            The reduced chi squared statistic evaluated at the optimum point of the fit
                 
         Raises
         ------
-            ValueError
-                if length of guess does not match the number of parameters needed in fit
+        ValueError
+            if length of guess does not match the number of parameters needed in fit
                 
         """
         
@@ -601,14 +638,6 @@ class OFnonlin(object):
         else:
             return variables
 
-        
-        
-        
-        
-        
-
-
-    
 
 class MuonTailFit(object):
     """
@@ -616,26 +645,26 @@ class MuonTailFit(object):
     
     Attributes:
     -----------
-        psd: ndarray 
-            The power spectral density corresponding to the pulses that will be 
-            used in the fit. Must be the full psd (positive and negative frequencies), 
-            and should be properly normalized to whatever units the pulses will be in. 
-        fs: int or float
-            The sample rate of the ADC
-        df: float
-            The delta frequency
-        freqs: ndarray
-            Array of frequencies corresponding to the psd
-        time: ndarray
-            Array of time bins corresponding to the pulse
-        data: ndarray
-            FFT of the pulse that will be used in the fit
-        error: ndarray
-            The uncertainty per frequency (the square root of the psd, divided by the error scale)
-        dof: int
-            The number of degrees of freedom in the fit
-        norm: float
-            Normalization factor to go from continuous to FFT
+    psd: ndarray 
+        The power spectral density corresponding to the pulses that will be 
+        used in the fit. Must be the full psd (positive and negative frequencies), 
+        and should be properly normalized to whatever units the pulses will be in. 
+    fs: int or float
+        The sample rate of the ADC
+    df: float
+        The delta frequency
+    freqs: ndarray
+        Array of frequencies corresponding to the psd
+    time: ndarray
+        Array of time bins corresponding to the pulse
+    data: ndarray
+        FFT of the pulse that will be used in the fit
+    error: ndarray
+        The uncertainty per frequency (the square root of the psd, divided by the error scale)
+    dof: int
+        The number of degrees of freedom in the fit
+    norm: float
+        Normalization factor to go from continuous to FFT
     
     """
     
@@ -645,12 +674,12 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-            psd: ndarray 
-                The power spectral density corresponding to the pulses that will be 
-                used in the fit. Must be the full psd (positive and negative frequencies), 
-                and should be properly normalized to whatever units the pulses will be in. 
-            fs: int or float
-                The sample rate of the ADC
+        psd: ndarray 
+            The power spectral density corresponding to the pulses that will be 
+            used in the fit. Must be the full psd (positive and negative frequencies), 
+            and should be properly normalized to whatever units the pulses will be in. 
+        fs: int or float
+            The sample rate of the ADC
             
         """
         
@@ -671,20 +700,20 @@ class MuonTailFit(object):
         
     def muontailfcn(self, A, tau):
         """
-        Functional form of pulse in time domain with the amplitude, rise time,
-        fall time, and time offset allowed to float 
+        Functional form of a thermal muon tail in time domain with the amplitude and fall time
+        allowed to float.
         
         Parameters
         ----------
-            A: float
-                Amplitude of pulse
-            tau: float
-                Fall time of muon tail
+        A: float
+            Amplitude of pulse
+        tau: float
+            Fall time of muon tail
                 
         Returns
         -------
-            pulse: ndarray
-                Array of amplitude values as a function of time
+        pulse: ndarray
+            Array of amplitude values as a function of time
         """
         
         omega = 2*np.pi*self.freqs
@@ -693,18 +722,18 @@ class MuonTailFit(object):
     
     def residuals(self, params):
         """
-        Function to calculate the weighted residuals to be minimized
+        Function to calculate the weighted residuals to be minimized.
         
         Parameters
         ----------
-            params: tuple
-                Tuple containing fit parameters
+        params: tuple
+            Tuple containing fit parameters
                 
         Returns
         -------
-            z1d: ndarray
-                Array containing residuals per frequency bin. The complex data is flatted into
-                single array
+        z1d: ndarray
+            Array containing residuals per frequency bin. The complex data is flatted into
+            single array.
         """
         
         A, tau = params
@@ -720,13 +749,13 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-            model: ndarray
-                Array corresponding to pulse function evaluated at the fitted values
+        model: ndarray
+            Array corresponding to pulse function evaluated at the fitted values
                 
         Returns
         -------
-            chi2: float
-                The chi squared statistic
+        chi2: float
+            The chi squared statistic
         """
         
         return np.sum(np.abs(self.data-model)**2/self.error**2)
@@ -737,25 +766,25 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-            signal: ndarray
-                Time series traces to be fit
-            lgcfullrtn: bool, optional
-                If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
-                the covariance matrix, and chi squared statistic are returned as well.
-            errscale: float or int, optional
-                A scale factor for the psd. Ex: if fitting an average, the errscale should be
-                set to the number of traces used in the average
+        signal: ndarray
+            Time series traces to be fit
+        lgcfullrtn: bool, optional
+            If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+            the covariance matrix, and chi squared statistic are returned as well.
+        errscale: float or int, optional
+            A scale factor for the psd. Ex: if fitting an average, the errscale should be
+            set to the number of traces used in the average
 
         Returns
         -------
-            variables: tuple
-                The best fit parameters
-            errors: tuple
-                The corresponding fit errors for the best fit parameters
-            cov: ndarray
-                The convariance matrix returned from the fit
-            chi2: float
-                The chi squared statistic evaluated at the fit
+        variables: tuple
+            The best fit parameters
+        errors: tuple
+            The corresponding fit errors for the best fit parameters
+        cov: ndarray
+            The convariance matrix returned from the fit
+        chi2: float
+            The chi squared statistic evaluated at the fit
         """
 
         self.data = np.fft.fft(signal)/self.norm
