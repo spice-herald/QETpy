@@ -4,7 +4,7 @@ import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
    
-
+__all__ = ["ofamp", "ofamp_pileup", "chi2lowfreq", "OFnonlin", "MuonTailFit"]
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
@@ -142,11 +142,9 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         return amp, t0, chi2, sigma
     else:
         return amp, t0, chi2
-    
-from numpy.fft import fft, ifft, fftfreq
 
-def ofamp_pileup_dev(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
-                     nconstrain1=None, nconstrain2=None):
+def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
+                 nconstrain1=None, nconstrain2=None):
     """
     Function for calculating the optimum amplitude of a pileup pulse in data. Supports inputted the
     values of a previously known pulse for increased computational speed, but can be used on its

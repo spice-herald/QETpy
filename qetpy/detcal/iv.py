@@ -2,6 +2,8 @@ import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
 
+__all__ = ["fitfunc", "findnormalinds", "IV"]
+
 def fitfunc(x, b, m):
     """
     Function to use for fitting to a straight line

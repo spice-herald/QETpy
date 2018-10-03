@@ -3,6 +3,7 @@ import random
 from qetpy.fitting import ofamp
 from qetpy.utils import removeoutliers, iterstat 
 
+__all__ = ["symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts"]
 
 
 def symmetrizedist(vals):
@@ -140,7 +141,7 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     have a slope.
     
     Parameters
-----------
+    ----------
     traces : ndarray
         2-dimensional array of traces to do cuts on
     fs : float, optional

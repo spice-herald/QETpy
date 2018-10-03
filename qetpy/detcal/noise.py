@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import qetpy.plotting as utils
 
+__all__ = ["slope", "fill_negatives", "Noise"]
 
 def slope(x, y, removemeans=True):
     """

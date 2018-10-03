@@ -7,6 +7,9 @@ from math import log10, floor
 from qetpy.io import loadstanfordfile
 from qetpy.utils import inrange
 
+__all__ = ["getchangeslessthanthresh", "rand_sections", "rand_sections_wrapper", "OptimumFilt",
+           "optimumfilt_wrapper"]
+
 
 def getchangeslessthanthresh(x, threshold):
     """

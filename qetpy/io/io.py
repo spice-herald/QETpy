@@ -1,6 +1,8 @@
 from scipy.io import loadmat
 import numpy as np
 
+__all__ = ["loadstanfordfile", "getchannels_singlefile", "getchannels"]
+
 def loadstanfordfile(f, convtoamps=1024, lgcfullrtn=False):
     """
     Function that opens a Stanford .mat file and extracts the useful parameters. 

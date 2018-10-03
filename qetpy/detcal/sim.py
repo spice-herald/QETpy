@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.constants as constants
 
+__all__ = ["loadfromdidv", "TESnoise"]
 
 def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=0.020, 
                  squiddc=2.5e-12, squidpole=0.0, squidn=1.0, noisetype="transition", lgcpriors = False):
