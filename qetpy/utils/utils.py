@@ -6,7 +6,7 @@ from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
 __all__ = ["inrange", "stdcomplex", "removeoutliers", "iterstat", "foldpsd", "calc_psd", "calc_offset", 
-           "lowpassfilter", "align_traces"]
+           "lowpassfilter", "align_traces", "gen_noise"]
 
 def inrange(vals, bounds):
     """
@@ -235,6 +235,33 @@ def calc_psd(x, fs=1.0, folded_over=True):
     return f, psd
 
 
+def gen_noise(psd, ntraces=1):
+    """
+    Function to generate noise traces with random phase from a given PSD. The PSD calculated from
+    the generated noise traces should be the equivalent to the inputted PSD as the number of traces
+    goes to infinity.
+    
+    Parameters
+    ----------
+    psd : ndarray
+        The two-sided power spectral density that will be used to generate the noise.
+    ntraces : int, optional
+        The number of noise traces that should be generated. Default is 1.
+    
+    Returns
+    -------
+    noise : ndarray
+        An array containing all of the generated noise traces from the inputted PSD. Has shape
+        (ntraces, len(psd)). 
+    
+    """
+    
+    traces = np.zeros((ntraces, len(psd)))
+    vals = np.random.randn(ntraces, len(psd))
+    noisefft = fft(vals) * np.sqrt(psd)
+    noise = ifft(noisefft).real
+    
+    return noise
 
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
