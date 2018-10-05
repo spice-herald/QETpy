@@ -1180,7 +1180,7 @@ def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=F
 ####### OFnonlin Class Plotting Functions ##########
 
 
-def plotnonlin(OFnonlinOBJ,pulse, params):
+def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     """
     Diagnostic plotting of non-linear pulse fitting
     
@@ -1197,9 +1197,12 @@ def plotnonlin(OFnonlinOBJ,pulse, params):
     
     if OFnonlinOBJ.lgcdouble:
         A,tau_r,tau_f,t0 = params
+        A_err, tau_r_err, tau_f_err, t0_err = errors
     else:
         A,tau_f,t0 = params
+        A_err, tau_f_err, t0_err = errors
         tau_r = OFnonlinOBJ.taurise
+        tau_r_err = 0.0
     variables = [A,tau_r,tau_f,t0]
     ## get indices to define window ##
     t0ind = int(t0*OFnonlinOBJ.fs) #location of timeoffset
@@ -1251,10 +1254,10 @@ def plotnonlin(OFnonlinOBJ,pulse, params):
     for ii in range(len(params)):
         axes[1][1].plot([],[],  linestyle = ' ')
    
-    labels = [f'Amplitude: {A*1e6:.4f} [$\mu$A]'\
-    ,f'τ$_f$: {tau_f*1e6:.4f} [$\mu$s]'\
-     ,f'$t_0$: {t0*1e3:.4f} [ms]'\
-    ,f'τ$_r$: {tau_r*1e6:.4f} [$\mu$s]']
+    labels = [f'Amplitude: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
+    ,f'τ$_f$: ({tau_f*1e6:.4f} +\- {tau_f_err*1e6:.4f}) [$\mu$s]'\
+     ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
+    ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
     
     lines = axes[1][1].get_lines()
     legend1 = plt.legend([lines[i] for i in range(3, 3+len(params))], [labels[ii] for ii  in range(len(params))]

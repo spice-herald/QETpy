@@ -629,7 +629,7 @@ class OFnonlin(object):
         errors = np.sqrt(cov.diagonal())
         
         if lgcplot:
-            plotnonlin(self,pulse, variables)
+            plotnonlin(self,pulse, variables, errors)
         
         if lgcfullrtn:
             return variables, errors, cov, chi2
