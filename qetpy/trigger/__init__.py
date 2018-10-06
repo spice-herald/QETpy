@@ -1,2 +1,2 @@
 from . import cont_trigger
-from .cont_trigger import rand_sections, rand_sections_wrapper, OptimumFilt, optimumfilt_wrapper
+from .cont_trigger import rand_sections, OptimumFilt, acquire_randoms, acquire_pulses

@@ -6,9 +6,10 @@ from collections import Counter
 from math import log10, floor
 from qetpy.io import loadstanfordfile
 from qetpy.utils import inrange
+import datetime
 
-__all__ = ["getchangeslessthanthresh", "rand_sections", "rand_sections_wrapper", "OptimumFilt",
-           "optimumfilt_wrapper"]
+__all__ = ["getchangeslessthanthresh", "rand_sections", "OptimumFilt", "acquire_randoms",
+           "acquire_pulses"]
 
 
 def getchangeslessthanthresh(x, threshold):
@@ -142,68 +143,6 @@ def rand_sections(x, n, l, t=None, fs=1.0):
     
     return evttimes, res
 
-def rand_sections_wrapper(filelist, n, l, datashape=None, iotype="stanford"):
-    """
-    Wrapper for the rand_sections function for getting random sections from many different files. This allows 
-    the user to input a list of files that the random sections should be pulled from.
-    
-    Parameters
-    ----------
-    filelist : list of strings
-        List of files to be opened to take random sections from (should be full paths)
-    n : int
-        Number of sections to choose
-    l : int
-        Length in bins of sections
-    datashape : tuple, NoneType, optional
-        The shape of the data in each file. If inputted, this should be a tuple that is 
-        (# of traces in a dataset, # of bins in each trace). If left as None, then the first file in filelist
-        is opened, and the shape of the data in it is used.
-    iotype : string, optional
-        Type of file to open, uses a different IO function. Default is "stanford".
-            "stanford" : Use qetpy.io.loadstanfordfile to open the files
-                
-    Returns
-    -------
-    evttimes : ndarray
-        Array of the corresponding event times for each section
-    res : ndarray
-        Array of the n sections of x, each with length l
-        
-    """
-    
-    if datashape is None:
-        # get the shape of data from the first dataset, we assume the shape is the same for all files
-        if iotype=="stanford":
-            traces = loadstanfordfile(filelist[0])[0]
-            datashape = (traces.shape[0], traces.shape[-1])
-        else:
-            raise ValueError("Unrecognized iotype inputted.")
-    
-    nmax = int(datashape[-1]/l)
-    choicelist = list(range(len(filelist))) * nmax * datashape[0]
-    np.random.shuffle(choicelist)
-    rows = np.array(choicelist[:n])
-    counts = Counter(rows)
-
-    evttimes_list = []
-    res_list = []
-
-    for key in counts.keys():
-
-        if iotype=="stanford":
-            traces, t, fs, _ = loadstanfordfile(filelist[key])
-        else:
-            raise ValueError("Unrecognized iotype inputted.")
-            
-        et, r = rand_sections(traces, counts[key], l, t=t, fs=fs)
-        evttimes_list.append(et)
-        res_list.append(r)
-    
-    evttimes = np.concatenate(evttimes_list)
-    res = np.vstack(res_list)
-    
-    return evttimes, res
 
 class OptimumFilt(object):
     """
@@ -539,12 +478,131 @@ class OptimumFilt(object):
             self.evttraces = np.vstack([t for t in traces_list if len(t)>0])
             self.trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
 
-    
-def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigtemplate=None, 
-                        trigthresh=None, positivepulses=True, iotype="stanford"):
+def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=None, 
+                    savename=None, dumpnum=1, maxevts=1000):
     """
-    Wrapper function for the OptimumFilt class for running the continuous trigger on many different files. This allows 
-    the user to input a list of files that should be analyzed.
+    Function for acquiring random traces from a list of files and saving the results
+    to a .npz file for later processing.
+    
+    Parameters
+    ----------
+    filelist : list of strings
+        List of files to be opened to take random sections from (should be full paths)
+    n : int
+        Number of sections to choose
+    l : int
+        Length in bins of sections
+    datashape : tuple, NoneType, optional
+        The shape of the data in each file. If inputted, this should be a tuple that is 
+        (# of traces in a dataset, # of bins in each trace). If left as None, then the first file 
+        in filelist is opened, and the shape of the data in it is used.
+    iotype : string, optional
+        Type of file to open, uses a different IO function. Default is "stanford".
+            "stanford" : Use qetpy.io.loadstanfordfile to open the files
+    savepath : NoneType, str, optional
+        Path to save the events to, if saveevents is True. If this is left as None, then they will
+        be saved in the current working directory.
+    savename : NoneType, str, optional
+        Filename to save the events as. It is recommended that this follows CDMS format, which is 
+        "[code][lasttwodigitsofyear][month][day]_[24hourclocktime]". If this is left as None, then 
+        a dummy filename is used based on the inputted filelist.
+    dumpnum : int, optional
+        The dump number that the file should start saving from and the event number should be 
+        determined by when saving. Default is 1.
+    maxevts : int, optional
+        The maximum number of events that should be stored in each dump when saving. Default
+        is 1000.
+                
+        
+    """
+    
+    if savepath is None:
+        savepath = "./"
+
+    if len(savepath) > 0 and savepath[-1]!="/":
+        savepath+="/"
+    
+    if savename is None:
+        now = datetime.datetime.now()
+        savename = now.strftime("%Y%m%d_%H%M")
+    
+    if datashape is None:
+        # get the shape of data from the first dataset, we assume the shape is the same for all files
+        if iotype=="stanford":
+            traces = loadstanfordfile(filelist[0])[0]
+            datashape = (traces.shape[0], traces.shape[-1])
+        else:
+            raise ValueError("Unrecognized iotype inputted.")
+    
+    nmax = int(datashape[-1]/l)
+    choicelist = list(range(len(filelist))) * nmax * datashape[0]
+    np.random.shuffle(choicelist)
+    rows = np.array(choicelist[:n])
+    counts = Counter(rows)
+
+    evttimes_list = []
+    res_list = []
+    
+    evt_counter = 0
+
+    for key in counts.keys():
+
+        if iotype=="stanford":
+            traces, t, fs, _ = loadstanfordfile(filelist[key])
+        else:
+            raise ValueError("Unrecognized iotype inputted.")
+            
+        et, r = rand_sections(traces, counts[key], l, t=t, fs=fs)
+        
+        evt_counter += len(et)
+
+        evttimes_list.append(et)
+        res_list.append(r)
+
+        if evt_counter >= maxevts:
+            
+            evttimes = np.concatenate(evttimes_list)
+            res = np.vstack(res_list)
+            trigtypes = np.zeros((len(evttimes), 3), dtype=bool)
+            trigtypes[:,0] = True
+            
+            for ii in range(len(evttimes)//maxevts):
+                _saveevents(randomstimes=evttimes[ii*maxevts:(ii+1)*maxevts], 
+                            traces=res[ii*maxevts:(ii+1)*maxevts], 
+                            trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                            savepath=savepath, savename=savename, dumpnum=dumpnum)
+                dumpnum+=1
+            
+            if len(evttimes)/maxevts>1:
+                evttimes_list = [evttimes[(ii+1)*maxevts:]]
+                res_list = [res[(ii+1)*maxevts:]]
+                evt_counter = len(evttimes[(ii+1)*maxevts:])
+            else:
+                evttimes_list = []
+                res_list = []
+                evt_counter = 0
+            
+    # clean up the remaining events
+    if evt_counter > 0:
+        
+        evttimes = np.concatenate(evttimes_list)
+        res = np.vstack(res_list)
+        trigtypes = np.zeros((len(evttimes), 3), dtype=bool)
+        trigtypes[:,0] = True
+
+        for ii in range(np.ceil(len(evttimes)/maxevts).astype(int)):
+            _saveevents(randomstimes=evttimes[ii*maxevts:(ii+1)*maxevts], 
+                        traces=res[ii*maxevts:(ii+1)*maxevts], 
+                        trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                        savepath=savepath, savename=savename, dumpnum=dumpnum)
+            dumpnum+=1
+    
+def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtemplate=None, 
+                   trigthresh=None, positivepulses=True, iotype="stanford", savepath=None, 
+                   savename=None, dumpnum=1, maxevts=1000):
+    """
+    Function for running the continuous trigger on many different files and saving the events 
+    to .npz files for later processing.
     
     Parameters
     ----------
@@ -572,25 +630,31 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
     iotype : string, optional
         Type of file to open, uses a different IO function. Default is "stanford".
             "stanford" : Use qetpy.io.loadstanfordfile to open the files
-                
-    Returns
-    -------
-    pulsetimes : ndarray
-        If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
-    pulseamps : 
-        If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
-    trigtimes : ndarray
-        If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
-    trigamps : 
-        If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
-    traces : ndarray
-        The corresponding trace for each detected event.
-    trigtypes: ndarray
-        Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
-        The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
+    savepath : NoneType, str, optional
+        Path to save the events to, if saveevents is True. If this is left as None, then they will
+        be saved in the current working directory.
+    savename : NoneType, str, optional
+        Filename to save the events as. It is recommended that this follows CDMS format, which is 
+        "[code][lasttwodigitsofyear][month][day]_[24hourclocktime]". If this is left as None, then 
+        a dummy filename is used based on the inputted filelist.
+    dumpnum : int, optional
+        The dump number that the file should start saving from and the event number should be 
+        determined by when saving. Default is 1.
+    maxevts : int, optional
+        The maximum number of events that should be stored in each dump when saving. Default
+        is 1000.
             
     """
     
+    if savepath is None:
+        savepath = "./"
+
+    if len(savepath) > 0 and savepath[-1]!="/":
+        savepath+="/"
+    
+    if savename is None:
+        now = datetime.datetime.now()
+        savename = now.strftime("%Y%m%d_%H%M")
     
     if type(filelist)==str:
         filelist=[filelist]
@@ -601,6 +665,8 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
     trigamps_list = []
     traces_list = []
     trigtypes_list = []
+    
+    evt_counter = 0
     
     for f in filelist:
         
@@ -615,6 +681,8 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
         filt.filtertraces(traces, times, trig=trig)
         filt.eventtrigger(thresh, trigthresh=trigthresh)
         
+        evt_counter += len(filt.pulsetimes)
+        
         pulsetimes_list.append(filt.pulsetimes)
         pulseamps_list.append(filt.pulseamps)
         trigtimes_list.append(filt.trigtimes)
@@ -622,18 +690,107 @@ def optimumfilt_wrapper(filelist, template, noisepsd, tracelength, thresh, trigt
         traces_list.append(filt.evttraces)
         trigtypes_list.append(filt.trigtypes)
         
-    pulsetimes = np.concatenate(pulsetimes_list)
-    pulseamps = np.concatenate(pulseamps_list)
-    trigtimes = np.concatenate(trigtimes_list)
-    trigamps = np.concatenate(trigamps_list)
-    
-    if len(pulseamps)==0:
-        traces = np.array([])
-        trigtypes = np.array([])
-    else:
-        traces = np.vstack([t for t in traces_list if len(t)>0])
-        trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
-    
-    return pulsetimes, pulseamps, trigtimes, trigamps, traces, trigtypes
+        if evt_counter >= maxevts:
+        
+            pulsetimes = np.concatenate(pulsetimes_list)
+            pulseamps = np.concatenate(pulseamps_list)
+            trigtimes = np.concatenate(trigtimes_list)
+            trigamps = np.concatenate(trigamps_list)
 
+            if len(pulseamps)==0:
+                traces = np.array([])
+                trigtypes = np.array([])
+            else:
+                traces = np.vstack([t for t in traces_list if len(t)>0])
+                trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
+            
+            for ii in range(len(pulsetimes)//maxevts):
+                
+                _saveevents(pulsetimes=pulsetimes[ii*maxevts:(ii+1)*maxevts], 
+                            pulseamps=pulseamps[ii*maxevts:(ii+1)*maxevts], 
+                            trigtimes=trigtimes[ii*maxevts:(ii+1)*maxevts], 
+                            trigamps=trigamps[ii*maxevts:(ii+1)*maxevts], 
+                            traces=traces[ii*maxevts:(ii+1)*maxevts], 
+                            trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                            savepath=savepath, savename=savename, dumpnum=dumpnum)
+                dumpnum+=1
+                
+            if len(pulsetimes)/maxevts>1:
+                pulsetimes_list = [pulsetimes[(ii+1)*maxevts:]]
+                pulseamps_list = [pulseamps[(ii+1)*maxevts:]]
+                trigtimes_list = [trigtimes[(ii+1)*maxevts:]]
+                trigamps_list = [trigamps[(ii+1)*maxevts:]]
+                traces_list = [traces[(ii+1)*maxevts:]]
+                trigtypes_list = [trigtypes[(ii+1)*maxevts:]]
+                evt_counter = len(pulsetimes[(ii+1)*maxevts:])
+            else:
+                pulsetimes_list = []
+                pulseamps_list = []
+                trigtimes_list = []
+                trigamps_list = []
+                traces_list = []
+                trigtypes_list = []
+                evt_counter = 0
+    
+    # clean up the rest of the events
+    if evt_counter > 0:
+        
+        pulsetimes = np.concatenate(pulsetimes_list)
+        pulseamps = np.concatenate(pulseamps_list)
+        trigtimes = np.concatenate(trigtimes_list)
+        trigamps = np.concatenate(trigamps_list)
 
+        if len(pulseamps)==0:
+            traces = np.array([])
+            trigtypes = np.array([])
+        else:
+            traces = np.vstack([t for t in traces_list if len(t)>0])
+            trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
+
+        for ii in range(np.ceil(len(pulsetimes)/maxevts).astype(int)):
+            _saveevents(pulsetimes=pulsetimes[ii*maxevts:(ii+1)*maxevts], 
+                        pulseamps=pulseamps[ii*maxevts:(ii+1)*maxevts], 
+                        trigtimes=trigtimes[ii*maxevts:(ii+1)*maxevts], 
+                        trigamps=trigamps[ii*maxevts:(ii+1)*maxevts], 
+                        traces=traces[ii*maxevts:(ii+1)*maxevts], 
+                        trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                        savepath=savepath, savename=savename, dumpnum=dumpnum)
+            dumpnum+=1
+    
+def _saveevents(pulsetimes=None, pulseamps=None, trigtimes=None,
+               trigamps=None, randomstimes=None, traces=None, trigtypes=None, 
+               savepath=None, savename=None, dumpnum=None):
+    """
+    Hidden helper function for simple saving of events to .npz file.
+    
+    Parameters
+    ----------
+    pulsetimes : ndarray
+        If we triggered on a pulse, the time of the pulse trigger in seconds. Otherwise this is zero.
+    pulseamps : 
+        If we triggered on a pulse, the optimum amplitude at the pulse trigger time. Otherwise this is zero.
+    trigtimes : ndarray
+        If we triggered due to ttl, the time of the ttl trigger in seconds. Otherwise this is zero.
+    trigamps : 
+        If we triggered due to ttl, the optimum amplitude at the ttl trigger time. Otherwise this is zero.
+    randomstimes : ndarray
+        Array of the corresponding event times for each section
+    traces : ndarray
+        The corresponding trace for each detected event.
+    trigtypes: ndarray
+        Array of boolean vectors each of length 3. The first value indicates if the trace is a random or not.
+        The second value indicates if we had a pulse trigger. The third value indicates if we had a ttl trigger.
+    savepath : NoneType, str, optional
+        Path to save the events to.
+    savename : NoneType, str, optional
+        Filename to save the events as.
+    dumpnum : int, optional
+        The dump number of the current file.
+        
+    """
+    
+    filename = f"{savepath}{savename}_{dumpnum}.npz"
+    np.savez_compressed(filename, pulsetimes=pulsetimes, pulseamps=pulseamps, 
+                        trigtimes=trigtimes, trigamps=trigamps, randomstimes=randomstimes, 
+                        traces=traces, trigtypes=trigtypes)
+    
