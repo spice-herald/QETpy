@@ -20,3 +20,8 @@ dist/*
 
 .pytest_cache/*
 
+
+### ignore data saved from trigger demo
+demos/trigger/*.npz
+
+
