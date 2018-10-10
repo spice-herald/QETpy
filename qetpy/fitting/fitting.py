@@ -65,8 +65,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     df = fs/nbins
     
     # take fft of signal and template, divide by nbins to get correct convention 
-    v = fft(signal)/nbins
-    s = fft(template)/nbins
+    v = fft(signal)/nbins/df
+    s = fft(template)/nbins/df
 
     # check for compatibility between PSD and DFT
     if(len(psd) != len(v)):
@@ -79,20 +79,20 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
 
     # find optimum filter and norm
     phi = s.conjugate()/psd
-    norm = np.real(np.dot(phi, s))/df
+    norm = np.real(np.dot(phi, s))*df
     signalfilt = phi*v/norm
 
     # calculate the expected energy resolution
     if lgcsigma:
-        sigma = 1/(np.dot(phi, s).real*timelen)**0.5
+        sigma = 1/(np.dot(phi, s).real*df)**0.5
     
     if withdelay:
         # compute OF with delay
         # correct for fft convention by multiplying by nbins
-        amps = np.real(ifft(signalfilt*nbins))/df
+        amps = np.real(ifft(signalfilt*nbins))*df
         
         # signal part of chi2
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
         
         # fitting part of chi2
         chit = (amps**2)*norm
@@ -126,11 +126,11 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         
     else:
         # compute OF amplitude no delay
-        amp = np.real(np.sum(signalfilt))/df
+        amp = np.real(np.sum(signalfilt))*df
         t0 = 0.0
     
         # signal part of chi2
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
+        chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
         
         # fitting part of chi2
         chit = (amp**2)*norm
