@@ -679,7 +679,7 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
             
         filt = OptimumFilt(fs, template, noisepsd, tracelength, trigtemplate=trigtemplate)
         filt.filtertraces(traces, times, trig=trig)
-        filt.eventtrigger(thresh, trigthresh=trigthresh)
+        filt.eventtrigger(thresh, trigthresh=trigthresh, positivepulses=positivepulses)
         
         evt_counter += len(filt.pulsetimes)
         
