@@ -519,7 +519,7 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
     if savepath is None:
         savepath = "./"
 
-    if savepath.endswith("/"):
+    if not savepath.endswith("/"):
         savepath+="/"
     
     if savename is None:
@@ -652,7 +652,7 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
     if savepath is None:
         savepath = "./"
 
-    if savepath.endswith("/"):
+    if not savepath.endswith("/"):
         savepath+="/"
     
     if savename is None:
