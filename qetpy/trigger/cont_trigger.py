@@ -519,12 +519,15 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
     if savepath is None:
         savepath = "./"
 
-    if len(savepath) > 0 and savepath[-1]!="/":
+    if savepath.endswith("/"):
         savepath+="/"
     
     if savename is None:
         now = datetime.datetime.now()
         savename = now.strftime("%Y%m%d_%H%M")
+        
+    if isinstance(filelist, str):
+        filelist=[filelist]
     
     if datashape is None:
         # get the shape of data from the first dataset, we assume the shape is the same for all files
@@ -649,14 +652,14 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
     if savepath is None:
         savepath = "./"
 
-    if len(savepath) > 0 and savepath[-1]!="/":
+    if savepath.endswith("/"):
         savepath+="/"
     
     if savename is None:
         now = datetime.datetime.now()
         savename = now.strftime("%Y%m%d_%H%M")
     
-    if type(filelist)==str:
+    if isinstance(filelist, str):
         filelist=[filelist]
     
     pulsetimes_list = []
