@@ -8,7 +8,7 @@ __all__ = ["ofamp", "ofamp_pileup", "chi2lowfreq", "OFnonlin", "MuonTailFit"]
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
-          nconstrain=None, lgcoutsidewindow=False):
+          nconstrain=None, lgcoutsidewindow=False, integralnorm=False):
     """
     Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
     and without time delay.
@@ -46,6 +46,11 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         constrained window. This is useful for simple detection of pileup. If there is a pulse outside the
         window, then ofamp should find the amplitude of that pulse instead. Otherwise, ofamp will run into
         the edge of the window specified by nconstrain.
+    integralnorm : bool, optional
+        If set to True, then ofamp will normalize the template to an integral of 1, and ofamp will instead
+        return the optimal integral in units of Coulombs. If lgcsigma is set to True, then it will be 
+        returned in units of Coulombs as well. If set to False, then the usual optimal filter amplitude
+        will be returned (in units of Amps).
 
     Returns
     -------
@@ -67,6 +72,9 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     # take fft of signal and template, divide by nbins to get correct convention 
     v = fft(signal)/nbins/df
     s = fft(template)/nbins/df
+    
+    if integralnorm:
+        s/=s[0]
 
     # check for compatibility between PSD and DFT
     if(len(psd) != len(v)):
