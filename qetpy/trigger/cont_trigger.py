@@ -566,20 +566,27 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
             
             evttimes = np.concatenate(evttimes_list)
             res = np.vstack(res_list)
+            del evttimes_list
+            del res_list
             trigtypes = np.zeros((len(evttimes), 3), dtype=bool)
             trigtypes[:,0] = True
             
             for ii in range(len(evttimes)//maxevts):
-                _saveevents(randomstimes=evttimes[ii*maxevts:(ii+1)*maxevts], 
-                            traces=res[ii*maxevts:(ii+1)*maxevts], 
-                            trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                
+                _saveevents(randomstimes=evttimes[:maxevts], 
+                            traces=res[:maxevts], 
+                            trigtypes=trigtypes[:maxevts], 
                             savepath=savepath, savename=savename, dumpnum=dumpnum)
                 dumpnum+=1
+                
+                evttimes = evttimes[maxevts:]
+                res = res[maxevts:]
+                trigtypes = trigtypes[maxevts:]
             
             if len(evttimes)/maxevts>1:
-                evttimes_list = [evttimes[(ii+1)*maxevts:]]
-                res_list = [res[(ii+1)*maxevts:]]
-                evt_counter = len(evttimes[(ii+1)*maxevts:])
+                evttimes_list = [evttimes]
+                res_list = [res]
+                evt_counter = len(evttimes)
             else:
                 evttimes_list = []
                 res_list = []
@@ -590,15 +597,25 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
         
         evttimes = np.concatenate(evttimes_list)
         res = np.vstack(res_list)
+        
+        del evttimes_list
+        del res_list
+        
         trigtypes = np.zeros((len(evttimes), 3), dtype=bool)
         trigtypes[:,0] = True
 
         for ii in range(np.ceil(len(evttimes)/maxevts).astype(int)):
-            _saveevents(randomstimes=evttimes[ii*maxevts:(ii+1)*maxevts], 
-                        traces=res[ii*maxevts:(ii+1)*maxevts], 
-                        trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+            
+            _saveevents(randomstimes=evttimes[:maxevts], 
+                        traces=res[:maxevts], 
+                        trigtypes=trigtypes[:maxevts], 
                         savepath=savepath, savename=savename, dumpnum=dumpnum)
             dumpnum+=1
+            
+            if ii+1!=np.ceil(len(evttimes)/maxevts).astype(int):
+                evttimes = evttimes[maxevts:]
+                res = res[maxevts:]
+                trigtypes = trigtypes[maxevts:]
     
 def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtemplate=None, 
                    trigthresh=None, positivepulses=True, iotype="stanford", savepath=None, 
@@ -706,26 +723,39 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
             else:
                 traces = np.vstack([t for t in traces_list if len(t)>0])
                 trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
+                
+            del pulsetimes_list
+            del pulseamps_list
+            del trigtimes_list
+            del trigamps_list
+            del traces_list
+            del trigtypes_list
             
             for ii in range(len(pulsetimes)//maxevts):
                 
-                _saveevents(pulsetimes=pulsetimes[ii*maxevts:(ii+1)*maxevts], 
-                            pulseamps=pulseamps[ii*maxevts:(ii+1)*maxevts], 
-                            trigtimes=trigtimes[ii*maxevts:(ii+1)*maxevts], 
-                            trigamps=trigamps[ii*maxevts:(ii+1)*maxevts], 
-                            traces=traces[ii*maxevts:(ii+1)*maxevts], 
-                            trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+                _saveevents(pulsetimes=pulsetimes[:maxevts], 
+                            pulseamps=pulseamps[:maxevts], 
+                            trigtimes=trigtimes[:maxevts], 
+                            trigamps=trigamps[:maxevts], 
+                            traces=traces[:maxevts], 
+                            trigtypes=trigtypes[:maxevts], 
                             savepath=savepath, savename=savename, dumpnum=dumpnum)
                 dumpnum+=1
+                pulsetimes = pulsetimes[maxevts:]
+                pulseamps = pulseamps[maxevts:]
+                trigtimes = trigtimes[maxevts:]
+                trigamps = trigamps[maxevts:]
+                traces = traces[maxevts:]
+                trigtypes = trigtypes[maxevts:]
                 
             if len(pulsetimes)/maxevts>1:
-                pulsetimes_list = [pulsetimes[(ii+1)*maxevts:]]
-                pulseamps_list = [pulseamps[(ii+1)*maxevts:]]
-                trigtimes_list = [trigtimes[(ii+1)*maxevts:]]
-                trigamps_list = [trigamps[(ii+1)*maxevts:]]
-                traces_list = [traces[(ii+1)*maxevts:]]
-                trigtypes_list = [trigtypes[(ii+1)*maxevts:]]
-                evt_counter = len(pulsetimes[(ii+1)*maxevts:])
+                pulsetimes_list = [pulsetimes]
+                pulseamps_list = [pulseamps]
+                trigtimes_list = [trigtimes]
+                trigamps_list = [trigamps]
+                traces_list = [traces]
+                trigtypes_list = [trigtypes]
+                evt_counter = len(pulsetimes)
             else:
                 pulsetimes_list = []
                 pulseamps_list = []
@@ -750,15 +780,31 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
             traces = np.vstack([t for t in traces_list if len(t)>0])
             trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
 
+        del pulsetimes_list
+        del pulseamps_list
+        del trigtimes_list
+        del trigamps_list
+        del traces_list
+        del trigtypes_list
+            
         for ii in range(np.ceil(len(pulsetimes)/maxevts).astype(int)):
-            _saveevents(pulsetimes=pulsetimes[ii*maxevts:(ii+1)*maxevts], 
-                        pulseamps=pulseamps[ii*maxevts:(ii+1)*maxevts], 
-                        trigtimes=trigtimes[ii*maxevts:(ii+1)*maxevts], 
-                        trigamps=trigamps[ii*maxevts:(ii+1)*maxevts], 
-                        traces=traces[ii*maxevts:(ii+1)*maxevts], 
-                        trigtypes=trigtypes[ii*maxevts:(ii+1)*maxevts], 
+            
+            _saveevents(pulsetimes=pulsetimes[:maxevts], 
+                        pulseamps=pulseamps[:maxevts], 
+                        trigtimes=trigtimes[:maxevts], 
+                        trigamps=trigamps[:maxevts], 
+                        traces=traces[:maxevts], 
+                        trigtypes=trigtypes[:maxevts], 
                         savepath=savepath, savename=savename, dumpnum=dumpnum)
             dumpnum+=1
+            
+            if ii+1!=np.ceil(len(pulsetimes)/maxevts).astype(int):
+                pulsetimes = pulsetimes[maxevts:]
+                pulseamps = pulseamps[maxevts:]
+                trigtimes = trigtimes[maxevts:]
+                trigamps = trigamps[maxevts:]
+                traces = traces[maxevts:]
+                trigtypes = trigtypes[maxevts:]
     
 def _saveevents(pulsetimes=None, pulseamps=None, trigtimes=None,
                trigamps=None, randomstimes=None, traces=None, trigtypes=None, 
@@ -791,6 +837,15 @@ def _saveevents(pulsetimes=None, pulseamps=None, trigtimes=None,
         The dump number of the current file.
         
     """
+    
+    if randomstimes is None:
+        randomstimes = np.zeros_like(pulsetimes)
+        
+    if pulsetimes is None:
+        pulsetimes = np.zeros_like(randomstimes)
+        pulseamps = np.zeros_like(randomstimes)
+        trigtimes = np.zeros_like(randomstimes)
+        trigamps = np.zeros_like(randomstimes)
     
     filename = f"{savepath}{savename}_{dumpnum}.npz"
     np.savez_compressed(filename, pulsetimes=pulsetimes, pulseamps=pulseamps, 
