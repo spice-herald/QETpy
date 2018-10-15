@@ -307,7 +307,7 @@ class OptimumFilt(object):
         Method to detect events in the traces with an optimum amplitude greater than the specified threshold.
         Note that this may return duplicate events, so care should be taken in post-processing to get rid of 
         such events.
-           
+
         Parameters
         ----------
         thresh : float
@@ -320,92 +320,85 @@ class OptimumFilt(object):
             Boolean flag for which direction the pulses go in the traces. If they go in the positive direction, 
             then this should be set to True. If they go in the negative direction, then this should be set to False.
             Default is True.
-        
+
         """
-        
-        # initialize the lists that we will save
-        pulseamps_list = []
-        pulsetimes_list = []
-        trigamps_list = []
-        trigtimes_list = []
-        traces_list = []
-        trigtypes_list = []
-        
+
+        # initialize lists we will save
+        pulseamps = []
+        pulsetimes = []
+        trigamps = []
+        trigtimes = []
+        traces = []
+        trigtypes = []
+
         # go through each filtered trace and get the events
-        for ii,filt in enumerate(self.filts):
-            
+        for ii, filt in enumerate(self.filts):
+
             if self.trigfilts is None or trigthresh is None:
-                    
+
                 # find where the filtered trace has an optimum amplitude greater than the specified amplitude
                 if positivepulses:
                     evts_mask = filt>thresh*self.resolution
                 else:
                     evts_mask = filt<-thresh*self.resolution
-                    
+
                 evts = np.where(evts_mask)[0]
-                
+
                 # check if any left over detected events are within the specified pulse_range from each other
                 ranges = getchangeslessthanthresh(evts, self.pulse_range)[0]
-                
+
                 # set the trigger type to pulses
-                trigtypes = np.zeros((len(ranges), 3), dtype=bool)
-                trigtypes[:,1] = True
-                
+                rangetypes = np.zeros((len(ranges), 3), dtype=bool)
+                rangetypes[:,1] = True
+
             elif trigthresh is not None:
                 # find where the filtered trace has an optimum amplitude greater than the specified threshold
                 if positivepulses:
                     pulseevts_mask = filt>thresh*self.resolution
                 else:
                     pulseevts_mask = filt<-thresh*self.resolution
-                    
+
                 pulseevts = np.where(pulseevts_mask)[0]
-                
+
                 # check if any left over detected events are within the specified pulse_range from each other
                 pulseranges, pulsevals = getchangeslessthanthresh(pulseevts, self.pulse_range)
-                
+
                 # make a boolean mask of the ranges of the events in the trace from the pulse triggering
-                pulse_mask = np.zeros(self.filts[ii].shape, dtype=bool)
+                pulse_mask = np.zeros(filt.shape, dtype=bool)
                 for evt_range in pulseranges:
                     if evt_range[1]>evt_range[0]:
                         evt_inds = pulseevts[evt_range[0]:evt_range[1]]
                         pulse_mask[evt_inds] = True
-                        
+
                 # find where the ttl trigger has an optimum amplitude greater than the specified threshold
                 trigevts_mask = self.trigfilts[ii]>trigthresh
                 trigevts = np.where(trigevts_mask)[0]
                 # find the ranges of the ttl trigger events
                 trigranges, trigvals = getchangeslessthanthresh(trigevts, 1)
-                
+
                 # get the mask of the total events, taking the or of the pulse and ttl trigger events
                 tot_mask = np.logical_or(trigevts_mask, pulse_mask)
                 evts = np.where(tot_mask)[0]
                 ranges, totvals = getchangeslessthanthresh(evts, self.pulse_range)
-                
+
                 # given the ranges, determine the trigger type based on if the total ranges overlap with
                 # the pulse events and/or the ttl trigger events
-                trigtypes = np.zeros((len(ranges), 3), dtype=bool)
+                rangetypes = np.zeros((len(ranges), 3), dtype=bool)
                 for ival, vals in enumerate(totvals):
                     for v in pulsevals:
                         if np.any(inrange(v, vals)):
-                            trigtypes[ival, 1] = True
+                            rangetypes[ival, 1] = True
                     for v in trigvals:
                         if np.any(inrange(v, vals)):
-                            trigtypes[ival, 2] = True
-            
-            # initialize more lists
-            pulseamps = []
-            pulsetimes = []
-            trigamps = []
-            trigtimes = []
-            traces = []
-            
+                            rangetypes[ival, 2] = True
+
             # for each range with changes less than the pulse_range, keep only the bin with the largest amplitude
             for irange, evt_range in enumerate(ranges):
                 if evt_range[1]>evt_range[0]:
-                    
+
                     evt_inds = evts[evt_range[0]:evt_range[1]]
-                    
-                    if trigtypes[irange][2]:
+
+                    if rangetypes[irange][2]:
                         # both are triggered, use ttl as primary trigger
                         evt_ind = evt_inds[np.argmax(self.trigfilts[ii][evt_inds])]
                     else:
@@ -414,69 +407,46 @@ class OptimumFilt(object):
                             evt_ind = evt_inds[np.argmax(filt[evt_inds])]
                         else:
                             evt_ind = evt_inds[np.argmin(filt[evt_inds])]
-                    
-                    if trigtypes[irange][1] and trigtypes[irange][2]:
+
+                    if rangetypes[irange][1] and rangetypes[irange][2]:
                         # both are triggered
                         if positivepulses:
                             pulse_ind = evt_inds[np.argmax(filt[evt_inds])]
                         else:
                             pulse_ind = evt_inds[np.argmin(filt[evt_inds])]
                         # save trigger times and amplitudes
-                        pulsetimes.append(pulse_ind/self.fs + self.times[ii])
-                        pulseamps.append(filt[pulse_ind])
-                        trigtimes.append(evt_ind/self.fs + self.times[ii])
-                        trigamps.append(filt[evt_ind])
-                    elif trigtypes[irange][2]:
+                        pulsetimes.extend([pulse_ind/self.fs + self.times[ii]])
+                        pulseamps.extend([filt[pulse_ind]])
+                        trigtimes.extend([evt_ind/self.fs + self.times[ii]])
+                        trigamps.extend([filt[evt_ind]])
+                    elif rangetypes[irange][2]:
                         # only ttl was triggered, save trigger time and amplitudes
-                        pulsetimes.append(0.0)
-                        pulseamps.append(0.0)
-                        trigtimes.append(evt_ind/self.fs + self.times[ii])
-                        trigamps.append(filt[evt_ind])
+                        pulsetimes.extend([0.0])
+                        pulseamps.extend([0.0])
+                        trigtimes.extend([evt_ind/self.fs + self.times[ii]])
+                        trigamps.extend([filt[evt_ind]])
                     else:
                         # only pulse was triggered, save trigger time and amplitudes
-                        pulsetimes.append(evt_ind/self.fs + self.times[ii])
-                        pulseamps.append(filt[evt_ind])
-                        trigtimes.append(0.0)
-                        trigamps.append(0.0)
-                        
+                        pulsetimes.extend([evt_ind/self.fs + self.times[ii]])
+                        pulseamps.extend([filt[evt_ind]])
+                        trigtimes.extend([0.0])
+                        trigamps.extend([0.0])
+
+                    trigtypes.extend([rangetypes[irange]])
+
                     # save the traces that correspond to the detected event, including all channels, also with lengths
                     # specified by the attribute tracelength
-                    traces.append(self.traces[ii, ..., 
+                    traces.extend([self.traces[ii, ..., 
                                               evt_ind - self.tracelength//2:evt_ind + self.tracelength//2 \
-                                              + (self.tracelength)%2])
-            
-            # convert the values to ndarrays
-            pulsetimes = np.array(pulsetimes)
-            pulseamps = np.array(pulseamps)
-            trigtimes = np.array(trigtimes)
-            trigamps = np.array(trigamps)
-            traces = np.array(traces)
-            
-            if np.any(trigtypes):
-                trigtypes = np.vstack([r for r in trigtypes if np.any(r)])
-            else:
-                trigtypes = np.array([])
-            
-            # save the detected event information to the list for this trace
-            pulsetimes_list.append(pulsetimes)
-            pulseamps_list.append(pulseamps)
-            trigtimes_list.append(trigtimes)
-            trigamps_list.append(trigamps)
-            traces_list.append(traces)
-            trigtypes_list.append(trigtypes)
-            
-            
-        self.pulsetimes = np.concatenate(pulsetimes_list)
-        self.pulseamps = np.concatenate(pulseamps_list)
-        self.trigtimes = np.concatenate(trigtimes_list)
-        self.trigamps = np.concatenate(trigamps_list)
+                                              + (self.tracelength)%2]])
+
+        self.pulsetimes = pulsetimes
+        self.pulseamps = pulseamps
+        self.trigtimes = trigtimes
+        self.trigamps = trigamps
+        self.evttraces = traces
+        self.trigtypes = trigtypes
         
-        if len(self.pulseamps)==0:
-            self.evttraces = np.array([])
-            self.trigtypes = np.array([])
-        else:
-            self.evttraces = np.vstack([t for t in traces_list if len(t)>0])
-            self.trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
 
 def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=None, 
                     savename=None, dumpnum=1, maxevts=1000):
@@ -516,7 +486,7 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
         
     """
     
-    if savepath is None:
+    if savepath is None or not savepath:
         savepath = "./"
 
     if not savepath.endswith("/"):
@@ -617,7 +587,7 @@ def acquire_randoms(filelist, n, l, datashape=None, iotype="stanford", savepath=
                 res = res[maxevts:]
                 trigtypes = trigtypes[maxevts:]
     
-def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtemplate=None, 
+def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, nchan=2, trigtemplate=None, 
                    trigthresh=None, positivepulses=True, iotype="stanford", savepath=None, 
                    savename=None, dumpnum=1, maxevts=1000):
     """
@@ -666,7 +636,7 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
             
     """
     
-    if savepath is None:
+    if savepath is None or not savepath:
         savepath = "./"
 
     if not savepath.endswith("/"):
@@ -679,12 +649,12 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
     if isinstance(filelist, str):
         filelist=[filelist]
     
-    pulsetimes_list = []
-    pulseamps_list = []
-    trigtimes_list = []
-    trigamps_list = []
-    traces_list = []
-    trigtypes_list = []
+    pulsetimes = np.zeros(maxevts)
+    pulseamps = np.zeros(maxevts)
+    trigtimes = np.zeros(maxevts)
+    trigamps = np.zeros(maxevts)
+    evttraces = np.zeros((maxevts, nchan, tracelength))
+    trigtypes = np.zeros((maxevts, 3), dtype=bool)
     
     evt_counter = 0
     
@@ -703,108 +673,66 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, trigtempla
         
         evt_counter += len(filt.pulsetimes)
         
-        pulsetimes_list.append(filt.pulsetimes)
-        pulseamps_list.append(filt.pulseamps)
-        trigtimes_list.append(filt.trigtimes)
-        trigamps_list.append(filt.trigamps)
-        traces_list.append(filt.evttraces)
-        trigtypes_list.append(filt.trigtypes)
+        if evt_counter < maxevts:
+            pulsetimes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.pulsetimes
+            pulseamps[evt_counter-len(filt.pulsetimes):evt_counter] = filt.pulseamps
+            trigtimes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigtimes
+            trigamps[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigamps
+            evttraces[evt_counter-len(filt.pulsetimes):evt_counter] = filt.evttraces
+            trigtypes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigtypes
         
-        if evt_counter >= maxevts:
-        
-            pulsetimes = np.concatenate(pulsetimes_list)
-            pulseamps = np.concatenate(pulseamps_list)
-            trigtimes = np.concatenate(trigtimes_list)
-            trigamps = np.concatenate(trigamps_list)
-
-            if len(pulseamps)==0:
-                traces = np.array([])
-                trigtypes = np.array([])
-            else:
-                traces = np.vstack([t for t in traces_list if len(t)>0])
-                trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
-                
-            del pulsetimes_list
-            del pulseamps_list
-            del trigtimes_list
-            del trigamps_list
-            del traces_list
-            del trigtypes_list
+        elif evt_counter >= maxevts:
             
-            for ii in range(len(pulsetimes)//maxevts):
+            numtoadd = evt_counter - maxevts
+            
+            pulsetimes[evt_counter-len(filt.pulsetimes):] = filt.pulsetimes[:numtoadd]
+            pulseamps[evt_counter-len(filt.pulsetimes):] = filt.pulseamps[:numtoadd]
+            trigtimes[evt_counter-len(filt.pulsetimes):] = filt.trigtimes[:numtoadd]
+            trigamps[evt_counter-len(filt.pulsetimes):] = filt.trigamps[:numtoadd]
+            evttraces[evt_counter-len(filt.pulsetimes):] = filt.evttraces[:numtoadd]
+            trigtypes[evt_counter-len(filt.pulsetimes):] = filt.trigtypes[:numtoadd]
+            
+            for ii in range(numtoadd//maxevts + 1):
                 
-                _saveevents(pulsetimes=pulsetimes[:maxevts], 
-                            pulseamps=pulseamps[:maxevts], 
-                            trigtimes=trigtimes[:maxevts], 
-                            trigamps=trigamps[:maxevts], 
-                            traces=traces[:maxevts], 
-                            trigtypes=trigtypes[:maxevts], 
+                _saveevents(pulsetimes=pulsetimes, 
+                            pulseamps=pulseamps, 
+                            trigtimes=trigtimes, 
+                            trigamps=trigamps, 
+                            traces=evttraces, 
+                            trigtypes=trigtypes, 
                             savepath=savepath, savename=savename, dumpnum=dumpnum)
                 dumpnum+=1
-                pulsetimes = pulsetimes[maxevts:]
-                pulseamps = pulseamps[maxevts:]
-                trigtimes = trigtimes[maxevts:]
-                trigamps = trigamps[maxevts:]
-                traces = traces[maxevts:]
-                trigtypes = trigtypes[maxevts:]
                 
-            if len(pulsetimes)/maxevts>1:
-                pulsetimes_list = [pulsetimes]
-                pulseamps_list = [pulseamps]
-                trigtimes_list = [trigtimes]
-                trigamps_list = [trigamps]
-                traces_list = [traces]
-                trigtypes_list = [trigtypes]
-                evt_counter = len(pulsetimes)
-            else:
-                pulsetimes_list = []
-                pulseamps_list = []
-                trigtimes_list = []
-                trigamps_list = []
-                traces_list = []
-                trigtypes_list = []
-                evt_counter = 0
+                pulsetimes.fill(0)
+                pulseamps.fill(0)
+                trigtimes.fill(0)
+                trigamps.fill(0)
+                evttraces.fill(0)
+                trigtypes.fill(0)
+                
+                numleft = len(filt.pulsetimes) - (numtoadd + ii*maxevts)
+                
+                if numleft > 0:
+                    pulsetimes[:numleft] = filt.pulsetimes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    pulseamps[:numleft] = filt.pulseamps[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    trigtimes[:numleft] = filt.trigtimes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    trigamps[:numleft] = filt.trigamps[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    evttraces[:numleft] = filt.traces[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    trigtypes[:numleft] = filt.trigtypes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                
+            evt_counter = np.sum(pulsetimes!=0)
     
     # clean up the rest of the events
     if evt_counter > 0:
+            
+        _saveevents(pulsetimes=pulsetimes, 
+                    pulseamps=pulseamps, 
+                    trigtimes=trigtimes, 
+                    trigamps=trigamps, 
+                    traces=evttraces, 
+                    trigtypes=trigtypes, 
+                    savepath=savepath, savename=savename, dumpnum=dumpnum)
         
-        pulsetimes = np.concatenate(pulsetimes_list)
-        pulseamps = np.concatenate(pulseamps_list)
-        trigtimes = np.concatenate(trigtimes_list)
-        trigamps = np.concatenate(trigamps_list)
-
-        if len(pulseamps)==0:
-            traces = np.array([])
-            trigtypes = np.array([])
-        else:
-            traces = np.vstack([t for t in traces_list if len(t)>0])
-            trigtypes = np.vstack([t for t in trigtypes_list if len(t)>0])
-
-        del pulsetimes_list
-        del pulseamps_list
-        del trigtimes_list
-        del trigamps_list
-        del traces_list
-        del trigtypes_list
-            
-        for ii in range(np.ceil(len(pulsetimes)/maxevts).astype(int)):
-            
-            _saveevents(pulsetimes=pulsetimes[:maxevts], 
-                        pulseamps=pulseamps[:maxevts], 
-                        trigtimes=trigtimes[:maxevts], 
-                        trigamps=trigamps[:maxevts], 
-                        traces=traces[:maxevts], 
-                        trigtypes=trigtypes[:maxevts], 
-                        savepath=savepath, savename=savename, dumpnum=dumpnum)
-            dumpnum+=1
-            
-            if ii+1!=np.ceil(len(pulsetimes)/maxevts).astype(int):
-                pulsetimes = pulsetimes[maxevts:]
-                pulseamps = pulseamps[maxevts:]
-                trigtimes = trigtimes[maxevts:]
-                trigamps = trigamps[maxevts:]
-                traces = traces[maxevts:]
-                trigtypes = trigtypes[maxevts:]
     
 def _saveevents(pulsetimes=None, pulseamps=None, trigtimes=None,
                trigamps=None, randomstimes=None, traces=None, trigtypes=None, 

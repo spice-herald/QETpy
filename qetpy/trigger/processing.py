@@ -173,8 +173,8 @@ def _process_single_dump(file, template, psd, fs, verbose=False):
         
         baseline_ind = np.min([int(t0_td*fs) + len(traces_tot[ii])//2,
                                int(t0_td_nocon*fs) + len(traces_tot[ii])//2])
-        
-        baseline = np.mean(traces_tot[ii, :abs(baseline_ind-50)]) # 50 is a buffer so we don't average the pulse
+        end_ind = np.max([baseline_ind-50, 50])
+        baseline = np.mean(traces_tot[ii, :end_ind]) # 50 is a buffer so we don't average the pulse
 
         rq_dict["ofamp_constrain"].append(amp_td) 
         rq_dict["t0_constrain"].append(t0_td)
