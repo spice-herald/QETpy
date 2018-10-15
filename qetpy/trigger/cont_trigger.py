@@ -671,28 +671,31 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, nchan=2, t
         filt.filtertraces(traces, times, trig=trig)
         filt.eventtrigger(thresh, trigthresh=trigthresh, positivepulses=positivepulses)
         
-        evt_counter += len(filt.pulsetimes)
+        numevts = len(filt.pulsetimes)
+        
+        evt_counter += numevts
         
         if evt_counter < maxevts:
-            pulsetimes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.pulsetimes
-            pulseamps[evt_counter-len(filt.pulsetimes):evt_counter] = filt.pulseamps
-            trigtimes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigtimes
-            trigamps[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigamps
-            evttraces[evt_counter-len(filt.pulsetimes):evt_counter] = filt.evttraces
-            trigtypes[evt_counter-len(filt.pulsetimes):evt_counter] = filt.trigtypes
+            pulsetimes[evt_counter-numevts:evt_counter] = filt.pulsetimes
+            pulseamps[evt_counter-numevts:evt_counter] = filt.pulseamps
+            trigtimes[evt_counter-numevts:evt_counter] = filt.trigtimes
+            trigamps[evt_counter-numevts:evt_counter] = filt.trigamps
+            evttraces[evt_counter-numevts:evt_counter] = filt.evttraces
+            trigtypes[evt_counter-numevts:evt_counter] = filt.trigtypes
         
         elif evt_counter >= maxevts:
             
-            numtoadd = evt_counter - maxevts
+            numextra = evt_counter - maxevts
+            numtoadd = maxevts - (evt_counter - numevts)
             
-            pulsetimes[evt_counter-len(filt.pulsetimes):] = filt.pulsetimes[:numtoadd]
-            pulseamps[evt_counter-len(filt.pulsetimes):] = filt.pulseamps[:numtoadd]
-            trigtimes[evt_counter-len(filt.pulsetimes):] = filt.trigtimes[:numtoadd]
-            trigamps[evt_counter-len(filt.pulsetimes):] = filt.trigamps[:numtoadd]
-            evttraces[evt_counter-len(filt.pulsetimes):] = filt.evttraces[:numtoadd]
-            trigtypes[evt_counter-len(filt.pulsetimes):] = filt.trigtypes[:numtoadd]
+            pulsetimes[evt_counter-numevts:] = filt.pulsetimes[:numtoadd]
+            pulseamps[evt_counter-numevts:] = filt.pulseamps[:numtoadd]
+            trigtimes[evt_counter-numevts:] = filt.trigtimes[:numtoadd]
+            trigamps[evt_counter-numevts:] = filt.trigamps[:numtoadd]
+            evttraces[evt_counter-numevts:] = filt.evttraces[:numtoadd]
+            trigtypes[evt_counter-numevts:] = filt.trigtypes[:numtoadd]
             
-            for ii in range(numtoadd//maxevts + 1):
+            for ii in range(numextra//maxevts + 1):
                 
                 _saveevents(pulsetimes=pulsetimes, 
                             pulseamps=pulseamps, 
@@ -710,21 +713,23 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, nchan=2, t
                 evttraces.fill(0)
                 trigtypes.fill(0)
                 
-                numleft = len(filt.pulsetimes) - (numtoadd + ii*maxevts)
+                numleft = numevts - (numtoadd + ii*maxevts)
+                
+                if numleft > maxevts:
+                    numleft = maxevts
                 
                 if numleft > 0:
-                    pulsetimes[:numleft] = filt.pulsetimes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
-                    pulseamps[:numleft] = filt.pulseamps[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
-                    trigtimes[:numleft] = filt.trigtimes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
-                    trigamps[:numleft] = filt.trigamps[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
-                    evttraces[:numleft] = filt.traces[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
-                    trigtypes[:numleft] = filt.trigtypes[numtoadd + ii*maxevts:numtoadd + (ii+1)*maxevts]
+                    pulsetimes[:numleft] = filt.pulsetimes[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
+                    pulseamps[:numleft] = filt.pulseamps[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
+                    trigtimes[:numleft] = filt.trigtimes[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
+                    trigamps[:numleft] = filt.trigamps[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
+                    evttraces[:numleft] = filt.evttraces[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
+                    trigtypes[:numleft] = filt.trigtypes[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
                 
             evt_counter = np.sum(pulsetimes!=0)
     
     # clean up the rest of the events
     if evt_counter > 0:
-            
         _saveevents(pulsetimes=pulsetimes, 
                     pulseamps=pulseamps, 
                     trigtimes=trigtimes, 
