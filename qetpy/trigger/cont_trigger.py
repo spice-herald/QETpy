@@ -780,7 +780,7 @@ def _saveevents(pulsetimes=None, pulseamps=None, trigtimes=None,
         trigamps = np.zeros_like(randomstimes)
     
     filename = f"{savepath}{savename}_{dumpnum}.npz"
-    np.savez_compressed(filename, pulsetimes=pulsetimes, pulseamps=pulseamps, 
-                        trigtimes=trigtimes, trigamps=trigamps, randomstimes=randomstimes, 
-                        traces=traces, trigtypes=trigtypes)
+    np.savez(filename, pulsetimes=pulsetimes, pulseamps=pulseamps, 
+             trigtimes=trigtimes, trigamps=trigamps, randomstimes=randomstimes, 
+             traces=traces, trigtypes=trigtypes)
     
