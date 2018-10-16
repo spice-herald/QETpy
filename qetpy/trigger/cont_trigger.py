@@ -333,7 +333,7 @@ class OptimumFilt(object):
 
         # go through each filtered trace and get the events
         for ii, filt in enumerate(self.filts):
-
+            
             if self.trigfilts is None or trigthresh is None:
 
                 # find where the filtered trace has an optimum amplitude greater than the specified amplitude
@@ -372,25 +372,24 @@ class OptimumFilt(object):
 
                 # find where the ttl trigger has an optimum amplitude greater than the specified threshold
                 trigevts_mask = self.trigfilts[ii]>trigthresh
-                trigevts = np.where(trigevts_mask)[0]
-                # find the ranges of the ttl trigger events
-                trigranges, trigvals = getchangeslessthanthresh(trigevts, 1)
 
                 # get the mask of the total events, taking the or of the pulse and ttl trigger events
                 tot_mask = np.logical_or(trigevts_mask, pulse_mask)
                 evts = np.where(tot_mask)[0]
                 ranges, totvals = getchangeslessthanthresh(evts, self.pulse_range)
 
+                tot_types = np.zeros(len(tot_mask), dtype=int)
+                tot_types[pulse_mask] = 1
+                tot_types[trigevts_mask] = 2
+
                 # given the ranges, determine the trigger type based on if the total ranges overlap with
                 # the pulse events and/or the ttl trigger events
                 rangetypes = np.zeros((len(ranges), 3), dtype=bool)
                 for ival, vals in enumerate(totvals):
-                    for v in pulsevals:
-                        if np.any(inrange(v, vals)):
-                            rangetypes[ival, 1] = True
-                    for v in trigvals:
-                        if np.any(inrange(v, vals)):
-                            rangetypes[ival, 2] = True
+                    if np.any(tot_types[vals[0]:vals[1]]==1):
+                        rangetypes[ival, 1] = True
+                    if np.any(tot_types[vals[0]:vals[1]]==2):
+                        rangetypes[ival, 2] = True
 
             # for each range with changes less than the pulse_range, keep only the bin with the largest amplitude
             for irange, evt_range in enumerate(ranges):
@@ -399,7 +398,7 @@ class OptimumFilt(object):
                     evt_inds = evts[evt_range[0]:evt_range[1]]
 
                     if rangetypes[irange][2]:
-                        # both are triggered, use ttl as primary trigger
+                        # use ttl as primary trigger
                         evt_ind = evt_inds[np.argmax(self.trigfilts[ii][evt_inds])]
                     else:
                         # only pulse was triggered
