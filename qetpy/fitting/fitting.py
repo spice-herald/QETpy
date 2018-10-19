@@ -16,7 +16,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     Parameters
     ----------
     signal : ndarray
-        The signal that we want to apply the optimum filter to (units should be Amps).
+        The signal that we want to apply the optimum filter to (units should be Amps). Can be an array
+        of traces.
     template : ndarray
         The pulse template to be used for the optimum filter (should be normalized beforehand).
     psd : ndarray
@@ -62,22 +63,25 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         The optimal filter energy resolution (in Amps)
         
     """
-
-    nbins = len(signal)
+    
+    if len(signal.shape)==1:
+        signal = signal[np.newaxis, :]
+    
+    nbins = signal.shape[-1]
     timelen = nbins/fs
     df = fs/nbins
-    
+
     # take fft of signal and template, divide by nbins to get correct convention 
-    v = fft(signal)/nbins/df
+    v = fft(signal, axis=-1)/nbins/df
     s = fft(template)/nbins/df
-    
+
     if integralnorm:
         s/=s[0]
 
     # check for compatibility between PSD and DFT
-    if(len(psd) != len(v)):
+    if(len(psd) != v.shape[-1]):
         raise ValueError("PSD length incompatible with signal size")
-    
+
     # if AC coupled, the 0 component of the PSD is non-sensical
     # if DC coupled, ignoring the DC component will still give the correct amplitude
     if coupling == 'AC':
@@ -91,64 +95,69 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     # calculate the expected energy resolution
     if lgcsigma:
         sigma = 1/(np.dot(phi, s).real*df)**0.5
-    
+
     if withdelay:
         # compute OF with delay
         # correct for fft convention by multiplying by nbins
-        amps = np.real(ifft(signalfilt*nbins))*df
-        
+        amps = np.real(ifft(signalfilt*nbins, axis=-1))*df
+
         # signal part of chi2
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
-        
+        chi0 = np.real(np.einsum('ij,ij->i', v.conjugate()/psd, v)*df)
+
         # fitting part of chi2
         chit = (amps**2)*norm
-        
+
         # sum parts of chi2, divide by nbins to get reduced chi2
-        chi = (chi0 - chit)/nbins
-        
-        amps = np.roll(amps, nbins//2)
-        chi = np.roll(chi, nbins//2)
-        
+        chi = (chi0[:, np.newaxis] - chit)/nbins
+
+        amps = np.roll(amps, nbins//2, axis=-1)
+        chi = np.roll(chi, nbins//2, axis=-1)
+
         # find time of best fit
         if nconstrain is not None:
             if nconstrain>nbins:
                 nconstrain = nbins
-                
+
             inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
-            inds_mask = np.zeros(len(chi), dtype=bool)
+            inds_mask = np.zeros(chi.shape[-1], dtype=bool)
             inds_mask[inds] = True
-            
+
             if lgcoutsidewindow:
-                chi[inds_mask] = np.inf
+                chi[:, inds_mask] = np.inf
             else:
-                chi[~inds_mask] = np.inf
-                
-        bestind = np.argmin(chi)
-        
-        amp = amps[bestind]
-        chi2 = chi[bestind]
+                chi[:, ~inds_mask] = np.inf
+
+        bestind = np.argmin(chi, axis=-1)
+
+        amp = np.diag(amps[:, bestind])
+        chi2 = np.diag(chi[:, bestind])
         # time shift goes from -timelen/2 to timelen/2
         t0 = (bestind-nbins//2)/fs
-        
+
     else:
         # compute OF amplitude no delay
-        amp = np.real(np.sum(signalfilt))*df
-        t0 = 0.0
-    
+        amp = np.real(np.sum(signalfilt, axis=-1))*df
+        t0 = np.zeros(len(amp))
+
         # signal part of chi2
-        chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
-        
+        chi0 = np.real(np.einsum('ij,ij->i', v.conjugate()/psd, v)*df)
+
         # fitting part of chi2
         chit = (amp**2)*norm
-        
+
         # reduced chi2
         chi2 = (chi0-chit)/nbins
+    
+    if len(amp)==1:
+        amp=amp[0]
+        t0=t0[0]
+        chi2=chi2[0]
         
     if lgcsigma:
         return amp, t0, chi2, sigma
     else:
         return amp, t0, chi2
-
+    
 def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
                  nconstrain1=None, nconstrain2=None, lgcoutsidewindow=True):
     """
