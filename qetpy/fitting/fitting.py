@@ -43,9 +43,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         Boolean flag that is used to specify whether ofamp should look inside nconstrain or outside it. 
         If False, ofamp will minimize the chi^2 in the bins specified by nconstrain, which is the 
         default behavior. If True, then ofamp will minimize the chi^2 in the bins that do not contain the
-        constrained window. This is useful for simple detection of pileup. If there is a pulse outside the
-        window, then ofamp should find the amplitude of that pulse instead. Otherwise, ofamp will run into
-        the edge of the window specified by nconstrain.
+        constrained window.
     integralnorm : bool, optional
         If set to True, then ofamp will normalize the template to an integral of 1, and ofamp will instead
         return the optimal integral in units of Coulombs. If lgcsigma is set to True, then it will be 
@@ -152,7 +150,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         return amp, t0, chi2
 
 def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
-                 nconstrain1=None, nconstrain2=None):
+                 nconstrain1=None, nconstrain2=None, lgcoutsidewindow=True):
     """
     Function for calculating the optimum amplitude of a pileup pulse in data. Supports inputted the
     values of a previously known pulse for increased computational speed, but can be used on its
@@ -189,6 +187,11 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
         This is the length of the window (in bins) out of which to constrain the possible 
         t2 values to for the pileup pulse, centered on the unshifted trigger. If left as None, then 
         t2 is uncontrained. The value of nconstrain2 should be less than nbins.
+    lgcoutsidewindow : bool, optional
+        Boolean flag that is used to specify whether ofamp_pileup should look for the pileup pulse inside the
+        bins specified by  nconstrain2 or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+        the range specified by nconstrain2, which is the default behavior. If False, then ofamp will minimize the
+        chi^2 in the bins inside the constrained window specified by nconstrain2.
 
     Returns
     -------
@@ -268,8 +271,11 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
         inds = np.arange(nbins//2-nconstrain2//2, nbins//2+nconstrain2//2+nconstrain2%2)
         inds_mask = np.zeros(len(chi), dtype=bool)
         inds_mask[inds] = True
-
-        chi[inds_mask] = np.inf
+        
+        if lgcoutsidewindow:
+            chi[inds_mask] = np.inf
+        else:
+            chi[~inds_mask] = np.inf
     
     bestind = np.argmin(chi)
 
