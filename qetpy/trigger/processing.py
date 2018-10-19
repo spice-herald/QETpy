@@ -1,8 +1,109 @@
 import pandas as pd
 import numpy as np
 from qetpy.fitting import ofamp, ofamp_pileup, chi2lowfreq
+import matplotlib.pyplot as plt
 
-__all__ = ["process_dumps"]
+__all__ = ["process_dumps", "getrandevents"]
+
+def getrandevents(basepath, evtnums, seriesnums, cut=None, convtoamps=1, fs=625e3, 
+                  lgcplot=False, sumchans=True, ntraces=1, nplot=20, seed=None):
+    """
+    Function for loading (and plotting) random events from a datasets. Has functionality to pull 
+    randomly from a specified cut. For use with data that was processed using process_dumps.
+    
+    Parameters
+    ----------
+        basepath : str
+            The base path to the directory that contains the event dumps 
+            to open. The files in this directory should be the series numbers.
+        evtnums : array_like
+            An array of all event numbers for the events in all datasets.
+        seriesnums : array_like
+            An array of the corresponding series numbers for each event number in evtnums.
+        cut : array_like, optional
+            A boolean array of the cut that should be applied to the data. If left as None,
+            then no cut is applied.
+        convtoamps : float, optional
+            The factor that the traces should be multiplied by to convert the units to Amperes.
+        fs : float, optional
+            The sample rate in Hz of the data.
+        ntraces : int, optional
+            The number of traces to randomly load from the data (with the cut, if specified)
+        lgcplot : bool, optional
+            Logical flag on whether or not to plot the pulled traces.
+        sumchans : bool, optional
+            A boolean flag for whether or not to sum the channels when plotting. If False, each 
+            channel is plotted individually.
+        nplot : int, optional
+            If lgcplot is True, the number of traces to plot.
+        seed : int, optional
+            A value to pass to np.random.seed if the user wishes to use the same random seed
+            each time getrandevents is called.
+        
+    Returns
+    -------
+        t : ndarray
+            The time values for plotting the events.
+        x : ndarray
+            Array containing all of the events that were pulled.
+        c_out : ndarray
+            Boolean array that contains the cut on the loaded data.
+    
+    """
+    
+    if seed is not None:
+        np.random.seed(seed)
+    
+    if type(evtnums) is not pd.core.series.Series:
+        evtnums = pd.Series(data=evtnums)
+    if type(seriesnums) is not pd.core.series.Series:
+        seriesnums = pd.Series(data=seriesnums)
+        
+    if cut is None:
+        cut = np.ones(len(evtnums), dtype=bool)
+        
+    if ntraces > np.sum(cut):
+        ntraces = np.sum(cut)
+        
+    inds = np.random.choice(np.flatnonzero(cut), size=ntraces, replace=False)
+        
+    crand = np.zeros(len(evtnums), dtype=bool)
+    crand[inds] = True
+    
+    arrs = list()
+    for snum in seriesnums[crand].unique():
+        cseries = crand & (seriesnums == snum)
+        inds = np.mod(evtnums[cseries], 10000) - 1
+        with np.load(f"{basepath}/{snum}.npz") as f:
+            arr = f["traces"][inds]
+        arrs.append(arr)
+    
+    x = np.vstack(arrs).astype(float)
+    t = np.arange(x.shape[-1])/fs
+    
+    x*=convtoamps
+    
+    if lgcplot:
+        
+        if nplot>ntraces:
+            nplot = ntraces
+    
+        for ii in range(nplot):
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            if sumchans:
+                ax.plot(t * 1e6, x[ii].sum(axis=0) * 1e6, label="Summed Channels")
+            else:
+                colors = plt.cm.viridis(np.linspace(0, 1, num=x.shape[1]), alpha=0.5)
+                for chan in range(x.shape[1]):
+                    ax.plot(t * 1e6, x[ii, chan] * 1e6, color=colors[chan], label=f"Channel {chan+1}")
+            ax.grid()
+            ax.set_ylabel("Current [$\mu$A]")
+            ax.set_xlabel("Time [$\mu$s]")
+            ax.set_title(f"Pulses, Evt Num {evtnums[crand].iloc[ii]}, Series Num {seriesnums[crand].iloc[ii]}");
+            ax.legend(loc="upper right")
+    
+    return t, x, crand
 
 
 def process_dumps(filelist, template, psd, fs, channel_templates=None, channel_psds=None, verbose=False):
@@ -71,7 +172,8 @@ def process_dumps(filelist, template, psd, fs, channel_templates=None, channel_p
     results = []
     
     for f in filelist:
-        rq_temp = _process_single_dump(f, template, psd, fs, verbose=verbose)
+        rq_temp = _process_single_dump(f, template, psd, fs, channel_templates=channel_templates, 
+                                       channel_psds=channel_psds, verbose=verbose)
         results.append(rq_temp)
         
     rq_df = pd.concat([df for df in results], ignore_index = True)
@@ -113,9 +215,8 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
     -------
     rq_df : DataFrame
         A data frame that contains all of the defined quantities for each traces that will be
-        used in analysis. If both channel_psds and channel_templates are used, then the below
-        quantities will also be calculated for the individual channels (besides eventnumber and
-        seriesnumber). The quantities are:
+        used in analysis. If both channel_psds and channel_templates are used, then some of the
+        quantities will also be calculated for the individual channels. The quantities are:
         
             eventnumber : A unique integer based on what number the event is in the dump 
                           and the dump number
@@ -166,19 +267,17 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
     # initialize dictionary to save RQs
     rq_dict = {}
     
-    columns = ["ofamp_constrain", "t0_constrain", "chi2_constrain", "ofamp_pileup", "t0_pileup", 
-               "chi2_pileup", "ofamp_noconstrain", "t0_noconstrain", "chi2_noconstrain", "ofamp_nodelay", 
-               "chi2_nodelay", "chi2_lowfreq", "baseline"]
+    columns = ["ofamp_constrain", "t0_constrain", "chi2_constrain", "ofamp_nodelay", "chi2_nodelay", "chi2_lowfreq"]
     
     if lgc_chans:
         chan_columns = []
         for ichan in range(nchan):
             for col in columns:
                 chan_columns.append(f"{col}_ch{ichan}")
-                
-    columns.extend(chan_columns)
-    columns.append("eventnumber")
-    columns.append("seriesnumber")
+        columns.extend(chan_columns)
+        
+    columns.extend(["eventnumber", "seriesnumber", "ofamp_pileup", "t0_pileup", "chi2_pileup", 
+                    "ofamp_noconstrain", "t0_noconstrain", "chi2_noconstrain", "baseline"])
     
     for item in columns:
         rq_dict[item] = []
@@ -203,6 +302,8 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
     rq_dict["pulsestrigger"] = trigtypes[:, 1]
     rq_dict["ttltrigger"] = trigtypes[:, 2]
     
+    bins_constrain = int(500e-6 * fs) # constrain to a window of 500 us, centered on trace, hard coded...
+    
     # do processing
     for ii, trace in enumerate(traces):
         
@@ -211,15 +312,16 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
         rq_dict["eventnumber"].append(eventnumber)
         rq_dict["seriesnumber"].append(seriesnumber)
         
-        amp_td, t0_td, chi2_td = ofamp(traces_tot[ii], template, psd, fs, lgcsigma = False, nconstrain = 80)
+        amp, _, chi2 = ofamp(traces_tot[ii], template, psd, fs, withdelay=False, lgcsigma = False)
         
         _, _, amp_pileup, t0_pileup, chi2_pileup = ofamp_pileup(traces_tot[ii], template, psd, fs, 
-                                                                a1=amp_td, t1=t0_td, nconstrain2=80)
+                                                                a1=amp, t1=0.0, nconstrain2=bins_constrain, 
+                                                                lgcoutsidewindow=False)
+        
+        amp_td, t0_td, chi2_td = ofamp(traces_tot[ii], template, psd, fs, lgcsigma = False, nconstrain = bins_constrain)
         
         amp_td_nocon, t0_td_nocon, chi2_td_nocon = ofamp(traces_tot[ii], template, psd, fs, lgcsigma = False)
         
-        amp, _, chi2 = ofamp(traces_tot[ii], template, psd, fs, withdelay=False, lgcsigma = False)
-
         chi2_20000 = chi2lowfreq(traces_tot[ii], template, amp_td, t0_td, psd, fs, fcutoff=20000)
         
         baseline_ind = np.min([int(t0_td*fs) + len(traces_tot[ii])//2,
@@ -247,38 +349,18 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
                 amp_td, t0_td, chi2_td = ofamp(trace[ichan], channel_templates[ichan], channel_psds[ichan], 
                                                fs, lgcsigma = False, nconstrain = 80)
                 
-                _, _, amp_pileup, t0_pileup, chi2_pileup = ofamp_pileup(trace[ichan], channel_templates[ichan], 
-                                                                        channel_psds[ichan], fs, 
-                                                                        a1=amp_td, t1=t0_td, nconstrain2=80)
-                
-                amp_td_nocon, t0_td_nocon, chi2_td_nocon = ofamp(trace[ichan], channel_templates[ichan], 
-                                                                 channel_psds[ichan], fs, lgcsigma = False)
-                
                 amp, _, chi2 = ofamp(trace[ichan], channel_templates[ichan], channel_psds[ichan], 
                                      fs, withdelay=False, lgcsigma = False)
 
                 chi2_20000 = chi2lowfreq(trace[ichan], channel_templates[ichan], 
                                          amp_td, t0_td, channel_psds[ichan], fs, fcutoff=20000)
 
-                baseline_ind = np.min([int(t0_td*fs) + len(trace[ichan])//2,
-                                       int(t0_td_nocon*fs) + len(trace[ichan])//2])
-                end_ind = np.max([baseline_ind-50, 50])
-                
-                baseline = np.mean(trace[ichan, :end_ind]) # 50 is a buffer so we don't average the pulse
-
                 rq_dict[f"ofamp_constrain_ch{ichan}"].append(amp_td) 
                 rq_dict[f"t0_constrain_ch{ichan}"].append(t0_td)
                 rq_dict[f"chi2_constrain_ch{ichan}"].append(chi2_td)
-                rq_dict[f"ofamp_pileup_ch{ichan}"].append(amp_pileup)
-                rq_dict[f"t0_pileup_ch{ichan}"].append(t0_pileup)
-                rq_dict[f"chi2_pileup_ch{ichan}"].append(chi2_pileup)
-                rq_dict[f"ofamp_noconstrain_ch{ichan}"].append(amp_td_nocon)
-                rq_dict[f"t0_noconstrain_ch{ichan}"].append(t0_td_nocon)
-                rq_dict[f"chi2_noconstrain_ch{ichan}"].append(chi2_td_nocon)
                 rq_dict[f"ofamp_nodelay_ch{ichan}"].append(amp)
                 rq_dict[f"chi2_nodelay_ch{ichan}"].append(chi2)  
                 rq_dict[f"chi2_lowfreq_ch{ichan}"].append(chi2_20000)
-                rq_dict[f"baseline_ch{ichan}"].append(baseline)
         
     
     rq_df = pd.DataFrame.from_dict(rq_dict)
