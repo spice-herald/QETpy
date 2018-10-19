@@ -229,8 +229,8 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
                           coupling=coupling, nconstrain=nconstrain1)
     
     # take fft of signal and template, divide by nbins to get correct convention 
-    v = fft(signal)/nbins
-    s = fft(template)/nbins
+    v = fft(signal)/nbins/df
+    s = fft(template)/nbins/df
 
     # check for compatibility between PSD and DFT
     if(len(psd) != len(v)):
@@ -243,20 +243,23 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
 
     # find optimum filter and norm
     phi = s.conjugate()/psd
-    norm = np.real(np.dot(phi, s))/df
+    norm = np.real(np.dot(phi, s))*df
     signalfilt = phi*v/norm
+    
+    signalfilt_td = np.real(ifft(signalfilt*nbins))*df
+    templatefilt_td = np.real(ifft(np.exp(-1.0j*omega*t1)*phi*s*nbins))*df
     
     times = np.arange(-(nbins//2), nbins//2+nbins%2)/fs
     
     # compute OF with delay
     # correct for fft convention by multiplying by nbins
-    a2s = np.real(ifft(signalfilt*nbins))/df - a1*np.real(ifft(np.exp(-1.0j*omega*t1)*phi*s*nbins))/df/norm
+    a2s = signalfilt_td - a1*templatefilt_td/norm
     
     # signal part of chi^2
-    chi0 = np.real(np.dot(v.conjugate()/psd, v))/df
-
+    chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
+    
     # first fitting part of chi2
-    chit = (a1**2+a2s**2)*norm + 2*a1*a2s*np.real(ifft(np.exp(-1.0j*omega*t1)*phi*s*nbins))/df/norm
+    chit = (a1**2+a2s**2)*norm + 2*a1*a2s*templatefilt_td/norm
     
     if t1<0:
         t1ind = int(t1*fs+nbins)
@@ -264,7 +267,7 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
         t1ind = int(t1*fs)
         
     # last part of chi2
-    chil = 2*a1*np.real(ifft(signalfilt*norm*nbins)[t1ind])/df + 2*a2s*np.real(ifft(signalfilt*norm*nbins))/df
+    chil = 2*a1*signalfilt_td[t1ind]*norm + 2*a2s*signalfilt_td*norm
     
     # add all parts of chi2, divide by nbins to get reduced chi2
     chi = (chi0 + chit - chil)/nbins
