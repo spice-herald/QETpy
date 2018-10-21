@@ -329,19 +329,29 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
         
     """
     
-    nbins = len(signal)
+    if len(signal.shape)==1:
+        signal = signal[np.newaxis, :]
+        
+    if np.isscalar(amp):
+        amp = np.array([amp])
+        t0 = np.array([t0])
+    
+    nbins = signal.shape[-1]
     df = fs/nbins
     
-    v = fft(signal)/nbins
-    s = fft(template)/nbins
+    v = fft(signal, axis=-1)/nbins/df
+    s = fft(template)/nbins/df
     
     f = fftfreq(nbins, d=1/fs)
     
-    chi2tot = df*np.abs(v/df - amp*np.exp(-2.0j*np.pi*f*t0)*s/df)**2/psd
+    chi2tot = df*np.abs(v-amps[:, np.newaxis]*np.exp(-2.0j*np.pi*t0s[:, np.newaxis]*f[np.newaxis, :])*s)**2/psd
     
     chi2inds = np.abs(f)<=fcutoff
     
-    chi2low = np.sum(chi2tot[chi2inds])
+    chi2low = np.sum(chi2tot[:, chi2inds], axis=-1)
+    
+    if len(chi2low)==1:
+        chi2low = chi2low[0]
     
     return chi2low
 
