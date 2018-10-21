@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from qetpy.fitting import ofamp, ofamp_pileup, chi2lowfreq
 import matplotlib.pyplot as plt
+from numpy.fft import fft, ifft, fftfreq
 
 __all__ = ["process_dumps", "getrandevents"]
 
@@ -180,6 +181,221 @@ def process_dumps(filelist, template, psd, fs, channel_templates=None, channel_p
     
     return rq_df
     
+    
+def _ofamp_process_fast(signal, template, psd, fs, nconstrain=80, nconstrain2=80, 
+                       lgcoutsidewindow=True, usenodelay=False, fcutoff=2000):
+    """
+    Function to process the different optimal filters on data, optimized for faster processing.
+    
+    Parameters
+    ----------
+    signal : ndarray
+        The signal that we want to apply the optimum filter to (units should be Amps). Can be an array
+        of traces.
+    template : ndarray
+        The pulse template to be used for the optimum filter (should be normalized beforehand).
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    nconstrain : int, NoneType, optional
+        The length of the window (in bins) to constrain the possible t0 values to, centered on the unshifted 
+        trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
+        the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
+        over.
+    nconstrain2 : int, NoneType, optional
+        This is the length of the window (in bins) out of which to constrain the possible 
+        t2 values to for the pileup pulse, centered on the unshifted trigger. The value of nconstrain2 
+        should be less than nbins.
+    lgcoutsidewindow : bool, optional
+        Boolean flag that is used to specify whether ofamp_pileup should look for the pileup pulse inside the
+        bins specified by  nconstrain2 or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+        the range specified by nconstrain2, which is the default behavior. If False, then ofamp will minimize the
+        chi^2 in the bins inside the constrained window specified by nconstrain2.
+    usenodelay : bool, optional
+        Boolean flag on whether to use to OF amplitude with no delay or the constrained OF amplitude. If set to 
+        True, then the OF amplitude with no delay is used as the trigger pulse. If set to False, then the 
+        OF amplitude constrained by nconstrain is used as the trigger pulse. Set to False by default.
+    fcutoff : float, optional
+        The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.
+        
+    Returns
+    -------
+    amp_nodelay : ndarray
+        The optimum amplitude calculated for the trace (in Amps) with no time delay.
+    chi2_nodelay : ndarray
+        The reduced chi^2 value calculated from the optimum filter with no time delay.
+    amp_noconstrain : ndarray
+        The optimum amplitude calculated for the trace (in Amps) with time delay allowed to vary over the 
+        entire trace.
+    t0_noconstrain : ndarray
+        The time shift calculated for the pulse (in s) with time delay allowed to vary over the 
+        entire trace.
+    chi2_noconstrain : ndarray
+        The reduced chi^2 value calculated from the optimum filter with time delay allowed to vary over the 
+        entire trace.
+    amp_constrain : ndarray
+        The optimum amplitude calculated for the trace (in Amps) with time delay allowed to vary over the 
+        window specified by nconstrain.
+    t0_constrain : ndarray
+        The time shift calculated for the pulse (in s) with time delay allowed to vary over the 
+        window specified by nconstrain.
+    chi2_constrain : ndarray
+        The reduced chi^2 value calculated from the optimum filter with time delay allowed to vary over the 
+        window specified by nconstrain.
+    amp_pileup : ndarray
+        The optimum amplitude calculated for the pileup pulse (in Amps).
+    t0_pileup : ndarray
+        The time shift calculated for the pileup pulse (in s)
+    chi2_pileup : ndarray
+        The reduced chi^2 value calculated for the pileup optimum filter.
+    chi2low : ndarray
+        The low frequency chi^2 value (cut off at fcutoff) for the inputted values, calculated using optimum 
+        filter with no delay.
+    
+    """
+    
+    if len(signal.shape)==1:
+        signal = signal[np.newaxis, :]
+    
+    nbins = signal.shape[-1]
+    timelen = nbins/fs
+    df = fs/nbins
+
+    # take fft of signal and template, divide by nbins to get correct convention 
+    v = fft(signal, axis=-1)/nbins/df
+    s = fft(template)/nbins/df
+
+    # ignore zero frequency bin
+    psd[0]=np.inf
+
+    # find optimum filter and norm
+    phi = s.conjugate()/psd
+    norm = np.real(np.dot(phi, s))*df
+    signalfilt = phi*v/norm
+
+    # compute OF with delay
+    # correct for fft convention by multiplying by nbins
+    amps = np.real(ifft(signalfilt*nbins, axis=-1))*df
+
+    # signal part of chi2
+    chi0 = np.real(np.einsum('ij,ij->i', v.conjugate()/psd, v)*df)
+
+    # fitting part of chi2
+    chit = (amps**2)*norm
+
+    # sum parts of chi2, divide by nbins to get reduced chi2
+    chi = (chi0[:, np.newaxis] - chit)/nbins
+    
+    amps = np.roll(amps, nbins//2, axis=-1)
+    chi = np.roll(chi, nbins//2, axis=-1)
+    
+    # nodelay quantities
+    amp_nodelay = amps[:, nbins//2]
+    chi2_nodelay = chi[:, nbins//2]
+    
+    bestind_noconstrain = np.argmin(chi, axis=-1)
+
+    # noconstrain quantities
+    amp_noconstrain = np.diag(amps[:, bestind_noconstrain])
+    chi2_noconstrain = np.diag(chi[:, bestind_noconstrain])
+    # time shift goes from -timelen/2 to timelen/2
+    t0_noconstrain = (bestind_noconstrain-nbins//2)/fs
+
+    if nconstrain>nbins:
+        nconstrain = nbins
+
+    inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
+    inds_mask = np.zeros(chi.shape[-1], dtype=bool)
+    inds_mask[inds] = True
+    
+    chi_constrain = np.zeros(chi.shape)
+    chi_constrain[:, ~inds_mask] = np.inf
+    chi_constrain[:, inds_mask] = chi[:, inds_mask]
+        
+    bestind_constrain = np.argmin(chi_constrain, axis=-1)
+
+    # with constrain quantities
+    amp_constrain = np.diag(amps[:, bestind_constrain])
+    chi2_constrain = np.diag(chi_constrain[:, bestind_constrain])
+    # time shift goes from -timelen/2 to timelen/2
+    t0_constrain = (bestind_constrain-nbins//2)/fs
+    
+    # pileup OF
+    freqs = fftfreq(nbins, d=1.0/fs)
+    omega = 2.0*np.pi*freqs
+    
+    # use no delay for pileup OF
+    if usenodelay:
+        a1 = amp_nodelay
+        t1 = np.zeros(len(a1))
+    else:
+        a1 = amp_constrain
+        t1 = t0_constrain
+        
+    amp_pileup = np.zeros(len(a1))
+    t0_pileup = np.zeros(len(a1))
+    chi2_pileup = np.zeros(len(a1))
+        
+    signalfilt_td = np.real(ifft(signalfilt*nbins, axis=-1))*df
+    templatefilt_td = np.real(ifft(np.exp(-1.0j*t1[:, np.newaxis]*omega[np.newaxis, :])*(phi*s)*nbins, axis=-1))*df
+        
+    for ii in range(len(signal)):
+    
+        times = np.arange(-(nbins//2), nbins//2+nbins%2)/fs
+        
+        # compute OF with delay
+        # correct for fft convention by multiplying by nbins
+        a2s = signalfilt_td[ii] - a1[ii]*templatefilt_td[ii]/norm
+
+        # signal part of chi^2
+        chi0 = np.real(np.dot(v[ii].conjugate()/psd, v[ii]))*df
+
+        # first fitting part of chi2
+        chit = (a1[ii]**2+a2s**2)*norm + 2*a1[ii]*a2s*templatefilt_td[ii]/norm
+
+        if t1[ii]<0:
+            t1ind = int(t1[ii]*fs+nbins)
+        else:
+            t1ind = int(t1[ii]*fs)
+
+        # last part of chi2
+        chil = 2*a1[ii]*signalfilt_td[ii, t1ind]*norm + 2*a2s*signalfilt_td[ii]*norm
+
+        # add all parts of chi2, divide by nbins to get reduced chi2
+        chi = (chi0 + chit - chil)/nbins
+
+        a2s = np.roll(a2s, nbins//2)
+        chi = np.roll(chi, nbins//2)
+
+        # find time of best fit
+        if nconstrain2>nbins:
+            nconstrain2 = nbins
+
+        inds = np.arange(nbins//2-nconstrain2//2, nbins//2+nconstrain2//2+nconstrain2%2)
+        inds_mask = np.zeros(len(chi), dtype=bool)
+        inds_mask[inds] = True
+
+        if lgcoutsidewindow:
+            chi[inds_mask] = np.inf
+        else:
+            chi[~inds_mask] = np.inf
+
+        bestind = np.argmin(chi)
+
+        # get best fit values
+        amp_pileup[ii] = a2s[bestind]
+        chi2_pileup[ii] = chi[bestind]
+        t0_pileup[ii] = times[bestind]
+        
+    chi2tot = df*np.abs(v-amp_nodelay[:, np.newaxis]*s[np.newaxis, :])**2/psd
+    
+    chi2inds = np.abs(freqs)<=fcutoff
+    
+    chi2low = np.sum(chi2tot[:, chi2inds], axis=-1)
+    
+    return (amp_nodelay, chi2_nodelay, amp_noconstrain, t0_noconstrain, chi2_noconstrain, 
+            amp_constrain, t0_constrain, chi2_constrain, amp_pileup, t0_pileup, chi2_pileup, chi2low)
 
 def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_templates=None, verbose=False):
     """
@@ -293,6 +509,10 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
         if len(channel_psds)!=nchan:
             raise ValueError("The length of channel_psds does not match the number of channels in the saved traces.")
 
+        
+    rq_dict["eventnumber"] = 10000*dumpnum + 1 + np.arange(len(traces_tot))
+    rq_dict["seriesnumber"] = [seriesnumber] * len(traces_tot)
+    
     rq_dict["ttltimes"] = trigtimes
     rq_dict["ttlamps"] = trigamps
     rq_dict["pulsetimes"] = pulsetimes
@@ -302,66 +522,43 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
     rq_dict["pulsestrigger"] = trigtypes[:, 1]
     rq_dict["ttltrigger"] = trigtypes[:, 2]
     
-    bins_constrain = int(500e-6 * fs) # constrain to a window of 500 us, centered on trace, hard coded...
+    bins_constrain = int(500e-6 * fs) # constrain to a window of 500 us, centered on trace
     
-    # do processing
-    for ii, trace in enumerate(traces):
-        
-        eventnumber = 10000*dumpnum + 1 + ii
-        
-        rq_dict["eventnumber"].append(eventnumber)
-        rq_dict["seriesnumber"].append(seriesnumber)
-        
-        amp, _, chi2 = ofamp(traces_tot[ii], template, psd, fs, withdelay=False, lgcsigma = False)
-        
-        _, _, amp_pileup, t0_pileup, chi2_pileup = ofamp_pileup(traces_tot[ii], template, psd, fs, 
-                                                                a1=amp, t1=0.0, nconstrain2=bins_constrain, 
-                                                                lgcoutsidewindow=False)
-        
-        amp_td, t0_td, chi2_td = ofamp(traces_tot[ii], template, psd, fs, lgcsigma = False, nconstrain = bins_constrain)
-        
-        amp_td_nocon, t0_td_nocon, chi2_td_nocon = ofamp(traces_tot[ii], template, psd, fs, lgcsigma = False)
-        
-        chi2_20000 = chi2lowfreq(traces_tot[ii], template, amp_td, t0_td, psd, fs, fcutoff=20000)
-        
-        baseline_ind = np.min([int(t0_td*fs) + len(traces_tot[ii])//2,
-                               int(t0_td_nocon*fs) + len(traces_tot[ii])//2])
-        end_ind = np.max([baseline_ind-50, 50])
-        
-        baseline = np.mean(traces_tot[ii, :end_ind]) # 50 is a buffer so we don't average the pulse
+    (amp_nodelay, chi2_nodelay, amp_noconstrain, t0_noconstrain, chi2_noconstrain, 
+     amp_constrain, t0_constrain, chi2_constrain, 
+     amp_pileup, t0_pileup, chi2_pileup, chi2low) =_ofamp_process_fast(traces_tot, template, psd, fs, 
+                                                              nconstrain=bins_constrain, nconstrain2=bins_constrain, 
+                                                              lgcoutsidewindow=False, usenodelay=True, fcutoff=20000)
+    
+    rq_dict["ofamp_nodelay"] = amp_nodelay
+    rq_dict["chi2_nodelay"] = chi2_nodelay
+    rq_dict["ofamp_noconstrain"] = amp_noconstrain
+    rq_dict["t0_noconstrain"] = t0_noconstrain
+    rq_dict["chi2_noconstrain"] = chi2_noconstrain
+    rq_dict["ofamp_constrain"] = amp_constrain
+    rq_dict["t0_constrain"] = t0_constrain
+    rq_dict["chi2_constrain"] = chi2_constrain
+    rq_dict["ofamp_pileup"] = amp_pileup
+    rq_dict["t0_pileup"] = t0_pileup
+    rq_dict["chi2_pileup"] = chi2_pileup
+    rq_dict["chi2_lowfreq"] = chi2low
+    
+    rq_dict["baseline"] = np.mean(traces_tot[:, :traces_tot.shape[-1]//4], axis=-1)
+    
+    if lgc_chans:
+        for ichan in range(nchan):
+            amp_td, t0_td, chi2_td = ofamp(traces[:, ichan], channel_templates[ichan], channel_psds[ichan], 
+                                           fs, lgcsigma = False, nconstrain = bins_constrain)
 
-        rq_dict["ofamp_constrain"].append(amp_td) 
-        rq_dict["t0_constrain"].append(t0_td)
-        rq_dict["chi2_constrain"].append(chi2_td)
-        rq_dict["ofamp_pileup"].append(amp_pileup)
-        rq_dict["t0_pileup"].append(t0_pileup)
-        rq_dict["chi2_pileup"].append(chi2_pileup)
-        rq_dict["ofamp_noconstrain"].append(amp_td_nocon)
-        rq_dict["t0_noconstrain"].append(t0_td_nocon)
-        rq_dict["chi2_noconstrain"].append(chi2_td_nocon)
-        rq_dict["ofamp_nodelay"].append(amp)
-        rq_dict["chi2_nodelay"].append(chi2)  
-        rq_dict["chi2_lowfreq"].append(chi2_20000)
-        rq_dict["baseline"].append(baseline)
-        
-        if lgc_chans:
-            for ichan in range(nchan):
-                amp_td, t0_td, chi2_td = ofamp(trace[ichan], channel_templates[ichan], channel_psds[ichan], 
-                                               fs, lgcsigma = False, nconstrain = 80)
-                
-                amp, _, chi2 = ofamp(trace[ichan], channel_templates[ichan], channel_psds[ichan], 
-                                     fs, withdelay=False, lgcsigma = False)
+            amp, _, chi2 = ofamp(traces[:, ichan], channel_templates[ichan], channel_psds[ichan], 
+                                 fs, withdelay=False, lgcsigma = False)
 
-                chi2_20000 = chi2lowfreq(trace[ichan], channel_templates[ichan], 
-                                         amp_td, t0_td, channel_psds[ichan], fs, fcutoff=20000)
-
-                rq_dict[f"ofamp_constrain_ch{ichan}"].append(amp_td) 
-                rq_dict[f"t0_constrain_ch{ichan}"].append(t0_td)
-                rq_dict[f"chi2_constrain_ch{ichan}"].append(chi2_td)
-                rq_dict[f"ofamp_nodelay_ch{ichan}"].append(amp)
-                rq_dict[f"chi2_nodelay_ch{ichan}"].append(chi2)  
-                rq_dict[f"chi2_lowfreq_ch{ichan}"].append(chi2_20000)
-        
+            rq_dict[f"ofamp_constrain_ch{ichan}"] = amp_td
+            rq_dict[f"t0_constrain_ch{ichan}"] = t0_td
+            rq_dict[f"chi2_constrain_ch{ichan}"] = chi2_td
+            rq_dict[f"ofamp_nodelay_ch{ichan}"] = amp
+            rq_dict[f"chi2_nodelay_ch{ichan}"] = chi2
+    
     
     rq_df = pd.DataFrame.from_dict(rq_dict)
     
