@@ -483,7 +483,7 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
     # initialize dictionary to save RQs
     rq_dict = {}
     
-    columns = ["ofamp_constrain", "t0_constrain", "chi2_constrain", "ofamp_nodelay", "chi2_nodelay", "chi2_lowfreq"]
+    columns = ["ofamp_constrain", "t0_constrain", "chi2_constrain", "ofamp_nodelay", "chi2_nodelay"]
     
     if lgc_chans:
         chan_columns = []
@@ -493,7 +493,7 @@ def _process_single_dump(file, template, psd, fs, channel_psds=None, channel_tem
         columns.extend(chan_columns)
         
     columns.extend(["eventnumber", "seriesnumber", "ofamp_pileup", "t0_pileup", "chi2_pileup", 
-                    "ofamp_noconstrain", "t0_noconstrain", "chi2_noconstrain", "baseline"])
+                    "ofamp_noconstrain", "t0_noconstrain", "chi2_noconstrain", "chi2_lowfreq", "baseline"])
     
     for item in columns:
         rq_dict[item] = []
