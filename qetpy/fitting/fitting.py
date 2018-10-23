@@ -344,7 +344,7 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     
     f = fftfreq(nbins, d=1/fs)
     
-    chi2tot = df*np.abs(v-amp[:, np.newaxis]*np.exp(-2.0j*np.pi*t0s[:, np.newaxis]*f[np.newaxis, :])*s)**2/psd
+    chi2tot = df*np.abs(v-amp[:, np.newaxis]*np.exp(-2.0j*np.pi*t0[:, np.newaxis]*f[np.newaxis, :])*s)**2/psd
     
     chi2inds = np.abs(f)<=fcutoff
     
