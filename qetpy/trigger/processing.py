@@ -183,7 +183,7 @@ def process_dumps(filelist, template, psd, fs, channel_templates=None, channel_p
     
     
 def _ofamp_process_fast(signal, template, psd, fs, nconstrain=80, nconstrain2=80, 
-                       lgcoutsidewindow=True, usenodelay=False, fcutoff=2000):
+                       lgcoutsidewindow=True, usenodelay=False, fcutoff=20000):
     """
     Function to process the different optimal filters on data, optimized for faster processing.
     
