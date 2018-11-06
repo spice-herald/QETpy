@@ -235,7 +235,7 @@ def calc_psd(x, fs=1.0, folded_over=True):
     return f, psd
 
 
-def gen_noise(psd, ntraces=1):
+def gen_noise(psd, fs=1.0, ntraces=1):
     """
     Function to generate noise traces with random phase from a given PSD. The PSD calculated from
     the generated noise traces should be the equivalent to the inputted PSD as the number of traces
@@ -245,6 +245,8 @@ def gen_noise(psd, ntraces=1):
     ----------
     psd : ndarray
         The two-sided power spectral density that will be used to generate the noise.
+    fs : float, optional
+        Sample rate of the data being taken, assumed to be in units of Hz.
     ntraces : int, optional
         The number of noise traces that should be generated. Default is 1.
     
