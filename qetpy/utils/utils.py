@@ -259,7 +259,7 @@ def gen_noise(psd, ntraces=1):
     traces = np.zeros((ntraces, len(psd)))
     vals = np.random.randn(ntraces, len(psd))
     noisefft = fft(vals) * np.sqrt(psd)
-    noise = ifft(noisefft).real
+    noise = ifft(noisefft).real*fs
     
     return noise
 
