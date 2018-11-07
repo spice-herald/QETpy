@@ -259,7 +259,7 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
     chi0 = np.real(np.dot(v.conjugate()/psd, v))*df
     
     # first fitting part of chi2
-    chit = (a1**2+a2s**2)*norm + 2*a1*a2s*templatefilt_td/norm
+    chit = (a1**2+a2s**2)*norm + 2*a1*a2s*templatefilt_td
     
     if t1<0:
         t1ind = int(t1*fs+nbins)
