@@ -4,7 +4,7 @@ import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
    
-__all__ = ["ofamp", "ofamp_pileup", "chi2lowfreq", "OFnonlin", "MuonTailFit"]
+__all__ = ["ofamp", "ofamp_pileup", "chi2lowfreq", "chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
@@ -354,6 +354,42 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
         chi2low = chi2low[0]
     
     return chi2low
+
+def chi2_nopulse(signal, psd, fs, coupling="AC"):
+    """
+    Function for calculating the chi^2 of a trace with the assumption that there is no pulse.
+    
+    Parameters
+    ----------
+    signal : ndarray
+        The signal that we want to calculate the no pulse chi^2 of (units should be Amps).
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    coupling : str, optional
+        String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+        when calculating the no pulse chi^2 . If set to 'AC', then the zero frequency bin is ignored. If
+        set to anything else, then the zero frequency bin is kept. Default is 'AC'.
+        
+    Returns
+    -------
+    chi2_0 : float
+        The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+        
+    """
+    
+    nbins = signal.shape[-1]
+    df = fs/nbins
+    
+    v = fft(signal, axis=-1)/nbins/df
+    
+    if coupling == 'AC':
+        psd[0]=np.inf
+    
+    chi2_0 = df*np.sum(np.abs(v)**2/psd)
+    
+    return chi2_0
 
 
 class OFnonlin(object):
