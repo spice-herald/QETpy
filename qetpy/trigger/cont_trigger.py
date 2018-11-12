@@ -725,7 +725,7 @@ def acquire_pulses(filelist, template, noisepsd, tracelength, thresh, nchan=2, t
                     evttraces[:numleft] = filt.evttraces[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
                     trigtypes[:numleft] = filt.trigtypes[numtoadd + ii*maxevts:numtoadd + ii*maxevts + numleft]
                 
-            evt_counter = np.sum(pulsetimes!=0)
+            evt_counter = np.sum((pulsetimes!=0) | (trigtimes!=0))
     
     # clean up the rest of the events
     if evt_counter > 0:
