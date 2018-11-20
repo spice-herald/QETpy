@@ -352,7 +352,7 @@ def _ofamp_process_fast(signal, template, psd, fs, nconstrain=80, nconstrain2=80
         chi0 = np.real(np.dot(v[ii].conjugate()/psd, v[ii]))*df
 
         # first fitting part of chi2
-        chit = (a1[ii]**2+a2s**2)*norm + 2*a1[ii]*a2s*templatefilt_td[ii]/norm
+        chit = (a1[ii]**2+a2s**2)*norm + 2*a1[ii]*a2s*templatefilt_td[ii]
 
         if t1[ii]<0:
             t1ind = int(t1[ii]*fs+nbins)
