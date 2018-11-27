@@ -58,7 +58,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     t0 : float
         The time shift calculated for the pulse (in s). Set to zero if withdelay is False.
     chi2 : float
-        The reduced Chi^2 value calculated from the optimum filter.
+        The chi^2 value calculated from the optimum filter.
     sigma : float, optional
         The optimal filter energy resolution (in Amps)
         
@@ -107,8 +107,8 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         # fitting part of chi2
         chit = (amps**2)*norm
 
-        # sum parts of chi2, divide by nbins to get reduced chi2
-        chi = (chi0[:, np.newaxis] - chit)/nbins
+        # sum parts of chi2
+        chi = chi0[:, np.newaxis] - chit
 
         amps = np.roll(amps, nbins//2, axis=-1)
         chi = np.roll(chi, nbins//2, axis=-1)
@@ -145,8 +145,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         # fitting part of chi2
         chit = (amp**2)*norm
 
-        # reduced chi2
-        chi2 = (chi0-chit)/nbins
+        chi2 = chi0 - chit
     
     if len(amp)==1:
         amp=amp[0]
@@ -214,7 +213,7 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
     t2 : float
         The time shift calculated for the pileup pulse (in s)
     chi2 : float
-        The reduced chi^2 value calculated for the pileup optimum filter.
+        The chi^2 value calculated for the pileup optimum filter.
         
     """
 
@@ -269,8 +268,8 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
     # last part of chi2
     chil = 2*a1*signalfilt_td[t1ind]*norm + 2*a2s*signalfilt_td*norm
     
-    # add all parts of chi2, divide by nbins to get reduced chi2
-    chi = (chi0 + chit - chil)/nbins
+    # add all parts of chi2
+    chi = chi0 + chit - chil
 
     a2s = np.roll(a2s, nbins//2)
     chi = np.roll(chi, nbins//2)
@@ -383,8 +382,8 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
     # last part of chi2
     chil = 2*a1s*signalfilt_td[0] + 2*a2s*signalfilt_td
     
-    # add all parts of chi2, divide by nbins to get reduced chi2
-    chi = (chi0 + chit - chil)/nbins
+    # add all parts of chi2
+    chi = chi0 + chit - chil
     
     a1s = np.roll(a1s, nbins//2)
     a2s = np.roll(a2s, nbins//2)
@@ -491,7 +490,7 @@ def chi2_nopulse(signal, psd, fs, coupling="AC"):
     Returns
     -------
     chi2_0 : float
-        The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+        The chi^2 value for there being no pulse.
         
     """
     
