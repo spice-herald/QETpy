@@ -8,4 +8,7 @@ from . import sim
 from .sim import  loadfromdidv, TESnoise
 from . import cut
 from .cut import  autocuts
+from . import traces
 from .traces import *
+from . import fitting
+from .fitting import *
