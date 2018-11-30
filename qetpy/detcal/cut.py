@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from qetpy.fitting import ofamp
-from qetpy.utils import removeoutliers, iterstat 
+from scipy.stats import skew
 
 __all__ = ["removeoutliers", "iterstat", "symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts","get_muon_cut"]
 
