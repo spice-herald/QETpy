@@ -3,7 +3,7 @@ import random
 from qetpy.fitting import ofamp
 from qetpy.utils import removeoutliers, iterstat 
 
-__all__ = ["symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts"]
+__all__ = ["symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts","get_muon_cut"]
 
 
 def symmetrizedist(vals):
@@ -436,3 +436,47 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     ctot[cchi2inds] = True
         
     return ctot
+
+
+
+def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
+    """
+    Function to help identify saturated muons from array of time series traces. 
+    
+    ***Traces must have POSITIVE going pulses***
+    
+    Note, for best results, only large amplitude traces should based to this  
+    function. The user may need to play around with the thresh_pct and nsatbins 
+    parameters to achive the desired result. 
+    
+    Parameters
+    ----------
+    traces: array
+        Array of time series traces of shape (#number of traces, #bins per trace).
+    thresh_pct: float, optional
+        The percentage of the maximum amplitude that the pulse must remain above 
+        for nsatbins in order to be considered `saturated'.
+    nsatbins: int, optional
+        The minimum number of bins that a muon should be saturated for.
+        
+    Returns
+    -------
+    muon_cut: array
+        Boolean array corresponding to saturated muon events
+        
+    """
+
+    muons = []
+    muon_cut = np.zeros(shape = len(traces), dtype = bool)
+    for ii, trace in enumerate(traces):
+        trace_max = np.max(trace)
+        # check that the maximum value of the trace is above the threshold and
+        # that the maximum is decently larger than the minimum
+
+        peak_loc = np.argmax(trace)
+        # check that the peak is saturated (this should be true for muons that saturate the
+        # detector or muon that rail the amplifier) 
+        if ((peak_loc + int(nsatbins)) < arr.shape[-1]):
+            if (trace[peak_loc+int(nsatbins)] >= trace_max*thresh_pct):
+                muon_cut[ii] = True                    
+    return muon_cut
