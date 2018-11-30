@@ -66,15 +66,15 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
                     irow = ii - nrows
                     jcolumn = 1
                 if ii < num_subplots and nrows > 1:    
-                    axes[irow,jcolumn].set_title(noise.channames[ii])
-                    axes[irow,jcolumn].set_xlabel('frequency [Hz]')
-                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[irow,jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                    axes[irow,jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                     axes[irow,jcolumn].grid(which = 'both')
                     axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.psd[ii][1:]))
                 elif ii < num_subplots and nrows==1:
-                    axes[jcolumn].set_title(noise.channames[ii])
-                    axes[jcolumn].set_xlabel('frequency [Hz]')
-                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                    axes[jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                     axes[jcolumn].grid(which = 'both')
                     axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.psd[ii][1:]))
                 elif nrows==1:
@@ -126,17 +126,17 @@ def plot_reim_psd(noise, lgcsave = False, savepath = None):
                 irow = ii - nrows
                 jcolumn = 1
             if ii < num_subplots and nrows > 1:    
-                axes[irow,jcolumn].set_title(noise.channames[ii])
-                axes[irow,jcolumn].set_xlabel('frequency [Hz]')
-                axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[irow,jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                axes[irow,jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                 axes[irow,jcolumn].grid(which = 'both')
                 axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_psd[ii][1:]), label = 'real')
                 axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_psd[ii][1:]), label = 'imag')
                 axes[irow,jcolumn].legend()
             elif ii < num_subplots and nrows==1:
-                axes[jcolumn].set_title(noise.channames[ii])
-                axes[jcolumn].set_xlabel('frequency [Hz]')
-                axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                axes[jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                axes[jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                 axes[jcolumn].grid(which = 'both')
                 axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_psd[ii][1:]), label = 'real')
                 axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.imag_psd[ii][1:]), label = 'imag')
@@ -334,9 +334,9 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
                     irow = ii - nrows
                     jcolumn = 1
                 if ii < num_subplots and nrows > 1:    
-                    axes[irow,jcolumn].set_title(noise.channames[ii])
-                    axes[irow,jcolumn].set_xlabel('frequency [Hz]')
-                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[irow,jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                    axes[irow,jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                    axes[irow,jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                     axes[irow,jcolumn].grid(which = 'both')
                     if lgcdata:
                         axes[irow,jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_csd[ii][ii][1:]) \
@@ -352,9 +352,9 @@ def plot_decorrelatednoise(noise, lgcoverlay = False, lgcdata = True, lgcuncorrn
                                    , label = 'total noise' ,alpha = 0.6)
                     axes[irow,jcolumn].legend()
                 elif ii < num_subplots and nrows==1:
-                    axes[jcolumn].set_title(noise.channames[ii])
-                    axes[jcolumn].set_xlabel('frequency [Hz]')
-                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
+                    axes[jcolumn].set_title(noise.channames[ii], fontsize = 30)
+                    axes[jcolumn].set_xlabel('Frequency [Hz]', fontsize = 25)
+                    axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize = 25)
                     axes[jcolumn].grid(which = 'both')
                     if lgcdata:
                         axes[jcolumn].loglog(noise.freqs[1:], np.sqrt(noise.real_csd[ii][ii][1:]) \

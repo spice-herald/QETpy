@@ -1,8 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from qetpy.detcal import autocuts, DIDV, IV, Noise, TESnoise
-from qetpy.utils import calc_psd
+from qetpy.detcal import autocuts, DIDV, IV, Noise, TESnoise, calc_psd
 from qetpy.plotting import compare_noise, plot_noise_sim
 import h5py
 

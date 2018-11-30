@@ -1,5 +1,5 @@
 import numpy as np
-from qetpy.fitting import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
+from qetpy.detcal import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
 
 
 def test_ofamp():

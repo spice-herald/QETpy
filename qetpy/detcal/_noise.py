@@ -9,6 +9,7 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import qetpy.plotting as utils
+from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
 __all__ = ["foldpsd", "calc_psd", "gen_noise", "slope", "fill_negatives", "Noise"]
 
