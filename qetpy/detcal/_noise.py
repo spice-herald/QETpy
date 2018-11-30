@@ -8,7 +8,6 @@ from itertools import product, combinations
 import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
-import seaborn as sns
 import qetpy.plotting as utils
 
 __all__ = ["foldpsd", "calc_psd", "gen_noise", "slope", "fill_negatives", "Noise"]
