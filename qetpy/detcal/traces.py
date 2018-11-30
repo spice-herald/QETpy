@@ -5,7 +5,7 @@ from scipy.optimize import least_squares
 from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["lowpassfilter","calc_offset", "align_traces", "get_offset_from_muon", "powertrace_simple"]
+__all__ = ["calc_offset","lowpassfilter", "align_traces", "get_offset_from_muon", "powertrace_simple"]
 
 
 
