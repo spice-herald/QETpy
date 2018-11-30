@@ -4,8 +4,9 @@ from scipy.ndimage.interpolation import shift
 from scipy.optimize import least_squares
 from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
+from scipy import constants
 
-__all__ = ["calc_offset","lowpassfilter", "align_traces", "get_offset_from_muon", "powertrace_simple"]
+__all__ = ["calc_offset","lowpassfilter", "align_traces", "get_offset_from_muon", "powertrace_simple", "integrate_powertrace_simple"]
 
 
 
@@ -225,7 +226,42 @@ def powertrace_simple(trace, ioffset,qetbias,rload, rsh):
     return trace_p
 
 
-                               
+def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbias, rload, rsh):
+    """
+    Function to calculate the energy collected by the TESs by integrating the power in the TES 
+    as a function of time. 
+    
+    Parameters
+    ----------
+    trace: array
+        Time series trace, referenced to TES current
+    time: array
+        Array of time values corresponding to the trace array
+    nbasepre: int
+        The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
+    nbasepost: int
+        The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
+    ioffset: float
+        The offset in the measured TES current
+    qetbias: float
+        Applied QET bias current
+    rload: float
+        Load resistance of TES circuit (rp + rsh)
+    rsh: float, optional
+        Value of the shunt resistor for the TES circuit
+    
+    Returns
+    -------
+    integrated_energy: float
+        The energy absorbed by the TES in units of eV
+        
+    """
+    
+    baseline = np.mean(np.hstack((trace[:nbasepre],trace[nbasepost:])))
+    baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
+    trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
+    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time)/constants.e  
+    return integrated_energy
                                
                                
                                
