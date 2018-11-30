@@ -1,5 +1,6 @@
 import numpy as np
-from qetpy.utils import align_traces, calc_offset, calc_psd, iterstat, lowpassfilter, removeoutliers, stdcomplex
+from qetpy.detcal import align_traces, calc_offset, calc_psd, iterstat, lowpassfilter, removeoutliers
+from qetpy.detca._didv import stdcomplex
 
 def test_align_traces():
     traces = np.random.randn(100, 32000)
