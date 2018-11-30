@@ -396,4 +396,56 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         flat_aligned = traces_aligned.flatten()
         masked_aligned = np.ma.array(flat_aligned, mask = np.isnan(flat_aligned)).reshape(traces_aligned.shape)
         return shifts, masked_aligned
+    
+def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, lgcfullrtn=True):
+    """
+    Function to calculate the offset in the measured TES current using an average muon. 
+    
+    Parameters
+    ----------
+    avemuon: array
+        An average of 'good' muons in time domain, referenced to TES current
+    qetbias: float
+        Applied QET bias current
+    rn: float
+        Normal resistance of the TES
+    rload: float
+        Load resistance of TES circuit (rp + rsh)
+    rsh: float, optional
+        Value of the shunt resistor for the TES circuit
+    nbaseline: int, optional
+        The number of bins to use to calculate the baseline, i.e. [0:nbaseline]
+    lgcfullrtn: bool, optional
+        If True, the offset, r0, i0, and bias power is returned,
+        If False, just the offset is returned
+        
+    Returns
+    -------
+    ioffset: float
+        The offset in the measured TES current
+    r0: float
+        The resistance of the TES 
+    i0: float
+        The quiescent current through the TES
+    p0: float
+        The quiescent bias power of the TES
+    
+    """
+    
+    muon_max = np.max(avemuon)
+    baseline = np.mean(avemuon[:int(nbaseline]))
+    peak_loc = np.argmax(avemuon)
+    muon_saturation = np.mean(avemuon[peak_loc:peak_loc+200])
+    muon_deltaI =  muon_saturation - baseline
+    vbias = qetbias*rsh
+    inormal = vbias/(rload+rn)
+    i0 = inormal - muon_deltaI
+    ioffset = baseline - i0
+    r0 = inormal*(rnormal+rload)/i0 - rload
+    p0 = i0*rsh*qetbias - rload*i0**2
+    if lgcfullrtn:
+        return ioffset, r0, i0, p0
+    else:
+        return ioffset
+
 
