@@ -3,8 +3,105 @@ import random
 from qetpy.fitting import ofamp
 from qetpy.utils import removeoutliers, iterstat 
 
-__all__ = ["symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts","get_muon_cut"]
+__all__ = ["removeoutliers", "iterstat", "symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts","get_muon_cut"]
 
+
+def removeoutliers(x, maxiter=20, skewtarget=0.05):
+    """
+    Function to return indices of inlying points, removing points by minimizing the skewness
+    
+    Parameters
+    ----------
+    x : ndarray
+        Array of real-valued variables from which to remove outliers.
+    maxiter : float, optional
+        Maximum number of iterations to continue to minimize skewness. Default is 20.
+    skewtarget : float, optional
+        Desired residual skewness of distribution. Default is 0.05.
+    
+    Returns
+    -------
+    inds : ndarray
+        Boolean indices indicating which values to select/reject, same length as x.
+    """
+    
+    i=1
+    inds=(x != np.inf)
+    sk=skew(x[inds])
+    while(sk > skewtarget):
+        dmed=x-np.median(x[inds])
+        dist=np.min([abs(min(dmed)),abs(max(dmed))])
+        inds=inds & (abs(dmed) < dist)
+        sk=skew(x[inds])
+        if(i > maxiter):
+            break
+        i+=1
+
+    return inds
+
+def iterstat(data,cut=3,precision=1000.0):
+    """
+    Function to iteratively remove outliers based on how many standard deviations they are from the mean,
+    where the mean and standard deviation are recalculated after each cut.
+    
+    Parameters
+    ----------
+    data : ndarray
+        Array of data that we want to remove outliers from
+    cut : float, optional
+        Number of standard deviations from the mean to be used for outlier rejection
+    precision : float, optional
+        Threshold for change in mean or standard deviation such that we stop iterating. The threshold is 
+        determined by np.std(data)/precision. This means that a higher number for precision means a lower
+        threshold (i.e. more iterations).
+            
+    Returns
+    -------
+    datamean : float
+        Mean of the data after outliers have been removed.
+    datastd : float
+        Standard deviation of the data after outliers have been removed
+    datamask : ndarray
+        Boolean array indicating which values to keep or reject in data, same length as data.
+    """
+    
+    stdcutoff = np.std(data)/precision
+    
+    meanlast = np.mean(data)
+    stdlast = np.std(data)
+    
+    nstable = 0
+    keepgoing = True
+    
+    while keepgoing:
+        mask = abs(data - meanlast) < cut*stdlast
+        if sum(mask) <=1:
+            print('ERROR in iterstat: Number of events passing iterative cut is <= 1')
+            print('Iteration not converging properly. Returning simple mean and std. No data will be cut.')
+            
+            meanthis = np.mean(data)
+            stdthis = np.std(data)
+            mask = np.ones(len(data),dtype=bool)
+            break
+        
+        meanthis = np.mean(data[mask])
+        stdthis = np.std(data[mask])
+        
+        if (abs(meanthis - meanlast) > stdcutoff) or (abs(stdthis - stdlast) > stdcutoff):
+            nstable = 0
+        else:
+            nstable = nstable + 1
+        if nstable >= 3:
+            keepgoing = False
+             
+        meanlast = meanthis
+        stdlast = stdthis
+    
+    datamean = meanthis
+    datastd = stdthis
+    datamask = mask
+    
+    return datamean,datastd,datamask
 
 def symmetrizedist(vals):
     """
