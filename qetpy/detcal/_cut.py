@@ -3,7 +3,7 @@ import random
 from ._fitting import ofamp
 from scipy.stats import skew
 
-__all__ = ["removeoutliers", "iterstat", "symmetrizedist", "pileupcut", "slopecut", "baselinecut", "chi2cut", "autocuts","get_muon_cut"]
+__all__ = ["removeoutliers", "iterstat", "autocuts","get_muon_cut"]
 
 
 def removeoutliers(x, maxiter=20, skewtarget=0.05):

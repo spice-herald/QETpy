@@ -7,7 +7,7 @@ from ._noise import  Noise, foldpsd, calc_psd, gen_noise
 from . import _sim
 from ._sim import  loadfromdidv, TESnoise
 from . import _cut
-from ._cut import  autocuts
+from ._cut import *
 from . import _traces
 from ._traces import *
 from . import _fitting
