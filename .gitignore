@@ -21,7 +21,8 @@ dist/*
 .pytest_cache/*
 
 
-### ignore data saved from trigger demo
+### ignore generated data/pictures from demos
 demos/trigger/*.npz
+demos/didv/*.png
 
 
