@@ -69,7 +69,6 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         signal = signal[np.newaxis, :]
     
     nbins = signal.shape[-1]
-    timelen = nbins/fs
     df = fs/nbins
 
     # take fft of signal and template, divide by nbins to get correct convention 
@@ -132,7 +131,6 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
 
         amp = np.diag(amps[:, bestind])
         chi2 = np.diag(chi[:, bestind])
-        # time shift goes from -timelen/2 to timelen/2
         t0 = (bestind-nbins//2)/fs
 
     else:
@@ -219,7 +217,6 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
     """
 
     nbins = len(signal)
-    timelen = nbins/fs
     df = fs/nbins
     freqs = fftfreq(nbins, d=1.0/fs)
     omega = 2.0*np.pi*freqs
@@ -342,7 +339,6 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
     """
     
     nbins = len(signal)
-    timelen = nbins/fs
     df = fs/nbins
     
     # take fft of signal and template, divide by nbins to get correct convention 
