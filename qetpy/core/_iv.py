@@ -2,9 +2,9 @@ import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
 
-__all__ = ["fitfunc", "findnormalinds", "IV"]
+__all__ = ["IV"]
 
-def fitfunc(x, b, m):
+def _fitfunc(x, b, m):
     """
     Function to use for fitting to a straight line
     
@@ -26,7 +26,7 @@ def fitfunc(x, b, m):
     linfunc = m*x + b
     return linfunc
 
-def findnormalinds(vb, dites, dites_err, tol=10):
+def _findnormalinds(vb, dites, dites_err, tol=10):
     """
     Function to determine the indices of the normal data in an IV curve
     
@@ -54,8 +54,8 @@ def findnormalinds(vb, dites, dites_err, tol=10):
         end_ind+=1
         inds = range(0,end_ind)
         
-        x = curve_fit(fitfunc, vb[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
-        red_chi2 = np.sum(((fitfunc(vb[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
+        x = curve_fit(_fitfunc, vb[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
+        red_chi2 = np.sum(((_fitfunc(vb[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
         
         if red_chi2>tol:
             keepgoing = False
@@ -242,12 +242,12 @@ class IV(object):
             for ch in range(nch):
                 
                 if self.normalinds is None:
-                    normalinds = findnormalinds(self.vb[t,ch], self.dites[t,ch], self.dites_err[t,ch])
+                    normalinds = _findnormalinds(self.vb[t,ch], self.dites[t,ch], self.dites_err[t,ch])
                 else:
                     normalinds = self.normalinds
                     
-                x, xcov = curve_fit(fitfunc, self.vb[t, ch, normalinds], self.dites[t, ch, normalinds],
-                                   sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
+                x, xcov = curve_fit(_fitfunc, self.vb[t, ch, normalinds], self.dites[t, ch, normalinds],
+                                    sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
 
                 jac = np.zeros((2,2))
                 jac[0,0] = 1

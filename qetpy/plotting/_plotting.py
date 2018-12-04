@@ -10,7 +10,6 @@ __all__ = ["plot_psd", "plot_reim_psd", "plot_corrcoeff", "plot_csd", "plot_deco
            "plot_zoomed_in_trace", "plot_didv_flipped", "plot_re_im_didv", "plot_iv",
            "plot_rv", "plot_pv", "plot_all_curves", "plotnonlin"]
 
-####### Noise Class Plotting Functions #############
 
 def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
     """
@@ -513,12 +512,6 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize = (12,8),lgcsave=False, sa
     else:
         #plt.show()
         return fig, ax
-            
-
-        
-######### DIDV Class Plotting Functions ########
-
-
 
 def plot_full_trace(didv, poles="all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
     """
@@ -913,22 +906,6 @@ def plot_re_im_didv(didv, poles="all", plotpriors = True, lgcsave = False, savep
     else:
         plt.show()
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-######### IV Class Plotting Functions #########
-
-
-
-
-
 
 def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """
@@ -1175,9 +1152,6 @@ def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=F
     plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
     plot_rv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
     plot_pv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
-
-    
-####### OFnonlin Class Plotting Functions ##########
 
 
 def plotnonlin(OFnonlinOBJ,pulse, params, errors):

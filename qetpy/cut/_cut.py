@@ -1,9 +1,10 @@
 import numpy as np
 import random
-from ._fitting import ofamp
+from qetpy import ofamp
 from scipy.stats import skew
 
-__all__ = ["removeoutliers", "iterstat", "autocuts","get_muon_cut"]
+
+__all__ = ["removeoutliers", "iterstat", "autocuts", "get_muon_cut"]
 
 
 def removeoutliers(x, maxiter=20, skewtarget=0.05):
@@ -23,6 +24,7 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
     -------
     inds : ndarray
         Boolean indices indicating which values to select/reject, same length as x.
+        
     """
     
     i=1
@@ -63,6 +65,7 @@ def iterstat(data,cut=3,precision=1000.0):
         Standard deviation of the data after outliers have been removed
     datamask : ndarray
         Boolean array indicating which values to keep or reject in data, same length as data.
+        
     """
     
     stdcutoff = np.std(data)/precision
@@ -120,6 +123,7 @@ def symmetrizedist(vals):
     -------
     czeromeanslope : ndarray
         A boolean mask of the values that should be kept.
+        
     """
     
     nvals = len(vals)

@@ -3,34 +3,9 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 import qetpy.plotting as utils
+from qetpy.utils import stdcomplex
 
 __all__ = ["didvinitfromdata", "DIDV"]
-
-
-def stdcomplex(x, axis=0):
-    """
-    Function to return complex standard deviation (individually computed for real and imaginary 
-    components) for an array of complex values.
-    
-    Parameters
-    ----------
-    x : ndarray
-        An array of complex values from which we want the complex standard deviation.
-    axis : int, optional
-        Which axis to take the standard deviation of (should be used if the 
-        dimension of the array is greater than 1)
-        
-    Returns
-    -------
-    std_complex : ndarray
-        The complex standard deviation of the inputted array, along the specified axis.
-            
-    """
-    
-    rstd = np.std(x.real, axis=axis)
-    istd = np.std(x.imag, axis=axis)
-    std_complex = rstd+1.0j*istd
-    return std_complex
 
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq, sgamp, rshunt, 

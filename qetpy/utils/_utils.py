@@ -6,9 +6,36 @@ from scipy.stats import skew
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from scipy import constants
 
-__all__ = ["calc_offset","lowpassfilter", "align_traces", "get_offset_from_muon", "powertrace_simple", "integrate_powertrace_simple"]
+
+__all__ = ["calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
+           "powertrace_simple", "integrate_powertrace_simple", "stdcomplex", "slope",
+           "fill_negatives"]
 
 
+def stdcomplex(x, axis=0):
+    """
+    Function to return complex standard deviation (individually computed for real and imaginary 
+    components) for an array of complex values.
+    
+    Parameters
+    ----------
+    x : ndarray
+        An array of complex values from which we want the complex standard deviation.
+    axis : int, optional
+        Which axis to take the standard deviation of (should be used if the 
+        dimension of the array is greater than 1)
+        
+    Returns
+    -------
+    std_complex : ndarray
+        The complex standard deviation of the inputted array, along the specified axis.
+            
+    """
+    
+    rstd = np.std(x.real, axis=axis)
+    istd = np.std(x.imag, axis=axis)
+    std_complex = rstd+1.0j*istd
+    return std_complex
 
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
@@ -46,6 +73,62 @@ def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     
     return offset, std
 
+def slope(x, y, removemeans=True):
+    """
+    Computes the maximum likelihood slope of a set of x and y points.
+    
+    Parameters
+    ----------
+    x : array_like
+        Array of real-valued independent variables.
+    y : array_like
+        Array of real-valued dependent variables.
+    removemeans : boolean
+        Boolean flag for if the mean of x should be subtracted. This
+        should be set to True if x has not already had its mean subtracted.
+        Set to False if the mean has been subtracted. Default is True.
+            
+    Returns
+    -------
+    slope : float
+        Maximum likelihood slope estimate, calculated as
+        sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
+        
+    """
+    
+    if removemeans:
+        slope = np.sum((x-np.mean(x))*(y-np.mean(x)))/np.sum((x-np.mean(x))**2)
+    else:
+        slope = np.sum(x*y)/np.sum(x**2)
+        
+    return slope
+            
+def fill_negatives(arr):
+    """
+    Simple helper function to remove negative and zero values from PSD's and replace
+    them with interpolated values.
+    
+    Parameters
+    ----------
+    arr: ndarray
+        Array of values to replace neagive values on
+            
+    Returns
+    -------
+    arr: ndarray
+        Modified input array with the negative and zero values replace by interpelate values
+            
+    """
+    
+    zeros = np.array(arr <= 0)
+    inds_zero = np.where(zeros)[0]
+    inds_not_zero = np.where(~zeros)[0]
+    good_vals = arr[~zeros]
+    
+    if len(good_vals) != 0:
+        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)
+        
+    return arr
 
 
 
@@ -78,10 +161,6 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     
     return filt_traces
 
-
-
-
-    
 def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 5000.0, fs = 625e3):
     """
     Function to align dIdV traces if each trace does not trigger at the same point. Uses
@@ -138,6 +217,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
     else:
         flat_aligned = traces_aligned.flatten()
         masked_aligned = np.ma.array(flat_aligned, mask = np.isnan(flat_aligned)).reshape(traces_aligned.shape)
+        
         return shifts, masked_aligned
     
 def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, lgcfullrtn=True):
@@ -146,31 +226,31 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     
     Parameters
     ----------
-    avemuon: array
+    avemuon : array
         An average of 'good' muons in time domain, referenced to TES current
-    qetbias: float
+    qetbias : float
         Applied QET bias current
-    rn: float
+    rn : float
         Normal resistance of the TES
-    rload: float
+    rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh: float, optional
+    rsh : float, optional
         Value of the shunt resistor for the TES circuit
-    nbaseline: int, optional
+    nbaseline : int, optional
         The number of bins to use to calculate the baseline, i.e. [0:nbaseline]
-    lgcfullrtn: bool, optional
+    lgcfullrtn : bool, optional
         If True, the offset, r0, i0, and bias power is returned,
         If False, just the offset is returned
         
     Returns
     -------
-    ioffset: float
+    ioffset : float
         The offset in the measured TES current
-    r0: float
+    r0 : float
         The resistance of the TES 
-    i0: float
+    i0 : float
         The quiescent current through the TES
-    p0: float
+    p0 : float
         The quiescent bias power of the TES
     
     """
@@ -178,14 +258,19 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     muon_max = np.max(avemuon)
     baseline = np.mean(avemuon[:int(nbaseline)])
     peak_loc = np.argmax(avemuon)
+    
     muon_saturation = np.mean(avemuon[peak_loc:peak_loc+200])
     muon_deltaI =  muon_saturation - baseline
+    
     vbias = qetbias*rsh
     inormal = vbias/(rload+rn)
+    
     i0 = inormal - muon_deltaI
     ioffset = baseline - i0
+    
     r0 = inormal*(rnormal+rload)/i0 - rload
     p0 = i0*rsh*qetbias - rload*i0**2
+    
     if lgcfullrtn:
         return ioffset, r0, i0, p0
     else:
@@ -193,7 +278,7 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
                                
                                
                                
-def powertrace_simple(trace, ioffset,qetbias,rload, rsh):
+def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
     """
     Function to convert time series trace from units of TES current to units of power.
     
@@ -202,20 +287,20 @@ def powertrace_simple(trace, ioffset,qetbias,rload, rsh):
     
     Parameters
     ----------
-    trace: array
+    trace : array
         Time series trace, referenced to TES current
-    ioffset: float
+    ioffset : float
         The offset in the measured TES current
-    qetbias: float
+    qetbias : float
         Applied QET bias current
-    rload: float
+    rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh: float, optional
+    rsh : float, optional
         Value of the shunt resistor for the TES circuit
         
     Returns
     -------
-    trace_p: array
+    trace_p : array
         Time series trace, in units of power referenced to the TES
         
     """
@@ -223,6 +308,7 @@ def powertrace_simple(trace, ioffset,qetbias,rload, rsh):
     vbias = qetbias*rsh
     trace_i0 = trace - qetoffset
     trace_p = trace_i0*vbias - (rload)*trace_i0**2
+    
     return trace_p
 
 
@@ -233,34 +319,36 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
     
     Parameters
     ----------
-    trace: array
+    trace : array
         Time series trace, referenced to TES current
-    time: array
+    time : array
         Array of time values corresponding to the trace array
-    nbasepre: int
+    nbasepre : int
         The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
-    nbasepost: int
+    nbasepost : int
         The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
-    ioffset: float
+    ioffset : float
         The offset in the measured TES current
-    qetbias: float
+    qetbias : float
         Applied QET bias current
-    rload: float
+    rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh: float, optional
+    rsh : float, optional
         Value of the shunt resistor for the TES circuit
     
     Returns
     -------
-    integrated_energy: float
+    integrated_energy : float
         The energy absorbed by the TES in units of eV
         
     """
     
     baseline = np.mean(np.hstack((trace[:nbasepre],trace[nbasepost:])))
     baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
+    
     trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
-    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time)/constants.e  
+    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time)/constants.e 
+    
     return integrated_energy
                                
                                

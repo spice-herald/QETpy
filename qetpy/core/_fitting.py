@@ -4,7 +4,8 @@ import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
    
-__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", "chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
+           "chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
@@ -514,49 +515,49 @@ class OFnonlin(object):
     
     Attributes:
     -----------
-    psd: ndarray 
+    psd : ndarray 
         The power spectral density corresponding to the pulses that will be 
         used in the fit. Must be the full psd (positive and negative frequencies), 
         and should be properly normalized to whatever units the pulses will be in. 
-    fs: int or float
+    fs : int or float
         The sample rate of the ADC
-    df: float
+    df : float
         The delta frequency
-    freqs: ndarray
+    freqs : ndarray
         Array of frequencies corresponding to the psd
-    time: ndarray
+    time : ndarray
         Array of time bins corresponding to the pulse
-    template: ndarray
+    template : ndarray
         The time series pulse template to use as a guess for initial parameters
-    data: ndarray
+    data : ndarray
         FFT of the pulse that will be used in the fit
-    lgcdouble: bool
+    lgcdouble : bool
         If False, only the Pulse hight, fall time, and time offset will be fit.
         If True, the rise time of the pulse will be fit in addition to the above. 
-    taurise: float
+    taurise : float
         The user defined risetime of the pulse
-    error: ndarray
+    error : ndarray
         The uncertianty per frequency (the square root of the psd, devided by the errorscale)
-    dof: int
+    dof : int
         The number of degrees of freedom in the fit
-    norm: float
+    norm : float
         Normalization factor to go from continuous to FFT
     
     """
     
-    def __init__(self,psd, fs, template = None):
+    def __init__(self, psd, fs, template = None):
         """
         Initialization of OFnonlin object
         
         Parameters
         ----------
-        psd: ndarray 
+        psd : ndarray 
             The power spectral density corresponding to the pulses that will be 
             used in the fit. Must be the full psd (positive and negative frequencies), 
             and should be properly normalized to whatever units the pulses will be in. 
-        fs: int or float
+        fs : int or float
             The sample rate of the ADC
-        template: ndarray
+        template : ndarray
             The time series pulse template to use as a guess for initial parameters
             
         """
@@ -577,25 +578,25 @@ class OFnonlin(object):
         self.dof = None
         self.norm = np.sqrt(fs*len(psd))
         
-    def twopole(self,A, tau_r, tau_f,t0):
+    def twopole(self, A, tau_r, tau_f,t0):
         """
         Functional form of pulse in frequency domain with the amplitude, rise time,
         fall time, and time offset allowed to float. This is meant to be a private function
         
         Parameters
         ----------
-        A: float
+        A : float
             Amplitude of pulse
-        tau_r: float
+        tau_r : float
             Rise time of two-pole pulse
-        tau_f: float
+        tau_f : float
             Fall time of two-pole pulse
-        t0: float
+        t0 : float
             Time offset of two pole pulse
                 
         Returns
         -------
-        pulse: ndarray, complex
+        pulse : ndarray, complex
             Array of amplitude values as a function of frequency
             
         """
@@ -607,25 +608,25 @@ class OFnonlin(object):
         pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
         return pulse*np.sqrt(self.df)
     
-    def twopoletime(self,A,tau_r,tau_f,t0):
+    def twopoletime(self, A, tau_r, tau_f, t0):
         """
         Functional form of pulse in time domain with the amplitude, rise time,
         fall time, and time offset allowed to float 
         
         Parameters
         ----------
-        A: float
+        A : float
             Amplitude of pulse
-        tau_r: float
+        tau_r : float
             Rise time of two-pole pulse
-        tau_f: float
+        tau_f : float
             Fall time of two-pole pulse
-        t0: float
+        t0 : float
             Time offset of two pole pulse
                 
         Returns
         -------
-        pulse: ndarray
+        pulse : ndarray
             Array of amplitude values as a function of time
         """
         
@@ -643,16 +644,16 @@ class OFnonlin(object):
         
         Parameters
         ----------
-        A: float
+        A : float
             Amplitude of pulse
-        tau_f: float
+        tau_f : float
             Fall time of two-pole pulse
-        t0: float
+        t0 : float
             Time offset of two pole pulse
                 
         Returns
         -------
-        pulse: ndarray, complex
+        pulse : ndarray, complex
             Array of amplitude values as a function of freuqncy
         """
         
@@ -665,12 +666,12 @@ class OFnonlin(object):
         
         Parameters
         ----------
-        params: tuple
+        params : tuple
             Tuple containing fit parameters
                 
         Returns
         -------
-        z1d: ndarray
+        z1d : ndarray
             Array containing residuals per frequency bin. The complex data is flatted into
             single array
         """
@@ -692,52 +693,54 @@ class OFnonlin(object):
         
         Parameters
         ----------
-        model: ndarray
+        model : ndarray
             Array corresponding to pulse function (twopole or onepole) evaluated
             at the optimum values
                 
         Returns
         -------
-        chi2: float
+        chi2 : float
             The reduced chi squared statistic
         """
         
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
-    def fit_falltimes(self,pulse, lgcdouble = False, errscale = 1, guess = None, taurise = None, 
-                      lgcfullrtn = False, lgcplot = False):
+    def fit_falltimes(self, pulse, lgcdouble=False, errscale=1, guess=None, taurise=None, 
+                      lgcfullrtn=False, lgcplot=False):
         """
         Function to do the fit
         
         Parameters
         ----------
-        pulse: ndarray
+        pulse : ndarray
             Time series traces to be fit
-        lgcdouble: bool, optional
+        lgcdouble : bool, optional
             If False, the twopole fit is done, if True, the one pole fit it done.
             Note, if True, the user must provide the value of taurise.
-        errscale: float or int, optional
+        errscale : float or int, optional
             A scale factor for the psd. Ex: if fitting an average, the errscale should be
             set to the number of traces used in the average
-        guess: tuple, optional
-            Guess of initial values for fit, must be the same size as the model being used for fit
-        taurise: float, optional
+        guess : tuple, optional
+            Guess of initial values for fit, must be the same size as the model being used for fit.
+            If lgcdouble is True, then the order should be (ampguess, tauriseguess, taufallguess, t0guess).
+            If lgcdouble is False, then the order should be (ampguess, taufallguess, t0guess).
+        taurise : float, optional
             The value of the rise time of the pulse if the single pole function is being use for fit
-        lgcfullrtn: bool, optional
+        lgcfullrtn : bool, optional
             If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
             the covariance matrix, and chi squared statistic are returned as well.
-        lgcplot: bool, optional
+        lgcplot : bool, optional
             If True, diagnostic plots are returned. 
                 
         Returns
         -------
-        variables: tuple
+        variables : tuple
             The best fit parameters
-        errors: tuple
+        errors : tuple
             The corresponding fit errors for the best fit parameters
-        cov: ndarray
+        cov : ndarray
             The convariance matrix returned from the fit
-        chi2: float
+        chi2 : float
             The reduced chi squared statistic evaluated at the optimum point of the fit
                 
         Raises
@@ -830,25 +833,25 @@ class MuonTailFit(object):
     
     Attributes:
     -----------
-    psd: ndarray 
+    psd : ndarray 
         The power spectral density corresponding to the pulses that will be 
         used in the fit. Must be the full psd (positive and negative frequencies), 
         and should be properly normalized to whatever units the pulses will be in. 
-    fs: int or float
+    fs : int or float
         The sample rate of the ADC
-    df: float
+    df : float
         The delta frequency
-    freqs: ndarray
+    freqs : ndarray
         Array of frequencies corresponding to the psd
-    time: ndarray
+    time : ndarray
         Array of time bins corresponding to the pulse
-    data: ndarray
+    data : ndarray
         FFT of the pulse that will be used in the fit
-    error: ndarray
+    error : ndarray
         The uncertainty per frequency (the square root of the psd, divided by the error scale)
-    dof: int
+    dof : int
         The number of degrees of freedom in the fit
-    norm: float
+    norm : float
         Normalization factor to go from continuous to FFT
     
     """
@@ -859,11 +862,11 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-        psd: ndarray 
+        psd : ndarray 
             The power spectral density corresponding to the pulses that will be 
             used in the fit. Must be the full psd (positive and negative frequencies), 
             and should be properly normalized to whatever units the pulses will be in. 
-        fs: int or float
+        fs : int or float
             The sample rate of the ADC
             
         """
@@ -890,14 +893,14 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-        A: float
+        A : float
             Amplitude of pulse
-        tau: float
+        tau : float
             Fall time of muon tail
                 
         Returns
         -------
-        pulse: ndarray
+        pulse : ndarray
             Array of amplitude values as a function of time
         """
         
@@ -911,12 +914,12 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-        params: tuple
+        params : tuple
             Tuple containing fit parameters
                 
         Returns
         -------
-        z1d: ndarray
+        z1d : ndarray
             Array containing residuals per frequency bin. The complex data is flatted into
             single array.
         """
@@ -934,18 +937,18 @@ class MuonTailFit(object):
         
         Parameters
         ----------
-        model: ndarray
+        model : ndarray
             Array corresponding to pulse function evaluated at the fitted values
                 
         Returns
         -------
-        chi2: float
+        chi2 : float
             The chi squared statistic
         """
         
         return np.sum(np.abs(self.data-model)**2/self.error**2)
 
-    def fitmuontail(self, signal, lgcfullrtn=False, errscale = 1):
+    def fitmuontail(self, signal, lgcfullrtn=False, errscale=1):
         """
         Function to do the fit
         
@@ -953,22 +956,22 @@ class MuonTailFit(object):
         ----------
         signal: ndarray
             Time series traces to be fit
-        lgcfullrtn: bool, optional
+        lgcfullrtn : bool, optional
             If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
             the covariance matrix, and chi squared statistic are returned as well.
-        errscale: float or int, optional
+        errscale : float or int, optional
             A scale factor for the psd. Ex: if fitting an average, the errscale should be
             set to the number of traces used in the average
 
         Returns
         -------
-        variables: tuple
+        variables : tuple
             The best fit parameters
-        errors: tuple
+        errors : tuple
             The corresponding fit errors for the best fit parameters
-        cov: ndarray
+        cov : ndarray
             The convariance matrix returned from the fit
-        chi2: float
+        chi2 : float
             The chi squared statistic evaluated at the fit
         """
 

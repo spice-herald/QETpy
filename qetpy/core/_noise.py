@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, csd
 from math import ceil
-from scipy.signal import csd
 from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 from itertools import product, combinations
@@ -9,9 +8,10 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import qetpy.plotting as utils
+from qetpy.utils import slope, fill_negatives
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "calc_psd", "gen_noise", "slope", "fill_negatives", "Noise"]
+__all__ = ["foldpsd", "calc_psd", "gen_noise", "Noise"]
 
 
 def foldpsd(psd, fs):
@@ -123,60 +123,6 @@ def gen_noise(psd, fs=1.0, ntraces=1):
     noise = ifft(noisefft).real
     
     return noise
-
-def slope(x, y, removemeans=True):
-    """
-    Computes the maximum likelihood slope of a set of x and y points.
-    
-    Parameters
-    ----------
-    x : array_like
-        Array of real-valued independent variables.
-    y : array_like
-        Array of real-valued dependent variables.
-    removemeans : boolean
-        Boolean flag for if the mean of x should be subtracted. This
-        should be set to True if x has not already had its mean subtracted.
-        Set to False if the mean has been subtracted. Default is True.
-            
-    Returns
-    -------
-    slope : float
-        Maximum likelihood slope estimate, calculated as
-        sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
-    """
-    
-    if removemeans:
-        slope = np.sum((x-np.mean(x))*(y-np.mean(x)))/np.sum((x-np.mean(x))**2)
-    else:
-        slope = np.sum(x*y)/np.sum(x**2)
-    return slope
-            
-def fill_negatives(arr):
-    '''
-    Simple helper function to remove negative and zero values from PSD's and replace
-    them with interpolated values.
-    
-    Parameters
-    ----------
-    arr: ndarray
-        Array of values to replace neagive values on
-            
-    Returns
-    -------
-    arr: ndarray
-        Modified input array with the negative and zero values replace by interpelate values
-            
-    '''
-    
-    zeros = np.array(arr <= 0)
-    inds_zero = np.where(zeros)[0]
-    inds_not_zero = np.where(~zeros)[0]
-    good_vals = arr[~zeros]       
-    if len(good_vals) != 0:
-        arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)  
-    return arr
-
 
 class Noise(object):
     """
