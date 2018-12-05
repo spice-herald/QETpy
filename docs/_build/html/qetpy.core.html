@@ -1,0 +1,2160 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qetpy.core package &mdash; qetpy 0.4.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="qetpy.cut package" href="qetpy.cut.html" />
+    <link rel="prev" title="Installation" href="install.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> qetpy
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">qetpy.core package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-qetpy.core._didv">qetpy.core._didv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-qetpy.core._fitting">qetpy.core._fitting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-qetpy.core._iv">qetpy.core._iv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-qetpy.core._noise">qetpy.core._noise module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.cut.html">qetpy.cut package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.plotting.html">qetpy.plotting package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.utils.html">qetpy.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.sim.html">qetpy.sim package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_didv.html">Example Code for using the DIDV class</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">qetpy</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>qetpy.core package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/qetpy.core.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast,
+.nboutput.nblast {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast + .nbinput {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+</style>
+<div class="section" id="qetpy-core-package">
+<h1>qetpy.core package<a class="headerlink" href="#qetpy-core-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-qetpy.core._didv">
+<span id="qetpy-core-didv-module"></span><h2>qetpy.core._didv module<a class="headerlink" href="#module-qetpy.core._didv" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="qetpy.core._didv.didvinitfromdata">
+<code class="descclassname">qetpy.core._didv.</code><code class="descname">didvinitfromdata</code><span class="sig-paren">(</span><em>tmean</em>, <em>didvmean</em>, <em>didvstd</em>, <em>offset</em>, <em>offset_err</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>add180phase=False</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.didvinitfromdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to initialize and process a dIdV dataset without having all of the traces, but just the 
+parameters that are required for fitting. After running, this returns a DIDV class object that is
+ready for fitting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>tmean</strong> : ndarray</p>
+<blockquote>
+<div><p>The average trace in time domain, units of Amps</p>
+</div></blockquote>
+<p><strong>didvstd</strong> : ndarray</p>
+<blockquote>
+<div><p>The complex standard deviation of the didv in frequency space for each frequency</p>
+</div></blockquote>
+<p><strong>didvmean</strong> : ndarray</p>
+<blockquote>
+<div><p>The average trace converted to didv</p>
+</div></blockquote>
+<p><strong>offset</strong> : float</p>
+<blockquote>
+<div><p>The offset (i.e. baseline value) of the didv trace, in Amps</p>
+</div></blockquote>
+<p><strong>offset_err</strong> : float</p>
+<blockquote>
+<div><p>The error in the offset of the didv trace, in Amps</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>Sample rate of the data taken, in Hz</p>
+</div></blockquote>
+<p><strong>sgfreq</strong> : float</p>
+<blockquote>
+<div><p>Frequency of the signal generator, in Hz</p>
+</div></blockquote>
+<p><strong>sgamp</strong> : float</p>
+<blockquote>
+<div><p>Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)</p>
+</div></blockquote>
+<p><strong>rshunt</strong> : float</p>
+<blockquote>
+<div><p>Shunt resistance in the circuit, Ohms</p>
+</div></blockquote>
+<p><strong>r0</strong> : float, optional</p>
+<blockquote>
+<div><p>Resistance of the TES in Ohms</p>
+</div></blockquote>
+<p><strong>r0_err</strong> : float, optional</p>
+<blockquote>
+<div><p>Error in the resistance of the TES (Ohms)</p>
+</div></blockquote>
+<p><strong>rload</strong> : float, optional</p>
+<blockquote>
+<div><p>Load resistance of the circuit (rload = rshunt + rparasitic), Ohms</p>
+</div></blockquote>
+<p><strong>rload_err</strong> : float, optional</p>
+<blockquote>
+<div><p>Error in the load resistance, Ohms</p>
+</div></blockquote>
+<p><strong>priors</strong> : ndarray, optional</p>
+<blockquote>
+<div><p>Prior known values of Irwin’s TES parameters for the trace. 
+Should be in the order of (rload,r0,beta,l,L,tau0,dt)</p>
+</div></blockquote>
+<p><strong>invpriorscov</strong> : ndarray, optional</p>
+<blockquote>
+<div><p>Inverse of the covariance matrix of the prior known values of 
+Irwin’s TES parameters for the trace (any values that are set 
+to zero mean that we have no knowledge of that parameter)</p>
+</div></blockquote>
+<p><strong>add180phase</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If the signal generator is out of phase (i.e. if it looks like –__ instead of __–), then this
+should be set to True. Adds half a period of the signal generator to the dt0 attribute</p>
+</div></blockquote>
+<p><strong>dt0</strong> : float, optional</p>
+<blockquote>
+<div><p>The value of the starting guess for the time offset of the didv when fitting. 
+The best way to use this value if it isn’t converging well is to run the fit multiple times, 
+setting dt0 equal to the fit’s next value, and seeing where the dt0 value converges. 
+The fit can have a difficult time finding the value on the first run if it the initial value 
+is far from the actual value, so a solution is to do this iteratively.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>didvobj</strong> : Object</p>
+<blockquote class="last">
+<div><p>A DIDV class object that can be used to fit the dIdV and return 
+the fit parameters.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="qetpy.core._didv.DIDV">
+<em class="property">class </em><code class="descclassname">qetpy.core._didv.</code><code class="descname">DIDV</code><span class="sig-paren">(</span><em>rawtraces</em>, <em>fs</em>, <em>sgfreq</em>, <em>sgamp</em>, <em>rshunt</em>, <em>tracegain=1.0</em>, <em>r0=0.3</em>, <em>r0_err=0.001</em>, <em>rload=0.01</em>, <em>rload_err=0.001</em>, <em>dutycycle=0.5</em>, <em>add180phase=False</em>, <em>priors=None</em>, <em>invpriorscov=None</em>, <em>dt0=1e-05</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for fitting a didv curve for different types of models of the didv. Also gives
+various other useful values pertaining to the didv. This class supports doing 1, 2, and
+3 pole fits, as well as a 2 pole priors fit. This is supported in a way that does
+one dataset at a time.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="94%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>rawtraces</strong></td>
+<td>(ndarray) The array of rawtraces to use when fitting the didv. Should be of shape (number of traces, length of trace in bins). This can be any units, as long as tracegain will convert this to Amps.</td>
+</tr>
+<tr class="row-even"><td><strong>fs</strong></td>
+<td>(float) Sample rate of the data taken, in Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>sgfreq</strong></td>
+<td>(float) Frequency of the signal generator, in Hz</td>
+</tr>
+<tr class="row-even"><td><strong>sgamp</strong></td>
+<td>(float) Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)</td>
+</tr>
+<tr class="row-odd"><td><strong>r0</strong></td>
+<td>(float) Resistance of the TES in Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>r0_err</strong></td>
+<td>(float) Error in the resistance of the TES (Ohms)</td>
+</tr>
+<tr class="row-odd"><td><strong>rload</strong></td>
+<td>(float) Load resistance of the circuit (rload = rshunt + rparasitic), Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>rload_err</strong></td>
+<td>(float) Error in the load resistance, Ohms</td>
+</tr>
+<tr class="row-odd"><td><strong>rshunt</strong></td>
+<td>(float) Shunt resistance in the circuit, Ohms</td>
+</tr>
+<tr class="row-even"><td><strong>tracegain</strong></td>
+<td>(float) The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces already has units of Amps, then this should be set to 1.0</td>
+</tr>
+<tr class="row-odd"><td><strong>dutycycle</strong></td>
+<td>(float) The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default</td>
+</tr>
+<tr class="row-even"><td><strong>add180phase</strong></td>
+<td>(boolean) If the signal generator is out of phase (i.e. if it looks like –__ instead of __–), then this should be set to True. Adds half a period of the signal generator to the dt0 attribute</td>
+</tr>
+<tr class="row-odd"><td><strong>priors</strong></td>
+<td>(ndarray) Prior known values of Irwin’s TES parameters for the trace. Should be in the order of (rload,r0,beta,l,L,tau0,dt)</td>
+</tr>
+<tr class="row-even"><td><strong>invpriorscov</strong></td>
+<td>(ndarray) Inverse of the covariance matrix of the prior known values of Irwin’s TES parameters for the trace (any values that are set to zero mean that we have no knowledge of that parameter)</td>
+</tr>
+<tr class="row-odd"><td><strong>dt0</strong></td>
+<td>(float) The value of the starting guess for the time offset of the didv when fitting. The best way to use this value if it isn’t converging well is to run the fit multiple times, setting dt0 equal to the fit’s next value, and seeing where the dt0 value converges. The fit can have a difficult time finding the value on the first run if it the initial value is far from the actual value, so a solution is to do this iteratively.</td>
+</tr>
+<tr class="row-even"><td><strong>freq</strong></td>
+<td>(ndarray) The frequencies of the didv fit</td>
+</tr>
+<tr class="row-odd"><td><strong>time</strong></td>
+<td>(ndarray) The times the didv trace</td>
+</tr>
+<tr class="row-even"><td><strong>ntraces</strong></td>
+<td>(float) The number of traces in the data</td>
+</tr>
+<tr class="row-odd"><td><strong>traces</strong></td>
+<td>(ndarray) The traces being used in units of Amps and also truncated so as to include only an integer number of signal generator periods</td>
+</tr>
+<tr class="row-even"><td><strong>flatinds</strong></td>
+<td>(ndarray) The indices where the traces are flat</td>
+</tr>
+<tr class="row-odd"><td><strong>tmean</strong></td>
+<td>(ndarray) The average trace in time domain, units of Amps</td>
+</tr>
+<tr class="row-even"><td><strong>zeroinds</strong></td>
+<td>(ndarray) The indices of the didv fit in frequency space where the values should be zero</td>
+</tr>
+<tr class="row-odd"><td><strong>didvstd</strong></td>
+<td>(ndarray) The complex standard deviation of the didv in frequency space for each frequency</td>
+</tr>
+<tr class="row-even"><td><strong>didvmean</strong></td>
+<td>(ndarray) The average trace converted to didv</td>
+</tr>
+<tr class="row-odd"><td><strong>offset</strong></td>
+<td>(float) The offset (i.e. baseline value) of the didv trace, in Amps</td>
+</tr>
+<tr class="row-even"><td><strong>offset_err</strong></td>
+<td>(float) The error in the offset of the didv trace, in Amps</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams1</strong></td>
+<td>(ndarray) The fit parameters of the 1-pole fit, in order of (A, tau2, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov1</strong></td>
+<td>(ndarray) The corresponding covariance for the 1-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost1</strong></td>
+<td>(float) The cost of the 1-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams1</strong></td>
+<td>(ndarray) The Irwin parameters of the 1-pole fit, in order of (rtot, L , r0, rload, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov1</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 1-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes1</strong></td>
+<td>(ndarray) The fall times of the 1-pole fit, same as tau2, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit1_timedomain</strong></td>
+<td>(ndarray) The 1-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit1_freqdomain</strong></td>
+<td>(ndarray) The 1-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams2</strong></td>
+<td>(ndarray) The fit parameters of the 2-pole fit, in order of (A, B, tau1, tau2, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov2</strong></td>
+<td>(ndarray) The corresponding covariance for the 2-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost2</strong></td>
+<td>(float) The cost of the 2-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams2</strong></td>
+<td>(ndarray) The Irwin parameters of the 2-pole fit, in order of (rload, r0, beta, l, L, tau0, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov2</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 2-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes2</strong></td>
+<td>(ndarray) The fall times of the 2-pole fit, tau_plus and tau_minus, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit2_timedomain</strong></td>
+<td>(ndarray) The 2-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit2_freqdomain</strong></td>
+<td>(ndarray) The 2-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams3</strong></td>
+<td>(ndarray) The fit parameters of the 3-pole fit, in order of (A, B, C, tau1, tau2, tau3, dt)</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov3</strong></td>
+<td>(ndarray) The corresponding covariance for the 3-pole fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost3</strong></td>
+<td>(float) The cost of the 3-pole fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams3</strong></td>
+<td>(NoneType) The Irwin parameters of the 3-pole fit, this returns None now, as there is no model that we convert to</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov3</strong></td>
+<td>(NoneType) The corresponding covariance for the Irwin parameters for the 3-pole fit, also returns None</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes3</strong></td>
+<td>(ndarray) The fall times of the 3-pole fit in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit3_timedomain</strong></td>
+<td>(ndarray) The 3-pole fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit3_freqdomain</strong></td>
+<td>(ndarray) The 3-pole fit in frequency domain</td>
+</tr>
+<tr class="row-odd"><td><strong>fitparams2priors</strong></td>
+<td>(ndarray) The fit parameters of the 2-pole priors fit, in order of (A, B, tau1, tau2, dt), converted from the Irwin parameters</td>
+</tr>
+<tr class="row-even"><td><strong>fitcov2priors</strong></td>
+<td>(ndarray) The corresponding covariance for the 2-pole priors fit parameters</td>
+</tr>
+<tr class="row-odd"><td><strong>fitcost2priors</strong></td>
+<td>(float) The cost of the 2-pole priors fit</td>
+</tr>
+<tr class="row-even"><td><strong>irwinparams2priors</strong></td>
+<td>(ndarray) The Irwin parameters of the 2-pole priors fit, in order of (rload, r0, beta, l, L, tau0, dt)</td>
+</tr>
+<tr class="row-odd"><td><strong>irwincov2priors</strong></td>
+<td>(ndarray) The corresponding covariance for the Irwin parameters for the 2-pole priors fit</td>
+</tr>
+<tr class="row-even"><td><strong>falltimes2priors</strong></td>
+<td>(ndarray) The fall times of the 2-pole priors fit, tau_plus and tau_minus, in s</td>
+</tr>
+<tr class="row-odd"><td><strong>didvfit2priors_timedomain</strong></td>
+<td>(ndarray) The 2-pole priors fit in time domain</td>
+</tr>
+<tr class="row-even"><td><strong>didvfit2priors_freqdomain</strong></td>
+<td>(ndarray) The 2-pole priors fit in frequency domain</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.doallfits">
+<code class="descname">doallfits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.doallfits" title="Permalink to this definition">¶</a></dt>
+<dd><p>This module does all of the fits consecutively. The priors fit is not done if the 
+attributes priors and invpriorscov have not yet been set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.dofit">
+<code class="descname">dofit</code><span class="sig-paren">(</span><em>poles</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.dofit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method does the fit that is specified by the variable poles. If the processtraces module
+has not been run yet, then this module will run that first. This module does not do the priors fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int</p>
+<blockquote class="last">
+<div><p>The fit that should be run. Should be 1, 2, or 3.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.dopriorsfit">
+<code class="descname">dopriorsfit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.dopriorsfit" title="Permalink to this definition">¶</a></dt>
+<dd><p>This module runs the priorsfit, assuming that the priors and invpriorscov attributes have been set to
+the proper values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.get_irwinparams_dict">
+<code class="descname">get_irwinparams_dict</code><span class="sig-paren">(</span><em>poles</em>, <em>lgcpriors=False</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.get_irwinparams_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary with the irwin fit parameters for a given number of poles</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles: int</strong></p>
+<blockquote>
+<div><p>The number of poles used for the fit</p>
+</div></blockquote>
+<p><strong>lgcpriors: bool, optional</strong></p>
+<blockquote>
+<div><p>If true, the values from the priors fit are returned</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">return_dict: dictionary</p>
+<blockquote class="last">
+<div><p>The irwim parameters stored in a dictionary</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.plot_didv_flipped">
+<code class="descname">plot_didv_flipped</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.plot_didv_flipped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the flipped trace in time domain. This function should be used to 
+test if there are nonlinearities in the didv</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<p><strong>plotpriors</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the priors fit should be plotted.</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the figure should be saved</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Where the figure should be saved. Saved in the current directory
+by default.</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.plot_full_trace">
+<code class="descname">plot_full_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.plot_full_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the entire trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<p><strong>plotpriors</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the priors fit should be plotted.</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the figure should be saved</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Where the figure should be saved. Saved in the current directory
+by default.</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.plot_re_im_didv">
+<code class="descname">plot_re_im_didv</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.plot_re_im_didv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot the real and imaginary parts of the didv in frequency space.
+Currently creates two different plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<p><strong>plotpriors</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the priors fit should be plotted.</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the figure should be saved</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Where the figure should be saved. Saved in the current directory
+by default.</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.plot_single_period_of_trace">
+<code class="descname">plot_single_period_of_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.plot_single_period_of_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot a single period of the trace in time domain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<p><strong>plotpriors</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the priors fit should be plotted.</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the figure should be saved</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Where the figure should be saved. Saved in the current directory
+by default.</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.plot_zoomed_in_trace">
+<code class="descname">plot_zoomed_in_trace</code><span class="sig-paren">(</span><em>poles='all'</em>, <em>zoomfactor=0.1</em>, <em>plotpriors=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.plot_zoomed_in_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
+overshoot of the didv.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>poles</strong> : int, string, array_like, optional</p>
+<blockquote>
+<div><p>The pole fits that we want to plot. If set to “all”, then plots
+all of the fits. Can also be set to just one of the fits. Can be set
+as an array of different fits, e.g. [1, 2]</p>
+</div></blockquote>
+<p><strong>zoomfactor</strong> : float, optional, optional</p>
+<blockquote>
+<div><p>Number between zero and 1 to show different amounts of the zoomed in trace.</p>
+</div></blockquote>
+<p><strong>plotpriors</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the priors fit should be plotted.</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean value on whether or not the figure should be saved</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Where the figure should be saved. Saved in the current directory
+by default.</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>A string to append to the end of the file name if saving. Empty string
+by default.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._didv.DIDV.processtraces">
+<code class="descname">processtraces</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._didv.DIDV.processtraces" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method processes the traces loaded to the DIDV class object. This sets 
+up the object for fitting.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-qetpy.core._fitting">
+<span id="qetpy-core-fitting-module"></span><h2>qetpy.core._fitting module<a class="headerlink" href="#module-qetpy.core._fitting" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="qetpy.core._fitting.ofamp">
+<code class="descclassname">qetpy.core._fitting.</code><code class="descname">ofamp</code><span class="sig-paren">(</span><em>signal</em>, <em>template</em>, <em>psd</em>, <em>fs</em>, <em>withdelay=True</em>, <em>coupling='AC'</em>, <em>lgcsigma=False</em>, <em>nconstrain=None</em>, <em>lgcoutsidewindow=False</em>, <em>integralnorm=False</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.ofamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
+and without time delay.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal</strong> : ndarray</p>
+<blockquote>
+<div><p>The signal that we want to apply the optimum filter to (units should be Amps). Can be an array
+of traces.</p>
+</div></blockquote>
+<p><strong>template</strong> : ndarray</p>
+<blockquote>
+<div><p>The pulse template to be used for the optimum filter (should be normalized beforehand).</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate of the data being taken (in Hz).</p>
+</div></blockquote>
+<p><strong>withdelay</strong> : bool, optional</p>
+<blockquote>
+<div><p>Determines whether or not the optimum amplitude should be calculate with (True) or without
+(False) using a time delay. With the time delay, the pulse is assumed to be at any time in the trace.
+Without the time delay, the pulse is assumed to be directly in the middle of the trace. Default
+is True.</p>
+</div></blockquote>
+<p><strong>coupling</strong> : str, optional</p>
+<blockquote>
+<div><p>String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+when calculating the optimum amplitude. If set to ‘AC’, then ths zero frequency bin is ignored. If
+set to anything else, then the zero frequency bin is kept. Default is ‘AC’.</p>
+</div></blockquote>
+<p><strong>lgcsigma</strong> : Boolean, optional</p>
+<blockquote>
+<div><p>If True, the estimated optimal filter energy resolution will be calculated and returned.</p>
+</div></blockquote>
+<p><strong>nconstrain</strong> : int, NoneType, optional</p>
+<blockquote>
+<div><p>The length of the window (in bins) to constrain the possible t0 values to, centered on the unshifted 
+trigger. If left as None, then t0 is uncontrained. If nconstrain is larger than nbins, then 
+the function sets nconstrain to nbins, as this is the maximum number of values that t0 can vary
+over.</p>
+</div></blockquote>
+<p><strong>lgcoutsidewindow</strong> : bool, optional</p>
+<blockquote>
+<div><p>Boolean flag that is used to specify whether ofamp should look inside nconstrain or outside it. 
+If False, ofamp will minimize the chi^2 in the bins specified by nconstrain, which is the 
+default behavior. If True, then ofamp will minimize the chi^2 in the bins that do not contain the
+constrained window.</p>
+</div></blockquote>
+<p><strong>integralnorm</strong> : bool, optional</p>
+<blockquote>
+<div><p>If set to True, then ofamp will normalize the template to an integral of 1, and ofamp will instead
+return the optimal integral in units of Coulombs. If lgcsigma is set to True, then it will be 
+returned in units of Coulombs as well. If set to False, then the usual optimal filter amplitude
+will be returned (in units of Amps).</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>amp</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude calculated for the trace (in Amps).</p>
+</div></blockquote>
+<p><strong>t0</strong> : float</p>
+<blockquote>
+<div><p>The time shift calculated for the pulse (in s). Set to zero if withdelay is False.</p>
+</div></blockquote>
+<p><strong>chi2</strong> : float</p>
+<blockquote>
+<div><p>The chi^2 value calculated from the optimum filter.</p>
+</div></blockquote>
+<p><strong>sigma</strong> : float, optional</p>
+<blockquote class="last">
+<div><p>The optimal filter energy resolution (in Amps)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._fitting.ofamp_pileup">
+<code class="descclassname">qetpy.core._fitting.</code><code class="descname">ofamp_pileup</code><span class="sig-paren">(</span><em>signal</em>, <em>template</em>, <em>psd</em>, <em>fs</em>, <em>a1=None</em>, <em>t1=None</em>, <em>coupling='AC'</em>, <em>nconstrain1=None</em>, <em>nconstrain2=None</em>, <em>lgcoutsidewindow=True</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.ofamp_pileup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for calculating the optimum amplitude of a pileup pulse in data. Supports inputted the
+values of a previously known pulse for increased computational speed, but can be used on its
+own.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal</strong> : ndarray</p>
+<blockquote>
+<div><p>The signal that we want to apply the optimum filter to (units should be Amps).</p>
+</div></blockquote>
+<p><strong>template</strong> : ndarray</p>
+<blockquote>
+<div><p>The pulse template to be used for the optimum filter (should be normalized beforehand).</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate of the data being taken (in Hz).</p>
+</div></blockquote>
+<p><strong>a1</strong> : float, optional</p>
+<blockquote>
+<div><p>The OF amplitude (in Amps) to use for the “main” pulse, e.g. the triggered pulse. This 
+should be calculated beforehand using ofamp. This is only used if t1 is also inputted.</p>
+</div></blockquote>
+<p><strong>t1</strong> : float, optional</p>
+<blockquote>
+<div><p>The corresponding time offset (in seconds) to use for the “main” pulse, e.g. the triggered
+pulse. As with a1, this should be calculated beforehand using ofamp. This is only used if a1
+is also inputted.</p>
+</div></blockquote>
+<p><strong>coupling</strong> : str, optional</p>
+<blockquote>
+<div><p>String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+when calculating the optimum amplitude. If set to ‘AC’, then ths zero frequency bin is ignored. If
+set to anything else, then the zero frequency bin is kept. Default is ‘AC’.</p>
+</div></blockquote>
+<p><strong>nconstrain1</strong> : int, NoneType, optional</p>
+<blockquote>
+<div><p>If t1 is left as None, this is the length of the window (in bins) to constrain the possible 
+t1 values to for the first pulse, centered on the unshifted trigger. If left as None, then 
+t1 is uncontrained. If nconstrain1 is larger than nbins, then the function sets nconstrain1 to 
+nbins, as this is the maximum number of values that t1 can vary over. This is only used if
+a1 or t1 is not given.</p>
+</div></blockquote>
+<p><strong>nconstrain2</strong> : int, NoneType, optional</p>
+<blockquote>
+<div><p>This is the length of the window (in bins) out of which to constrain the possible 
+t2 values to for the pileup pulse, centered on the unshifted trigger. If left as None, then 
+t2 is uncontrained. The value of nconstrain2 should be less than nbins.</p>
+</div></blockquote>
+<p><strong>lgcoutsidewindow</strong> : bool, optional</p>
+<blockquote>
+<div><p>Boolean flag that is used to specify whether ofamp_pileup should look for the pileup pulse inside the
+bins specified by  nconstrain2 or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+the range specified by nconstrain2, which is the default behavior. If False, then ofamp will minimize the
+chi^2 in the bins inside the constrained window specified by nconstrain2.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>a1</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude (in Amps) calculated for the first pulse that was found, which
+is generally the triggered pulse.</p>
+</div></blockquote>
+<p><strong>t1</strong> : float</p>
+<blockquote>
+<div><p>The time shift calculated for the first pulse that was found (in s)</p>
+</div></blockquote>
+<p><strong>a2</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude calculated for the pileup pulse (in Amps).</p>
+</div></blockquote>
+<p><strong>t2</strong> : float</p>
+<blockquote>
+<div><p>The time shift calculated for the pileup pulse (in s)</p>
+</div></blockquote>
+<p><strong>chi2</strong> : float</p>
+<blockquote class="last">
+<div><p>The chi^2 value calculated for the pileup optimum filter.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._fitting.ofamp_pileup_stationary">
+<code class="descclassname">qetpy.core._fitting.</code><code class="descname">ofamp_pileup_stationary</code><span class="sig-paren">(</span><em>signal</em>, <em>template</em>, <em>psd</em>, <em>fs</em>, <em>coupling='AC'</em>, <em>nconstrain=None</em>, <em>lgcoutsidewindow=False</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.ofamp_pileup_stationary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for calculating the optimum amplitude of a pileup pulse in data, with the assumption
+that the triggered pulse is centered in the trace.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal</strong> : ndarray</p>
+<blockquote>
+<div><p>The signal that we want to apply the optimum filter to (units should be Amps).</p>
+</div></blockquote>
+<p><strong>template</strong> : ndarray</p>
+<blockquote>
+<div><p>The pulse template to be used for the optimum filter (should be normalized beforehand).</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate of the data being taken (in Hz).</p>
+</div></blockquote>
+<p><strong>coupling</strong> : str, optional</p>
+<blockquote>
+<div><p>String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+when calculating the optimum amplitude. If set to ‘AC’, then ths zero frequency bin is ignored. If
+set to anything else, then the zero frequency bin is kept. Default is ‘AC’.</p>
+</div></blockquote>
+<p><strong>nconstrain</strong> : int, NoneType, optional</p>
+<blockquote>
+<div><p>This is the length of the window (in bins) out of which to constrain the possible 
+t2 values to for the pileup pulse, centered on the unshifted trigger. If left as None, then 
+t2 is uncontrained. The value of nconstrain should be less than nbins.</p>
+</div></blockquote>
+<p><strong>lgcoutsidewindow</strong> : bool, optional</p>
+<blockquote>
+<div><p>Boolean flag that is used to specify whether the function should look for the pileup pulse inside the
+bins specified by  nconstrain or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+the range specified by nconstrain, which is the default behavior. If False, then ofamp will minimize the
+chi^2 in the bins inside the constrained window specified by nconstrain.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>a1</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude (in Amps) calculated for the first pulse that was found, which
+is the triggered pulse.</p>
+</div></blockquote>
+<p><strong>a2</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude calculated for the pileup pulse (in Amps).</p>
+</div></blockquote>
+<p><strong>t2</strong> : float</p>
+<blockquote>
+<div><p>The time shift calculated for the pileup pulse (in s)</p>
+</div></blockquote>
+<p><strong>chi2</strong> : float</p>
+<blockquote class="last">
+<div><p>The reduced chi^2 value of the fit.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._fitting.chi2lowfreq">
+<code class="descclassname">qetpy.core._fitting.</code><code class="descname">chi2lowfreq</code><span class="sig-paren">(</span><em>signal</em>, <em>template</em>, <em>amp</em>, <em>t0</em>, <em>psd</em>, <em>fs</em>, <em>fcutoff=10000</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.chi2lowfreq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for calculating the low frequency chi^2 of the optimum filter, given some cut off 
+frequency. This function does not calculate the optimum amplitude - it requires that ofamp
+has been run, and the fit has been loaded to this function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal</strong> : ndarray</p>
+<blockquote>
+<div><p>The signal that we want to calculate the low frequency chi^2 of (units should be Amps).</p>
+</div></blockquote>
+<p><strong>template</strong> : ndarray</p>
+<blockquote>
+<div><p>The pulse template to be used for the low frequency chi^2 calculation (should be 
+normalized beforehand).</p>
+</div></blockquote>
+<p><strong>amp</strong> : float</p>
+<blockquote>
+<div><p>The optimum amplitude calculated for the trace (in Amps).</p>
+</div></blockquote>
+<p><strong>t0</strong> : float</p>
+<blockquote>
+<div><p>The time shift calculated for the pulse (in s).</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate of the data being taken (in Hz).</p>
+</div></blockquote>
+<p><strong>fcutoff</strong> : float, optional</p>
+<blockquote>
+<div><p>The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>chi2low</strong> : float</p>
+<blockquote class="last">
+<div><p>The low frequency chi^2 value (cut off at fcutoff) for the inputted values.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._fitting.chi2_nopulse">
+<code class="descclassname">qetpy.core._fitting.</code><code class="descname">chi2_nopulse</code><span class="sig-paren">(</span><em>signal</em>, <em>psd</em>, <em>fs</em>, <em>coupling='AC'</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.chi2_nopulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for calculating the chi^2 of a trace with the assumption that there is no pulse.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal</strong> : ndarray</p>
+<blockquote>
+<div><p>The signal that we want to calculate the no pulse chi^2 of (units should be Amps).</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate of the data being taken (in Hz).</p>
+</div></blockquote>
+<p><strong>coupling</strong> : str, optional</p>
+<blockquote>
+<div><p>String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+when calculating the no pulse chi^2 . If set to ‘AC’, then the zero frequency bin is ignored. If
+set to anything else, then the zero frequency bin is kept. Default is ‘AC’.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>chi2_0</strong> : float</p>
+<blockquote class="last">
+<div><p>The chi^2 value for there being no pulse.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="qetpy.core._fitting.OFnonlin">
+<em class="property">class </em><code class="descclassname">qetpy.core._fitting.</code><code class="descname">OFnonlin</code><span class="sig-paren">(</span><em>psd</em>, <em>fs</em>, <em>template=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class provides the user with a non-linear optimum filter to estimate the amplitude,
+rise time (optional), fall time, and time offset of a pulse.</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.calcchi2">
+<code class="descname">calcchi2</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.calcchi2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the reduced chi square</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>model</strong> : ndarray</p>
+<blockquote>
+<div><p>Array corresponding to pulse function (twopole or onepole) evaluated
+at the optimum values</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>chi2</strong> : float</p>
+<blockquote class="last">
+<div><p>The reduced chi squared statistic</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.fit_falltimes">
+<code class="descname">fit_falltimes</code><span class="sig-paren">(</span><em>pulse</em>, <em>lgcdouble=False</em>, <em>errscale=1</em>, <em>guess=None</em>, <em>taurise=None</em>, <em>lgcfullrtn=False</em>, <em>lgcplot=False</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.fit_falltimes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to do the fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>pulse</strong> : ndarray</p>
+<blockquote>
+<div><p>Time series traces to be fit</p>
+</div></blockquote>
+<p><strong>lgcdouble</strong> : bool, optional</p>
+<blockquote>
+<div><p>If False, the twopole fit is done, if True, the one pole fit it done.
+Note, if True, the user must provide the value of taurise.</p>
+</div></blockquote>
+<p><strong>errscale</strong> : float or int, optional</p>
+<blockquote>
+<div><p>A scale factor for the psd. Ex: if fitting an average, the errscale should be
+set to the number of traces used in the average</p>
+</div></blockquote>
+<p><strong>guess</strong> : tuple, optional</p>
+<blockquote>
+<div><p>Guess of initial values for fit, must be the same size as the model being used for fit.
+If lgcdouble is True, then the order should be (ampguess, tauriseguess, taufallguess, t0guess).
+If lgcdouble is False, then the order should be (ampguess, taufallguess, t0guess).</p>
+</div></blockquote>
+<p><strong>taurise</strong> : float, optional</p>
+<blockquote>
+<div><p>The value of the rise time of the pulse if the single pole function is being use for fit</p>
+</div></blockquote>
+<p><strong>lgcfullrtn</strong> : bool, optional</p>
+<blockquote>
+<div><p>If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+the covariance matrix, and chi squared statistic are returned as well.</p>
+</div></blockquote>
+<p><strong>lgcplot</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, diagnostic plots are returned.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>variables</strong> : tuple</p>
+<blockquote>
+<div><p>The best fit parameters</p>
+</div></blockquote>
+<p><strong>errors</strong> : tuple</p>
+<blockquote>
+<div><p>The corresponding fit errors for the best fit parameters</p>
+</div></blockquote>
+<p><strong>cov</strong> : ndarray</p>
+<blockquote>
+<div><p>The convariance matrix returned from the fit</p>
+</div></blockquote>
+<p><strong>chi2</strong> : float</p>
+<blockquote>
+<div><p>The reduced chi squared statistic evaluated at the optimum point of the fit</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>ValueError</strong></p>
+<blockquote class="last">
+<div><p>if length of guess does not match the number of parameters needed in fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.onepole">
+<code class="descname">onepole</code><span class="sig-paren">(</span><em>A</em>, <em>tau_f</em>, <em>t0</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.onepole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functional form of pulse in time domain with the amplitude,
+fall time, and time offset allowed to float, and the rise time 
+held constant</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>A</strong> : float</p>
+<blockquote>
+<div><p>Amplitude of pulse</p>
+</div></blockquote>
+<p><strong>tau_f</strong> : float</p>
+<blockquote>
+<div><p>Fall time of two-pole pulse</p>
+</div></blockquote>
+<p><strong>t0</strong> : float</p>
+<blockquote>
+<div><p>Time offset of two pole pulse</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pulse</strong> : ndarray, complex</p>
+<blockquote class="last">
+<div><p>Array of amplitude values as a function of freuqncy</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.residuals">
+<code class="descname">residuals</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.residuals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function ot calculate the weighted residuals to be minimized</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>params</strong> : tuple</p>
+<blockquote>
+<div><p>Tuple containing fit parameters</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>z1d</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing residuals per frequency bin. The complex data is flatted into
+single array</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.twopole">
+<code class="descname">twopole</code><span class="sig-paren">(</span><em>A</em>, <em>tau_r</em>, <em>tau_f</em>, <em>t0</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.twopole" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functional form of pulse in frequency domain with the amplitude, rise time,
+fall time, and time offset allowed to float. This is meant to be a private function</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>A</strong> : float</p>
+<blockquote>
+<div><p>Amplitude of pulse</p>
+</div></blockquote>
+<p><strong>tau_r</strong> : float</p>
+<blockquote>
+<div><p>Rise time of two-pole pulse</p>
+</div></blockquote>
+<p><strong>tau_f</strong> : float</p>
+<blockquote>
+<div><p>Fall time of two-pole pulse</p>
+</div></blockquote>
+<p><strong>t0</strong> : float</p>
+<blockquote>
+<div><p>Time offset of two pole pulse</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pulse</strong> : ndarray, complex</p>
+<blockquote class="last">
+<div><p>Array of amplitude values as a function of frequency</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.OFnonlin.twopoletime">
+<code class="descname">twopoletime</code><span class="sig-paren">(</span><em>A</em>, <em>tau_r</em>, <em>tau_f</em>, <em>t0</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.OFnonlin.twopoletime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functional form of pulse in time domain with the amplitude, rise time,
+fall time, and time offset allowed to float</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>A</strong> : float</p>
+<blockquote>
+<div><p>Amplitude of pulse</p>
+</div></blockquote>
+<p><strong>tau_r</strong> : float</p>
+<blockquote>
+<div><p>Rise time of two-pole pulse</p>
+</div></blockquote>
+<p><strong>tau_f</strong> : float</p>
+<blockquote>
+<div><p>Fall time of two-pole pulse</p>
+</div></blockquote>
+<p><strong>t0</strong> : float</p>
+<blockquote>
+<div><p>Time offset of two pole pulse</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pulse</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array of amplitude values as a function of time</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qetpy.core._fitting.MuonTailFit">
+<em class="property">class </em><code class="descclassname">qetpy.core._fitting.</code><code class="descname">MuonTailFit</code><span class="sig-paren">(</span><em>psd</em>, <em>fs</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.MuonTailFit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class provides the user with a fitting routine to estimate the thermal muon tail fall time.</p>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="qetpy.core._fitting.MuonTailFit.calcchi2">
+<code class="descname">calcchi2</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.MuonTailFit.calcchi2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the chi square</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>model</strong> : ndarray</p>
+<blockquote>
+<div><p>Array corresponding to pulse function evaluated at the fitted values</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>chi2</strong> : float</p>
+<blockquote class="last">
+<div><p>The chi squared statistic</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.MuonTailFit.fitmuontail">
+<code class="descname">fitmuontail</code><span class="sig-paren">(</span><em>signal</em>, <em>lgcfullrtn=False</em>, <em>errscale=1</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.MuonTailFit.fitmuontail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to do the fit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>signal: ndarray</strong></p>
+<blockquote>
+<div><p>Time series traces to be fit</p>
+</div></blockquote>
+<p><strong>lgcfullrtn</strong> : bool, optional</p>
+<blockquote>
+<div><p>If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
+the covariance matrix, and chi squared statistic are returned as well.</p>
+</div></blockquote>
+<p><strong>errscale</strong> : float or int, optional</p>
+<blockquote>
+<div><p>A scale factor for the psd. Ex: if fitting an average, the errscale should be
+set to the number of traces used in the average</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>variables</strong> : tuple</p>
+<blockquote>
+<div><p>The best fit parameters</p>
+</div></blockquote>
+<p><strong>errors</strong> : tuple</p>
+<blockquote>
+<div><p>The corresponding fit errors for the best fit parameters</p>
+</div></blockquote>
+<p><strong>cov</strong> : ndarray</p>
+<blockquote>
+<div><p>The convariance matrix returned from the fit</p>
+</div></blockquote>
+<p><strong>chi2</strong> : float</p>
+<blockquote class="last">
+<div><p>The chi squared statistic evaluated at the fit</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.MuonTailFit.muontailfcn">
+<code class="descname">muontailfcn</code><span class="sig-paren">(</span><em>A</em>, <em>tau</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.MuonTailFit.muontailfcn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functional form of a thermal muon tail in time domain with the amplitude and fall time
+allowed to float.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>A</strong> : float</p>
+<blockquote>
+<div><p>Amplitude of pulse</p>
+</div></blockquote>
+<p><strong>tau</strong> : float</p>
+<blockquote>
+<div><p>Fall time of muon tail</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>pulse</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array of amplitude values as a function of time</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._fitting.MuonTailFit.residuals">
+<code class="descname">residuals</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._fitting.MuonTailFit.residuals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the weighted residuals to be minimized.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>params</strong> : tuple</p>
+<blockquote>
+<div><p>Tuple containing fit parameters</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>z1d</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array containing residuals per frequency bin. The complex data is flatted into
+single array.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-qetpy.core._iv">
+<span id="qetpy-core-iv-module"></span><h2>qetpy.core._iv module<a class="headerlink" href="#module-qetpy.core._iv" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="qetpy.core._iv.IV">
+<em class="property">class </em><code class="descclassname">qetpy.core._iv.</code><code class="descname">IV</code><span class="sig-paren">(</span><em>dites</em>, <em>dites_err</em>, <em>vb</em>, <em>vb_err</em>, <em>rload</em>, <em>rload_err</em>, <em>chan_names</em>, <em>normalinds=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for creating the IV curve and calculating various values, such as the normal resistance, 
+the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
+data for multple bath temperatures, multiple channels, and multiple bias points.</p>
+<p>Note: If different bath temperatures have different numbers of bias points (iters), then the user
+should pad the end of the arrays with NaN so that the data can be put into an ndarray and 
+loaded into this class.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="4%" />
+<col width="96%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>dites</strong></td>
+<td>(ndarray) The current read out by the electronics</td>
+</tr>
+<tr class="row-even"><td><strong>dites_err</strong></td>
+<td>(ndarray) The error in the current read out by the electronics</td>
+</tr>
+<tr class="row-odd"><td><strong>vb</strong></td>
+<td>(ndarray) The bias voltage (vb = qet bias * rshunt)</td>
+</tr>
+<tr class="row-even"><td><strong>vb_err</strong></td>
+<td>(ndarray) The corresponding error in the bias voltage</td>
+</tr>
+<tr class="row-odd"><td><strong>rload</strong></td>
+<td>(scalar, ndarray) The load resistance, this can be scalar if using the same rload for all values. If 1-dimensional, then this should be the load resistance for each channel. If 2-dimensional, this should be the load resistance for each bath temperature and each bias point, where the shape is (ntemps, nch). If 3-dimensional, then this should be with shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-even"><td><strong>rload_err</strong></td>
+<td>(scalar, ndarray) The corresponding error in the load resistance, should be the same type as rload</td>
+</tr>
+<tr class="row-odd"><td><strong>chan_names</strong></td>
+<td>(array_like) Array of strings corresponding to the names of each channel in the data. Should have the same length as the nch axis in dites</td>
+</tr>
+<tr class="row-even"><td><strong>ioff</strong></td>
+<td>(ndarray) The current offset calculated from the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>ioff_err</strong></td>
+<td>(ndarray) The corresponding error in the current offset</td>
+</tr>
+<tr class="row-even"><td><strong>rfit</strong></td>
+<td>(ndarray) The total resistance (rnorm + rload) from the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>rfit_err</strong></td>
+<td>(ndarray) The corresponding error in the fit resistance</td>
+</tr>
+<tr class="row-even"><td><strong>rnorm</strong></td>
+<td>(ndarray) The normal resistance of the TES, using the fit, shape (ntemps, nch)</td>
+</tr>
+<tr class="row-odd"><td><strong>rnorm_err</strong></td>
+<td>(ndarray) The corresponding error in the normal resistance</td>
+</tr>
+<tr class="row-even"><td><strong>ites</strong></td>
+<td>(ndarray) The calculated current through the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>ites_err</strong></td>
+<td>(ndarray) The corresponding error in the current through the TES</td>
+</tr>
+<tr class="row-even"><td><strong>r0</strong></td>
+<td>(ndarray) The calculated resistance of the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>r0_err</strong></td>
+<td>(ndarray) The corresponding error in the resistance of the TES</td>
+</tr>
+<tr class="row-even"><td><strong>ptes</strong></td>
+<td>(ndarray) The calculated power of the TES, shape (ntemps, nch, niters)</td>
+</tr>
+<tr class="row-odd"><td><strong>ptes_err</strong></td>
+<td>(ndarray) The corresponding error in the power of the TES</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="qetpy.core._iv.IV.calc_iv">
+<code class="descname">calc_iv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV.calc_iv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to calculate the IV curve for the intialized object. Calculates the power and resistance of
+each bias point, as well as saving the fit parameters from the fit to the normal points and the calculated
+normal reistance from these points.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._iv.IV.plot_all_curves">
+<code class="descname">plot_all_curves</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV.plot_all_curves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV, resistance, and power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temps</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>chans</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>showfit</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to also plot the linear fit to the normal data</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to save the plot</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Path to save the plot to, saves it to the current directory by default</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>Name to append to the plot file name, if saving</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._iv.IV.plot_iv">
+<code class="descname">plot_iv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>showfit=True</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV.plot_iv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the IV curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temps</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>chans</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>showfit</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to also plot the linear fit to the normal data</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to save the plot</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Path to save the plot to, saves it to the current directory by default</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>Name to append to the plot file name, if saving</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._iv.IV.plot_pv">
+<code class="descname">plot_pv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV.plot_pv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the power curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temps</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>chans</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to save the plot</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Path to save the plot to, saves it to the current directory by default</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>Name to append to the plot file name, if saving</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._iv.IV.plot_rv">
+<code class="descname">plot_rv</code><span class="sig-paren">(</span><em>temps='all'</em>, <em>chans='all'</em>, <em>lgcsave=False</em>, <em>savepath=''</em>, <em>savename=''</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._iv.IV.plot_rv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the resistance curves for the data in an IV object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>temps</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>chans</strong> : string, array_like, int, optional</p>
+<blockquote>
+<div><p>Which bath temperatures to plot. Setting to “all” plots all of them. Can also set
+to a subset of bath temperatures, or just one</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Boolean flag to save the plot</p>
+</div></blockquote>
+<p><strong>savepath</strong> : string, optional</p>
+<blockquote>
+<div><p>Path to save the plot to, saves it to the current directory by default</p>
+</div></blockquote>
+<p><strong>savename</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>Name to append to the plot file name, if saving</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-qetpy.core._noise">
+<span id="qetpy-core-noise-module"></span><h2>qetpy.core._noise module<a class="headerlink" href="#module-qetpy.core._noise" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="qetpy.core._noise.foldpsd">
+<code class="descclassname">qetpy.core._noise.</code><code class="descname">foldpsd</code><span class="sig-paren">(</span><em>psd</em>, <em>fs</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.foldpsd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the one-sided version of the inputted two-sided psd.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>A two-sided psd to be converted to one-sided</p>
+</div></blockquote>
+<p><strong>fs</strong> : float</p>
+<blockquote>
+<div><p>The sample rate used for the psd</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : ndarray</p>
+<blockquote>
+<div><p>The frequencies corresponding to the outputted one-sided psd</p>
+</div></blockquote>
+<p><strong>psd_folded</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>The one-sided (folded over) psd corresponding to the inputted two-sided psd</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._noise.calc_psd">
+<code class="descclassname">qetpy.core._noise.</code><code class="descname">calc_psd</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>folded_over=True</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.calc_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the PSD of an n-dimensional array, assuming that we want the PSD of the last axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><p>Array to calculate PSD of.</p>
+</div></blockquote>
+<p><strong>fs</strong> : float, optional</p>
+<blockquote>
+<div><p>Sample rate of the data being taken, assumed to be in units of Hz.</p>
+</div></blockquote>
+<p><strong>folded_over</strong> : bool, optional</p>
+<blockquote>
+<div><p>Boolean value specifying whether or not the PSD should be folded over. 
+If True, then the symmetric values of the PSD are multiplied by two, and
+we keep only the positive frequencies. If False, then the entire PSD is 
+saved, including positive and negative frequencies. Default is to fold
+over the PSD.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>f</strong> : ndarray</p>
+<blockquote>
+<div><p>Array of sample frequencies</p>
+</div></blockquote>
+<p><strong>psd</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Power spectral density of ‘x’</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.core._noise.gen_noise">
+<code class="descclassname">qetpy.core._noise.</code><code class="descname">gen_noise</code><span class="sig-paren">(</span><em>psd</em>, <em>fs=1.0</em>, <em>ntraces=1</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.gen_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to generate noise traces with random phase from a given PSD. The PSD calculated from
+the generated noise traces should be the equivalent to the inputted PSD as the number of traces
+goes to infinity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>psd</strong> : ndarray</p>
+<blockquote>
+<div><p>The two-sided power spectral density that will be used to generate the noise.</p>
+</div></blockquote>
+<p><strong>fs</strong> : float, optional</p>
+<blockquote>
+<div><p>Sample rate of the data being taken, assumed to be in units of Hz.</p>
+</div></blockquote>
+<p><strong>ntraces</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of noise traces that should be generated. Default is 1.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>noise</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>An array containing all of the generated noise traces from the inputted PSD. Has shape
+(ntraces, len(psd)).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="qetpy.core._noise.Noise">
+<em class="property">class </em><code class="descclassname">qetpy.core._noise.</code><code class="descname">Noise</code><span class="sig-paren">(</span><em>traces</em>, <em>fs</em>, <em>channames</em>, <em>tracegain=1.0</em>, <em>fname=None</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class allows the user to calculate the power spectral densities of signals 
+from detectors, study correlations, and decouple the intrinsic noise from cross 
+channel correlated noise.</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>traces</strong></td>
+<td>(ndarray) Array of the traces to use in the noise analysis. Should be shape (# of traces, # of channels, # of bins)</td>
+</tr>
+<tr class="row-even"><td><strong>fs</strong></td>
+<td>(float) The digitization rate of the data in Hz.</td>
+</tr>
+<tr class="row-odd"><td><strong>channames</strong></td>
+<td>(list) A list of strings that name each of the channels.</td>
+</tr>
+<tr class="row-even"><td><strong>time</strong></td>
+<td>(ndarray) The time values for each bin in each trace.</td>
+</tr>
+<tr class="row-odd"><td><strong>fname</strong></td>
+<td>(str) The file name of the data, this will be used when saving the file.</td>
+</tr>
+<tr class="row-even"><td><strong>tracegain</strong></td>
+<td>(float) The factor that traces should be divided by to convert the units to Amps. If rawtraces already has units of Amps, then this should be set to 1.0</td>
+</tr>
+<tr class="row-odd"><td><strong>freqs</strong></td>
+<td>(ndarray) The frequencies that correspond to each value in the spectral densities</td>
+</tr>
+<tr class="row-even"><td><strong>psd</strong></td>
+<td>(ndarray) The power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>realpsd</strong></td>
+<td>(ndarray) The real power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>imagpsd</strong></td>
+<td>(ndarray) The imaginary power spectral density of the data in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>corrcoeff</strong></td>
+<td>(ndarray) The array of the correlation coefficients between each of the channels</td>
+</tr>
+<tr class="row-even"><td><strong>uncorrnoise</strong></td>
+<td>(ndarray) The uncorrelated noise psd in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>corrnoise</strong></td>
+<td>(ndarray) The correlated noise psd in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>realcsd</strong></td>
+<td>(ndarray) The real part of the cross spectral density in A^2/Hz</td>
+</tr>
+<tr class="row-odd"><td><strong>imagcsd</strong></td>
+<td>(ndarray) The imaginary part of the cross spectral density in A^2/Hz</td>
+</tr>
+<tr class="row-even"><td><strong>realcsdstd</strong></td>
+<td>(ndarray) The standard deviation of the real part of the cross spectral density at each frequency</td>
+</tr>
+<tr class="row-odd"><td><strong>imagcsdstd</strong></td>
+<td>(ndarray) The standard deviation of the imaginary part of the cross spectral density at each frequency</td>
+</tr>
+<tr class="row-even"><td><strong>csd</strong></td>
+<td>(ndarray) The cross spectral density of the traces</td>
+</tr>
+<tr class="row-odd"><td><strong>chandict</strong></td>
+<td>(dict) A dictionary that stores the channel number for each channel name.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.calculate_corrcoeff">
+<code class="descname">calculate_corrcoeff</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.calculate_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the correlations between channels as a function of frequency. Stores
+results in self.corrcoeff</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.calculate_csd">
+<code class="descname">calculate_csd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.calculate_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the csd for each channel in traces. Stores csd in self.csd</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.calculate_psd">
+<code class="descname">calculate_psd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.calculate_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the psd for each channel in traces. Stores psd in self.psd</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.calculate_uncorr_noise">
+<code class="descname">calculate_uncorr_noise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.calculate_uncorr_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the uncorrelated and correlated total noise.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.plot_corrcoeff">
+<code class="descname">plot_corrcoeff</code><span class="sig-paren">(</span><em>lgcsmooth=True</em>, <em>nwindow=7</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.plot_corrcoeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel correlation coefficients. Since there are typically few traces,
+the correlations are often noisy. a savgol_filter is used to smooth out some of the noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcsmooth</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, a savgol_filter will be used when plotting.</p>
+</div></blockquote>
+<p><strong>nwindow</strong> : int, optional</p>
+<blockquote>
+<div><p>the number of bins used for the window in the savgol_filter</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<p><strong>savepath</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>Absolute path for the figure to be saved</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.plot_csd">
+<code class="descname">plot_csd</code><span class="sig-paren">(</span><em>whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.plot_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the cross channel noise spectrum referenced to the TES line in
+units of Amperes^2/Hz</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>whichcsd</strong> : list, optional</p>
+<blockquote>
+<div><p>a list of strings, where each element of the list refers to the pair of 
+indices of the desired csd plot</p>
+</div></blockquote>
+<p><strong>lgcreal</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the Re(csd) is plotted. If False, the Im(csd) is plotted</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<p><strong>savepath</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>Absolute path for the figure to be saved</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.plot_decorrelatednoise">
+<code class="descname">plot_decorrelatednoise</code><span class="sig-paren">(</span><em>lgcoverlay=False</em>, <em>lgcdata=True</em>, <em>lgcuncorrnoise=True</em>, <em>lgccorrelated=False</em>, <em>lgcsum=False</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.plot_decorrelatednoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
+from fitted parameters calculated calculate_deCorrelated_noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcoverlay</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, de-correlated for all channels are overlayed in a single plot, 
+If False, the noise for each channel is plotted in a seperate subplot</p>
+</div></blockquote>
+<p><strong>lgcdata</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Only applies when lgcoverlay = False. If True, the csd data is plotted</p>
+</div></blockquote>
+<p><strong>lgcuncorrnoise</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Only applies when lgcoverlay = False. If True, the de-correlated noise is plotted</p>
+</div></blockquote>
+<p><strong>lgccorrelated</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Only applies when lgcoverlay = False. If True, the correlated component of the fitted noise 
+is plotted</p>
+</div></blockquote>
+<p><strong>lgcsum</strong> : boolean, optional</p>
+<blockquote>
+<div><p>Only applies when lgcoverlay = False. If True, the sum of the fitted de-correlated noise and
+and correlated noise is plotted</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<p><strong>savepath</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>Absolute path for the figure to be saved</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.plot_psd">
+<code class="descname">plot_psd</code><span class="sig-paren">(</span><em>lgcoverlay=True</em>, <em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.plot_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcoverlay</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, psd’s for all channels are overlayed in a single plot, 
+If False, each psd for each channel is plotted in a seperate subplot</p>
+</div></blockquote>
+<p><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<p><strong>savepath</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>Absolute path for the figure to be saved</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.plot_reim_psd">
+<code class="descname">plot_reim_psd</code><span class="sig-paren">(</span><em>lgcsave=False</em>, <em>savepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.plot_reim_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the real vs imaginary noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz).
+This is done to check for thermal muon tails making it passed the quality cuts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>lgcsave</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If True, the figure is saved in the user provided directory</p>
+</div></blockquote>
+<p><strong>savepath</strong> : str, optional</p>
+<blockquote class="last">
+<div><p>Absolute path for the figure to be saved</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.remove_trace_slope">
+<code class="descname">remove_trace_slope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.remove_trace_slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to remove the slope from each trace. self.traces is changed to be the slope subtracted traces.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qetpy.core._noise.Noise.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.core._noise.Noise.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the noise object as a pickle file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>path</strong> : str</p>
+<blockquote class="last">
+<div><p>Path where the noise object should be saved.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="qetpy.cut.html" class="btn btn-neutral float-right" title="qetpy.cut package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="install.html" class="btn btn-neutral" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Caleb Fink, Sam Watkins.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.4.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

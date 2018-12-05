@@ -1,0 +1,617 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qetpy.utils package &mdash; qetpy 0.4.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="qetpy.sim package" href="qetpy.sim.html" />
+    <link rel="prev" title="qetpy.plotting package" href="qetpy.plotting.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> qetpy
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.4.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.core.html">qetpy.core package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.cut.html">qetpy.cut package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.plotting.html">qetpy.plotting package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">qetpy.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qetpy.sim.html">qetpy.sim package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_didv.html">Example Code for using the DIDV class</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">qetpy</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>qetpy.utils package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/qetpy.utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast,
+.nboutput.nblast {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast + .nbinput {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+</style>
+<div class="section" id="module-qetpy.utils._utils">
+<span id="qetpy-utils-package"></span><h1>qetpy.utils package<a class="headerlink" href="#module-qetpy.utils._utils" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="qetpy.utils._utils.calc_offset">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">calc_offset</code><span class="sig-paren">(</span><em>x</em>, <em>fs=1.0</em>, <em>sgfreq=100.0</em>, <em>is_didv=False</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.calc_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the DC offset of time series trace.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : ndarray</p>
+<blockquote>
+<div><p>Array to calculate offsets of.</p>
+</div></blockquote>
+<p><strong>fs</strong> : float, optional</p>
+<blockquote>
+<div><p>Sample rate of the data being taken, assumed to be in units of Hz.</p>
+</div></blockquote>
+<p><strong>sgfreq</strong> : float, optional</p>
+<blockquote>
+<div><p>The frequency of signal generator (if is_didv is True. If False, then this is ignored).</p>
+</div></blockquote>
+<p><strong>is_didv</strong> : bool, optional</p>
+<blockquote>
+<div><p>If False, average of full trace is returned. If True, then the average of
+n Periods is returned (where n is the max number of full periods present in a trace).</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>offset</strong> : ndarray</p>
+<blockquote>
+<div><p>Array of offsets with same shape as input x minus the last dimension</p>
+</div></blockquote>
+<p><strong>std</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array of std with same shape as offset</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.lowpassfilter">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">lowpassfilter</code><span class="sig-paren">(</span><em>traces</em>, <em>cut_off_freq=100000</em>, <em>fs=625000.0</em>, <em>order=1</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.lowpassfilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a low pass filter to the inputted time series traces</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><p>An array of shape (# traces, # bins per trace).</p>
+</div></blockquote>
+<p><strong>cut_off_freq</strong> : float, int, optional</p>
+<blockquote>
+<div><p>The cut off 3dB frequency for the low pass filter, defaults to 100kHz.</p>
+</div></blockquote>
+<p><strong>fs</strong> : float, int, optional</p>
+<blockquote>
+<div><p>Digitization rate of data, defaults to 625e3 Hz.</p>
+</div></blockquote>
+<p><strong>order</strong> : int, optional</p>
+<blockquote>
+<div><p>The order of the low pass filter, defaults to 1.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>filt_traces</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>Array of low pass filtered traces with the same shape as inputted traces.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.align_traces">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">align_traces</code><span class="sig-paren">(</span><em>traces</em>, <em>lgcjustshifts=False</em>, <em>n_cut=5000</em>, <em>cut_off_freq=5000.0</em>, <em>fs=625000.0</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.align_traces" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to align dIdV traces if each trace does not trigger at the same point. Uses
+a convolution of the traces to find the time offset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>traces</strong> : ndarray</p>
+<blockquote>
+<div><p>Array of shape (# traces, # bins per trace).</p>
+</div></blockquote>
+<p><strong>lgcjustshifts</strong> : boolean, optional</p>
+<blockquote>
+<div><p>If False, the aligned traces and the phase shifts are returned.
+If True, just the phase shifts are returned. Default is False.</p>
+</div></blockquote>
+<p><strong>n_cut</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of bins to use to do the convolution. Just need enough 
+information to see the periodic signal. Default is 5000.</p>
+</div></blockquote>
+<p><strong>cut_off_freq</strong> : float or int, optional</p>
+<blockquote>
+<div><p>3dB cut off frequency for filter. Default is 5000 Hz.</p>
+</div></blockquote>
+<p><strong>fs</strong> : float or int, optional</p>
+<blockquote>
+<div><p>Sample rate of data in Hz. Default is 625e3 Hz.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>shifts</strong> : ndarray</p>
+<blockquote>
+<div><p>Array of phase shifts for each trace in units of bins.</p>
+</div></blockquote>
+<p><strong>masked_aligned</strong> : masked ndarray, optional</p>
+<blockquote class="last">
+<div><p>Array of time shift corrected traces, same shape as input traces.
+The masked array masks the np.NaN values in the time shifted traces so that
+normal numpy functions will ignore the nan’s in computations.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.get_offset_from_muon">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">get_offset_from_muon</code><span class="sig-paren">(</span><em>avemuon</em>, <em>qetbias</em>, <em>rn</em>, <em>rload</em>, <em>rsh=0.005</em>, <em>nbaseline=6000</em>, <em>lgcfullrtn=True</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.get_offset_from_muon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the offset in the measured TES current using an average muon.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>avemuon</strong> : array</p>
+<blockquote>
+<div><p>An average of ‘good’ muons in time domain, referenced to TES current</p>
+</div></blockquote>
+<p><strong>qetbias</strong> : float</p>
+<blockquote>
+<div><p>Applied QET bias current</p>
+</div></blockquote>
+<p><strong>rn</strong> : float</p>
+<blockquote>
+<div><p>Normal resistance of the TES</p>
+</div></blockquote>
+<p><strong>rload</strong> : float</p>
+<blockquote>
+<div><p>Load resistance of TES circuit (rp + rsh)</p>
+</div></blockquote>
+<p><strong>rsh</strong> : float, optional</p>
+<blockquote>
+<div><p>Value of the shunt resistor for the TES circuit</p>
+</div></blockquote>
+<p><strong>nbaseline</strong> : int, optional</p>
+<blockquote>
+<div><p>The number of bins to use to calculate the baseline, i.e. [0:nbaseline]</p>
+</div></blockquote>
+<p><strong>lgcfullrtn</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, the offset, r0, i0, and bias power is returned,
+If False, just the offset is returned</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ioffset</strong> : float</p>
+<blockquote>
+<div><p>The offset in the measured TES current</p>
+</div></blockquote>
+<p><strong>r0</strong> : float</p>
+<blockquote>
+<div><p>The resistance of the TES</p>
+</div></blockquote>
+<p><strong>i0</strong> : float</p>
+<blockquote>
+<div><p>The quiescent current through the TES</p>
+</div></blockquote>
+<p><strong>p0</strong> : float</p>
+<blockquote class="last">
+<div><p>The quiescent bias power of the TES</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.powertrace_simple">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">powertrace_simple</code><span class="sig-paren">(</span><em>trace</em>, <em>ioffset</em>, <em>qetbias</em>, <em>rload</em>, <em>rsh</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.powertrace_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to convert time series trace from units of TES current to units of power.</p>
+<p>The function takes into account the second order depenace on current, but assumes
+the infinite irwin loop gain approximation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>trace</strong> : array</p>
+<blockquote>
+<div><p>Time series trace, referenced to TES current</p>
+</div></blockquote>
+<p><strong>ioffset</strong> : float</p>
+<blockquote>
+<div><p>The offset in the measured TES current</p>
+</div></blockquote>
+<p><strong>qetbias</strong> : float</p>
+<blockquote>
+<div><p>Applied QET bias current</p>
+</div></blockquote>
+<p><strong>rload</strong> : float</p>
+<blockquote>
+<div><p>Load resistance of TES circuit (rp + rsh)</p>
+</div></blockquote>
+<p><strong>rsh</strong> : float, optional</p>
+<blockquote>
+<div><p>Value of the shunt resistor for the TES circuit</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>trace_p</strong> : array</p>
+<blockquote class="last">
+<div><p>Time series trace, in units of power referenced to the TES</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.integrate_powertrace_simple">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">integrate_powertrace_simple</code><span class="sig-paren">(</span><em>trace</em>, <em>time</em>, <em>nbasepre</em>, <em>nbasepost</em>, <em>ioffset</em>, <em>qetbias</em>, <em>rload</em>, <em>rsh</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.integrate_powertrace_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to calculate the energy collected by the TESs by integrating the power in the TES 
+as a function of time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>trace</strong> : array</p>
+<blockquote>
+<div><p>Time series trace, referenced to TES current</p>
+</div></blockquote>
+<p><strong>time</strong> : array</p>
+<blockquote>
+<div><p>Array of time values corresponding to the trace array</p>
+</div></blockquote>
+<p><strong>nbasepre</strong> : int</p>
+<blockquote>
+<div><p>The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]</p>
+</div></blockquote>
+<p><strong>nbasepost</strong> : int</p>
+<blockquote>
+<div><p>The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]</p>
+</div></blockquote>
+<p><strong>ioffset</strong> : float</p>
+<blockquote>
+<div><p>The offset in the measured TES current</p>
+</div></blockquote>
+<p><strong>qetbias</strong> : float</p>
+<blockquote>
+<div><p>Applied QET bias current</p>
+</div></blockquote>
+<p><strong>rload</strong> : float</p>
+<blockquote>
+<div><p>Load resistance of TES circuit (rp + rsh)</p>
+</div></blockquote>
+<p><strong>rsh</strong> : float, optional</p>
+<blockquote>
+<div><p>Value of the shunt resistor for the TES circuit</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>integrated_energy</strong> : float</p>
+<blockquote class="last">
+<div><p>The energy absorbed by the TES in units of eV</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.stdcomplex">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">stdcomplex</code><span class="sig-paren">(</span><em>x</em>, <em>axis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.stdcomplex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to return complex standard deviation (individually computed for real and imaginary 
+components) for an array of complex values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : ndarray</p>
+<blockquote>
+<div><p>An array of complex values from which we want the complex standard deviation.</p>
+</div></blockquote>
+<p><strong>axis</strong> : int, optional</p>
+<blockquote>
+<div><p>Which axis to take the standard deviation of (should be used if the 
+dimension of the array is greater than 1)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>std_complex</strong> : ndarray</p>
+<blockquote class="last">
+<div><p>The complex standard deviation of the inputted array, along the specified axis.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.slope">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">slope</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>removemeans=True</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the maximum likelihood slope of a set of x and y points.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><p>Array of real-valued independent variables.</p>
+</div></blockquote>
+<p><strong>y</strong> : array_like</p>
+<blockquote>
+<div><p>Array of real-valued dependent variables.</p>
+</div></blockquote>
+<p><strong>removemeans</strong> : boolean</p>
+<blockquote>
+<div><p>Boolean flag for if the mean of x should be subtracted. This
+should be set to True if x has not already had its mean subtracted.
+Set to False if the mean has been subtracted. Default is True.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>slope</strong> : float</p>
+<blockquote class="last">
+<div><p>Maximum likelihood slope estimate, calculated as
+sum((x-&lt;x&gt;)(y-&lt;y&gt;))/sum((x-&lt;x&gt;)**2)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="qetpy.utils._utils.fill_negatives">
+<code class="descclassname">qetpy.utils._utils.</code><code class="descname">fill_negatives</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="headerlink" href="#qetpy.utils._utils.fill_negatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple helper function to remove negative and zero values from PSD’s and replace
+them with interpolated values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>arr: ndarray</strong></p>
+<blockquote>
+<div><p>Array of values to replace neagive values on</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">arr: ndarray</p>
+<blockquote class="last">
+<div><p>Modified input array with the negative and zero values replace by interpelate values</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="qetpy.sim.html" class="btn btn-neutral float-right" title="qetpy.sim package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="qetpy.plotting.html" class="btn btn-neutral" title="qetpy.plotting package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Caleb Fink, Sam Watkins.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.4.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
