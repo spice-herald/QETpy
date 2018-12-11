@@ -42,7 +42,8 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
             for ichan, channel in enumerate(noise.channames):
                 plt.loglog(noise.freqs[1:], np.sqrt(noise.psd[ichan][1:]), label = channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            
+            plt.ylim((1e-12, 1e-9))
+            plt.xlim((5e0,3e5))
             if lgcsave:
                 try:
                     plt.savefig(savepath+noise.name.replace(" ", "_")+'_PSD_overlay.png',

@@ -4,7 +4,7 @@ import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
    
-__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
+__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 
@@ -410,6 +410,475 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
     
     return a1, a2, t2, chi2
     
+def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
+    """
+    The setup function for OF_nSmB_inside
+        
+    Parameters
+    ----------
+    sTemplatet : ndarray
+        The n templates for the signal (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X ()
+    bTemplatet : ndarray
+        The m templates for the background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (m)
+    psd : ndarray
+        Two-sided psd that will be used to describe the noise on the pulse (in Amps^2/Hz)
+        Converted to one sided immediately below for the matrix generation
+        Dimensions: (freq bins = time bins) X ()
+    fs : 
+        Sample rate in Hz
+        
+        
+    Returns
+    -------
+    psddnu : ndarray
+        Two-sided psd multiplied by dnu (in Amps^2)
+        Dimensions: (time bins) X (1)
+    OFfiltf : ndarray
+        The n templates for the signal (should be normalized to max(temp)=1)
+        Dimensions: (n + m) X (time bins)
+    sbTemplatef : ndarray
+        Frequency domain templates for the signal and background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (n + m)
+    sbTemplatet : ndarray
+        Time domain templates for the signal and background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (n + m)
+    iWt : ndarray
+        Inverse time-domain weighting matrix
+        Dimensions: (n + m) X (n + m) X (time bins)
+    
+    """""
+    print('inside OF_nsmB_setup')
+    lgc_verbose = False
+    
+    
+    sTemplatet = np.expand_dims(sTemplatet,1)
+    sTemplateShape = sTemplatet.shape
+    nt = sTemplateShape[0]
+    
+    nS = sTemplateShape[1]
+    bTemplateShape = bTemplatet.shape
+    nB = bTemplateShape[1]
+   
+    nSB=nS+nB;
+    
+    #=== DAQ Setup ===
+    dt = float(1)/fs
+    dnu = float(1)/(nt*dt)
+   
+    # convert psd to units of A^2 instead of A^2/hz
+    # and renormalize to single sided normalization
+    psddnu=np.expand_dims(psd,1)*dnu*2;
+
+    #=== Concatenate signal and background template matrices ====
+    catAxis = 1
+    sbTemplatet = np.concatenate((sTemplatet, bTemplatet), axis=catAxis)
+
+    #=== FFT of Template ==================================================
+    sbTemplatef = np.fft.fft(sbTemplatet,axis=0)/nt
+    
+    #=== Creation of Filter and Weighting Matrices ========================
+    # initialize:
+    #   1) filter matrix in fourier domain
+    #   2) weighting matrix in fourier domain
+    
+    # rotate indices to more easily use matrix multiplication
+    OFfiltf = np.zeros((nSB,nt),dtype=complex)
+    Wf = np.zeros((nSB,nSB,nt), dtype=complex)
+    
+    if lgc_verbose:
+        print(sbTemplatet.shape)
+        print(psddnu.shape)
+        print(OFfiltf.shape)
+        
+    for jr in range(nSB):
+        conjTemp = np.conj(sbTemplatef[:,jr]);
+        conjTemp2= np.expand_dims(conjTemp,axis=1)
+        OFfiltf[jr,:] = np.squeeze(conjTemp2/psddnu);
+        for jc in range(nSB):
+            conjTemp3 = sbTemplatef[:,jc]
+            conjTemp4 = np.expand_dims(conjTemp3,axis=1)
+            Wf[jr,jc,:]= np.squeeze(conjTemp2/psddnu*conjTemp4);
+
+    
+    # === Switch Weighting Matrix to time domain ===
+    Wt=np.real(np.fft.ifft(Wf,axis=2))*nt;
+    
+    if lgc_verbose:
+        print('shape of Wt:', Wt.shape)
+    
+    # those elements which share a time domain delay only use the 0 shift
+    # elements
+
+    # signal-signal piece
+    # the piece being repeated has dimensions of nSxnS
+    # this makes it nSxnSxnt
+    noTimeShiftSSMat = Wt[0:nS,0:nS,0,None]
+    Wt[0:nS,0:nS,:] = noTimeShiftSSMat@np.ones((1,nt))
+
+    #background-background piece
+    # matlab indexing would have this as nS+1:nSB
+    # python indexing should have this as nS:nSB
+    noTimeShiftBBMat = Wt[nS:nSB,nS:nSB,0,None]
+
+    if lgc_verbose:
+        print('shape of noTimeShiftBBMat:')
+        print(noTimeShiftBBMat.shape)
+        print('OFfiltf shape:', OFfiltf.shape)
+        print('conjTemp3 shape:', conjTemp3.shape)
+        print('Wf shape:', Wf.shape)
+    
+    Wt[nS:nSB,nS:nSB,:] = noTimeShiftBBMat@np.ones((1,nt))
+    
+    # signal-background piece
+    # is the ifft, no need for added manipuation
+
+    # background-signal piece
+    # needs to be flipped in time
+    # since Wt is symmetric, build it from the top
+    # section:
+
+    for jr in range(nSB):
+        for jc in range(nSB):
+            if jr>jc:
+                Wt[jr,jc,:] = Wt[jc,jr,:]
+
+    # === Invert Weighting Matrix ===
+    # create the inverted weighting matrices
+    # as a function of the time offset
+    iWt= np.zeros((nSB,nSB,nt))
+    
+    for jt in range(nt):
+        # the regular inv function had a problematic level of numerical jitter
+        # e.g. the chi2(t0) could be negative for some t0
+        # so use pseudo inverse which has not exhibited
+        # any numerical jitter
+        #iWt[:,:,jt]=np.linalg.inv(Wt[:,:,jt]);
+        iWt[:,:,jt]=np.linalg.pinv(Wt[:,:,jt]);
+
+    # === Invert the background-background matrix ===
+
+    iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
+    
+    return psddnu, OFfiltf, sbTemplatef, sbTemplatet, iWt, iBB
+
+def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_window,nS,nB,lgc_interp=False,lgc_disp=False):
+    
+    """
+    Performs all the calculations for an individual pulse
+    
+    
+    Parameters
+    ----------
+    pulset : ndarray
+        The signal that we want to apply the optimum filter to (units should be Amps).
+        Dimensions: (time bins) X ()
+    OFfiltf : ndarray
+        The n templates for the signal (should be normalized to max(temp)=1)
+        Dimensions: (n + m) X (time bins)
+    sbTemplatef : ndarray
+        The n templates for the signal (should be normalized to max(temp)=1)
+        Dimensions: (n + m) X (freq bins = time bins)
+    sbTemplate : ndarray
+        The m templates for the background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (n + m)
+    iWt : ndarray
+        Inverse time-domain weighting matrix
+        Dimensions: (n + m) X (n + m) X (time bins)
+    psddnu : ndarray
+        Two-sided psd multiplied by dnu (in Amps^2)
+        Dimensions: (time bins) X 1
+    fs : float
+        Sample rate in Hz
+        Dimensions: 1
+    indwindow: ndarray
+        Indices over which one should search for the minimum chi2 of the signal template 
+        Dimensions: 1 X (time bins)
+    nS : int
+        Number of signal templates
+        Dimensions: 1
+    nB : int
+        Number of background templates
+        Dimensions: 1
+        
+
+    Returns
+    -------
+    aminsqueeze : ndarray
+        Best fit amplitude for n signals and m backgrounds
+        Dimensions: (n+m) X 0
+    tdelmin : ndarray
+        The best fit time delay of the n signals
+        Dimensions:  1 X 0
+    chi2min: tuple
+        The chi^2 of of the fit
+        Dimensions: 1
+    Pulset_BFsqueeze: ndarray
+        The time domain pulse with the best fit m backgrounds subtracted off
+        Dimensions: (time bins) X (1)
+    a0: tuple
+        The best fit amplitudes with the signal template constrained to t0=1 
+        Dimensions: 1
+    chi20: tuple
+        The chi^2 with the signal template constrained to t0=1
+        Dimensions: 1
+        
+    History
+    -------
+    2012 - M Pyle, B Serfass - initial commit to matlab
+        http://titus.stanford.edu:8080/git/blob/?f=utilities/fitting/OF_nSmB.m&r=Analysis/MatCAP.git&h=master
+    2018/12/5 - B Page  - ported to python
+                        - no chi2 interpolation implemented
+    
+    """
+    
+    lgc_verbose=False
+    lgc_plotcheck=False
+    lgc_oldcode = False
+    lgc_saveplots = False
+    import matplotlib.pyplot as plt
+
+    if lgc_disp:
+        figNum=lgc_disp
+        saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
+    
+    # === Input Dimensions ===
+    pulset = np.expand_dims(pulset,1)
+    pulset = pulset.T
+
+    pulsetShape = pulset.shape
+    nt = pulsetShape[1]
+    OFfiltfShape = OFfiltf.shape
+    nSB = OFfiltfShape[0]
+    
+    # === DAQ Setup ===
+    dt = float(1)/fs
+    dnu = float(1)/(nt*dt)
+
+    # in python index should be 0:nt
+    nu = np.arange(0.,float(nt))*dnu
+    lgc= nu> nt*dnu/2
+    nu[lgc]= nu[lgc]-nt*dnu
+    
+    omega= (2*np.pi)*nu
+    
+    # === FFT Pulses ===
+    pulsef = np.fft.fft(pulset,axis=1)/nt
+
+    # === Apply the Optimum Filter ===
+    Pfiltf = np.zeros((nSB,nt),dtype=complex)
+    
+    for jT in range(nSB):
+        if lgc_oldcode:
+            OFfiltfRow = OFfiltf[jT,:]
+            OFfiltfRowExpand = np.expand_dims(OFfiltfRow,0)
+            Pfiltf[jT] = OFfiltfRowExpand*pulsef
+        else:
+            Pfiltf[jT] = OFfiltf[None,jT,:]*pulsef
+    
+    if lgc_verbose:
+        print('Pfiltf shape', Pfiltf.shape)
+    
+    #=== invert FFT ===
+    # Here we want to be careful ... only the signal templates are shifted
+    # in time. The background traces are fixed ... thus the only term that
+    # matters is the sum (no ifft)
+    
+    Pfiltt = np.zeros((nSB,nt))
+    Pfiltt[0:nS] = np.real(np.fft.ifft(Pfiltf[0:nS],axis=1))*nt
+    
+    # create sum for background
+    backgroundSum=np.real(np.sum(Pfiltf[nS:nSB], axis=1, keepdims=True))
+    
+    # change backgroundSum (nBx1) into new Mat (nBxnt) where column is just repeated
+    backgroundSumExpand = backgroundSum@np.ones((1,nt))
+    
+    Pfiltt[nS:nSB] = backgroundSumExpand
+    Pfiltt2 = np.expand_dims(Pfiltt,axis=2)
+    
+    # === Fit with only the background templates ===
+    # analytical best fit background amplitudes
+    bOnlyA = iBB@backgroundSum
+    
+    # make just the background template
+    bTemplate = sbTemplate[:,nS:nSB]
+
+    # calc chi2 of background only fit
+    bestFitBOnly = bTemplate@bOnlyA
+    # make residual (pulse minus background best fit)
+    residBOnly= pulset.T - bestFitBOnly
+    # take FFT of residual
+    residBOnlyf = np.fft.fft(residBOnly,axis=0)/nt
+    # calc chi2
+    chi2BOnly = np.real(np.sum(np.conj(residBOnlyf)/psddnu.T*residBOnlyf,0))    
+    
+    
+    if lgc_verbose:
+       print('residBOnly shape = ', np.shape(residBOnly)) 
+       print('residBOnlyf shape = ', np.shape(residBOnlyf))
+       print('psddnu = ', np.shape(psddnu))
+
+    # === Multiply by weighting matrix to get amplitudes at all times ===
+    
+    if False:
+        for jt in range(nt):
+            a_t[:,jt]= np.squeeze(iWt[:,:,jt]@Pfiltt2[:,jt,0])
+    
+    # a faster approach
+    # change iWt to (jtXnSBXnSB)
+    iWtN = np.moveaxis(iWt,2,0)
+    
+    # change Pfiltt2 to (jtX2X1)
+    Pfiltt2N = np.moveaxis(Pfiltt2,1,0)
+    a_tN = np.matmul(iWtN,Pfiltt2N)
+    a_tN = np.squeeze(a_tN)
+    a_t = a_tN.T
+    
+    #=== calculate chi^2 for all time using trick ===
+    # first calculate the chi2 component which is independent of the time delay
+    chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
+    
+    if lgc_verbose:
+        print('chi2t0 shape', chi2t0.shape)
+        print('a_t shape', a_t.shape)
+        print('Pfiltt shape', Pfiltt.shape)
+        print('chi2base shape', chi2base.shape)
+    #calculate the component which is a function of t0
+    chi2t0 = np.sum(a_t*Pfiltt,0)
+    chi2_t=chi2base-chi2t0
+    
+    if lgc_verbose:
+        print('chi2_t shape', chi2_t.shape)
+        print('chi2base', chi2base)
+        
+        
+    #=== Save and Output 0 delay values ===     
+    a0 = a_t[:,0]
+    chi20=chi2_t[0]
+    
+    # === Constrain best guess based on ind_window ===
+    # sometimes the window given wraps around to negative values
+    # convert to all positive values
+    lgc_neg = ind_window<0
+    ind_window[lgc_neg] = nt+ind_window[lgc_neg]
+ 
+    if lgc_verbose:
+        print('ind_window (before length check)=',ind_window)
+
+    #finally let's just make sure that nothing is larger than nt
+    lgc_toobig= ind_window >= nt;
+    ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)
+    
+    if lgc_verbose:
+        print('ind_window (after length check)=',ind_window)
+        print('ind_window shape:', ind_window.shape)
+    
+    # plot the chi2_t to check for absolute minima without numerical jitter
+    if lgc_plotcheck:
+        plt.figure(figsize=(10, 6))
+        plt.plot(np.arange(nt), chi2_t, '.b');
+        plt.xlabel('t offset')
+        plt.ylabel('chi2_t')
+
+    
+    chi2min= np.amin(chi2_t[ind_window])
+    ind_tdel_sm = np.argmin(chi2_t[ind_window])
+    ind_tdel=ind_window[:,ind_tdel_sm]
+    
+    if lgc_verbose:
+        print('chi2min=',chi2min)
+        print('ind_tdel_sm=',ind_tdel_sm)
+        print('ind_tdel = ', ind_tdel)
+        
+    #output the lowest chi2 value on the digitized grid 
+    amin = a_t[:,ind_tdel]
+    # in matab, 1 was subtracted off the ind_tdel index as ind_tdel=1 corresponds to t0=0
+    # in python, no need to subtract the 1
+    # tdelmin = ((ind_tdel-1) - nt*(ind_tdel>nt/2 ))*dt
+    tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
+    
+    #=== Subtract off the background for residual ===
+    
+    # get amplitudes of background templates
+    aminb = amin[nS:nSB]
+    
+    if lgc_verbose:
+        print('bTemplate shape', bTemplate.shape)
+        print('aminb shape', aminb.shape)
+
+
+    # construct time domain total background best fit
+    bestFitB = bTemplate@aminb  
+    # make signal residual (pulse minus total background best fit)
+    Pulset_BF= pulset.T - bestFitB
+    # squeeze resid since output has no second dim
+    Pulset_BFsqueeze = np.squeeze(Pulset_BF)
+    # squeeze amin 
+    aminsqueeze = np.squeeze(amin)
+    
+    if lgc_verbose:
+        print('bestFitB is ', bestFitB.shape)
+        print('Pulset_BF shape is ', Pulset_BF.shape)
+        print('tdelmin type', type(tdelmin))
+        print('chi2min type', type(chi2min))
+        print('Pulset_BFsqueeze type', type(Pulset_BFsqueeze))
+        print('a0 type', type(a0))
+        print('chi20', type(chi20))
+        print('aminsqueeze type', type(aminsqueeze))
+        print('aminsqueeze shape', np.shape(aminsqueeze))
+        print('aminsqueeze = ', aminsqueeze)
+
+        
+    if lgc_disp:
+        # create a phase shift matrix.
+        # The signal gets phase shifted by tdelmin
+        # The background templates have no phase shift    
+        phase = np.exp(-1j*omega*tdelmin)
+        phaseAr = np.ones((nS,1))@phase[None,:]
+        phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+        ampMat = amin@np.ones((1,nt))
+        fitf= ampMat*sbTemplatef*phaseMat
+        fittotf=np.sum(fitf,axis=0, keepdims=True)        
+        
+        # get baseline of pulset
+        pulsetBL = np.mean(pulset[0,0:300])
+        # now invert
+        fitt = np.real(np.fft.ifft(fitf,axis=1)*nt)
+        fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
+
+        # make residual 
+        residT = pulset - fittott
+        # check the chi2
+        residTf = np.fft.fft(residT,axis=1)/nt
+        chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
+        
+        # ===Time Domain ==================================================
+        bins = np.arange(nt)
+        bins = bins[None,:]
+        timeP=bins*dt
+        plt.figure(figsize=(8,5));
+        plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
+        plt.plot(bins.T, fittott.T, '--g', label='Total Fit')
+        # plot the background template best fit
+        # note the loop starts at nS 
+        for jSB in range(nS,nSB):
+            if(jSB==nS):
+                plt.plot(bins.T, fitt[jSB,:,None], '-', c='r', label='Background Fit')
+            else:
+                plt.plot(bins.T, fitt[jSB,:,None], '-', c='r')
+        # plot the signal template fit
+        plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
+        plt.xlabel('bins');
+        plt.ylabel('Amps');
+        plt.legend()
+        plt.grid()
+        
+        if lgc_saveplots:
+            plt.savefig(saveDir + 'testFit1' + str(figNum) + '.png', bbox_inches='tight')
+    
+    return aminsqueeze,tdelmin,chi2min,Pulset_BFsqueeze,a0,chi20, chi2BOnly
+
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
     Function for calculating the low frequency chi^2 of the optimum filter, given some cut off 
