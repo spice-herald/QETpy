@@ -10,9 +10,10 @@ be downloaded from: https://github.com/berkeleycdms/QETpy/tree/master/demos
 .. toctree::
    :maxdepth: 2
 
-   /demos/didv/test_didv.ipynb
-   /demos/cuts/test_autocuts.ipynb
-   /demos/iv/iv_class_test.ipynb
-   /demos/noise/noise_example.ipynb
+   /example_demos/test_didv.rst
+   /example_demos/test_autocuts.rst
+   /example_demos/iv_class_test.rst
+   /example_demos/noise_example.rst
+   /example_demos/pulse_fitting_example.rst
 
 
