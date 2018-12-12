@@ -8,7 +8,7 @@ import seaborn as sns
 __all__ = ["plot_psd", "plot_reim_psd", "plot_corrcoeff", "plot_csd", "plot_decorrelatednoise",
            "compare_noise", "plot_noise_sim", "plot_full_trace", "plot_single_period_of_trace",
            "plot_zoomed_in_trace", "plot_didv_flipped", "plot_re_im_didv", "plot_iv",
-           "plot_rv", "plot_pv", "plot_all_curves", "plotnonlin"]
+           "plot_rv", "plot_pv", "plot_all_curves", "plotnonlin", "plotnSmBOFFit"]
 
 
 def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
@@ -42,8 +42,6 @@ def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
             for ichan, channel in enumerate(noise.channames):
                 plt.loglog(noise.freqs[1:], np.sqrt(noise.psd[ichan][1:]), label = channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            plt.ylim((1e-12, 1e-9))
-            plt.xlim((5e0,3e5))
             if lgcsave:
                 try:
                     plt.savefig(savepath+noise.name.replace(" ", "_")+'_PSD_overlay.png',
@@ -1246,3 +1244,55 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
+def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsaveplots=False):
+    """
+    Doc string repeat from rqpy function of_nSmB_inside
+    """
+
+    nSB = nS + nB
+
+    # create a phase shift matrix
+    # The signal gets phase shifted by tdelmin
+    # The background templates have no phase shift
+    phase = np.exp(-1j*omega*tdelmin)
+    phaseAr = np.ones((nS,1))@phase[None,:]
+    phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+    ampMat = amin@np.ones((1,nt))
+    fitf= ampMat*sbTemplatef*phaseMat
+    fittotf=np.sum(fitf,axis=0, keepdims=True)        
+    # get baseline of pulset
+    pulsetBL = np.mean(pulset[0,0:300])
+    # now invert
+    fitt = np.real(np.fft.ifft(fitf,axis=1)*nt)
+    fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
+
+    # make residual 
+    residT = pulset - fittott
+    # check the chi2
+    residTf = np.fft.fft(residT,axis=1)/nt
+    chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
+        
+    # ===Time Domain ==================================================
+    bins = np.arange(nt)
+    bins = bins[None,:]
+    timeP=bins*dt
+    plt.figure(figsize=(8,5));
+    plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
+    plt.plot(bins.T, fittott.T, '--g', label='Total Fit')
+    # plot the background template best fit
+    # note the loop starts at nS 
+    for jSB in range(nS,nSB):
+        if(jSB==nS):
+            plt.plot(bins.T, fitt[jSB,:,None], '-', c='r', label='Background Fit')
+        else:
+            plt.plot(bins.T, fitt[jSB,:,None], '-', c='r')
+    # plot the signal template fit
+    plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
+    plt.xlabel('bins');
+    plt.ylabel('Amps');
+    plt.legend()
+    plt.grid()
+
+    if lgcsaveplots:
+        saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
+        plt.savefig(saveDir + 'testFit2' + str(figNum) + '.png', bbox_inches='tight')
