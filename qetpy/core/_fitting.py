@@ -3,7 +3,6 @@ from scipy.optimize import least_squares
 import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin, plotnSmBOFFit
-import matplotlib.pyplot as plt
    
 __all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
@@ -624,11 +623,8 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
                         - no chi2 interpolation implemented
     
     """
-    
-    lgc_verbose=False
-    lgc_plotcheck=False
-    lgc_oldcode = False
 
+    lgc_plotcheck=False
     
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -746,10 +742,6 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     # get amplitudes of background templates
     aminb = amin[nS:nSB]
     
-    if lgc_verbose:
-        print('bTemplate shape', bTemplate.shape)
-        print('aminb shape', aminb.shape)
-
     # construct time domain total background best fit
     bestFitB = bTemplate@aminb  
     # make signal residual (pulse minus total background best fit)
@@ -757,19 +749,6 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     # squeeze amin 
     aminsqueeze = np.squeeze(amin)
     
-    if lgc_verbose:
-        print('bestFitB is ', bestFitB.shape)
-        print('Pulset_BF shape is ', Pulset_BF.shape)
-        print('tdelmin type', type(tdelmin))
-        print('chi2min type', type(chi2min))
-        print('Pulset_BF type', type(Pulset_BF))
-        print('a0 type', type(a0))
-        print('chi20', type(chi20))
-        print('aminsqueeze type', type(aminsqueeze))
-        print('aminsqueeze shape', np.shape(aminsqueeze))
-        print('aminsqueeze = ', aminsqueeze)
-
-        
     if lgcplot:
         lgcsaveplots = False
         plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsaveplots=lgcsaveplots)

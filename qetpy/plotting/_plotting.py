@@ -1246,7 +1246,29 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
 
 def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsaveplots=False):
     """
-    Doc string repeat from rqpy function of_nSmB_inside
+    
+    Parameters
+    ----------
+    : OFnonlin object
+        The OFnonlin fit object to be plotted
+    pulset: tuple
+        Data to be plotted
+        Dimensions: 1 X (time bins)
+    omega: tuple
+        Angular frequency of the pulse in the frequency domain
+        Dimensions: (time bins) X ()
+    tdelmin: tuple
+        The best fit time delay of the signal, offset from the original signal template
+    amin: tuple
+        The best fit amplitude of the signal
+        Dimensions: (nS + nB) X 1
+    sbTemplatef:
+        The frequency domain signal and background templates
+        Dimensions: (nS + nB) X (time bins)
+    nt: tuple
+        The number of time domain points of the signal and template
+    lgcsaveplots: bool
+        Flag for whether or not to save plots
     """
 
     nSB = nS + nB
