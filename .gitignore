@@ -25,4 +25,7 @@ dist/*
 demos/trigger/*.npz
 demos/didv/*.png
 
+### ignore the document build folder
+docs/_build/*
+
 

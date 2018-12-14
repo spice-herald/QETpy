@@ -18,7 +18,7 @@ install:
   # virtualenv which can't use the Miniconda environment.
   - pip install pytest pytest-cov
   - pip install codecov
-  # Install packages needed for testing pycdms
+  # Install packages needed for testing QETpy
   - conda install numpy
   - conda install scipy
   - conda install matplotlib

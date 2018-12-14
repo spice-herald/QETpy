@@ -1,22 +1,12 @@
-qetpy\.utils package
-====================
+qetpy.utils package
+===================
 
-Submodules
-----------
 
-qetpy\.utils\.utils module
---------------------------
 
-.. automodule:: qetpy.utils.utils
+.. automodule:: qetpy.utils._utils
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Module contents
----------------
 
-.. automodule:: qetpy.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:

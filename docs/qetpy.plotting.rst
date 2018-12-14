@@ -1,22 +1,12 @@
-qetpy\.plotting package
-=======================
+qetpy.plotting package
+======================
 
-Submodules
-----------
 
-qetpy\.plotting\.plotting module
---------------------------------
 
-.. automodule:: qetpy.plotting.plotting
+.. automodule:: qetpy.plotting._plotting
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Module contents
----------------
 
-.. automodule:: qetpy.plotting
-    :members:
-    :undoc-members:
-    :show-inheritance:

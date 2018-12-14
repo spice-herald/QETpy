@@ -6,11 +6,10 @@ Subpackages
 
 .. toctree::
 
-    qetpy.detcal
-    qetpy.fitting
-    qetpy.io
+    qetpy.core
+    qetpy.cut
     qetpy.plotting
-    qetpy.trigger
+    qetpy.sim
     qetpy.utils
 
 Module contents

@@ -7,3 +7,4 @@ seaborn==0.8.1
 Sphinx==1.6.3
 sphinx-rtd-theme==0.4.1
 sphinxcontrib-websupport==1.0.1
+nbsphinx==0.3.5
