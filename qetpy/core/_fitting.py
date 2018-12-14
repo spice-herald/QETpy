@@ -4,8 +4,484 @@ import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
    
-__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
+__all__ = ["OptimumFilter", "ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
+
+class OptimumFilter(object):
+    """
+    Class for efficient calculation of the various different Optimum Filters. Written to minimize the
+    amount of repeated computations when running multiple on the same data.
+    
+    Attributes
+    ----------
+    psd : ndarray
+        The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+    nbins : int
+        The length of the trace/psd/template in bins.
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    df : float
+        Equivalent to df/nbins, the frequency spacing of the Fourier Tranforms.
+    s : ndarray
+        The template converted to frequency space, with the normalization specified 
+        by the `integralnorm` parameter in the initialization.
+    phi : ndarray
+        The optimum filter in frequency space.
+    norm : float
+        The normalization for the optimum filtered signal.
+    v : ndarray
+        The signal converted to frequency space.
+    signalfilt : ndarray
+        The optimum filtered signal in frequency space.
+    chi0 : float
+        The chi^2 value for just the signal part.
+    chit_withdelay : ndarray
+        The fitting part of the chi^2 for `ofamp_withdelay`.
+    amps_withdelay : ndarray
+        The possible amplitudes for `ofamp_withdelay`.
+    chi_withdelay : ndarray
+        The full chi^2 for `ofamp_withdelay`.
+    signalfilt_td : ndarray
+        The filtered signal converted back to time domain.
+    templatefilt_td : ndarray
+        The filtered template converted back to time domain.
+    times : ndarray
+        The possible time shift values.
+    freqs : ndarray
+        The frequencies matching the Fourier Transform of the data.
+    
+    """
+    
+    def __init__(self, signal, template, psd, fs, coupling="AC", integralnorm=False):
+        """
+        Initialization of the OptimumFilter class.
+        
+        Parameters
+        ----------
+        signal : ndarray
+            The signal that we want to apply the optimum filter to (units should be Amps).
+        template : ndarray
+            The pulse template to be used for the optimum filter (should be normalized
+            to a max height of 1 beforehand).
+        psd : ndarray
+            The two-sided psd that will be used to describe the noise in the 
+            signal (in Amps^2/Hz)
+        fs : ndarray
+            The sample rate of the data being taken (in Hz).
+        coupling : str, optional
+            String that determines if the zero frequency bin of the psd should be 
+            ignored (i.e. set to infinity) when calculating the optimum amplitude. 
+            If set to 'AC', then ths zero frequency bin is ignored. If set to anything
+            else, then the zero frequency bin is kept. Default is 'AC'.
+        integralnorm : bool, optional
+            If set to True, then `OptimumFilter` will normalize the template to an integral of 1,
+            and any optimum filters will instead return the optimum integral in units of Coulombs. 
+            If set to False, then the usual optimum filter amplitudes will be returned (in units 
+            of Amps).
+        
+        """
+        
+        self.psd = psd
+        
+        if coupling=="AC":
+            self.psd[0]=np.inf
+            
+        self.nbins = signal.shape[-1]
+        self.fs = fs
+        self.df = self.fs/self.nbins
+        
+        self.s = fft(template)/self.nbins/self.df
+        
+        if integralnorm:
+            self.s/=self.s[0]
+        
+        self.phi = self.s.conjugate()/self.psd
+        self.norm = np.real(np.dot(self.phi, self.s))*self.df
+
+        self.v = fft(signal, axis=-1)/self.nbins/self.df
+        self.signalfilt = self.phi * self.v / self.norm
+        
+        self.chi0 = None
+        
+        self.chit_withdelay = None
+        self.amps_withdelay = None
+        self.chi_withdelay = None
+        
+        self.signalfilt_td = None
+        self.templatefilt_td = None
+        
+        self.times = None
+        self.freqs = None
+        
+    def update_signal(self, signal):
+        """
+        Method to update `OptimumFilter` with a new signal if the PSD and template
+        are to remain the same.
+        
+        Parameters
+        ----------
+        signal : ndarray
+            The signal that we want to apply the optimum filter to (units should be Amps).
+        
+        """
+        
+        self.v = fft(signal, axis=-1)/self.nbins/self.df
+        self.signalfilt = self.phi * self.v / self.norm
+        
+        self.chi0 = None
+        self.chit_withdelay = None
+        self.signalfilt_td = None
+        self.amps_withdelay = None
+        self.chi_withdelay = None
+        
+    def energy_resolution(self):
+        """
+        Method to return the energy resolution for the optimum filter.
+        
+        Returns
+        -------
+        sigma : float
+            The energy resolution of the optimum filter.
+        
+        """
+        
+        sigma = 1.0/np.sqrt(self.norm)
+        
+        return sigma
+        
+    def chi2_nopulse(self):
+        """
+        Method to return the chi^2 for there being no pulse in the signal.
+        
+        Returns
+        -------
+        chi0 : float
+            The chi^2 value for there being no pulse.
+        
+        """
+        
+        # signal part of chi2
+        if self.chi0 is None:
+            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v)*self.df)
+            
+        return self.chi0
+        
+    def chi2_lowfreq(self, amp, t0, fcutoff=10000):
+        """
+        Method for calculating the low frequency chi^2 of the optimum filter, 
+        given some cut off frequency.
+
+        Parameters
+        ----------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s).
+        fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when 
+            calculating the low frequency chi^2. Default is 10 kHz.
+
+        Returns
+        -------
+        chi2low : float
+            The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
+
+        """
+        
+        if self.freqs is None:
+            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        
+        chi2tot = self.df*np.abs(self.v-amp*np.exp(-2.0j*np.pi*t0*self.freqs)*self.s)**2/self.psd
+
+        chi2inds = np.abs(self.freqs)<=fcutoff
+
+        chi2low = np.sum(chi2tot[chi2inds])
+        
+        return chi2low
+        
+    def ofamp_nodelay(self):
+        """
+        Function for calculating the optimum amplitude of a pulse in data with no time
+        shifting.
+        
+        Returns
+        -------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps) with no time shifting
+            allowed.
+        chi2 : float
+            The chi^2 value calculated from the optimum filter with no time shifting.
+
+        """
+        # compute OF amplitude no delay
+        amp = np.real(np.sum(self.signalfilt, axis=-1))*self.df
+
+        # signal part of chi2
+        if self.chi0 is None:
+            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v)*self.df)
+        
+        # fitting part of chi2
+        chit = (amp**2)*self.norm
+
+        chi2 = self.chi0 - chit
+        
+        return amp, chi2
+    
+    def ofamp_withdelay(self, nconstrain=None, lgcoutsidewindow=False):
+        """
+        Function for calculating the optimum amplitude of a pulse in data with time delay.
+
+        Parameters
+        ----------
+        nconstrain : int, NoneType, optional
+            The length of the window (in bins) to constrain the possible t0 values to, 
+            centered on the unshifted trigger. If left as None, then t0 is uncontrained. 
+            If `nconstrain` is larger than `self.nbins`, then the function sets `nconstrain` 
+            to `self.nbins`, as this is the maximum number of values that t0 can vary over.
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the Optimum Filter should look inside 
+            `nconstrain` or outside it. If False, the filter will minimize the chi^2 in the 
+            bins specified by `nconstrain`, which is the default behavior. If True, then it 
+            will minimize the chi^2 in the bins that do not contain the constrained window.
+            
+        Returns
+        -------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s).
+        chi2 : float
+            The chi^2 value calculated from the optimum filter.
+
+        """
+        
+        if self.signalfilt_td is None:
+            self.signalfilt_td = np.real(ifft(self.signalfilt*self.nbins, axis=-1))*self.df
+
+        # signal part of chi2
+        if self.chi0 is None:
+            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v)*self.df)
+
+        # fitting part of chi2
+        if self.chit_withdelay is None:
+            self.chit_withdelay = (self.signalfilt_td**2)*self.norm
+
+        # sum parts of chi2
+        if self.chi_withdelay is None:
+            chi = self.chi0 - self.chit_withdelay
+            self.chi_withdelay = np.roll(chi, self.nbins//2, axis=-1)
+        
+        if self.amps_withdelay is None:
+            self.amps_withdelay = np.roll(self.signalfilt_td, self.nbins//2, axis=-1)
+        
+        # find time of best fit
+        if nconstrain is not None:
+            if nconstrain>self.nbins:
+                nconstrain = self.nbins
+
+            if lgcoutsidewindow:
+                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
+                notinds[notinds<0]+=self.nbins
+                bestind = np.argmin(self.chi_withdelay[notinds], axis=-1)
+                bestind = notinds[bestind]
+            else:
+                bestind = np.argmin(self.chi_withdelay[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
+                                    axis=-1)
+                inds = np.arange(self.nbins//2-nconstrain//2, 
+                                 self.nbins//2+nconstrain//2+nconstrain%2)
+                bestind = inds[bestind]
+        else:
+            bestind = np.argmin(self.chi_withdelay, axis=-1)
+
+        amp = self.amps_withdelay[bestind]
+        t0 = (bestind-self.nbins//2)/self.fs
+        chi2 = self.chi_withdelay[bestind]
+        
+        return amp, t0, chi2
+    
+    def ofamp_pileup_iterative(self, a1, t1, nconstrain=None, lgcoutsidewindow=True):
+        """
+        Function for calculating the optimum amplitude of a pileup pulse in data given
+        the location of the triggered pulse.
+
+        Parameters
+        ----------
+        a1 : float
+            The OF amplitude (in Amps) to use for the "main" pulse, e.g. the triggered pulse.
+        t1 : float
+            The corresponding time offset (in seconds) to use for the "main" pulse, e.g. the 
+            triggered pulse.
+        nconstrain : int, NoneType, optional
+            This is the length of the window (in bins) out of which to constrain the possible 
+            t2 values to for the pileup pulse, centered on the unshifted trigger. If left as 
+            None, then t2 is uncontrained. The value of nconstrain2 should be less than nbins.
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether `OptimumFilter` should look for the 
+            pileup pulse inside the bins specified by `nconstrain` or outside them. If True, 
+            the filter will minimize the chi^2 in the bins ouside the range specified by
+            `nconstrain`, which is the default behavior. If False, then it will minimize the 
+            chi^2 in the bins inside the constrained window specified by `nconstrain`.
+            
+        Returns
+        -------
+        a2 : float
+            The optimum amplitude calculated for the pileup pulse (in Amps).
+        t2 : float
+            The time shift calculated for the pileup pulse (in s)
+        chi2 : float
+            The chi^2 value calculated for the pileup optimum filter.
+
+        """
+        
+        if self.freqs is None:
+            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        
+        if self.signalfilt_td is None:
+            self.signalfilt_td = np.real(ifft(self.signalfilt*self.nbins, axis=-1))*self.df
+        
+        templatefilt_td = np.real(ifft(np.exp(-2.0j*np.pi*self.freqs*t1)*self.phi*self.s*self.nbins))*self.df
+        
+        if self.times is None:
+            self.times = np.arange(-(self.nbins//2), self.nbins//2+self.nbins%2)/self.fs
+            
+        # signal part of chi^2
+        if self.chi0 is None:
+            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v))*self.df
+        
+        # correct for fft convention by multiplying by nbins
+        a2s = self.signalfilt_td - a1*templatefilt_td/self.norm
+
+        # first fitting part of chi2
+        chit = (a1**2+a2s**2)*self.norm + 2*a1*a2s*templatefilt_td
+
+        if t1<0:
+            t1ind = int(t1*self.fs+self.nbins)
+        else:
+            t1ind = int(t1*self.fs)
+
+        # last part of chi2
+        chil = 2*a1*self.signalfilt_td[t1ind]*self.norm + 2*a2s*self.signalfilt_td*self.norm
+
+        # add all parts of chi2
+        chi = self.chi0 + chit - chil
+
+        a2s = np.roll(a2s, self.nbins//2)
+        chi = np.roll(chi, self.nbins//2)
+
+        # find time of best fit
+        if nconstrain is not None:
+            if nconstrain>self.nbins:
+                nconstrain = self.nbins
+
+            if lgcoutsidewindow:
+                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
+                bestind = np.argmin(chi[notinds], axis=-1)
+                notinds[notinds<0]+=self.nbins
+                bestind = notinds[bestind]
+            else:
+                bestind = np.argmin(chi[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
+                                    axis=-1)
+                inds = np.arange(self.nbins//2-nconstrain//2, 
+                                 self.nbins//2+nconstrain//2+nconstrain%2)
+                bestind = inds[bestind]
+        else:
+            bestind = np.argmin(chi, axis=-1)
+
+        # get best fit values
+        a2 = a2s[bestind]
+        chi2 = chi[bestind]
+        t2 = self.times[bestind]
+        
+        return a2, t2, chi2
+        
+    def ofamp_pileup_stationary(self, nconstrain=None, lgcoutsidewindow=True):
+        """
+        Function for calculating the optimum amplitude of a pileup pulse in data, with the assumption
+        that the triggered pulse is centered in the trace.
+
+        Parameters
+        ----------
+        nconstrain : int, optional
+            This is the length of the window (in bins) out of which to constrain the possible 
+            t2 values to for the pileup pulse, centered on the unshifted trigger. If left as None, 
+            then t2 is uncontrained. The value of nconstrain should be less than nbins.
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the filter should look for the pileup 
+            pulse inside the bins specified by `nconstrain` or outside them. If True, the filter will 
+            minimize the chi^2 in the bins ouside the range specified by `nconstrain`, which is the 
+            default behavior. If False, then it will minimize the chi^2 in the bins inside the 
+            constrained window specified by nconstrain.
+        Returns
+        -------
+        a1 : float
+            The optimum amplitude (in Amps) calculated for the first pulse that was found, which
+            is the triggered pulse.
+        a2 : float
+            The optimum amplitude calculated for the pileup pulse (in Amps).
+        t2 : float
+            The time shift calculated for the pileup pulse (in s)
+        chi2 : float
+            The reduced chi^2 value of the fit.
+
+        """
+        
+        if self.signalfilt_td is None:
+            self.signalfilt_td = np.real(ifft(self.signalfilt*self.nbins))*self.df
+            
+        templatefilt_td = np.real(ifft(self.phi*self.s*self.nbins))*self.df
+
+        if self.times is None:
+            self.times = np.arange(-(self.nbins//2), self.nbins//2+self.nbins%2)/self.fs
+
+        # compute OF with delay
+        denom = self.norm**2 - templatefilt_td**2
+
+        a1s = (self.signalfilt_td[0]*self.norm**2 - self.signalfilt_td*self.norm*templatefilt_td)/denom
+        a2s = (self.signalfilt_td*self.norm**2 - self.signalfilt_td[0]*self.norm*templatefilt_td)/denom
+
+        # signal part of chi^2
+        if self.chi0 is None:
+            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v))*self.df
+
+        # first fitting part of chi2
+        chit = (a1s**2+a2s**2)*self.norm + 2*a1s*a2s*templatefilt_td
+
+        # last part of chi2
+        chil = 2*a1s*self.signalfilt_td[0]*self.norm + 2*a2s*self.signalfilt_td*self.norm
+
+        # add all parts of chi2
+        chi = self.chi0 + chit - chil
+
+        a1s = np.roll(a1s, self.nbins//2)
+        a2s = np.roll(a2s, self.nbins//2)
+        chi = np.roll(chi, self.nbins//2)
+        
+        # find time of best fit
+        if nconstrain is not None:
+            if nconstrain>self.nbins:
+                nconstrain = self.nbins
+
+            if lgcoutsidewindow:
+                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
+                bestind = np.argmin(chi[notinds], axis=-1)
+                notinds[notinds<0]+=self.nbins
+                bestind = notinds[bestind]
+            else:
+                bestind = np.argmin(chi[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
+                                    axis=-1)
+                inds = np.arange(self.nbins//2-nconstrain//2, 
+                                 self.nbins//2+nconstrain//2+nconstrain%2)
+                bestind = inds[bestind]
+        else:
+            bestind = np.argmin(chi, axis=-1)
+
+        # get best fit values
+        a1 = a1s[bestind]
+        a2 = a2s[bestind]
+        chi2 = chi[bestind]
+        t2 = self.times[bestind]
+        
+        return a1, a2, t2, chi2
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
