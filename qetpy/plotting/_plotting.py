@@ -4,6 +4,7 @@ from math import ceil
 from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 import seaborn as sns
+from qetpy.utils import lowpassfilter
 
 __all__ = ["plot_psd", "plot_reim_psd", "plot_corrcoeff", "plot_csd", "plot_decorrelatednoise",
            "compare_noise", "plot_noise_sim", "plot_full_trace", "plot_single_period_of_trace",
@@ -1168,7 +1169,13 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
             
     """
     
-    if OFnonlinOBJ.lgcdouble:
+    if (OFnonlinOBJ.npolefit==4):
+        A, B, C, tau_r,tau_f1, tau_f2, tau_f3,t0 = params
+        A_err, B_err, C_err, tau_r_err, tau_f1_err, tau_f2_err, tau_f3_err, t0_err = errors
+    elif (OFnonlinOBJ.npolefit==3):
+        A, B, tau_r,tau_f1, tau_f2,t0 = params
+        A_err, B_err, tau_r_err, tau_f1_err, tau_f2_err, t0_err = errors
+    elif (OFnonlinOBJ.npolefit==2):
         A,tau_r,tau_f,t0 = params
         A_err, tau_r_err, tau_f_err, t0_err = errors
     else:
@@ -1176,11 +1183,21 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
         A_err, tau_f_err, t0_err = errors
         tau_r = OFnonlinOBJ.taurise
         tau_r_err = 0.0
-    variables = [A,tau_r,tau_f,t0]
+        
+    if (OFnonlinOBJ.npolefit==4):
+        variables = [A,B,C,tau_r,tau_f1,tau_f2,tau_f3,t0]
+    elif (OFnonlinOBJ.npolefit==3):
+        variables = [A,B,tau_r,tau_f1,tau_f2,t0]
+    else:
+        variables = [A,tau_r,tau_f,t0]
     ## get indices to define window ##
     t0ind = int(t0*OFnonlinOBJ.fs) #location of timeoffset
+    
     nmin = t0ind - int(5*tau_r*OFnonlinOBJ.fs) # 5 falltimes before offset
-    nmax = t0ind + int(7*tau_f*OFnonlinOBJ.fs) # 7 falltimes after offset
+    if (OFnonlinOBJ.npolefit==3 or OFnonlinOBJ.npolefit==4):
+        nmax = t0ind + int(9*tau_f1*OFnonlinOBJ.fs) # 7 falltimes after offset
+    else:
+        nmax = t0ind + int(7*tau_f*OFnonlinOBJ.fs) # 7 falltimes after offset
     
     
     f = OFnonlinOBJ.freqs
@@ -1189,14 +1206,24 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     error = OFnonlinOBJ.error[cf]
     
     fig, axes = plt.subplots(2,2,figsize = (12,8))
-    fig.suptitle('Non-Linear Two Pole Fit', fontsize = 18)
-    
+    if (OFnonlinOBJ.npolefit==4):
+        fig.suptitle('Non-Linear Four Pole Fit', fontsize = 18)
+    elif (OFnonlinOBJ.npolefit==3):
+        fig.suptitle('Non-Linear Three Pole Fit', fontsize = 18)
+    else:
+        fig.suptitle('Non-Linear Two Pole Fit', fontsize = 18)
+     
     axes[0][0].grid(True, linestyle = 'dashed')
     axes[0][0].set_title(f'Frequency Domain Trace')
     axes[0][0].set_xlabel(f'Frequency [Hz]')
     axes[0][0].set_ylabel('Amplitude [A/$\sqrt{\mathrm{Hz}}$]')
     axes[0][0].loglog(f, np.abs(OFnonlinOBJ.data[cf]),c = 'g', label = 'Pulse', alpha = .75)
-    axes[0][0].loglog(f, np.abs(OFnonlinOBJ.twopole(*variables))[cf], c = 'r', label = 'Fit') 
+    if (OFnonlinOBJ.npolefit==4):
+        axes[0][0].loglog(f, np.abs(OFnonlinOBJ.fourpole(*variables))[cf], c = 'r', label = 'Fit') 
+    elif (OFnonlinOBJ.npolefit==3):
+        axes[0][0].loglog(f, np.abs(OFnonlinOBJ.threepole(*variables))[cf], c = 'r', label = 'Fit') 
+    else:
+        axes[0][0].loglog(f, np.abs(OFnonlinOBJ.twopole(*variables))[cf], c = 'r', label = 'Fit') 
     axes[0][0].loglog(f, error,c = 'b', label = '$\sqrt{PSD}$', alpha = .75)
     axes[0][0].tick_params(which = 'both', direction='in', right = True, top = True)
     
@@ -1205,7 +1232,22 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     axes[0][1].set_xlabel(f'Time [ms]')
     axes[0][1].set_ylabel(f'Amplitude [Amps]')
     axes[0][1].plot(OFnonlinOBJ.time[nmin:nmax]*1e3, pulse[nmin:nmax], c = 'g', label = 'Pulse', alpha = 0.75)
-    axes[0][1].plot(OFnonlinOBJ.time[nmin:nmax]*1e3, OFnonlinOBJ.twopoletime(*variables)[nmin:nmax], c = 'r', label = 'time domain')
+    #axes[0][1].set_scale(
+    if (OFnonlinOBJ.npolefit==4):
+        axes[0][1].plot(OFnonlinOBJ.time[nmin:nmax]*1e3,
+                        OFnonlinOBJ.fourpoletime(*variables)[nmin:nmax],
+                        c = 'r',
+                        label = 'time domain')
+    elif (OFnonlinOBJ.npolefit==3):
+        axes[0][1].plot(OFnonlinOBJ.time[nmin:nmax]*1e3,
+                        OFnonlinOBJ.threepoletime(*variables)[nmin:nmax],
+                        c = 'r',
+                        label = 'time domain')
+    else:
+        axes[0][1].plot(OFnonlinOBJ.time[nmin:nmax]*1e3,
+                        OFnonlinOBJ.twopoletime(*variables)[nmin:nmax],
+                        c = 'r',
+                        label = 'time domain')
     axes[0][1].ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     axes[0][1].tick_params(which = 'both', direction='in', right = True, top = True)
 
@@ -1215,7 +1257,12 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     axes[1][0].set_xlabel(f'Time [ms]')
     axes[1][0].set_ylabel(f'Amplitude [Amps]')
     axes[1][0].plot(OFnonlinOBJ.time*1e3, pulse, c = 'g', label = 'Pulse', alpha = 0.75)
-    axes[1][0].plot(OFnonlinOBJ.time*1e3, OFnonlinOBJ.twopoletime(*variables), c = 'r', label = 'time domain')
+    if (OFnonlinOBJ.npolefit==4):
+        axes[1][0].plot(OFnonlinOBJ.time*1e3, OFnonlinOBJ.fourpoletime(*variables), c = 'r', label = 'time domain')
+    elif (OFnonlinOBJ.npolefit==3):
+        axes[1][0].plot(OFnonlinOBJ.time*1e3, OFnonlinOBJ.threepoletime(*variables), c = 'r', label = 'time domain')
+    else:
+        axes[1][0].plot(OFnonlinOBJ.time*1e3, OFnonlinOBJ.twopoletime(*variables), c = 'r', label = 'time domain')
     axes[1][0].ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     axes[1][0].tick_params(which = 'both', direction='in', right = True, top = True)
 
@@ -1227,11 +1274,27 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     for ii in range(len(params)):
         axes[1][1].plot([],[],  linestyle = ' ')
    
-    labels = [f'Amplitude: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
-    ,f'τ$_f$: ({tau_f*1e6:.4f} +\- {tau_f_err*1e6:.4f}) [$\mu$s]'\
-     ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
-    ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
-    
+    if (OFnonlinOBJ.npolefit==4):
+        labels = [f'A: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'B: ({B*1e6:.4f} +\- {B_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'C: ({C*1e6:.4f} +\- {C_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'τ, f1: ({tau_f1*1e6:.4f} +\- {tau_f1_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'τ, f2: ({tau_f2*1e6:.4f} +\- {tau_f2_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'τ, f3: ({tau_f3*1e6:.4f} +\- {tau_f3_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
+                  ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
+    elif (OFnonlinOBJ.npolefit==3):
+        labels = [f'A: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'B: ({B*1e6:.4f} +\- {B_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'τ, f1: ({tau_f1*1e6:.4f} +\- {tau_f1_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'τ, f2: ({tau_f2*1e6:.4f} +\- {tau_f2_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
+                  ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
+    else:
+        labels = [f'Amplitude: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
+                  ,f'τ$_f$: ({tau_f*1e6:.4f} +\- {tau_f_err*1e6:.4f}) [$\mu$s]'\
+                  ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
+                  ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
     lines = axes[1][1].get_lines()
     legend1 = plt.legend([lines[i] for i in range(3, 3+len(params))], [labels[ii] for ii  in range(len(params))]
     , loc=1)
@@ -1244,19 +1307,20 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
-def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsaveplots=False):
+def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lpFiltFreq=None,lgcsaveplots=False,
+                  figPrefix='testFit'):
     """
     
     Parameters
     ----------
-    : OFnonlin object
-        The OFnonlin fit object to be plotted
     pulset: tuple
         Data to be plotted
         Dimensions: 1 X (time bins)
     omega: tuple
         Angular frequency of the pulse in the frequency domain
         Dimensions: (time bins) X ()
+    fs: tuple
+        Sampling frequency in Hz
     tdelmin: tuple
         The best fit time delay of the signal, offset from the original signal template
     amin: tuple
@@ -1267,11 +1331,22 @@ def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsa
         Dimensions: (nS + nB) X (time bins)
     nt: tuple
         The number of time domain points of the signal and template
-    lgcsaveplots: bool
-        Flag for whether or not to save plots
+    lpFiltFreq: tuple
+        The frequency of the LF filter to pulset (default None)
+    lgcsaveplots: bool or int
+        Flag for whether or not to save plots (default False)
+        If not False, should be int to append to saved fig filename
+    figPrefix: string
+        The saved fig filename prefix (whatever text before the number)
     """
 
     nSB = nS + nB
+
+
+    if (lpFiltFreq!=None):
+        pulseFilt = lowpassfilter(pulset,lpFiltFreq,fs)
+    
+ 
 
     # create a phase shift matrix
     # The signal gets phase shifted by tdelmin
@@ -1293,14 +1368,19 @@ def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsa
     # check the chi2
     residTf = np.fft.fft(residT,axis=1)/nt
     chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
-        
+    
+    chi2TFloat = float(chi2T)
+    print('chi2TFloat = ', chi2TFloat)
     # ===Time Domain ==================================================
     bins = np.arange(nt)
     bins = bins[None,:]
     timeP=bins*dt
-    plt.figure(figsize=(8,5));
-    plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
-    plt.plot(bins.T, fittott.T, '--g', label='Total Fit')
+    plt.figure(figsize=(12,7));
+    if (lpFiltFreq):
+        plt.plot(bins.T, pulseFilt.T - pulsetBL,'-k',label='Data (LP filtered)');
+    else:
+        plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
+    plt.plot(bins.T, fittott.T, '-g', label=f'Total Fit. $\chi^2$={chi2TFloat:.1f}', linewidth=5)    
     # plot the background template best fit
     # note the loop starts at nS 
     for jSB in range(nS,nSB):
@@ -1308,13 +1388,20 @@ def plotnSmBOFFit(pulset,omega,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lgcsa
             plt.plot(bins.T, fitt[jSB,:,None], '-', c='r', label='Background Fit')
         else:
             plt.plot(bins.T, fitt[jSB,:,None], '-', c='r')
-    # plot the signal template fit
-    plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
-    plt.xlabel('bins');
+    # plot the signal template fit if the amplitude
+    # is larger than a small threshold
+    if (np.abs(amin[0])>1e-20):
+        plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
+    if lpFiltFreq:
+        plt.plot(bins.T, pulset.T - pulsetBL,'-b', alpha=0.2,linewidth=0.5, label='Data');
+    
+    
+    plt.xlabel(f'bins (1 bin = {(dt*1e6):.2f} $\mu$s)');
     plt.ylabel('Amps');
+    #plt.ylim([-5e-7, 5e-7])
     plt.legend()
     plt.grid()
 
     if lgcsaveplots:
         saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
-        plt.savefig(saveDir + 'testFit2' + str(figNum) + '.png', bbox_inches='tight')
+        plt.savefig(saveDir + figPrefix + str(lgcsaveplots) + '.png', bbox_inches='tight')
