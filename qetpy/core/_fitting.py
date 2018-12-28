@@ -81,7 +81,8 @@ class OptimumFilter(object):
         
         """
         
-        self.psd = psd
+        self.psd = np.zeros(len(psd))
+        self.psd[:] = psd
         
         if coupling=="AC":
             self.psd[0]=np.inf
@@ -484,7 +485,7 @@ class OptimumFilter(object):
         return a1, a2, t2, chi2
 
 
-def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
+def ofamp(signal, template, inputpsd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
           nconstrain=None, lgcoutsidewindow=False, integralnorm=False):
     """
     Function for calculating the optimum amplitude of a pulse in data. Supports optimum filtering with
@@ -497,7 +498,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         of traces.
     template : ndarray
         The pulse template to be used for the optimum filter (should be normalized beforehand).
-    psd : ndarray
+    inputpsd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
     fs : float
         The sample rate of the data being taken (in Hz).
@@ -540,6 +541,9 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
         The optimal filter energy resolution (in Amps)
         
     """
+    
+    psd = np.zeros(len(inputpsd))
+    psd[:] = inputpsd
     
     if len(signal.shape)==1:
         signal = signal[np.newaxis, :]
@@ -632,7 +636,7 @@ def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = F
     else:
         return amp, t0, chi2
     
-def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
+def ofamp_pileup(signal, template, inputpsd, fs, a1=None, t1=None, coupling='AC',
                  nconstrain1=None, nconstrain2=None, lgcoutsidewindow=True):
     """
     Function for calculating the optimum amplitude of a pileup pulse in data. Supports inputted the
@@ -645,7 +649,7 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
         The signal that we want to apply the optimum filter to (units should be Amps).
     template : ndarray
         The pulse template to be used for the optimum filter (should be normalized beforehand).
-    psd : ndarray
+    inputpsd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
     fs : float
         The sample rate of the data being taken (in Hz).
@@ -692,6 +696,9 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
         
     """
 
+    psd = np.zeros(len(inputpsd))
+    psd[:] = inputpsd
+    
     nbins = len(signal)
     df = fs/nbins
     freqs = fftfreq(nbins, d=1.0/fs)
@@ -771,7 +778,7 @@ def ofamp_pileup(signal, template, psd, fs, a1=None, t1=None, coupling='AC',
     
     return a1, t1, a2, t2, chi2
 
-def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain=None, lgcoutsidewindow=False):
+def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', nconstrain=None, lgcoutsidewindow=False):
     """
     Function for calculating the optimum amplitude of a pileup pulse in data, with the assumption
     that the triggered pulse is centered in the trace.
@@ -782,7 +789,7 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
         The signal that we want to apply the optimum filter to (units should be Amps).
     template : ndarray
         The pulse template to be used for the optimum filter (should be normalized beforehand).
-    psd : ndarray
+    inputpsd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
     fs : float
         The sample rate of the data being taken (in Hz).
@@ -813,6 +820,9 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
         The reduced chi^2 value of the fit.
         
     """
+    
+    psd = np.zeros(len(inputpsd))
+    psd[:] = inputpsd
     
     nbins = len(signal)
     df = fs/nbins
@@ -943,7 +953,7 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     
     return chi2low
 
-def chi2_nopulse(signal, psd, fs, coupling="AC"):
+def chi2_nopulse(signal, inputpsd, fs, coupling="AC"):
     """
     Function for calculating the chi^2 of a trace with the assumption that there is no pulse.
     
@@ -951,7 +961,7 @@ def chi2_nopulse(signal, psd, fs, coupling="AC"):
     ----------
     signal : ndarray
         The signal that we want to calculate the no pulse chi^2 of (units should be Amps).
-    psd : ndarray
+    inputpsd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
     fs : float
         The sample rate of the data being taken (in Hz).
@@ -966,6 +976,9 @@ def chi2_nopulse(signal, psd, fs, coupling="AC"):
         The chi^2 value for there being no pulse.
         
     """
+    
+    psd = np.zeros(len(inputpsd))
+    psd[:] = inputpsd
     
     nbins = signal.shape[-1]
     df = fs/nbins
@@ -1034,8 +1047,10 @@ class OFnonlin(object):
             
         """
         
-        psd[0] = 1e40
-        self.psd = psd
+        self.psd = np.zeros(len(psd))
+        self.psd[:] = psd
+        self.psd[0] = 1e40
+        
         self.fs = fs
         self.df = fs/len(psd)
         self.freqs = np.fft.fftfreq(len(psd), 1/fs)
@@ -1343,8 +1358,10 @@ class MuonTailFit(object):
             
         """
         
-        psd[0] = 1e40
-        self.psd = psd
+        self.psd = np.zeros(len(psd))
+        self.psd[:] = psd
+        self.psd[0] = 1e40
+        
         self.fs = fs
         self.df = self.fs/len(self.psd)
         self.freqs = np.fft.fftfreq(len(psd), d=1/self.fs)
