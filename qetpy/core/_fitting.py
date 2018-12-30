@@ -567,12 +567,167 @@ class OFnonlin(object):
         self.template = template
 
         self.data = None
-        self.lgcdouble = False
+        self.npolefit = 1
 
         self.taurise = None
         self.error = None
         self.dof = None
         self.norm = np.sqrt(fs*len(psd))
+        
+    def fourpole(self, A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0):
+        """
+        Functional form of pulse in frequency domain with 1 rise time and three fall times
+        The rise time and one fall time share an amplitude (A). The second and third fall time 
+        have independent amplitudes (B and C). The functional form (time domain) is:
+        A*(1-exp(-t/\tau_rise))*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) + C*(exp(-t/\tau_fall3)).
+        Therefore, the "amplitudes" take on different meanings than in the one/two pole functions below
+        
+        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        
+        Parameters
+        ----------
+        A : float
+            Amplitude for rise time and first fall time
+        B : float
+            Amplitude for second fall time
+        C : float
+            Amplitude for third fall time
+        tau_r : float
+            Rise time of pulse
+        tau_f1 : float
+            First fall time of pulse
+        tau_f2 : float
+            Second fall time of pulse
+        tau_f3 : float
+            Third fall time of pulse
+        t0 : float
+            Time offset of three pole pulse
+                
+        Returns
+        -------
+        pulse : ndarray, complex
+            Array of amplitude values as a function of frequency
+            
+        """
+        omega = 2*np.pi*self.freqs
+        phaseTDelay = np.exp(-(0+1j)*omega*t0)
+        tau_rf1 = (tau_f1*tau_r)/(tau_f1 + tau_r)
+        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j)) - tau_rf1/(1+omega*tau_rf1*(0+1j))) + \
+        B*(tau_f2/(1+omega*tau_f2*(0+1j))) + \
+        C*(tau_f3/(1+omega*tau_f3*(0+1j)))) * phaseTDelay
+        return pulse*np.sqrt(self.df)
+        
+        
+    def fourpoletime(self, A, B, C,tau_r, tau_f1, tau_f2, tau_f3, t0):
+        """
+        Functional form of pulse in time domain with 1 rise time and three fall times
+        The rise time and one fall time share an amplitude (A). The second and third fall time 
+        have independent amplitudes (B and C). Therefore, the "amplitudes" take on different
+        meanings than in the one/two pole functions below
+        
+        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        
+        
+        Parameters
+        ----------
+        A : float
+            Amplitude for rise time and first fall time
+        B : float
+            Amplitude for second fall time
+        C : float
+            Amplitude for third fall time
+        tau_r : float
+            Rise time of pulse
+        tau_f1 : float
+            First fall time of pulse
+        tau_f2 : float
+            Second fall time of pulse
+        tau_f3 : float
+            Third fall time of pulse
+        t0 : float
+            Time offset of three pole pulse
+            
+        Returns
+        -------
+        pulse : ndarray
+            Array of amplitude values as a function of time
+        """
+        
+        pulse = A*(1-np.exp(-self.time/tau_r))*(np.exp(-self.time/tau_f1)) + \
+        B*(np.exp(-self.time/tau_f2)) + \
+        C*(np.exp(-self.time/tau_f3))
+        return np.roll(pulse, int(t0*self.fs))       
+     
+    def threepole(self, A, B, tau_r, tau_f1, tau_f2, t0):
+        """
+        Functional form of pulse in frequency domain with 1 rise time and two fall times
+        The rise time and one fall time share an amplitude (A) and the second fall time 
+        has an independent amplitude (B). The functional form (time domain) is:
+        A*(1-exp(-t/\tau_rise))*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) and therefore
+        the "amplitudes" take on different meanings than in the one/two pole functions below
+        
+        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        
+        Parameters
+        ----------
+        A : float
+            Amplitude for rise time and first fall time
+        B : float
+            Amplitude for second fall time
+        tau_r : float
+            Rise time of pulse
+        tau_f1 : float
+            First fall time of pulse
+        tau_f2 : float
+            Second fall time of pulse
+        t0 : float
+            Time offset of three pole pulse
+                
+        Returns
+        -------
+        pulse : ndarray, complex
+            Array of amplitude values as a function of frequency
+            
+        """
+        omega = 2*np.pi*self.freqs
+        phaseTDelay = np.exp(-(0+1j)*omega*t0)
+        tau_rf1 = (tau_f1*tau_r)/(tau_f1 + tau_r)
+        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j)) - tau_rf1/(1+omega*tau_rf1*(0+1j))) + \
+        B*(tau_f2/(1+omega*tau_f2*(0+1j)))) * phaseTDelay
+        return pulse*np.sqrt(self.df)
+        
+    def threepoletime(self, A, B, tau_r, tau_f1, tau_f2, t0):
+        """
+        Functional form of pulse in time domain with 1 rise time and two fall times
+        The rise time and one fall time share an amplitude (A) and the second fall time 
+        has an independent amplitude (B). Therefore the "amplitudes" take on different
+        meanings than in the one/two pole functions below
+        
+        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        
+        Parameters
+        ----------
+        A : float
+            Amplitude for rise time and first fall time
+        B : float
+            Amplitude for second fall time
+        tau_r : float
+            Rise time of pulse
+        tau_f1 : float
+            First fall time of pulse
+        tau_f2 : float
+            Second fall time of pulse
+        t0 : float
+            Time offset of three pole pulse
+            
+        Returns
+        -------
+        pulse : ndarray
+            Array of amplitude values as a function of time
+        """
+        
+        pulse = A*(1-np.exp(-self.time/tau_r))*(np.exp(-self.time/tau_f1)) + B*(np.exp(-self.time/tau_f2))
+        return np.roll(pulse, int(t0*self.fs))  
         
     def twopole(self, A, tau_r, tau_f,t0):
         """
@@ -672,7 +827,13 @@ class OFnonlin(object):
             single array
         """
         
-        if self.lgcdouble:
+        if (self.npolefit==4):
+            A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0 = params
+            delta = (self.data - self.fourpole( A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0) )
+        elif (self.npolefit==3):
+            A, B, tau_r, tau_f1, tau_f2, t0 = params
+            delta = (self.data - self.threepole( A, B, tau_r, tau_f1, tau_f2, t0) )
+        elif (self.npolefit==2):
             A,tau_r, tau_f, t0 = params
             delta = (self.data - self.twopole( A, tau_r, tau_f, t0) )
         else:
@@ -682,6 +843,7 @@ class OFnonlin(object):
         z1d[0:z1d.size:2] = delta.real/self.error
         z1d[1:z1d.size:2] = delta.imag/self.error
         return z1d
+    
     
     def calcchi2(self, model):
         """
@@ -701,7 +863,7 @@ class OFnonlin(object):
         
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
-    def fit_falltimes(self, pulse, lgcdouble=False, errscale=1, guess=None, taurise=None, 
+    def fit_falltimes(self, pulse, npolefit=1, errscale=1, guess=None, taurise=None, 
                       lgcfullrtn=False, lgcplot=False):
         """
         Function to do the fit
@@ -710,9 +872,13 @@ class OFnonlin(object):
         ----------
         pulse : ndarray
             Time series traces to be fit
-        lgcdouble : bool, optional
+        npolefit: int, optional
+            The number of poles to fit
+            If 1, the one pole fit is done, the user must provide the value of taurise
+            If 2, the two pole fit is done
+            If 3, the three pole fit is done (1 rise 2 fall). Second fall time amplitude is independent
+            If 4, the four pole fit is done (1 rise 3 fall). Second and third fall time amplitudes are independent
             If False, the twopole fit is done, if True, the one pole fit it done.
-            Note, if True, the user must provide the value of taurise.
         errscale : float or int, optional
             A scale factor for the psd. Ex: if fitting an average, the errscale should be
             set to the number of traces used in the average
@@ -749,16 +915,26 @@ class OFnonlin(object):
         self.data = np.fft.fft(pulse)/self.norm
         self.error = np.sqrt(self.psd/errscale)
         
-        self.lgcdouble = lgcdouble
+        self.npolefit = npolefit
         
-        if not lgcdouble:
+        if (self.npolefit==1):
             if taurise is None:
                 raise ValueError('taurise must not be None if doing 1-pole fit.')
             else:
                 self.taurise = taurise
         
         if guess is not None:
-            if lgcdouble:
+            if (self.npolefit==4):
+                if len(guess) != 8:
+                    raise ValueError(f'Length of guess not compatible with 4-pole fit. Must be of format: guess = (A,B,C,taurise,taufall1,taufall2,taufall3,t0)')
+                else:
+                    Aguess, Bguess, Cguess, tauriseguess, taufall1guess, taufall2guess, taufall3guess, t0guess = guess
+            elif (self.npolefit==3):
+                if len(guess) != 6:
+                    raise ValueError(f'Length of guess not compatible with 3-pole fit. Must be of format: guess = (A,B,taurise,taufall1,taufall2,t0)')
+                else:
+                    Aguess, Bguess, tauriseguess, taufall1guess, taufall2guess, t0guess = guess
+            elif (self.npolefit==2):
                 if len(guess) != 4:
                     raise ValueError(f'Length of guess not compatible with 2-pole fit. Must be of format: guess = (A,taurise,taufall,t0)')
                 else:
@@ -780,21 +956,55 @@ class OFnonlin(object):
             t0guess = maxind/self.fs
 
         else:
-            maxind = np.argmax(pulse)
-            ampguess = np.mean(pulse[maxind-7:maxind+7])
-            tauval = 0.37*ampguess
-            tauind = np.argmin(np.abs(pulse[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
-            taufallguess = (tauind-maxind)/self.fs
-            tauriseguess = 20e-6
-            t0guess = maxind/self.fs
+            if (self.npolefit==4):
+                # guesses need to be tuned depending
+                # on the detector being analyzed.
+                # good guess for t0 particularly important to provide
+                maxind = np.argmax(pulse)
+                Aguess = np.mean(pulse[maxind-7:maxind+7])
+                Bguess = Aguess/3
+                Cguess = Aguess/3
+                tauriseguess = 20e-6
+                taufall1guess = 100e-6
+                taufall2guess = 300e-6
+                taufall3guess = 500e-6
+                t0guess = maxind/self.fs
+            elif (self.npolefit==3):
+                maxind = np.argmax(pulse)
+                Aguess = np.mean(pulse[maxind-7:maxind+7])
+                Bguess = Aguess/3
+                tauriseguess = 20e-6
+                taufall1guess = 100e-6
+                taufall2guess = 300e-6
+                t0guess = maxind/self.fs
+            else:
+                maxind = np.argmax(pulse)
+                ampguess = np.mean(pulse[maxind-7:maxind+7])
+                tauval = 0.37*ampguess
+                tauind = np.argmin(np.abs(pulse[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
+                taufallguess = (tauind-maxind)/self.fs
+                tauriseguess = 20e-6
+                t0guess = maxind/self.fs
         
-        if lgcdouble:
+        
+        if (self.npolefit==4):
+            self.dof = 8
+            p0 = (Aguess, Bguess, Cguess, tauriseguess, taufall1guess, taufall2guess, taufall3guess, t0guess)
+            boundslower = (Aguess/100, Bguess/100, Cguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, taufall3guess/10, t0guess - 30/self.fs)
+            boundsupper = (Aguess*100, Bguess*100, Cguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, taufall3guess*10, t0guess + 30/self.fs)
+            bounds = (boundslower,boundsupper)
+        elif (self.npolefit==3):
+            self.dof = 6
+            p0 = (Aguess, Bguess, tauriseguess, taufall1guess, taufall2guess, t0guess)
+            boundslower = (Aguess/100, Bguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, t0guess - 30/self.fs)
+            boundsupper = (Aguess*100, Bguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, t0guess + 30/self.fs)
+            bounds = (boundslower,boundsupper)
+        elif (self.npolefit==2):
             self.dof = 4
             p0 = (ampguess, tauriseguess, taufallguess, t0guess)
             boundslower = (ampguess/100, tauriseguess/10, taufallguess/10, t0guess - 30/self.fs)
             boundsupper = (ampguess*100, tauriseguess*10, taufallguess*10, t0guess + 30/self.fs)
             bounds = (boundslower,boundsupper)
-            
         else:
             self.dof = 3
             p0 = (ampguess, taufallguess, t0guess)
@@ -805,7 +1015,16 @@ class OFnonlin(object):
         result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=p0 , jac = '3-point',
                                loss = 'linear', xtol = 2.3e-16, ftol = 2.3e-16)
         variables = result['x']
-        if lgcdouble:        
+        
+
+        if (self.npolefit==4):        
+            chi2 = self.calcchi2(self.fourpole(variables[0], variables[1], 
+                                                variables[2],variables[3], 
+                                                variables[4], variables[5],
+                                               variables[6], variables[7]))
+        elif (self.npolefit==3):        
+            chi2 = self.calcchi2(self.threepole(variables[0], variables[1], variables[2],variables[3], variables[4], variables[5]))
+        elif (self.npolefit==2):        
             chi2 = self.calcchi2(self.twopole(variables[0], variables[1], variables[2],variables[3]))
         else:
             chi2 = self.calcchi2(self.onepole(variables[0], variables[1],variables[2]))
@@ -816,11 +1035,11 @@ class OFnonlin(object):
         
         if lgcplot:
             plotnonlin(self,pulse, variables, errors)
-        
         if lgcfullrtn:
             return variables, errors, cov, chi2
         else:
             return variables
+    
 
 
 class MuonTailFit(object):
