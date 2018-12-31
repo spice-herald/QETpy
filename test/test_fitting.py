@@ -72,8 +72,8 @@ def test_OFnonlin():
     signal = np.roll(signal, 20)
 
     nlin = OFnonlin(psd, fs, template=template)
-    res1 = nlin.fit_falltimes(signal, lgcdouble=True, lgcfullrtn=True, lgcplot=True)
-    res2 = nlin.fit_falltimes(signal, lgcdouble=False, lgcfullrtn=True, lgcplot=True, taurise=20e-6)
+    res1 = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=True, lgcplot=True)
+    res2 = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=True, lgcplot=True, taurise=20e-6)
     
     assert len(res1)>0
     assert len(res2)>0

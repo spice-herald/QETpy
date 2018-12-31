@@ -944,24 +944,25 @@ class OFnonlin(object):
                     raise ValueError(f'Length of guess not compatible with 1-pole fit. Must be of format: guess = (A,taufall,t0)')
                 else:
                     ampguess, taufallguess, t0guess = guess
-            
-        elif self.template is not None:
-            ampscale = np.max(pulse)-np.min(pulse)
-            maxind = np.argmax(self.template)
-            ampguess = np.mean(self.template[maxind-7:maxind+7])*ampscale
-            tauval = 0.37*ampguess
-            tauind = np.argmin(np.abs(self.template[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
-            taufallguess = (tauind-maxind)/self.fs
-            tauriseguess = 20e-6
-            t0guess = maxind/self.fs
-
         else:
+            # before making guesses, if self.template
+            # has been defined then define maxind, 
+            # ampscale, and amplitudes using the template.
+            # otherwise use the pulse
+            if self.template is not None:
+                ampscale = np.max(pulse)-np.min(pulse)
+                templateforguess = self.template
+            else:
+                ampscale = 1
+                templateforguess = pulse
+                
+            maxind = np.argmax(templateforguess)
+
             if (self.npolefit==4):
                 # guesses need to be tuned depending
                 # on the detector being analyzed.
                 # good guess for t0 particularly important to provide
-                maxind = np.argmax(pulse)
-                Aguess = np.mean(pulse[maxind-7:maxind+7])
+                Aguess = np.mean(templateforguess[maxind-7:maxind+7])*ampscale
                 Bguess = Aguess/3
                 Cguess = Aguess/3
                 tauriseguess = 20e-6
@@ -970,16 +971,14 @@ class OFnonlin(object):
                 taufall3guess = 500e-6
                 t0guess = maxind/self.fs
             elif (self.npolefit==3):
-                maxind = np.argmax(pulse)
-                Aguess = np.mean(pulse[maxind-7:maxind+7])
+                Aguess = np.mean(templateforguess[maxind-7:maxind+7])*ampscale
                 Bguess = Aguess/3
                 tauriseguess = 20e-6
                 taufall1guess = 100e-6
                 taufall2guess = 300e-6
                 t0guess = maxind/self.fs
             else:
-                maxind = np.argmax(pulse)
-                ampguess = np.mean(pulse[maxind-7:maxind+7])
+                ampguess = np.mean(templateforguess[maxind-7:maxind+7])*ampscale
                 tauval = 0.37*ampguess
                 tauind = np.argmin(np.abs(pulse[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
                 taufallguess = (tauind-maxind)/self.fs
