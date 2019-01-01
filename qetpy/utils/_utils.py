@@ -1,16 +1,51 @@
 import numpy as np
-from scipy.signal import butter, filtfilt, fftconvolve
+from scipy import interpolate, signal, constants
 from scipy.ndimage.interpolation import shift
-from scipy.optimize import least_squares
-from scipy.stats import skew
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
-from scipy import constants
 
 
-__all__ = ["calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
+__all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
            "powertrace_simple", "integrate_powertrace_simple", "stdcomplex", "slope",
            "fill_negatives"]
 
+def make_decreasing(y, x=None):
+    """
+    Function to take an array of values and make it monotonically decreasing. This is done
+    by simply tossing out any values that are larger than the last value, moving from the first
+    index to the last, and interpolating between values.
+    
+    Parameters
+    ----------
+    y : ndarray
+        Array of values to make monotonically decreasing.
+    x : ndarray, optional
+        The x-values corresponding to `y`, can be useful if the x-values are not evenly spaced.
+    
+    Returns
+    -------
+    out : ndarray
+        A monotonically decreasing version of `y`.
+    
+    """
+    
+    if x is None:
+        x = np.arange(len(y))
+        
+    y_dec = np.zeros(len(y))
+    y_dec[0] = y[0]
+    last_val = y[0]
+    
+    for ii, val in enumerate(y):
+        if (last_val > val):
+            last_val = y[ii]
+            y_dec[ii] = y[ii]
+
+    interp_inds = y_dec!=0
+    
+    f = interpolate.interp1d(x[interp_inds], y[interp_inds], fill_value="extrapolate")
+    
+    out = f(x)
+        
+    return out
 
 def stdcomplex(x, axis=0):
     """
@@ -156,8 +191,8 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     
     nyq = 0.5*fs
     cut_off = cut_off_freq/nyq
-    b,a = butter(order, cut_off)
-    filt_traces = filtfilt(b,a,traces, padtype='even')
+    b,a = signal.butter(order, cut_off)
+    filt_traces = signal.filtfilt(b,a,traces, padtype='even')
     
     return filt_traces
 
@@ -199,7 +234,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
     traces_norm = traces_temp/(np.amax(traces_temp, axis = -1,keepdims = True))
     
     t1 = traces_norm[0] #use the first trace to define the origin of alignment
-    orig = np.argmax(fftconvolve(t1,t1[::-1],mode = 'full'))  #define the origin
+    orig = np.argmax(signal.fftconvolve(t1,t1[::-1],mode = 'full'))  #define the origin
 
     traces_aligned = np.zeros_like(traces) #initialize empty array to store the aligned traces
     shifts = np.zeros(traces.shape[0])
@@ -207,7 +242,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         t2 = traces_norm[ii]
         # Convolve each trace against the origin trace, find the index of the
         # max value, then subtract of the index of the origin trace
-        t2_shift = np.argmax(fftconvolve(t1,t2[::-1],mode = 'full'))-orig
+        t2_shift = np.argmax(signal.fftconvolve(t1,t2[::-1],mode = 'full'))-orig
         shifts[ii] = t2_shift
         if not lgcjustshifts:
             traces_aligned[ii] = shift(traces[ii],t2_shift,cval = np.NAN)
