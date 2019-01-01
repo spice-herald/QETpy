@@ -16,6 +16,9 @@ class OptimumFilter(object):
     ----------
     psd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz)
+    psd0 : float
+        The value of the inputted PSD at the zero frequency bin. Used for ofamp_baseline in the
+        case that `OptimumFilter` is initialized with "AC" coupling.
     nbins : int
         The length of the trace/psd/template in bins.
     fs : float
@@ -83,6 +86,7 @@ class OptimumFilter(object):
         
         self.psd = np.zeros(len(psd))
         self.psd[:] = psd
+        self.psd0 = psd[0]
         
         if coupling=="AC":
             self.psd[0]=np.inf
@@ -484,6 +488,109 @@ class OptimumFilter(object):
         
         return a1, a2, t2, chi2
 
+    def ofamp_baseline(self, nconstrain=None, lgcoutsidewindow=False):
+        """
+        Function for calculating the optimum amplitude of a pulse while taking into account
+        the best fit baseline. If the window is constrained, the fit uses the baseline taken 
+        from the unconstrained best fit and fixes it when looking elsewhere. This is to 
+        reduce the shifting of the best fit amplitudes at times far from the true pulse.
+
+        Parameters
+        ----------
+        nconstrain : int, NoneType, optional
+            The length of the window (in bins) to constrain the possible t0 values to, 
+            centered on the unshifted trigger. If left as None, then t0 is uncontrained. 
+            If `nconstrain` is larger than `self.nbins`, then the function sets `nconstrain` 
+            to `self.nbins`, as this is the maximum number of values that t0 can vary over.
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the Optimum Filter should look inside 
+            `nconstrain` or outside it. If False, the filter will minimize the chi^2 in the 
+            bins specified by `nconstrain`, which is the default behavior. If True, then it 
+            will minimize the chi^2 in the bins that do not contain the constrained window.
+            
+        Returns
+        -------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s).
+        chi2 : float
+            The chi^2 value calculated from the optimum filter.
+
+        """
+    
+        d = 1/self.df # fourier tranform of constant
+
+        if np.isinf(self.psd[0]):
+            phi = self.phi.copy()
+            phi[0] = self.s[0]/self.psd0 # don't need to do s.conjugate() since zero freq is real
+            norm = np.real(np.dot(phi, self.s))*self.df
+        else:
+            phi = self.phi
+            norm = self.norm
+
+        b1 = np.real(np.fft.ifft(phi*self.v))*self.nbins*self.df
+        b2 = np.real(phi[0]*d)*self.df
+
+        c1 = np.real(self.v[0]*d/self.psd0)*self.df
+        c2 = np.abs(d)**2/self.psd0*self.df
+
+        amps = (b1*c2 - b2*c1)/(norm*c2 - b2**2)
+
+        baselines = (c1 - amps * b2)/c2
+
+        chi2 = np.sum(np.abs(self.v)**2 / self.psd)*self.df
+        if np.isinf(self.psd[0]):
+            chi2+=np.abs(self.v[0])**2 / self.psd0 * self.df # add back the zero frequency bin
+            
+        chi2+= -2*(amps*b1 + baselines*c1)
+        chi2+= amps**2 * norm
+        chi2+= 2*amps*baselines*b2
+        chi2+= baselines**2 * c2
+
+        bestind = np.argmin(chi2)
+
+        bs = baselines[bestind]
+
+        amps_out = (b1 - bs * b2)/norm
+
+        # recalculated chi2 with baseline fixed to best fit baseline
+        chi2 = np.sum(np.abs(self.v)**2 / self.psd)*self.df
+        if np.isinf(self.psd[0]):
+            chi2+=np.abs(self.v[0])**2 / self.psd0 * self.df # add back the zero frequency bin
+            
+        chi2+= -2*(amps_out*b1 + bs*c1)
+        chi2+= amps_out**2 * norm
+        chi2+= 2*amps_out*bs*b2
+        chi2+= bs**2 * c2
+
+        amps_out = np.roll(amps_out, self.nbins//2, axis=-1)
+        chi2 = np.roll(chi2, self.nbins//2, axis=-1)
+
+        # find time of best fit
+        if nconstrain is not None:
+            if nconstrain>self.nbins:
+                nconstrain = self.nbins
+
+            if lgcoutsidewindow:
+                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
+                notinds[notinds<0]+=self.nbins
+                bestind = np.argmin(chi2[notinds], axis=-1)
+                bestind = notinds[bestind]
+            else:
+                bestind = np.argmin(chi2[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
+                                    axis=-1)
+                inds = np.arange(self.nbins//2-nconstrain//2, 
+                                 self.nbins//2+nconstrain//2+nconstrain%2)
+                bestind = inds[bestind]
+        else:
+            bestind = np.argmin(chi2, axis=-1)
+
+        amp = amps_out[bestind]
+        t0 = (bestind-self.nbins//2)/self.fs
+        chi2 = chi2[bestind]
+
+        return amp, t0, chi2
 
 def ofamp(signal, template, inputpsd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
           nconstrain=None, lgcoutsidewindow=False, integralnorm=False):
