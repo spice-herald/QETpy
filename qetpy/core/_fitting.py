@@ -529,7 +529,7 @@ class OptimumFilter(object):
             phi = self.phi
             norm = self.norm
 
-        b1 = np.real(np.fft.ifft(phi*self.v))*self.nbins*self.df
+        b1 = np.real(ifft(phi*self.v))*self.nbins*self.df
         b2 = np.real(phi[0]*d)*self.df
 
         c1 = np.real(self.v[0]*d/self.psd0)*self.df
