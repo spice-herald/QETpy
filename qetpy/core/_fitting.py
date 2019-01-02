@@ -153,6 +153,30 @@ class OptimumFilter(object):
         sigma = 1.0/np.sqrt(self.norm)
         
         return sigma
+    
+    def time_resolution(self, amp):
+        """
+        Method to return the time resolution for the optimum filter for a specific fit.
+        
+        Parameters
+        ----------
+        amp : float
+            The OF amplitude of the fit to use in the time resolution calculation.
+            
+        Returns
+        -------
+        sigma : float
+            The time resolution of the optimum filter.
+            
+        """
+        
+        if self.freqs is None:
+            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        
+        sigma = 1.0/np.sqrt(amp**2 * np.sum((2*np.pi*self.freqs)**2 * np.abs(self.s)**2 / self.psd) * self.df)
+        
+        return sigma
+        
         
     def chi2_nopulse(self):
         """
