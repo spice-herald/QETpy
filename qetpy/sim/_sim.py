@@ -1,7 +1,41 @@
 import numpy as np
 import scipy.constants as constants
 
-__all__ = ["loadfromdidv", "TESnoise"]
+__all__ = ["loadfromdidv", "TESnoise", "energy_res_estimate"]
+
+
+
+
+def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
+    """
+    Function to estimate the energy resolution based on
+    given noise and ideal pulse shape
+    
+    Parameters
+    ----------
+    freqs : array,
+        Array of frequency values to integrate over
+    tau_collect : float
+        The collection time of the sensor
+    Sp : array 
+        Power spectral density (either one sided or two,
+        but make sure to include negative freqs if using
+        two sided psd)
+    collection_eff : float
+        The collection efficiency of the detector
+        
+    Returns
+    -------
+    energy_res : float
+        The estimated energy resolution in eV
+     
+    """
+    omega = 2*np.pi*freqs
+    single_pole = collection_eff/(1.+ omega*tau_collect*1j)
+    integrand = 2*np.abs(single_pole)**2/(np.pi*Sp)
+    energy_res = np.sqrt(1/np.trapz(integrand, x = omega))/constants.e
+    
+    return energy_res
 
 def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=0.020, 
                  squiddc=2.5e-12, squidpole=0.0, squidn=1.0, noisetype="transition", lgcpriors = False):

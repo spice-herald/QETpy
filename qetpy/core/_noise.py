@@ -157,6 +157,8 @@ def gen_noise(psd, fs=1.0, ntraces=1):
     
     return noise
 
+
+
 class Noise(object):
     """
     This class allows the user to calculate the power spectral densities of signals 
