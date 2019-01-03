@@ -3,6 +3,9 @@ from scipy.optimize import least_squares
 import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin, plotnSmBOFFit
+import itertools
+import matplotlib.pyplot as plt
+from time import time
 
 
    
@@ -412,7 +415,166 @@ def ofamp_pileup_stationary(signal, template, psd, fs, coupling='AC', nconstrain
     
     return a1, a2, t2, chi2
     
-def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
+def of_nSmB_fftTemplate(sTemplatet,bTemplatet):
+    """
+    Parameters
+    ----------
+    sTemplatet : ndarray
+        The n templates for the signal (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X ()
+    bTemplatet : ndarray
+        The m templates for the background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (m)
+        
+    Returns
+    -------
+    sbTemplatef : ndarray
+        Frequency domain templates for the signal and background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (n + m)
+    sbTemplatet : ndarray
+        Time domain templates for the signal and background (should be normalized to max(temp)=1)
+        Dimensions: (time bins) X (n + m)
+    
+    """
+    
+    sTemplateShape = sTemplatet.shape
+    nt = sTemplateShape[0]
+    
+    #=== Concatenate signal and background template matrices ====
+    catAxis = 1
+    sbTemplatet = np.concatenate((sTemplatet, bTemplatet), axis=catAxis)
+
+    #=== FFT of Template ==================================================
+    sbTemplatef = np.fft.fft(sbTemplatet,axis=0)/nt
+    
+    return sbTemplatef, sbTemplatet
+
+def of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt,combInd=2^20, bindelay=0):
+    
+    #=== Creation of Filter and Weighting Matrices ========================
+    # initialize:
+    #   1) filter matrix in fourier domain
+    #   2) weighting matrix in fourier domain
+    
+    nSB=nS+nB
+
+    OFfiltf_l = np.zeros((nSB,nt),dtype=complex)
+    Wf_l = np.zeros((nSB,nSB,nt), dtype=complex)
+            
+    for jr in range(nSB):
+        conjTemp = np.conj(sbTemplatef[:,jr]);
+        conjTemp2= np.expand_dims(conjTemp,axis=1)
+        OFfiltf_l[jr,:] = np.squeeze(conjTemp2/psddnu);
+        for jc in range(nSB):
+            conjTemp3 = sbTemplatef[:,jc]
+            conjTemp4 = np.expand_dims(conjTemp3,axis=1)
+            Wf_l[jr,jc,:]= np.squeeze(conjTemp2/psddnu*conjTemp4);
+
+    # make Wt directly
+    Wt_l2 = np.zeros((nSB,nSB))
+    # make the signal-background horizontal piece (row 0 to nS)
+    tempIFFT = np.fft.ifft(Wf_l[0:nS,0:nSB,:],axis=2)
+    #print('shape(tempIFFT) = ', np.shape(tempIFFT))
+    #print('shape(transpose(tempIFFT) = ', np.shape(np.transpose(tempIFFT)))
+    #print('shape(transpose(tempIFFT[:,:,bindelay]) = ', np.shape(np.transpose(tempIFFT[:,:,bindelay])))
+    #print('shape(Wt_l2[0:nSB,0:nS]) = ', np.shape(Wt_l2[0:nSB,0:nS]))
+    Wt_l2[0:nS,0:nSB]=np.real(tempIFFT[:,:,bindelay])*nt;
+    # make the signal-background vertical piece (column 0 to nS)
+    Wt_l2[0:nSB,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))*nt;
+
+    # make the top (signal-signal) corner (partial overwriting)
+    Wt_l2[0:nS,0:nS] = np.real(np.sum(Wf_l[0:nS,0:nS,:],axis=2))
+    #make the bottom (background-background) corner
+    Wt_l2[nS:nSB,nS:nSB] = np.real(np.sum(Wf_l[nS:nSB,nS:nSB,:],axis=2))
+    # make the signal-background piece
+    
+    """
+    
+    # === Switch Weighting Matrix to time domain ===
+    Wt_l=np.real(np.fft.ifft(Wf_l,axis=2))*nt;
+    
+    # the elements which share a time domain delay contain only the
+    # ifft value corresponding to t0=0, i.e. the zero element.
+    # these elements are the signalXsignal and the backgroundXbackground
+
+    # signal-signal piece
+    # the piece being repeated has dimensions of nSxnS
+    # this makes it nSxnSxnt
+    noTimeShiftSSMat = Wt_l[0:nS,0:nS,0,None]
+    Wt_l[0:nS,0:nS,:] = noTimeShiftSSMat@np.ones((1,nt))
+    
+    #background-background piece
+    noTimeShiftBBMat = Wt_l[nS:nSB,nS:nSB,0,None]
+    Wt_l[nS:nSB,nS:nSB,:] = noTimeShiftBBMat@np.ones((1,nt))
+
+    # signal-background piece is the ifft
+    # no need for added manipulation
+
+    # background-signal piece needs to be flipped in time
+    # since Wt is symmetric, build it from the top
+    # section
+    for jr in range(nSB):
+        for jc in range(nSB):
+            if jr>jc:
+                Wt_l[jr,jc,:] = Wt_l[jc,jr,:]
+
+    # select the element of Wt_l at bin_delay
+    Wt_ls = Wt_l[:,:,bindelay]
+    
+    atol = 1e-15
+    lgcClose = np.allclose(Wt_l2[0:nSB,0:nS], Wt_l[0:nSB,0:nS,bindelay],rtol=0, atol=atol)
+    print(f"matrix closeness column (tol = {atol}). lgcClose = ",lgcClose)
+    
+    lgcClose = np.allclose(Wt_l2[0:nS,0:nS], Wt_l[0:nS,0:nS,bindelay],rtol=0, atol=1e-20)
+    print(f"matrix closeness upper. lgcClose = ",lgcClose)
+    lgcClose = np.allclose(Wt_l2[nS:nSB,nS:nSB], Wt_l[nS:nSB,nS:nSB,bindelay],rtol=0, atol=1e-20)
+    print(f"matrix closeness lower. lgcClose = ",lgcClose)
+    lgcClose = np.allclose(Wt_l2[nS:nSB,nS:nSB], Wt_l[nS:nSB,nS:nSB,bindelay])
+    print(f"matrix closeness lower (greater tolerance). lgcClose = ",lgcClose) 
+    atol = 1e-15
+    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
+    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
+    atol = 1e-8
+    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
+    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
+    atol = 1e-6
+    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
+    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
+    atol = 1e-4
+    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
+    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
+    #print('Wt_l2=')
+    #print(Wt_l2[nS:nSB,nS:nSB])
+    #print('Wt_l=')
+    #print(Wt_l[nS:nSB,nS:nSB,bindelay])
+    #print('Wt_l2=')
+    #print(Wt_l2[0:nSB,0:nS])
+    #print('Wt_l=')
+    #print(Wt_l[0:nSB,0:nS,bindelay])
+    
+    
+    
+    # === Invert Weighting Matrix ===
+    # create the inverted weighting matrices
+    # as a function of the time offset
+    iWt_ls= np.zeros((nSB,nSB))
+
+    # the regular inv function had a problematic level of numerical jitter
+    # e.g. the chi2(t0) could be negative for some t0
+    # so use pseudo inverse which has not exhibited
+    # any numerical jitter
+    iWt_ls=np.linalg.pinv(Wt_ls)
+    
+    return Wt_ls, iWt_ls
+    
+    """
+    
+    iWt_l2 =np.linalg.pinv(Wt_l2)
+
+    
+    return Wt_l2, iWt_l2
+    
+def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity = 'positive'):
     """
     The setup function for OF_nSmB_inside
         
@@ -430,6 +592,11 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
         Dimensions: (freq bins = time bins) X ()
     fs : 
         Sample rate in Hz
+    lgcforcepolarity: bool, optional
+        true if the OF forces all background amplitudes to be of a certain polarity (default=True)
+    polarity: string, optional
+        string (either 'positive' or 'negative') to indicate the direction of pulses (default='negative')
+        
         
         
     Returns
@@ -472,7 +639,7 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
     nB = int(bTemplateShape[1])
     
     
-    nSB=nS+nB;
+    nSB=nS+nB
     
     #=== DAQ Setup ===
     dt = float(1)/fs
@@ -480,14 +647,23 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
    
     # convert psd to units of A^2 instead of A^2/hz
     # and renormalize to single sided normalization
-    psddnu=np.expand_dims(psd,1)*dnu*2;
+    #psddnu=np.expand_dims(psd,1)*dnu*2;
+    psddnu=np.expand_dims(psd,1)*dnu;
+    
+    #=== Concatenate signal and background template matrices and take FFT====
+    
+    sbTemplatef, sbTemplatet = of_nSmB_fftTemplate(sTemplatet, bTemplatet)
+    
+    #print('shape of sbTemplatef',np.shape(sbTemplatef))
+    #print('shape of psddnu',np.shape(psddnu))
 
-    #=== Concatenate signal and background template matrices ====
-    catAxis = 1
-    sbTemplatet = np.concatenate((sTemplatet, bTemplatet), axis=catAxis)
 
-    #=== FFT of Template ==================================================
-    sbTemplatef = np.fft.fft(sbTemplatet,axis=0)/nt
+    
+    start = time()
+    # test the new function
+    Wt2, iWt2 = of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt, combInd=0, bindelay=0)
+    print('time of of_nSmB_getP = ',time()-start)
+
     
     #=== Creation of Filter and Weighting Matrices ========================
     # initialize:
@@ -548,12 +724,34 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs):
         # any numerical jitter
         iWt[:,:,jt]=np.linalg.pinv(Wt[:,:,jt]);
 
+    print('testing:',np.shape(iWt2), np.shape(iWt[:,:,5000]))
+    # check if matrices are the same within tolerance
+    lgcClose = np.allclose(iWt2, iWt[:,:,0],rtol=0, atol=1e-20)
+    print("lgcClose = ",lgcClose)
+    
+
+    # if lgcforcepolarity, compute the other 2^nB
+    # matrices analogous to iWt
+    
+    if lgcforcepolarity:
+    
+    # create list of all binary combinations for number of bits of nB
+        bitComb = [list(i) for i in itertools.product([0,1],repeat=nB)]
+    
+        numComb = len(bitComb)
+        # temporarily set this to a small number to head off memory problems
+        #numComb = 5
+        for iComb in range(numComb):
+            print('test')
+        
+        
     # === Invert the background-background matrix ===
     iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
     
     return psddnu, OFfiltf, sbTemplatef, sbTemplatet, iWt, iBB, nS, nB
 
-def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_window,nS,nB,lgc_interp=False,lgcplot=False, lgcsaveplots=False):
+def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_window,nS,nB,
+                   background_templates_shifts=None,lgc_interp=False,lgcplot=False, lgcsaveplots=False):
     
     """
     Performs all the calculations for an individual pulse
@@ -626,7 +824,7 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     
     """
 
-    lgc_plotcheck=False
+    lgc_plotcheck=True
     
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -690,8 +888,23 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     # calc chi2
     chi2BOnly = np.real(np.sum(np.conj(residBOnlyf)/psddnu.T*residBOnlyf,0))    
     
+    # ==== test the new function
+    
+    iWt2_l = np.zeros((nSB,nSB,nt))
+    for ii in range(nt):
+        start = time()
+        # test the new function
+        #print('shape of np.transpose(sbTemplatef)',np.shape(np.transpose(sbTemplatef)))
+        #print('shape of psddnu)',np.shape(psddnu))
+        _, iWt2_l[:,:,ii] = of_nSmB_getP(np.transpose(sbTemplatef),np.transpose(psddnu),nS,nB,nt, combInd=0, bindelay=ii)
+        print(f"time of of_nSmB_getP (ii={ii}) = ",time()-start)
+        # check if matrices are the same within tolerance
+        lgcClose = np.allclose(iWt2_l[:,:,ii], iWt[:,:,ii],rtol=0, atol=1e-20)
+        #print(f"matrix closeness for bin = {ii}. lgcClose = ",lgcClose)
+    
+    
     # === Multiply by weighting matrix to get amplitudes at all times ===
-        
+    
     # a faster approach
     # change iWt to (jtXnSBXnSB)
     iWtN = np.moveaxis(iWt,2,0)
@@ -717,25 +930,42 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     # === Constrain best guess based on ind_window ===
     # sometimes the window given wraps around to negative values
     # convert to all positive values
-    lgc_neg = ind_window<0
-    ind_window[lgc_neg] = nt+ind_window[lgc_neg]
+    lgcneg = ind_window<0
+    ind_window[lgcneg] = nt+ind_window[lgcneg]
 
     #finally ensure that nothing is larger than nt
     lgc_toobig= ind_window >= nt;
     ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
     
-    # plot the chi2_t to check for absolute minima without numerical jitter
-    if lgc_plotcheck:
-        plt.figure(figsize=(10, 6))
-        plt.plot(np.arange(nt), chi2_t, '.b');
-        plt.xlabel('t offset')
-        plt.ylabel('chi2_t')
-
+    
     # find the chi2 minimum
     chi2min= np.amin(chi2_t[ind_window])
     ind_tdel_sm = np.argmin(chi2_t[ind_window])
+    
     ind_tdel=ind_window[:,ind_tdel_sm]
+        
+    # plot the chi2_t to check for absolute minima without numerical jitter
+    if lgc_plotcheck:
+        plt.figure(figsize=(12, 7))
+        plt.plot(np.arange(nt), chi2_t, '.b');
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$')
+        plt.grid(which='both')
+        if background_templates_shifts is not None:
+            for ii in range(nB):
+                plt.axvline(x=background_templates_shifts[ii])
+                
+        plt.figure(figsize=(6,3))
+        plt.plot(np.arange(nt), chi2_t,'.');
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$')
+        plt.grid(which='minor', linestyle='--')
+        if background_templates_shifts is not None:
+            for ii in range(nB):
+                plt.axvline(x=background_templates_shifts[ii])
+        plt.xlim([ind_tdel - 10, ind_tdel + 10])
             
+        
     #output the lowest chi2 value on the digitized grid 
     amin = a_t[:,ind_tdel]
     tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
@@ -761,17 +991,17 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
         # as the signal
         aminNoSig = np.insert(bOnlyA,0,0)
         aminNoSig = np.expand_dims(aminNoSig,1)
-        print('shape aminNoSig', np.shape(aminNoSig))
-        print('aminNoSig = ', aminNoSig)
-        print('amin=', amin)
+        
+        #print('shape aminNoSig', np.shape(aminNoSig))
+        #print('aminNoSig = ', aminNoSig)
+        #print('amin=', amin)
             
-        #plotnSmBOFFit(pulset,omega,fs,0,bOnlyA,bTemplatef,nS,nB-1,nt,psddnu,dt,
-        #              lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bFit')
+        
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSig,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bFit')
         
-    print('chi2min = ', chi2min)
-    print('chiBOnly = ', chi2BOnly)
+    #print('chi2min = ', chi2min)
+    #print('chiBOnly = ', chi2BOnly)
 
     return aminsqueeze,tdelmin,chi2min,Pulset_BF,a0,chi20, chi2BOnly
 

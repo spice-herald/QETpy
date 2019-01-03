@@ -1370,7 +1370,6 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     
     chi2TFloat = float(chi2T)
-    print('chi2TFloat = ', chi2TFloat)
     # ===Time Domain ==================================================
     bins = np.arange(nt)
     bins = bins[None,:]
