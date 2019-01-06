@@ -97,9 +97,15 @@ def test_OptimumFilter():
     OF = qp.OptimumFilter(signal, template, psd, fs)
     res = OF.ofamp_nodelay()
     assert isclose(res, (-1.589803642041125e-07, 2871569.457990007))
+    
+    res = OF.energy_resolution()
+    assert isclose(res, 2.3725914280425287e-09)
 
     res = OF.ofamp_withdelay()
     assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
+    
+    res = OF.time_resolution(res[0])
+    assert isclose(res, 5.746611055379949e-09)
     
     res = OF.ofamp_withdelay(nconstrain=100)
     assert isclose(res, (6.382904231454342e-07, 7.84e-05, 2803684.0424425197))
