@@ -1,7 +1,107 @@
 import numpy as np
+import qetpy as qp
 from qetpy import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
 
+def create_example_data(lgcpileup=False, lgcbaseline=False):
+    """
+    Function written for creating example data when testing different
+    optimum filters.
+    
+    Parameters
+    ----------
+    lgcpileup : bool, optional
+        Flag for whether or not a second pulse should be added to the trace.
+    lgcbaseline : bool, optional
+        Flag for whether or not the trace should be shifted from zero.
+        
+    Returns
+    -------
+    signal : ndarray
+        An array of values containing the specified signal in time domain, including
+        some noise.
+    template : ndarray
+        The template for a pulse (normalized to a maximum height of 1).
+    psd_sim : ndarray
+        The two-sided power spectral density used to generate the noise for `signal`.
+    
+    """
 
+    np.random.seed(1) # need to specify the random seed for testing
+
+    fs = 625e3
+    pulse_amp = 4e-6
+    baseline_shift = 0.02e-6
+    tau_rise = 20e-6
+    tau_fall = 66e-6
+
+    f = np.fft.fftfreq(32500, d=1/fs)
+    noisesim = qp.sim.TESnoise(r0=0.03)
+
+    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
+
+    t = np.arange(len(psd_sim))/fs
+    
+    
+    pulse = np.exp(-t/tau_fall)-np.exp(-t/tau_rise)
+    pulse_shifted = np.roll(pulse, len(t)//2)
+    template = pulse_shifted/pulse_shifted.max()
+    
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    signal = noise + np.roll(template, 100)*(pulse_amp)
+
+    if lgcpileup:
+        signal += pulse_amp * np.roll(template, 1000)
+
+    if lgcbaseline:
+        signal += baseline_shift
+
+    return signal, template, psd_sim
+
+def test_OptimumFilter():
+    """
+    Testing function for qetpy.OptimumFilter class.
+    
+    """
+
+    signal, template, psd = create_example_data()
+    fs = 625e3
+
+    OF = qp.OptimumFilter(signal, template, psd, fs)
+    res = OF.ofamp_nodelay()
+    assert res == (-1.589803642041125e-07, 2871569.457990007)
+    
+    res = OF.ofamp_withdelay()
+    assert res == (4.000884927004103e-06, 0.00016, 32474.45440205792)
+    
+    res = OF.ofamp_withdelay(nconstrain=100)
+    assert res == (6.382904231454342e-07, 7.84e-05, 2803684.0424425197)
+
+    res = OF.ofamp_withdelay(nconstrain=100, lgcoutsidewindow=True)
+    assert res == (4.000884927004103e-06, 0.00016, 32474.45440205792)
+    
+    res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000)
+    assert res == 1052.9089578293142
+    
+    res = OF.chi2_nopulse()
+    assert res == 2876059.4034037213
+    
+    res = OF.ofamp_pileup_stationary()
+    assert res == (2.884298804131357e-09, 4.001001614298674e-06, 0.00016, 32472.978956471197)
+    
+    signal, template, psd = create_example_data(lgcpileup=True)
+    
+    OF.update_signal(signal)
+    res = OF.ofamp_withdelay()
+    res = OF.ofamp_pileup_iterative(res[0], res[1])
+    assert res == (4.000882414471985e-06, 0.00016, 32477.55571848713)
+    
+    signal, template, psd = create_example_data(lgcbaseline=True)
+    
+    OF.update_signal(signal)
+    res = OF.ofamp_baseline()
+    assert res == (4.000884927004102e-06, 0.00016, 32474.454402058076)
+    
+    
 def test_ofamp():
     fs = 625e3
     tracelength = 32000
