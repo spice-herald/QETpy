@@ -3,7 +3,7 @@ import qetpy as qp
 from qetpy import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
 
 
-def isclose(a, b, rtol=1e-13, atol=0):
+def isclose(a, b, rtol=1e-10, atol=0):
     """
     Function for checking if two arrays are close up to certain tolerance parameters.
     This is a wrapper for `numpy.isclose`, where we have simply changed the default 
