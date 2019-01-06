@@ -2,6 +2,34 @@ import numpy as np
 import qetpy as qp
 from qetpy import ofamp, chi2lowfreq, OFnonlin, MuonTailFit
 
+
+def isclose(a, b, rtol=1e-13, atol=0):
+    """
+    Function for checking if two arrays are close up to certain tolerance parameters.
+    This is a wrapper for `numpy.isclose`, where we have simply changed the default 
+    parameters.
+    
+    Parameters
+    ----------
+    a : array_like
+        Input array to compare.
+    b : array_like
+        Input array to compare.
+    rtol : float, optional
+        The relative tolerance parameter.
+    atol : float, optional
+        The absolute tolerance parameter.
+
+    Returns
+    -------
+    y : bool
+        Returns a boolean value of whether all values of `a` and `b`
+        were equal within the given tolerance.
+    
+    """
+    
+    return np.all(np.isclose(a, b, rtol=rtol, atol=atol))
+
 def create_example_data(lgcpileup=False, lgcbaseline=False):
     """
     Function written for creating example data when testing different
@@ -68,38 +96,38 @@ def test_OptimumFilter():
 
     OF = qp.OptimumFilter(signal, template, psd, fs)
     res = OF.ofamp_nodelay()
-    assert res == (-1.589803642041125e-07, 2871569.457990007)
-    
+    assert isclose(res, (-1.589803642041125e-07, 2871569.457990007))
+
     res = OF.ofamp_withdelay()
-    assert res == (4.000884927004103e-06, 0.00016, 32474.45440205792)
+    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
     
     res = OF.ofamp_withdelay(nconstrain=100)
-    assert res == (6.382904231454342e-07, 7.84e-05, 2803684.0424425197)
+    assert isclose(res, (6.382904231454342e-07, 7.84e-05, 2803684.0424425197))
 
     res = OF.ofamp_withdelay(nconstrain=100, lgcoutsidewindow=True)
-    assert res == (4.000884927004103e-06, 0.00016, 32474.45440205792)
+    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
     
     res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000)
-    assert res == 1052.9089578293142
+    assert isclose(res, 1052.9089578293142)
     
     res = OF.chi2_nopulse()
-    assert res == 2876059.4034037213
+    assert isclose(res, 2876059.4034037213)
     
     res = OF.ofamp_pileup_stationary()
-    assert res == (2.884298804131357e-09, 4.001001614298674e-06, 0.00016, 32472.978956471197)
+    assert isclose(res, (2.884298804131357e-09, 4.001001614298674e-06, 0.00016, 32472.978956471197))
     
     signal, template, psd = create_example_data(lgcpileup=True)
     
     OF.update_signal(signal)
     res = OF.ofamp_withdelay()
     res = OF.ofamp_pileup_iterative(res[0], res[1])
-    assert res == (4.000882414471985e-06, 0.00016, 32477.55571848713)
+    assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713))
     
     signal, template, psd = create_example_data(lgcbaseline=True)
     
     OF.update_signal(signal)
     res = OF.ofamp_baseline()
-    assert res == (4.000884927004102e-06, 0.00016, 32474.454402058076)
+    assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076))
     
     
 def test_ofamp():
