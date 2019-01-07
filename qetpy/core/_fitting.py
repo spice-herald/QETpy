@@ -7,6 +7,59 @@ from qetpy.plotting import plotnonlin
 __all__ = ["OptimumFilter", "ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
+def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False):
+    """
+    Helper function for finding the index for the minimum of a chi^2. Includes
+    options for constraining the values of chi^2.
+    
+    Parameters
+    ----------
+    chi2 : ndarray
+        An array containing the chi^2 to minimize. If `chi2` has dimension greater
+        than 1, then it is minimized along the last axis.
+    nconstrain : NoneType, int, optional
+        This is the length of the window (in bins) out of which to constrain the 
+        possible values to in the chi^2 minimization, centered on the middle value 
+        of `chi2`. Default is None, where `chi2` is uncontrained.
+    lgcoutsidewindow : bool, optional
+        If False, then the function will minimize the chi^2 in the bins inside the 
+        constrained window specified by `nconstrain`, which is the default behavior.
+        If True, the function will minimize the chi^2 in the bins outside the range 
+        specified by `nconstrain`.
+    
+    Returns
+    -------
+    bestind : int
+        The index of the minimum of `chi2` given the constraints specified by 
+        `nconstrain` and `lgcoutsidewindow`.
+    
+    """
+    
+    nbins = chi2.shape[-1]
+    
+    if nconstrain is not None:
+        if nconstrain>nbins:
+            nconstrain = nbins
+        elif nconstrain <= 0:
+            raise ValueError(f"nconstrain must be a positive integer less than {nbins}")
+        
+        if lgcoutsidewindow:
+            notinds = np.r_[0:nbins//2-nconstrain//2, -nbins//2+nconstrain//2+nconstrain%2:0]
+            notinds[notinds<0]+=nbins
+            bestind = np.argmin(chi2[..., notinds], axis=-1)
+            bestind = notinds[bestind]
+
+        else:
+            bestind = np.argmin(chi2[..., nbins//2-nconstrain//2:nbins//2+nconstrain//2+nconstrain%2], 
+                                axis=-1)
+            inds = np.arange(nbins//2-nconstrain//2, 
+                             nbins//2+nconstrain//2+nconstrain%2)
+            bestind = inds[bestind]
+    else:
+        bestind = np.argmin(chi2, axis=-1)
+    
+    return bestind
+
 class OptimumFilter(object):
     """
     Class for efficient calculation of the various different Optimum Filters. Written to minimize the
@@ -304,24 +357,8 @@ class OptimumFilter(object):
             self.amps_withdelay = np.roll(self.signalfilt_td, self.nbins//2, axis=-1)
         
         # find time of best fit
-        if nconstrain is not None:
-            if nconstrain>self.nbins:
-                nconstrain = self.nbins
-
-            if lgcoutsidewindow:
-                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
-                notinds[notinds<0]+=self.nbins
-                bestind = np.argmin(self.chi_withdelay[notinds], axis=-1)
-                bestind = notinds[bestind]
-            else:
-                bestind = np.argmin(self.chi_withdelay[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
-                                    axis=-1)
-                inds = np.arange(self.nbins//2-nconstrain//2, 
-                                 self.nbins//2+nconstrain//2+nconstrain%2)
-                bestind = inds[bestind]
-        else:
-            bestind = np.argmin(self.chi_withdelay, axis=-1)
-
+        bestind = _argmin_chi2(self.chi_withdelay, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
+        
         amp = self.amps_withdelay[bestind]
         t0 = (bestind-self.nbins//2)/self.fs
         chi2 = self.chi_withdelay[bestind]
@@ -347,7 +384,7 @@ class OptimumFilter(object):
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether `OptimumFilter` should look for the 
             pileup pulse inside the bins specified by `nconstrain` or outside them. If True, 
-            the filter will minimize the chi^2 in the bins ouside the range specified by
+            the filter will minimize the chi^2 in the bins outside the range specified by
             `nconstrain`, which is the default behavior. If False, then it will minimize the 
             chi^2 in the bins inside the constrained window specified by `nconstrain`.
             
@@ -396,25 +433,9 @@ class OptimumFilter(object):
 
         a2s = np.roll(a2s, self.nbins//2)
         chi = np.roll(chi, self.nbins//2)
-
+        
         # find time of best fit
-        if nconstrain is not None:
-            if nconstrain>self.nbins:
-                nconstrain = self.nbins
-
-            if lgcoutsidewindow:
-                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
-                bestind = np.argmin(chi[notinds], axis=-1)
-                notinds[notinds<0]+=self.nbins
-                bestind = notinds[bestind]
-            else:
-                bestind = np.argmin(chi[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
-                                    axis=-1)
-                inds = np.arange(self.nbins//2-nconstrain//2, 
-                                 self.nbins//2+nconstrain//2+nconstrain%2)
-                bestind = inds[bestind]
-        else:
-            bestind = np.argmin(chi, axis=-1)
+        bestind = _argmin_chi2(chi, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
 
         # get best fit values
         a2 = a2s[bestind]
@@ -437,7 +458,7 @@ class OptimumFilter(object):
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether the filter should look for the pileup 
             pulse inside the bins specified by `nconstrain` or outside them. If True, the filter will 
-            minimize the chi^2 in the bins ouside the range specified by `nconstrain`, which is the 
+            minimize the chi^2 in the bins outside the range specified by `nconstrain`, which is the 
             default behavior. If False, then it will minimize the chi^2 in the bins inside the 
             constrained window specified by nconstrain.
         Returns
@@ -486,23 +507,7 @@ class OptimumFilter(object):
         chi = np.roll(chi, self.nbins//2)
         
         # find time of best fit
-        if nconstrain is not None:
-            if nconstrain>self.nbins:
-                nconstrain = self.nbins
-
-            if lgcoutsidewindow:
-                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
-                bestind = np.argmin(chi[notinds], axis=-1)
-                notinds[notinds<0]+=self.nbins
-                bestind = notinds[bestind]
-            else:
-                bestind = np.argmin(chi[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
-                                    axis=-1)
-                inds = np.arange(self.nbins//2-nconstrain//2, 
-                                 self.nbins//2+nconstrain//2+nconstrain%2)
-                bestind = inds[bestind]
-        else:
-            bestind = np.argmin(chi, axis=-1)
+        bestind = _argmin_chi2(chi, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
 
         # get best fit values
         a1 = a1s[bestind]
@@ -592,23 +597,7 @@ class OptimumFilter(object):
         chi2 = np.roll(chi2, self.nbins//2, axis=-1)
 
         # find time of best fit
-        if nconstrain is not None:
-            if nconstrain>self.nbins:
-                nconstrain = self.nbins
-
-            if lgcoutsidewindow:
-                notinds = np.r_[0:self.nbins//2-nconstrain//2, -self.nbins//2+nconstrain//2+nconstrain%2:0]
-                notinds[notinds<0]+=self.nbins
-                bestind = np.argmin(chi2[notinds], axis=-1)
-                bestind = notinds[bestind]
-            else:
-                bestind = np.argmin(chi2[self.nbins//2-nconstrain//2:self.nbins//2+nconstrain//2+nconstrain%2], 
-                                    axis=-1)
-                inds = np.arange(self.nbins//2-nconstrain//2, 
-                                 self.nbins//2+nconstrain//2+nconstrain%2)
-                bestind = inds[bestind]
-        else:
-            bestind = np.argmin(chi2, axis=-1)
+        bestind = _argmin_chi2(chi2, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
 
         amp = amps_out[bestind]
         t0 = (bestind-self.nbins//2)/self.fs
@@ -725,20 +714,7 @@ def ofamp(signal, template, inputpsd, fs, withdelay=True, coupling='AC', lgcsigm
         chi = np.roll(chi, nbins//2, axis=-1)
 
         # find time of best fit
-        if nconstrain is not None:
-            if nconstrain>nbins:
-                nconstrain = nbins
-
-            inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
-            inds_mask = np.zeros(chi.shape[-1], dtype=bool)
-            inds_mask[inds] = True
-
-            if lgcoutsidewindow:
-                chi[:, inds_mask] = np.inf
-            else:
-                chi[:, ~inds_mask] = np.inf
-
-        bestind = np.argmin(chi, axis=-1)
+        bestind = _argmin_chi2(chi, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
 
         amp = np.diag(amps[:, bestind])
         chi2 = np.diag(chi[:, bestind])
@@ -807,7 +783,7 @@ def ofamp_pileup(signal, template, inputpsd, fs, a1=None, t1=None, coupling='AC'
         t2 is uncontrained. The value of nconstrain2 should be less than nbins.
     lgcoutsidewindow : bool, optional
         Boolean flag that is used to specify whether ofamp_pileup should look for the pileup pulse inside the
-        bins specified by  nconstrain2 or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+        bins specified by  nconstrain2 or outside them. If True, ofamp will minimize the chi^2 in the bins outside
         the range specified by nconstrain2, which is the default behavior. If False, then ofamp will minimize the
         chi^2 in the bins inside the constrained window specified by nconstrain2.
 
@@ -887,20 +863,7 @@ def ofamp_pileup(signal, template, inputpsd, fs, a1=None, t1=None, coupling='AC'
     chi = np.roll(chi, nbins//2)
     
     # find time of best fit
-    if nconstrain2 is not None:
-        if nconstrain2>nbins:
-            nconstrain2 = nbins
-
-        inds = np.arange(nbins//2-nconstrain2//2, nbins//2+nconstrain2//2+nconstrain2%2)
-        inds_mask = np.zeros(len(chi), dtype=bool)
-        inds_mask[inds] = True
-        
-        if lgcoutsidewindow:
-            chi[inds_mask] = np.inf
-        else:
-            chi[~inds_mask] = np.inf
-    
-    bestind = np.argmin(chi)
+    bestind = _argmin_chi2(chi, nconstrain=nconstrain2, lgcoutsidewindow=lgcoutsidewindow)
 
     # get best fit values
     a2 = a2s[bestind]
@@ -934,7 +897,7 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
         t2 is uncontrained. The value of nconstrain should be less than nbins.
     lgcoutsidewindow : bool, optional
         Boolean flag that is used to specify whether the function should look for the pileup pulse inside the
-        bins specified by  nconstrain or outside them. If True, ofamp will minimize the chi^2 in the bins ouside
+        bins specified by  nconstrain or outside them. If True, ofamp will minimize the chi^2 in the bins outside
         the range specified by nconstrain, which is the default behavior. If False, then ofamp will minimize the
         chi^2 in the bins inside the constrained window specified by nconstrain.
 
@@ -1004,20 +967,7 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
     chi = np.roll(chi, nbins//2)
     
     # find time of best fit
-    if nconstrain is not None:
-        if nconstrain>nbins:
-            nconstrain = nbins
-
-        inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
-        inds_mask = np.zeros(len(chi), dtype=bool)
-        inds_mask[inds] = True
-        
-        if lgcoutsidewindow:
-            chi[inds_mask] = np.inf
-        else:
-            chi[~inds_mask] = np.inf
-    
-    bestind = np.argmin(chi)
+    bestind = _argmin_chi2(chi, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow)
 
     # get best fit values
     a1 = a1s[bestind]
@@ -1027,7 +977,7 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
     
     return a1, a2, t2, chi2
     
-def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
+def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000, coupling="AC"):
     """
     Function for calculating the low frequency chi^2 of the optimum filter, given some cut off 
     frequency. This function does not calculate the optimum amplitude - it requires that ofamp
@@ -1044,12 +994,16 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
         The optimum amplitude calculated for the trace (in Amps).
     t0 : float
         The time shift calculated for the pulse (in s).
-    psd : ndarray
+    inputpsd : ndarray
         The two-sided psd that will be used to describe the noise in the signal (in Amps^2/Hz).
     fs : float
         The sample rate of the data being taken (in Hz).
     fcutoff : float, optional
         The frequency (in Hz) that we should cut off the chi^2 when calculating the low frequency chi^2.
+    coupling : str, optional
+        String that determines if the zero frequency bin of the psd should be ignored (i.e. set to infinity)
+        when calculating the optimum amplitude. If set to 'AC', then ths zero frequency bin is ignored. If
+        set to anything else, then the zero frequency bin is kept. Default is 'AC'.
         
     Returns
     -------
@@ -1057,6 +1011,12 @@ def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
         The low frequency chi^2 value (cut off at fcutoff) for the inputted values.
         
     """
+    
+    psd = np.zeros(len(inputpsd))
+    psd[:] = inputpsd
+    
+    if coupling=="AC":
+        psd[0] = np.inf
     
     if len(signal.shape)==1:
         signal = signal[np.newaxis, :]
@@ -1119,7 +1079,7 @@ def chi2_nopulse(signal, inputpsd, fs, coupling="AC"):
     if coupling == 'AC':
         psd[0]=np.inf
     
-    chi2_0 = df*np.sum(np.abs(v)**2/psd)
+    chi2_0 = df*np.sum(np.abs(v)**2/psd, axis=-1)
     
     return chi2_0
 
