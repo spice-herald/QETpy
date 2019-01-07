@@ -1,6 +1,7 @@
+import pytest
 import numpy as np
 import qetpy as qp
-from qetpy.core._fitting import _argmin_chi2
+from qetpy.core._fitting import _argmin_chi2, _get_pulse_direction_constraint_mask
 
 def isclose(a, b, rtol=1e-10, atol=0):
     """
@@ -124,6 +125,27 @@ def create_example_muontail():
 
     return signal, psd_sim
 
+def test_get_pulse_direction_constraint_mask():
+    """
+    Testing function for `qetpy.core._fitting._get_pulse_direction_constraint_mask`.
+    
+    """
+    
+    amps = np.array([1, 0.1, -0.1, 3])
+    
+    out1 = _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=0)
+    assert out1 is None
+    
+    out2 = _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=1)
+    assert np.all(out2 == np.array([1, 1, 0, 1], dtype=bool))
+    
+    out3 = _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=-1)
+    assert np.all(out3 == np.array([0, 0, 1, 0], dtype=bool))
+    
+    with pytest.raises(ValueError):
+        out4 = _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=2)
+        
+
 def test_argmin_chi2():
     """
     Testing function for `qetpy.core._fitting._argmin_chi2`.
@@ -132,17 +154,28 @@ def test_argmin_chi2():
     
     np.random.seed(1)
     
-    x = np.random.rand(100)
+    x = np.array([-0.1, -1, 0.1, 1])
+    
     
     res1 = _argmin_chi2(x)
-    res2 = _argmin_chi2(x, nconstrain=20)
-    res3 = _argmin_chi2(x, nconstrain=20, lgcoutsidewindow=True)
+    assert res1 == 1
+    res2 = _argmin_chi2(x, nconstrain=2)
+    assert res2 == 1
+    res3 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True)
+    assert res3 == 0
     res4 = _argmin_chi2(x, nconstrain=1000)
+    assert res4 == 1
     
-    assert res1 == 2
-    assert res2 == 50
-    assert res3 == 2
-    assert res4 == 2
+    amps = np.array([1, 0.1, -0.1, 3])
+    
+    constraint_mask = _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=1)
+    
+    res1 = _argmin_chi2(x, constraint_mask=constraint_mask)
+    assert res1 == 1
+    res2 = _argmin_chi2(x, nconstrain=2, constraint_mask=constraint_mask)
+    assert res2 == 1
+    res3 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=constraint_mask)
+    assert res3 == 0
     
 
 def test_OptimumFilter():
@@ -337,5 +370,5 @@ def test_MuonTailFit():
     mtail = qp.MuonTailFit(psd, fs)
     res = mtail.fitmuontail(signal, lgcfullrtn=False)
     
-    assert isclose(res, [4.596452407352775e-07, 2.018680240688412e-02])
+    assert isclose(res, [4.5964397140760587e-07, 0.0201484585061281])
     
