@@ -6,7 +6,7 @@ from qetpy.plotting import plotnonlin, plotnSmBOFFit
 import itertools
 import matplotlib.pyplot as plt
 from time import time
-
+import timeit
 
    
 __all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "chi2lowfreq", 
@@ -449,7 +449,7 @@ def of_nSmB_fftTemplate(sTemplatet,bTemplatet):
     
     return sbTemplatef, sbTemplatet
 
-def of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt,combInd=2^20, bindelay=0):
+def of_nSmB_getWf(sbTemplatef,psddnu,nS,nB,nt):
     
     #=== Creation of Filter and Weighting Matrices ========================
     # initialize:
@@ -458,6 +458,7 @@ def of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt,combInd=2^20, bindelay=0):
     
     nSB=nS+nB
 
+    # rotate indices for easier matrix multiplication
     OFfiltf_l = np.zeros((nSB,nt),dtype=complex)
     Wf_l = np.zeros((nSB,nSB,nt), dtype=complex)
             
@@ -470,24 +471,94 @@ def of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt,combInd=2^20, bindelay=0):
             conjTemp4 = np.expand_dims(conjTemp3,axis=1)
             Wf_l[jr,jc,:]= np.squeeze(conjTemp2/psddnu*conjTemp4);
 
+    # sum Wf along frequency dimension
+    # for later calculations
+    Wf_l_summed = np.real(np.sum(Wf_l,axis=2))
+            
+    return Wf_l, Wf_l_summed, OFfiltf_l
+
+def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=2^20, bindelay=0, bitComb=None,bitMask=None):
+    
+    nSB=nS+nB
+    #start = time()
+    
+    # check if bitMask has been supplied
+    # and if not create it from combInd and bitComb
+    if bitMask is None:
+        bitMask = np.asarray(bitComb[combInd])
+        
+    
+    # if bitMask has a 1, we keep that background
+    #bitMask = 1 - bitMask
+    
+    #print('bitMask=', bitMask)
+    #print('shape(bitMask)=', np.shape(bitMask))
+
+    
+    # number of signal and backgrounds remaining in fit
+    nSBMask = np.sum(bitMask)
+    # get indices of the nonzero elements in the mask
+    indexBitMask = np.squeeze(np.nonzero(bitMask)) 
+    #print('shape(indexBitMask)=',np.shape(indexBitMask))
+    #print('indexBitMask=',indexBitMask)
+    
+    #start = time()
+    #WfMask = Wf_l[np.ix_(indexBitMask,indexBitMask)]
+    #WfMask = Wf_l[indexBitMask][:,indexBitMask]
+    #print(f"time of slice of_nSmB_getWt = ",time()-start)
+    
+    #print('shape(Wf)=',np.shape(Wf_l))
+    #print('shape(WfMask)=',np.shape(WfMask))
+    
     # make Wt directly
-    Wt_l2 = np.zeros((nSB,nSB))
+    #start = time()
+
+    Wt_l2 = np.zeros((nSBMask,nSBMask))
+
     # make the signal-background horizontal piece (row 0 to nS)
-    tempIFFT = np.fft.ifft(Wf_l[0:nS,0:nSB,:],axis=2)
+    #tempIFFT = np.fft.ifft(WfMask[0:nS,0:nSBMask,:],axis=2)
+    #tempIFFT = np.fft.ifft(Wf_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])],axis=2)
+    tempIFFT = Wt_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])]
+    #print(f"time of ifft of_nSmB_getWt = ",time()-start)
+
+    #start = time()
+
     #print('shape(tempIFFT) = ', np.shape(tempIFFT))
     #print('shape(transpose(tempIFFT) = ', np.shape(np.transpose(tempIFFT)))
     #print('shape(transpose(tempIFFT[:,:,bindelay]) = ', np.shape(np.transpose(tempIFFT[:,:,bindelay])))
     #print('shape(Wt_l2[0:nSB,0:nS]) = ', np.shape(Wt_l2[0:nSB,0:nS]))
-    Wt_l2[0:nS,0:nSB]=np.real(tempIFFT[:,:,bindelay])*nt;
+    #Wt_l2[0:nS,0:nSBMask]=np.real(tempIFFT[:,:,bindelay])*nt
+    Wt_l2[0:nS,0:nSBMask]=np.real(tempIFFT[:,:,bindelay])
+    
+    #print(f"time of real Wt_l2 of_nSmB_getWt = ",time()-start)
+
+    #start = time()
+
     # make the signal-background vertical piece (column 0 to nS)
-    Wt_l2[0:nSB,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))*nt;
+    # Wt_l2[0:nSBMask,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))*nt
+    Wt_l2[0:nSBMask,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))
+    
+    #print(f"time of transpose Wt_l2 of_nSmB_getWt = ",time()-start)
+
+    #start = time()
 
     # make the top (signal-signal) corner (partial overwriting)
-    Wt_l2[0:nS,0:nS] = np.real(np.sum(Wf_l[0:nS,0:nS,:],axis=2))
+    #Wt_l2[0:nS,0:nS] = np.real(np.sum(WfMask[0:nS,0:nS,:],axis=2))
+    #Wt_l2[0:nS,0:nS] = np.real(np.sum(Wf_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nS])],axis=2))
+    Wt_l2[0:nS,0:nS] = Wf_l_summed[np.ix_(indexBitMask[0:nS], indexBitMask[0:nS])]
+    
+    #print(f"time of sum Wt_l2 of_nSmB_getWt = ",time()-start)
+
+    #start = time()
+
     #make the bottom (background-background) corner
-    Wt_l2[nS:nSB,nS:nSB] = np.real(np.sum(Wf_l[nS:nSB,nS:nSB,:],axis=2))
+    #Wt_l2[nS:nSBMask,nS:nSBMask] = np.real(np.sum(WfMask[nS:nSBMask,nS:nSBMask,:],axis=2))
+    #Wt_l2[nS:nSBMask,nS:nSBMask] = np.real(np.sum( Wf_l[np.ix_(indexBitMask[nS:nSBMask], indexBitMask[nS:nSBMask])] ,axis=2))
+    Wt_l2[nS:nSBMask,nS:nSBMask] = Wf_l_summed[np.ix_(indexBitMask[nS:nSBMask], indexBitMask[nS:nSBMask])];
     # make the signal-background piece
     
+    #print(f"time of Wt_l2 of_nSmB_getWt = ",time()-start)
+
     """
     
     # === Switch Weighting Matrix to time domain ===
@@ -568,7 +639,7 @@ def of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt,combInd=2^20, bindelay=0):
     return Wt_ls, iWt_ls
     
     """
-    
+
     iWt_l2 =np.linalg.pinv(Wt_l2)
 
     
@@ -638,7 +709,6 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity 
     bTemplateShape = bTemplatet.shape
     nB = int(bTemplateShape[1])
     
-    
     nSB=nS+nB
     
     #=== DAQ Setup ===
@@ -656,37 +726,15 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity 
     
     #print('shape of sbTemplatef',np.shape(sbTemplatef))
     #print('shape of psddnu',np.shape(psddnu))
-
-
     
-    start = time()
-    # test the new function
-    Wt2, iWt2 = of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt, combInd=0, bindelay=0)
-    print('time of of_nSmB_getP = ',time()-start)
-
-    
-    #=== Creation of Filter and Weighting Matrices ========================
-    # initialize:
-    #   1) filter matrix in fourier domain
-    #   2) weighting matrix in fourier domain
-    
-    # rotate indices to more easily use matrix multiplication
-    OFfiltf = np.zeros((nSB,nt),dtype=complex)
-    Wf = np.zeros((nSB,nSB,nt), dtype=complex)
-            
-    for jr in range(nSB):
-        conjTemp = np.conj(sbTemplatef[:,jr]);
-        conjTemp2= np.expand_dims(conjTemp,axis=1)
-        OFfiltf[jr,:] = np.squeeze(conjTemp2/psddnu);
-        for jc in range(nSB):
-            conjTemp3 = sbTemplatef[:,jc]
-            conjTemp4 = np.expand_dims(conjTemp3,axis=1)
-            Wf[jr,jc,:]= np.squeeze(conjTemp2/psddnu*conjTemp4);
-
+    Wf, Wfsummed, OFfiltf = of_nSmB_getWf(sbTemplatef,psddnu,nS,nB,nt)
     
     # === Switch Weighting Matrix to time domain ===
-    Wt=np.real(np.fft.ifft(Wf,axis=2))*nt;
+    Wt_l=np.fft.ifft(Wf,axis=2)*nt
     
+    # make a copy to manipulate
+    Wt = Wt_l.copy()
+    Wt = np.real(Wt)
     # the elements which share a time domain delay contain only the
     # ifft value corresponding to t0=0, i.e. the zero element.
     # these elements are the signalXsignal and the backgroundXbackground
@@ -724,20 +772,23 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity 
         # any numerical jitter
         iWt[:,:,jt]=np.linalg.pinv(Wt[:,:,jt]);
 
-    print('testing:',np.shape(iWt2), np.shape(iWt[:,:,5000]))
+    
+    #start = time()
+    # test the new function
+    #Wt2, iWt2 = of_nSmB_getP(sbTemplatef,psddnu,nS,nB,nt, combInd=0, bindelay=0)
+    #print('time of of_nSmB_getP = ',time()-start)
+        
     # check if matrices are the same within tolerance
-    lgcClose = np.allclose(iWt2, iWt[:,:,0],rtol=0, atol=1e-20)
-    print("lgcClose = ",lgcClose)
+    #lgcClose = np.allclose(iWt2, iWt[:,:,0],rtol=0, atol=1e-20)
+    #print("lgcClose = ",lgcClose)
     
 
     # if lgcforcepolarity, compute the other 2^nB
     # matrices analogous to iWt
     
+    bitComb = [list(i) for i in itertools.product([0,1],repeat=nSB)]
     if lgcforcepolarity:
-    
     # create list of all binary combinations for number of bits of nB
-        bitComb = [list(i) for i in itertools.product([0,1],repeat=nB)]
-    
         numComb = len(bitComb)
         # temporarily set this to a small number to head off memory problems
         #numComb = 5
@@ -748,14 +799,14 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity 
     # === Invert the background-background matrix ===
     iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
     
-    return psddnu, OFfiltf, sbTemplatef, sbTemplatet, iWt, iBB, nS, nB
+    
+    return psddnu, OFfiltf, Wf, Wfsummed, Wt_l, sbTemplatef, sbTemplatet, iWt, iBB, nS, nB, bitComb
 
-def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_window,nS,nB,
+def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_window,nS,nB, bitComb,
                    background_templates_shifts=None,lgc_interp=False,lgcplot=False, lgcsaveplots=False):
     
     """
     Performs all the calculations for an individual pulse
-    
     
     Parameters
     ----------
@@ -824,7 +875,7 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     
     """
 
-    lgc_plotcheck=True
+    lgcplotcheck=True
     
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -888,21 +939,6 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     # calc chi2
     chi2BOnly = np.real(np.sum(np.conj(residBOnlyf)/psddnu.T*residBOnlyf,0))    
     
-    # ==== test the new function
-    
-    iWt2_l = np.zeros((nSB,nSB,nt))
-    for ii in range(nt):
-        start = time()
-        # test the new function
-        #print('shape of np.transpose(sbTemplatef)',np.shape(np.transpose(sbTemplatef)))
-        #print('shape of psddnu)',np.shape(psddnu))
-        _, iWt2_l[:,:,ii] = of_nSmB_getP(np.transpose(sbTemplatef),np.transpose(psddnu),nS,nB,nt, combInd=0, bindelay=ii)
-        print(f"time of of_nSmB_getP (ii={ii}) = ",time()-start)
-        # check if matrices are the same within tolerance
-        lgcClose = np.allclose(iWt2_l[:,:,ii], iWt[:,:,ii],rtol=0, atol=1e-20)
-        #print(f"matrix closeness for bin = {ii}. lgcClose = ",lgcClose)
-    
-    
     # === Multiply by weighting matrix to get amplitudes at all times ===
     
     # a faster approach
@@ -914,15 +950,18 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     a_tN = np.matmul(iWtN,Pfiltt2N)
     a_tN = np.squeeze(a_tN)
     a_t = a_tN.T
+    #print('shape(a_t)=',np.shape(a_t))
     
     #=== calculate chi^2 for all time using trick ===
     # first calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
-    
+
     #calculate the component which is a function of t0
     chi2t0 = np.sum(a_t*Pfiltt,0)
+
     chi2_t=chi2base-chi2t0
-            
+    #print('shape(chi2_t)=',np.shape(chi2_t))
+
     #=== Save and Output 0 delay values ===     
     a0 = a_t[:,0]
     chi20=chi2_t[0]
@@ -937,7 +976,6 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     lgc_toobig= ind_window >= nt;
     ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
     
-    
     # find the chi2 minimum
     chi2min= np.amin(chi2_t[ind_window])
     ind_tdel_sm = np.argmin(chi2_t[ind_window])
@@ -945,7 +983,7 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     ind_tdel=ind_window[:,ind_tdel_sm]
         
     # plot the chi2_t to check for absolute minima without numerical jitter
-    if lgc_plotcheck:
+    if lgcplotcheck:
         plt.figure(figsize=(12, 7))
         plt.plot(np.arange(nt), chi2_t, '.b');
         plt.xlabel('bin offset')
@@ -970,6 +1008,92 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
     amin = a_t[:,ind_tdel]
     tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
     
+    
+    ###### ==== test positive only constraint ====== ######
+    chi2New = np.zeros((nt,1))
+    a_tsetNew = np.zeros((nSB,nt))
+
+    for ii in range(nt):
+        
+        #ii= 5230
+        # first do the fit with all backgrounds floating
+        
+        # combInd 0 for all positive
+        # (i.e. bitComb[combInd] will
+        # have 1s for the backgrounds
+        # we want to remove from fit)
+        _, iWt_tset = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=((2**nSB)-1),
+                                    bindelay=ii,bitComb=bitComb,bitMask=None)
+               
+        
+        # change iWt to (jtXnSBXnSB)
+        #iWtN = np.moveaxis(iWt_tset,2,0)
+        # change Pfiltt2 to (jtX2X1)
+        Pfiltt2_tset = Pfiltt2N[ii]
+        #print('shape(Pfiltt2_tset)=',np.shape(Pfiltt2_tset))
+        a_tset = np.matmul(iWt_tset,Pfiltt2_tset)
+        #print('a_tset=',a_tset)
+        #record if the amplitudes are positive
+        #since if they are we will set their amplitudes to zero (taking them out of the fit)
+        # which we do by setting the array elements to zero
+        bitCombFit = np.squeeze(np.asarray(a_tset < 0,dtype=int))
+        # for now, always let the signal (index 0) be negative
+        bitCombFit[0] = 1
+        # same with the DC template
+        bitCombFit[nSB-1] = 1
+        #print('bitCombFit=',bitCombFit)
+        #print('shape(bitCombFit)=', np.shape(bitCombFit))
+        _, iWt_tsetMask = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=None,
+                                        bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
+        # select the 
+        indexBitMask = np.squeeze(np.nonzero(bitCombFit))
+        Pfiltt2_tsetMask = Pfiltt2_tset[np.ix_(indexBitMask)]
+        #print('shape(Pfiltt2_tsetMask)=',np.shape(Pfiltt2_tsetMask))
+        a_tsetMask = np.matmul(iWt_tsetMask,Pfiltt2_tsetMask)
+        #print('shape(a_tsetMask)=',np.shape(a_tsetMask))
+        #print('a_tsetMask=',a_tsetMask)
+        # make a_tsetNew with dimentions of a_tset and populate it
+        # with the a_tsetMask values
+        a_tsetNewOneT = np.zeros((nSB,1))
+        a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
+        #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
+
+        a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
+        #print('shape(a_tsetNew)=',np.shape(a_tsetNew))
+        #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+        
+        
+        # calc chi2 of background only fit
+        chi2t0setMask = np.sum(a_tsetMask*Pfiltt2_tsetMask,0)
+        chi2New[ii] = chi2base-chi2t0setMask
+        
+        #print(f'chi2New[{ii}]=',chi2New[ii], f'a_tsetNew[0,{ii}]=', a_tsetNew[0,ii], f'amin[0,{ii}]=',a_t[0,ii])
+
+        
+    chi2New = np.squeeze(chi2New)
+    chi2minNew= np.amin(chi2New[ind_window])
+    print('chi2minNew=', chi2minNew)
+    ind_tdel_smNew = np.argmin(chi2New[ind_window])
+    ind_tdel_New=ind_window[:,ind_tdel_smNew]
+    aminNew = a_tsetNew[:,ind_tdel_New]
+    tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
+
+    print('ind_tdel_New=', ind_tdel_New)
+    print('aminNew=', aminNew)
+    print('tdelminNew=', tdelminNew)
+
+    
+    if lgcplotcheck:
+        plt.figure(figsize=(12, 7))
+        plt.plot(np.arange(nt), chi2New, '.b');
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$ (new)')
+        plt.grid(which='both')
+        #plt.ylim([6417, 6500])
+        
+
+    ###### ==== end test positive only constraint ====== ######
+
     #=== Subtract off the background for residual ===
     
     # get amplitudes of background templates
@@ -987,6 +1111,8 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
         lpFiltFreq = 30e3
         plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='sFit')
+        
+        # plot the background only fit
         # need to set tdelmin to 0 because the first template bTemplatef is being interpreted
         # as the signal
         aminNoSig = np.insert(bOnlyA,0,0)
@@ -996,10 +1122,12 @@ def of_nSmB_inside(pulset,OFfiltf,sbTemplatef,sbTemplate,iWt,iBB,psddnu,fs,ind_w
         #print('aminNoSig = ', aminNoSig)
         #print('amin=', amin)
             
-        
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSig,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bFit')
         
+        # plot the positive only constraint
+        plotnSmBOFFit(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit')
     #print('chi2min = ', chi2min)
     #print('chiBOnly = ', chi2BOnly)
 
