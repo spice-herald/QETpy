@@ -263,9 +263,17 @@ def test_ofamp():
     OF = qp.OptimumFilter(signal, template, psd, fs)
     res2 = OF.ofamp_withdelay(nconstrain=100)
     
-    res_compare = res2 + (OF.energy_resolution(), )
+    res_compare1 = res2 + (OF.energy_resolution(), )
     
-    assert isclose(res1, res_compare)
+    res3 = qp.ofamp(signal, template, psd, fs, withdelay=False)
+    
+    OF = qp.OptimumFilter(signal, template, psd, fs)
+    res4 = OF.ofamp_nodelay()
+    
+    res_compare2 = (res4[0], 0.0, res4[1])
+    
+    assert isclose(res1, res_compare1)
+    assert isclose(res3, res_compare2)
     
 def test_ofamp_pileup():
     """
