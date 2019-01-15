@@ -32,9 +32,10 @@ def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=
     
     Returns
     -------
-    bestind : int
+    bestind : int, ndarray, float
         The index of the minimum of `chi2` given the constraints specified by 
-        `nconstrain` and `lgcoutsidewindow`.
+        `nconstrain` and `lgcoutsidewindow`. If the dimension of `chi2` is greater
+        than 1, then this will be an ndarray of ints.
     
     """
     
@@ -47,27 +48,28 @@ def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=
             raise ValueError(f"nconstrain must be a positive integer less than {nbins}")
         
         if lgcoutsidewindow:
-            notinds = np.r_[0:nbins//2-nconstrain//2, -nbins//2+nconstrain//2+nconstrain%2:0]
-            notinds[notinds<0]+=nbins
-            if constraint_mask is not None:
-                notinds = notinds[constraint_mask[notinds]]
-            bestind = np.argmin(chi2[..., notinds], axis=-1)
-            bestind = notinds[bestind]
-
+            inds = np.r_[0:nbins//2-nconstrain//2, -nbins//2+nconstrain//2+nconstrain%2:0]
+            inds[inds<0]+=nbins
         else:
-            inds = np.arange(nbins//2-nconstrain//2, 
-                             nbins//2+nconstrain//2+nconstrain%2)
-            if constraint_mask is not None:
-                inds = inds[constraint_mask[inds]]
+            inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
+            
+        if constraint_mask is not None:
+            inds = inds[constraint_mask[inds]]
+        if len(inds)!=0:
             bestind = np.argmin(chi2[..., inds], axis=-1)
             bestind = inds[bestind]
+        else:
+            bestind = np.nan
     else:
         if constraint_mask is None:
             bestind = np.argmin(chi2, axis=-1)
         else:
             inds = np.flatnonzero(constraint_mask)
-            bestind = np.argmin(chi2[constraint_mask], axis=-1)
-            bestind = inds[bestind]
+            if len(inds)!=0:
+                bestind = np.argmin(chi2[..., constraint_mask], axis=-1)
+                bestind = inds[bestind]
+            else:
+                bestind = np.nan
     
     return bestind
 
@@ -415,9 +417,14 @@ class OptimumFilter(object):
         bestind = _argmin_chi2(self.chi_withdelay, nconstrain=nconstrain, 
                                lgcoutsidewindow=lgcoutsidewindow, constraint_mask=constraint_mask)
         
-        amp = self.amps_withdelay[bestind]
-        t0 = (bestind-self.nbins//2)/self.fs
-        chi2 = self.chi_withdelay[bestind]
+        if np.isnan(bestind):
+            amp = 0.0
+            t0 = 0.0
+            chi2 = self.chi0
+        else:
+            amp = self.amps_withdelay[bestind]
+            t0 = (bestind-self.nbins//2)/self.fs
+            chi2 = self.chi_withdelay[bestind]
         
         return amp, t0, chi2
     
@@ -476,22 +483,21 @@ class OptimumFilter(object):
         if self.chi0 is None:
             self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v))*self.df
         
-        # correct for fft convention by multiplying by nbins
         a2s = self.signalfilt_td - a1*templatefilt_td/self.norm
 
-        # first fitting part of chi2
-        chit = (a1**2+a2s**2)*self.norm + 2*a1*a2s*templatefilt_td
+        # do a1 part of chi2
+        chit = a1**2*self.norm - 2*a1*self.signalfilt_td[t1ind]*self.norm
 
         if t1<0:
             t1ind = int(t1*self.fs+self.nbins)
         else:
             t1ind = int(t1*self.fs)
 
-        # last part of chi2
-        chil = 2*a1*self.signalfilt_td[t1ind]*self.norm + 2*a2s*self.signalfilt_td*self.norm
+        # do a1, a2 combined part of chi2
+        chil = a2s**2*self.norm + 2*a1*a2s*templatefilt_td - 2*a2s*self.signalfilt_td*self.norm
 
         # add all parts of chi2
-        chi = self.chi0 + chit - chil
+        chi = self.chi0 + chit + chil
 
         a2s = np.roll(a2s, self.nbins//2)
         chi = np.roll(chi, self.nbins//2)
@@ -503,11 +509,15 @@ class OptimumFilter(object):
         # find time of best fit
         bestind = _argmin_chi2(chi, nconstrain=nconstrain, 
                                lgcoutsidewindow=lgcoutsidewindow, constraint_mask=constraint_mask)
-
-        # get best fit values
-        a2 = a2s[bestind]
-        chi2 = chi[bestind]
-        t2 = self.times[bestind]
+        
+        if np.isnan(bestind):
+            a2 = 0.0
+            t2 = 0.0
+            chi2 = self.chi0 + chit
+        else:
+            a2 = a2s[bestind]
+            t2 = self.times[bestind]
+            chi2 = chi[bestind]
         
         return a2, t2, chi2
         
@@ -666,14 +676,15 @@ class OptimumFilter(object):
         amps_out = (b1 - bs * b2)/norm
 
         # recalculated chi2 with baseline fixed to best fit baseline
-        chi2 = np.sum(np.abs(self.v)**2 / self.psd)*self.df
+        chi0 = np.sum(np.abs(self.v)**2 / self.psd)*self.df
         if np.isinf(self.psd[0]):
-            chi2+=np.abs(self.v[0])**2 / self.psd0 * self.df # add back the zero frequency bin
-            
-        chi2+= -2*(amps_out*b1 + bs*c1)
+            chi0+=np.abs(self.v[0])**2 / self.psd0 * self.df # add back the zero frequency bin
+        chi0-= 2*bs*c1
+        chi0+= bs**2 + c2
+        
+        chi2 = chi0 - 2*amps_out*b1
         chi2+= amps_out**2 * norm
         chi2+= 2*amps_out*bs*b2
-        chi2+= bs**2 * c2
 
         amps_out = np.roll(amps_out, self.nbins//2, axis=-1)
         chi2 = np.roll(chi2, self.nbins//2, axis=-1)
@@ -685,10 +696,14 @@ class OptimumFilter(object):
         # find time of best fit
         bestind = _argmin_chi2(chi2, nconstrain=nconstrain, 
                                lgcoutsidewindow=lgcoutsidewindow, constraint_mask=constraint_mask)
-        
-        amp = amps_out[bestind]
-        t0 = (bestind-self.nbins//2)/self.fs
-        chi2 = chi2[bestind]
+        if np.isnan(bestind):
+            amp = 0
+            t0 = 0
+            chi2 = chi0
+        else:
+            amp = amps_out[bestind]
+            t0 = (bestind-self.nbins//2)/self.fs
+            chi2 = chi2[bestind]
 
         return amp, t0, chi2
 
