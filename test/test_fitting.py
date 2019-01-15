@@ -165,6 +165,11 @@ def test_argmin_chi2():
     assert res3 == 0
     res4 = _argmin_chi2(x, nconstrain=1000)
     assert res4 == 1
+    res5 = _argmin_chi2(x, constraint_mask=np.array([False, False, False, False]))
+    assert np.isnan(res5)
+    
+    with pytest.raises(ValueError):
+        res6 = _argmin_chi2(x, nconstrain=-1)
     
     amps = np.array([1, 0.1, -0.1, 3])
     
@@ -176,8 +181,10 @@ def test_argmin_chi2():
     assert res2 == 1
     res3 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=constraint_mask)
     assert res3 == 0
+    res4 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=np.array([False, False, False, False]))
+    assert np.isnan(res4)
     
-
+    
 def test_OptimumFilter():
     """
     Testing function for `qetpy.OptimumFilter` class.
