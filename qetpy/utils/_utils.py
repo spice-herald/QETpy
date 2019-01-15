@@ -261,7 +261,7 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     
     Parameters
     ----------
-    avemuon : array
+    avemuon : ndarray
         An average of 'good' muons in time domain, referenced to TES current
     qetbias : float
         Applied QET bias current
@@ -313,35 +313,37 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
                                
                                
                                
-def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
+def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     """
     Function to convert time series trace from units of TES current to units of power.
+    This can be done for either a single trace, or an array of traces, as
+    long as the first dimension is the number of traces.
     
-    The function takes into account the second order depenace on current, but assumes
+    The function takes into account the second order dependence on current, but assumes
     the infinite irwin loop gain approximation. 
     
     Parameters
     ----------
-    trace : array
-        Time series trace, referenced to TES current
+    trace : ndarray
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
     ioffset : float
         The offset in the measured TES current
     qetbias : float
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
         
     Returns
     -------
-    trace_p : array
+    trace_p : ndarray
         Time series trace, in units of power referenced to the TES
         
     """
     
     vbias = qetbias*rsh
-    trace_i0 = trace - qetoffset
+    trace_i0 = trace - ioffset
     trace_p = trace_i0*vbias - (rload)*trace_i0**2
     
     return trace_p
@@ -350,13 +352,14 @@ def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
 def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbias, rload, rsh):
     """
     Function to calculate the energy collected by the TESs by integrating the power in the TES 
-    as a function of time. 
+    as a function of time. This can be done for either a single trace, or an array of traces, as
+    long as the first dimension is the number of traces.
     
     Parameters
     ----------
-    trace : array
-        Time series trace, referenced to TES current
-    time : array
+    trace : ndarray
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
+    time : ndarray
         Array of time values corresponding to the trace array
     nbasepre : int
         The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
@@ -368,21 +371,21 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
     
     Returns
     -------
-    integrated_energy : float
+    integrated_energy : float, ndarray
         The energy absorbed by the TES in units of eV
         
     """
     
-    baseline = np.mean(np.hstack((trace[:nbasepre],trace[nbasepost:])))
+    baseline = np.mean(np.hstack((trace[..., :nbasepre],trace[..., nbasepost:])), axis = -1, keepdims=True)
     baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
-    
     trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
-    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time)/constants.e 
+    
+    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time, axis = -1)/constants.e 
     
     return integrated_energy
                                
