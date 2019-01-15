@@ -1308,7 +1308,7 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.subplots_adjust(top=0.9)
 
 def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lpFiltFreq=None,lgcsaveplots=False,
-                  figPrefix='testFit'):
+                  xlim=None,figPrefix='testFit'):
     """
     
     Parameters
@@ -1370,6 +1370,7 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     
     chi2TFloat = float(chi2T)
+    
     # ===Time Domain ==================================================
     bins = np.arange(nt)
     bins = bins[None,:]
@@ -1377,6 +1378,7 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     plt.figure(figsize=(12,7));
     if (lpFiltFreq):
         plt.plot(bins.T, pulseFilt.T - pulsetBL,'-k',label='Data (LP filtered)');
+        plt.plot(bins.T, pulset.T - pulsetBL,'-b', alpha=0.4,linewidth=0.5, label='Data');
     else:
         plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
     plt.plot(bins.T, fittott.T, '-g', label=f'Total Fit. $\chi^2$={chi2TFloat:.1f}', linewidth=5)    
@@ -1391,15 +1393,16 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     # is larger than a small threshold
     if (np.abs(amin[0])>1e-20):
         plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
-    if lpFiltFreq:
-        plt.plot(bins.T, pulset.T - pulsetBL,'-b', alpha=0.2,linewidth=0.5, label='Data');
     
     
     plt.xlabel(f'bins (1 bin = {(dt*1e6):.2f} $\mu$s)');
     plt.ylabel('Amps');
-    #plt.ylim([-5e-7, 5e-7])
+
+    if xlim is not None: 
+        plt.xlim(xlim)
     plt.legend()
     plt.grid()
+    plt.ticklabel_format(style='sci',axis='both', scilimits=(0,0))
 
     if lgcsaveplots:
         saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'

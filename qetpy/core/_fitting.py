@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from time import time
 import timeit
 
+from matplotlib.patches import Ellipse
+
    
 __all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
@@ -477,23 +479,23 @@ def of_nSmB_getWf(sbTemplatef,psddnu,nS,nB,nt):
             
     return Wf_l, Wf_l_summed, OFfiltf_l
 
-def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=2^20, bindelay=0, bitComb=None,bitMask=None):
+def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=2^20, bindelay=0, bitComb=None,bitMask=None):
     
-    nSB=nS+nB
-    #start = time()
     
     # check if bitMask has been supplied
     # and if not create it from combInd and bitComb
     if bitMask is None:
         bitMask = np.asarray(bitComb[combInd])
-        
-    
-    # if bitMask has a 1, we keep that background
-    #bitMask = 1 - bitMask
     
     #print('bitMask=', bitMask)
     #print('shape(bitMask)=', np.shape(bitMask))
 
+    # check if the signal is forced to zero
+    if (bitMask[0]==1):
+        nS = 1
+    else:
+        nS = 0
+    
     
     # number of signal and backgrounds remaining in fit
     nSBMask = np.sum(bitMask)
@@ -515,9 +517,9 @@ def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=2^20, bindelay=0, bi
 
     Wt_l2 = np.zeros((nSBMask,nSBMask))
 
+    
+    
     # make the signal-background horizontal piece (row 0 to nS)
-    #tempIFFT = np.fft.ifft(WfMask[0:nS,0:nSBMask,:],axis=2)
-    #tempIFFT = np.fft.ifft(Wf_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])],axis=2)
     tempIFFT = Wt_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])]
     #print(f"time of ifft of_nSmB_getWt = ",time()-start)
 
@@ -527,24 +529,19 @@ def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=2^20, bindelay=0, bi
     #print('shape(transpose(tempIFFT) = ', np.shape(np.transpose(tempIFFT)))
     #print('shape(transpose(tempIFFT[:,:,bindelay]) = ', np.shape(np.transpose(tempIFFT[:,:,bindelay])))
     #print('shape(Wt_l2[0:nSB,0:nS]) = ', np.shape(Wt_l2[0:nSB,0:nS]))
-    #Wt_l2[0:nS,0:nSBMask]=np.real(tempIFFT[:,:,bindelay])*nt
+    
     Wt_l2[0:nS,0:nSBMask]=np.real(tempIFFT[:,:,bindelay])
     
     #print(f"time of real Wt_l2 of_nSmB_getWt = ",time()-start)
 
     #start = time()
-
     # make the signal-background vertical piece (column 0 to nS)
-    # Wt_l2[0:nSBMask,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))*nt
     Wt_l2[0:nSBMask,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))
     
     #print(f"time of transpose Wt_l2 of_nSmB_getWt = ",time()-start)
 
     #start = time()
-
     # make the top (signal-signal) corner (partial overwriting)
-    #Wt_l2[0:nS,0:nS] = np.real(np.sum(WfMask[0:nS,0:nS,:],axis=2))
-    #Wt_l2[0:nS,0:nS] = np.real(np.sum(Wf_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nS])],axis=2))
     Wt_l2[0:nS,0:nS] = Wf_l_summed[np.ix_(indexBitMask[0:nS], indexBitMask[0:nS])]
     
     #print(f"time of sum Wt_l2 of_nSmB_getWt = ",time()-start)
@@ -552,93 +549,12 @@ def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=2^20, bindelay=0, bi
     #start = time()
 
     #make the bottom (background-background) corner
-    #Wt_l2[nS:nSBMask,nS:nSBMask] = np.real(np.sum(WfMask[nS:nSBMask,nS:nSBMask,:],axis=2))
-    #Wt_l2[nS:nSBMask,nS:nSBMask] = np.real(np.sum( Wf_l[np.ix_(indexBitMask[nS:nSBMask], indexBitMask[nS:nSBMask])] ,axis=2))
     Wt_l2[nS:nSBMask,nS:nSBMask] = Wf_l_summed[np.ix_(indexBitMask[nS:nSBMask], indexBitMask[nS:nSBMask])];
+    
     # make the signal-background piece
     
     #print(f"time of Wt_l2 of_nSmB_getWt = ",time()-start)
 
-    """
-    
-    # === Switch Weighting Matrix to time domain ===
-    Wt_l=np.real(np.fft.ifft(Wf_l,axis=2))*nt;
-    
-    # the elements which share a time domain delay contain only the
-    # ifft value corresponding to t0=0, i.e. the zero element.
-    # these elements are the signalXsignal and the backgroundXbackground
-
-    # signal-signal piece
-    # the piece being repeated has dimensions of nSxnS
-    # this makes it nSxnSxnt
-    noTimeShiftSSMat = Wt_l[0:nS,0:nS,0,None]
-    Wt_l[0:nS,0:nS,:] = noTimeShiftSSMat@np.ones((1,nt))
-    
-    #background-background piece
-    noTimeShiftBBMat = Wt_l[nS:nSB,nS:nSB,0,None]
-    Wt_l[nS:nSB,nS:nSB,:] = noTimeShiftBBMat@np.ones((1,nt))
-
-    # signal-background piece is the ifft
-    # no need for added manipulation
-
-    # background-signal piece needs to be flipped in time
-    # since Wt is symmetric, build it from the top
-    # section
-    for jr in range(nSB):
-        for jc in range(nSB):
-            if jr>jc:
-                Wt_l[jr,jc,:] = Wt_l[jc,jr,:]
-
-    # select the element of Wt_l at bin_delay
-    Wt_ls = Wt_l[:,:,bindelay]
-    
-    atol = 1e-15
-    lgcClose = np.allclose(Wt_l2[0:nSB,0:nS], Wt_l[0:nSB,0:nS,bindelay],rtol=0, atol=atol)
-    print(f"matrix closeness column (tol = {atol}). lgcClose = ",lgcClose)
-    
-    lgcClose = np.allclose(Wt_l2[0:nS,0:nS], Wt_l[0:nS,0:nS,bindelay],rtol=0, atol=1e-20)
-    print(f"matrix closeness upper. lgcClose = ",lgcClose)
-    lgcClose = np.allclose(Wt_l2[nS:nSB,nS:nSB], Wt_l[nS:nSB,nS:nSB,bindelay],rtol=0, atol=1e-20)
-    print(f"matrix closeness lower. lgcClose = ",lgcClose)
-    lgcClose = np.allclose(Wt_l2[nS:nSB,nS:nSB], Wt_l[nS:nSB,nS:nSB,bindelay])
-    print(f"matrix closeness lower (greater tolerance). lgcClose = ",lgcClose) 
-    atol = 1e-15
-    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
-    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
-    atol = 1e-8
-    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
-    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
-    atol = 1e-6
-    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
-    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
-    atol = 1e-4
-    lgcClose = np.allclose(Wt_l2, Wt_l[:,:,bindelay],rtol=0, atol=atol)
-    print(f"matrix closeness all (tol = {atol}). lgcClose = ",lgcClose)
-    #print('Wt_l2=')
-    #print(Wt_l2[nS:nSB,nS:nSB])
-    #print('Wt_l=')
-    #print(Wt_l[nS:nSB,nS:nSB,bindelay])
-    #print('Wt_l2=')
-    #print(Wt_l2[0:nSB,0:nS])
-    #print('Wt_l=')
-    #print(Wt_l[0:nSB,0:nS,bindelay])
-    
-    
-    
-    # === Invert Weighting Matrix ===
-    # create the inverted weighting matrices
-    # as a function of the time offset
-    iWt_ls= np.zeros((nSB,nSB))
-
-    # the regular inv function had a problematic level of numerical jitter
-    # e.g. the chi2(t0) could be negative for some t0
-    # so use pseudo inverse which has not exhibited
-    # any numerical jitter
-    iWt_ls=np.linalg.pinv(Wt_ls)
-    
-    return Wt_ls, iWt_ls
-    
-    """
 
     iWt_l2 =np.linalg.pinv(Wt_l2)
 
@@ -951,7 +867,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     a_tN = np.squeeze(a_tN)
     a_t = a_tN.T
     #print('shape(a_t)=',np.shape(a_t))
-    
+    #print('shape(Pfiltt)=', np.shape(Pfiltt))
     #=== calculate chi^2 for all time using trick ===
     # first calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
@@ -979,7 +895,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     # find the chi2 minimum
     chi2min= np.amin(chi2_t[ind_window])
     ind_tdel_sm = np.argmin(chi2_t[ind_window])
-    
+    print('chi2min=', chi2min)
     ind_tdel=ind_window[:,ind_tdel_sm]
         
     # plot the chi2_t to check for absolute minima without numerical jitter
@@ -1018,13 +934,16 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         #ii= 5230
         # first do the fit with all backgrounds floating
         
-        # combInd 0 for all positive
+        # combInd (2**nSB -1)  for all positive
         # (i.e. bitComb[combInd] will
         # have 1s for the backgrounds
         # we want to remove from fit)
-        _, iWt_tset = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=((2**nSB)-1),
+        Wt_tset, iWt_tset = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=((2**nSB)-1),
                                     bindelay=ii,bitComb=bitComb,bitMask=None)
                
+        
+        
+        
         
         # change iWt to (jtXnSBXnSB)
         #iWtN = np.moveaxis(iWt_tset,2,0)
@@ -1032,18 +951,38 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         Pfiltt2_tset = Pfiltt2N[ii]
         #print('shape(Pfiltt2_tset)=',np.shape(Pfiltt2_tset))
         a_tset = np.matmul(iWt_tset,Pfiltt2_tset)
-        #print('a_tset=',a_tset)
+        
+     
         #record if the amplitudes are positive
         #since if they are we will set their amplitudes to zero (taking them out of the fit)
         # which we do by setting the array elements to zero
         bitCombFit = np.squeeze(np.asarray(a_tset < 0,dtype=int))
-        # for now, always let the signal (index 0) be negative
-        bitCombFit[0] = 1
-        # same with the DC template
-        bitCombFit[nSB-1] = 1
+        
+        
+        # for now, always let the DC template (the last background fit) be negative
+        bitCombFit[-1] = 1
         #print('bitCombFit=',bitCombFit)
         #print('shape(bitCombFit)=', np.shape(bitCombFit))
-        _, iWt_tsetMask = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l, nS,nB,nt,combInd=None,
+        
+        
+        # this minus is because the vector to the origin is oposite the amplitude
+        gradX2 = np.matmul(Wt_tset,(-a_tset))
+        # this minus is because we want the negative gradient
+        gradX2 = -gradX2
+        # for the final dimension, automatically set the gradient to
+        # a negative number as this is the DC dimension and we always want it fitted
+        gradX2[-1]=-1
+        
+        #record where the gradient is pointing
+        # since if is positive we will set the amplitude to zero (taking them out of the fit)
+        # which we do by setting the array elements to zero
+        bitCombFit = np.squeeze(np.asarray(gradX2 < 0,dtype=int))
+        #print('bitCombFitGrad=',bitCombFitGrad)
+        #print('shape(bitCombFitGrad)=', np.shape(bitCombFitGrad))
+
+
+        
+        Wt_tsetMask, iWt_tsetMask = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=None,
                                         bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
         # select the 
         indexBitMask = np.squeeze(np.nonzero(bitCombFit))
@@ -1059,13 +998,86 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
 
         a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
-        #print('shape(a_tsetNew)=',np.shape(a_tsetNew))
-        #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
         
+        
+        '''
+        #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+        if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
+            print(f'ii={ii}')
+            print('shape(a_tset)=',np.shape(a_tset))
+            print('a_tset=',np.transpose(a_tset))
+            print('shape(a_tsetNew[:,ii])=',np.shape(a_tsetNew[:,ii]))
+            print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            lpFiltFreq = 30e3
+            plotnSmBOFFit(pulset,omega,fs,ii*dt,a_tset,sbTemplatef,nS,nB,nt,psddnu,dt,
+                          lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
+            plotnSmBOFFit(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetNew[:,ii],1),sbTemplatef,nS,nB,nt,psddnu,dt,
+                          lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
+        
+            idxOfInt = 11
+            reducedMat = iWt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
+            #print('np.shape(reducedMat)=', np.shape(reducedMat))
+            print('reducedMat = ', reducedMat)
+            
+            reducedHess =  Wt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
+            print('reducedHess = ', reducedHess)
+            
+            gradX2red = np.matmul(reducedHess,np.array((-a_tset[0], -a_tset[idxOfInt])))
+            ngradX2red = -gradX2red
+            
+            lambda_, v = np.linalg.eig(reducedMat)
+            #print('lambda=', lambda_)
+            lambda_ = np.sqrt(lambda_)
+            #print('v=',v)
+            theta = np.degrees(np.arctan2(*v[:,0][::-1]))
+            
+            fig = plt.figure(0)
+            ax = fig.add_subplot(111, aspect='equal')
+            
+            nsigmas=3
+            
+            for sigma in range(1,nsigmas+1):
+                width = lambda_[0]*2*sigma
+                height = lambda_[1]*2*sigma
+                ell = Ellipse(xy=(a_tset[0], a_tset[idxOfInt]),
+                                            width=width,
+                                            height=height,
+                                            angle=theta,
+                                            linewidth=2,
+                                            edgecolor=([0, 0, 1]),
+                                           facecolor='none')
+                ax.add_artist(ell)
+                
+            plt.plot(a_tset[0], a_tset[idxOfInt], '*r')
+            #plt.plot(0,0,'+b', markersize=20)
+            
+            plotAx = np.max([width,height])/1.5
+            plt.xlim([a_tset[0]-plotAx, a_tset[0]+plotAx])
+            plt.ylim([a_tset[idxOfInt]-plotAx, a_tset[idxOfInt]+plotAx])
+            plt.axvline(x=0.0, color='k',linestyle='--' )
+            plt.axhline(y=0.0, color='k',linestyle='--')
+            
+            plt.grid()
+            plt.ticklabel_format(style='sci',axis='both', scilimits=(0,0))
+            plt.xlabel('signal amplitude')
+            plt.ylabel('background amplitude')
+            plt.title(f'$\chi^2$ with signal bin offset ={ii}')
+            plt.quiver([0],[0],ngradX2red[0],ngradX2red[1],color='m',scale=1,scale_units='xy')
+
+            
+            if False:
+                saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
+                plt.savefig(saveDir + f"p1bin2805ellipse{ii}" + '.png', bbox_inches='tight')
+            plt.show()
+        '''
+            
         
         # calc chi2 of background only fit
         chi2t0setMask = np.sum(a_tsetMask*Pfiltt2_tsetMask,0)
         chi2New[ii] = chi2base-chi2t0setMask
+        
+        # calculate the chi2 in a different form (based off notes)
+        
         
         #print(f'chi2New[{ii}]=',chi2New[ii], f'a_tsetNew[0,{ii}]=', a_tsetNew[0,ii], f'amin[0,{ii}]=',a_t[0,ii])
 
