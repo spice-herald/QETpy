@@ -261,7 +261,7 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     
     Parameters
     ----------
-    avemuon : array
+    avemuon : ndarray
         An average of 'good' muons in time domain, referenced to TES current
     qetbias : float
         Applied QET bias current
@@ -313,18 +313,18 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
                                
                                
                                
-def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
+def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     """
     Function to convert time series trace from units of TES current to units of power.
     This can be done for either a single trace, or an array of traces, as
     long as the first dimension is the number of traces.
     
-    The function takes into account the second order depenace on current, but assumes
+    The function takes into account the second order dependence on current, but assumes
     the infinite irwin loop gain approximation. 
     
     Parameters
     ----------
-    trace : narray
+    trace : ndarray
         Time series traces of shape (# traces, # channels, # bins per channel),
         referenced to TES current
     ioffset : float
@@ -333,12 +333,12 @@ def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
         
     Returns
     -------
-    trace_p : array
+    trace_p : ndarray
         Time series trace, in units of power referenced to the TES
         
     """
@@ -358,10 +358,10 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
     
     Parameters
     ----------
-    trace : array
+    trace : ndarray
         Time series traces of shape (# traces, # channels, # bins per channel),
         referenced to TES current
-    time : array
+    time : ndarray
         Array of time values corresponding to the trace array
     nbasepre : int
         The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
@@ -373,12 +373,12 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
     
     Returns
     -------
-    integrated_energy : float
+    integrated_energy : float, ndarray
         The energy absorbed by the TES in units of eV
         
     """
