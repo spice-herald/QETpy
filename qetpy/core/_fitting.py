@@ -680,7 +680,7 @@ class OptimumFilter(object):
         if np.isinf(self.psd[0]):
             chi0+=np.abs(self.v[0])**2 / self.psd0 * self.df # add back the zero frequency bin
         chi0-= 2*bs*c1
-        chi0+= bs**2 + c2
+        chi0+= bs**2 * c2
         
         chi2 = chi0 - 2*amps_out*b1
         chi2+= amps_out**2 * norm
