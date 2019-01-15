@@ -484,14 +484,14 @@ class OptimumFilter(object):
             self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v))*self.df
         
         a2s = self.signalfilt_td - a1*templatefilt_td/self.norm
-
-        # do a1 part of chi2
-        chit = a1**2*self.norm - 2*a1*self.signalfilt_td[t1ind]*self.norm
-
+        
         if t1<0:
             t1ind = int(t1*self.fs+self.nbins)
         else:
             t1ind = int(t1*self.fs)
+        
+        # do a1 part of chi2
+        chit = a1**2*self.norm - 2*a1*self.signalfilt_td[t1ind]*self.norm
 
         # do a1, a2 combined part of chi2
         chil = a2s**2*self.norm + 2*a1*a2s*templatefilt_td - 2*a2s*self.signalfilt_td*self.norm
