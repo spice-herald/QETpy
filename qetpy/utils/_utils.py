@@ -325,8 +325,7 @@ def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     Parameters
     ----------
     trace : ndarray
-        Time series traces of shape (# traces, # channels, # bins per channel),
-        referenced to TES current
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
     ioffset : float
         The offset in the measured TES current
     qetbias : float
@@ -359,8 +358,7 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
     Parameters
     ----------
     trace : ndarray
-        Time series traces of shape (# traces, # channels, # bins per channel),
-        referenced to TES current
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
     time : ndarray
         Array of time values corresponding to the trace array
     nbasepre : int
