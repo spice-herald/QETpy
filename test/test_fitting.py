@@ -165,6 +165,11 @@ def test_argmin_chi2():
     assert res3 == 0
     res4 = _argmin_chi2(x, nconstrain=1000)
     assert res4 == 1
+    res5 = _argmin_chi2(x, constraint_mask=np.array([False, False, False, False]))
+    assert np.isnan(res5)
+    
+    with pytest.raises(ValueError):
+        res6 = _argmin_chi2(x, nconstrain=-1)
     
     amps = np.array([1, 0.1, -0.1, 3])
     
@@ -176,8 +181,10 @@ def test_argmin_chi2():
     assert res2 == 1
     res3 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=constraint_mask)
     assert res3 == 0
+    res4 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=np.array([False, False, False, False]))
+    assert np.isnan(res4)
     
-
+    
 def test_OptimumFilter():
     """
     Testing function for `qetpy.OptimumFilter` class.
@@ -256,9 +263,17 @@ def test_ofamp():
     OF = qp.OptimumFilter(signal, template, psd, fs)
     res2 = OF.ofamp_withdelay(nconstrain=100)
     
-    res_compare = res2 + (OF.energy_resolution(), )
+    res_compare1 = res2 + (OF.energy_resolution(), )
     
-    assert isclose(res1, res_compare)
+    res3 = qp.ofamp(signal, template, psd, fs, withdelay=False)
+    
+    OF = qp.OptimumFilter(signal, template, psd, fs)
+    res4 = OF.ofamp_nodelay()
+    
+    res_compare2 = (res4[0], 0.0, res4[1])
+    
+    assert isclose(res1, res_compare1)
+    assert isclose(res3, res_compare2)
     
 def test_ofamp_pileup():
     """
