@@ -788,10 +788,11 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         http://titus.stanford.edu:8080/git/blob/?f=utilities/fitting/OF_nSmB.m&r=Analysis/MatCAP.git&h=master
     2018/12/5 - B Page  - ported to python
                         - no chi2 interpolation implemented
+                        - added pulse polarity constraint
     
     """
 
-    lgcplotcheck=True
+    lgcplotcheck=False
     
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -841,7 +842,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     # === Fit with only the background templates ===
     # analytical best fit background amplitudes
     bOnlyA = iBB@backgroundSum
-
+    
     # make just the background template in time and frequency
     bTemplate = sbTemplate[:,nS:nSB]
     bTemplatef = sbTemplatef[nS:nSB,:]
@@ -928,7 +929,8 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     ###### ==== test positive only constraint ====== ######
     chi2New = np.zeros((nt,1))
     a_tsetNew = np.zeros((nSB,nt))
-
+    bitCombFitVec = np.zeros((nSB,nt),dtype=int)
+    
     for ii in range(nt):
         
         #ii= 5230
@@ -943,8 +945,6 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
                
         
         
-        
-        
         # change iWt to (jtXnSBXnSB)
         #iWtN = np.moveaxis(iWt_tset,2,0)
         # change Pfiltt2 to (jtX2X1)
@@ -952,19 +952,19 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         #print('shape(Pfiltt2_tset)=',np.shape(Pfiltt2_tset))
         a_tset = np.matmul(iWt_tset,Pfiltt2_tset)
         
-     
         #record if the amplitudes are positive
         #since if they are we will set their amplitudes to zero (taking them out of the fit)
         # which we do by setting the array elements to zero
         bitCombFit = np.squeeze(np.asarray(a_tset < 0,dtype=int))
-        
         
         # for now, always let the DC template (the last background fit) be negative
         bitCombFit[-1] = 1
         #print('bitCombFit=',bitCombFit)
         #print('shape(bitCombFit)=', np.shape(bitCombFit))
         
-        
+        ######
+        # gradient at Zero
+        ######
         # this minus is because the vector to the origin is oposite the amplitude
         gradX2 = np.matmul(Wt_tset,(-a_tset))
         # this minus is because we want the negative gradient
@@ -972,41 +972,72 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         # for the final dimension, automatically set the gradient to
         # a negative number as this is the DC dimension and we always want it fitted
         gradX2[-1]=-1
-        
         #record where the gradient is pointing
         # since if is positive we will set the amplitude to zero (taking them out of the fit)
         # which we do by setting the array elements to zero
-        bitCombFit = np.squeeze(np.asarray(gradX2 < 0,dtype=int))
-        #print('bitCombFitGrad=',bitCombFitGrad)
+        #bitCombFit = np.squeeze(np.asarray(gradX2 < 0,dtype=int))
+        #print('bitCombFitGrad=',bitCombFit)
         #print('shape(bitCombFitGrad)=', np.shape(bitCombFitGrad))
-
-
+        #######
+        # end gradient at Zero
+        #######
         
         Wt_tsetMask, iWt_tsetMask = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=None,
                                         bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
-        # select the 
+        # select the elements that are not zero
         indexBitMask = np.squeeze(np.nonzero(bitCombFit))
+        
         Pfiltt2_tsetMask = Pfiltt2_tset[np.ix_(indexBitMask)]
         #print('shape(Pfiltt2_tsetMask)=',np.shape(Pfiltt2_tsetMask))
         a_tsetMask = np.matmul(iWt_tsetMask,Pfiltt2_tsetMask)
         #print('shape(a_tsetMask)=',np.shape(a_tsetMask))
         #print('a_tsetMask=',a_tsetMask)
+        
         # make a_tsetNew with dimentions of a_tset and populate it
         # with the a_tsetMask values
         a_tsetNewOneT = np.zeros((nSB,1))
         a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
         #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
-
         a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
         
+        if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
+            #print(f'entering second check of negatives.ii={ii}')
+            #print(f'ii={ii}')
+            #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            
+            # record if the amplitudes are positive
+            # since if they are we will set their amplitudes to zero (taking them out of the fit)
+            # which we do by setting the array elements to zero
+            bitCombFit = np.squeeze(np.asarray(a_tsetNew[:,ii] < 0,dtype=int))
+            # for now, always let the DC template (the last background fit) be negative
+            bitCombFit[-1] = 1
+            
+            Wt_tsetMask, iWt_tsetMask = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=None,
+                                        bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
+            # select the elements that are not zero
+            indexBitMask = np.squeeze(np.nonzero(bitCombFit))
+
+            Pfiltt2_tsetMask = Pfiltt2_tset[np.ix_(indexBitMask)]
+            a_tsetMask = np.matmul(iWt_tsetMask,Pfiltt2_tsetMask)
+            
+            
+            a_tsetNewOneT = np.zeros((nSB,1))
+            a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
+            # reset the a_tsetNew vector
+            a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
         
+        # save the bitCombFit array
+        bitCombFitVec[:,ii]= bitCombFit
+        if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
+            print('PROBLEM, second collapsing did not fix negatives')
+            print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+
+         
+            
         '''
-        #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
         if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
             print(f'ii={ii}')
-            print('shape(a_tset)=',np.shape(a_tset))
             print('a_tset=',np.transpose(a_tset))
-            print('shape(a_tsetNew[:,ii])=',np.shape(a_tsetNew[:,ii]))
             print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
             lpFiltFreq = 30e3
             plotnSmBOFFit(pulset,omega,fs,ii*dt,a_tset,sbTemplatef,nS,nB,nt,psddnu,dt,
@@ -1017,10 +1048,10 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
             idxOfInt = 11
             reducedMat = iWt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
             #print('np.shape(reducedMat)=', np.shape(reducedMat))
-            print('reducedMat = ', reducedMat)
+            #print('reducedMat = ', reducedMat)
             
             reducedHess =  Wt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
-            print('reducedHess = ', reducedHess)
+            #print('reducedHess = ', reducedHess)
             
             gradX2red = np.matmul(reducedHess,np.array((-a_tset[0], -a_tset[idxOfInt])))
             ngradX2red = -gradX2red
@@ -1035,10 +1066,10 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
             ax = fig.add_subplot(111, aspect='equal')
             
             nsigmas=3
-            
+            factorSig = 0.05
             for sigma in range(1,nsigmas+1):
-                width = lambda_[0]*2*sigma
-                height = lambda_[1]*2*sigma
+                width = lambda_[0]*2*sigma*factorSig
+                height = lambda_[1]*2*sigma*factorSig
                 ell = Ellipse(xy=(a_tset[0], a_tset[idxOfInt]),
                                             width=width,
                                             height=height,
@@ -1072,28 +1103,21 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         '''
             
         
-        # calc chi2 of background only fit
+        # calc chi2 of positive constraint fit 
         chi2t0setMask = np.sum(a_tsetMask*Pfiltt2_tsetMask,0)
         chi2New[ii] = chi2base-chi2t0setMask
-        
-        # calculate the chi2 in a different form (based off notes)
-        
-        
-        #print(f'chi2New[{ii}]=',chi2New[ii], f'a_tsetNew[0,{ii}]=', a_tsetNew[0,ii], f'amin[0,{ii}]=',a_t[0,ii])
-
-        
+                
     chi2New = np.squeeze(chi2New)
     chi2minNew= np.amin(chi2New[ind_window])
-    print('chi2minNew=', chi2minNew)
+    #print('chi2minNew=', chi2minNew)
     ind_tdel_smNew = np.argmin(chi2New[ind_window])
     ind_tdel_New=ind_window[:,ind_tdel_smNew]
     aminNew = a_tsetNew[:,ind_tdel_New]
     tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
-
-    print('ind_tdel_New=', ind_tdel_New)
-    print('aminNew=', aminNew)
-    print('tdelminNew=', tdelminNew)
-
+    bitCombFitFinal = np.squeeze(bitCombFitVec[:,ind_tdel_New])
+    #print('ind_tdel_New=', ind_tdel_New)
+    #print('aminNew=', aminNew)
+    #print('tdelminNew=', tdelminNew)
     
     if lgcplotcheck:
         plt.figure(figsize=(12, 7))
@@ -1106,6 +1130,41 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
 
     ###### ==== end test positive only constraint ====== ######
 
+    
+    ###### ==== start background only constraint   ====== ######
+
+    # get the bitComb for background only
+    bitCombFitBackground = bitCombFitFinal[nS:]
+    print('bitCombFitFinal=',bitCombFitFinal)
+    print('shape bitCombFitBackground', np.shape(bitCombFitBackground))
+    print('bitCombFitBackground=',bitCombFitBackground)
+
+    numBCon = np.sum(bitCombFitBackground)
+    
+    indexBitMaskBackground = np.squeeze(np.nonzero(bitCombFitBackground))
+
+    
+    # === Fit with only the background templates with only masked backgrounds active===
+    # analytical masked best fit background amplitudes
+    bOnlyAConMask = iBB[np.ix_(indexBitMaskBackground, indexBitMaskBackground)]@backgroundSum[np.ix_(indexBitMaskBackground)]
+    
+    
+    bOnlyACon = np.zeros((nSB-nS,1))
+    bOnlyACon[np.ix_(indexBitMaskBackground)] = bOnlyAConMask
+    
+    # calc chi2 of constrained background only fit
+    bestFitBOnlyCon = bTemplate@bOnlyACon
+    # make residual (pulse minus background best fit)
+    residBOnlyCon= pulset.T - bestFitBOnlyCon
+    # take FFT of residual
+    residBOnlyfCon = np.fft.fft(residBOnlyCon,axis=0)/nt
+    # calc chi2
+    chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
+    
+    
+    ###### ==== end background only constraint   ====== ######
+
+    
     #=== Subtract off the background for residual ===
     
     # get amplitudes of background templates
@@ -1121,6 +1180,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     
     if lgcplot:
         lpFiltFreq = 30e3
+        '''
         plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='sFit')
         
@@ -1136,14 +1196,18 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
             
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSig,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bFit')
-        
+        '''
         # plot the positive only constraint
         plotnSmBOFFit(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit')
-    #print('chi2min = ', chi2min)
-    #print('chiBOnly = ', chi2BOnly)
+    
+        # plot background only fit with constraint
+        aminNoSigCon = np.insert(bOnlyACon,0,0)
+        aminNoSigCon = np.expand_dims(aminNoSigCon,1)
+        plotnSmBOFFit(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit')
 
-    return aminsqueeze,tdelmin,chi2min,Pulset_BF,a0,chi20, chi2BOnly
+    return aminsqueeze,tdelmin,chi2minNew,Pulset_BF,a0,chi20, chi2BOnlyCon
 
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
