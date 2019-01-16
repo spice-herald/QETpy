@@ -896,7 +896,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     # find the chi2 minimum
     chi2min= np.amin(chi2_t[ind_window])
     ind_tdel_sm = np.argmin(chi2_t[ind_window])
-    print('chi2min=', chi2min)
+    #print('chi2min=', chi2min)
     ind_tdel=ind_window[:,ind_tdel_sm]
         
     # plot the chi2_t to check for absolute minima without numerical jitter
@@ -943,7 +943,6 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         Wt_tset, iWt_tset = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=((2**nSB)-1),
                                     bindelay=ii,bitComb=bitComb,bitMask=None)
                
-        
         
         # change iWt to (jtXnSBXnSB)
         #iWtN = np.moveaxis(iWt_tset,2,0)
@@ -1135,9 +1134,9 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
 
     # get the bitComb for background only
     bitCombFitBackground = bitCombFitFinal[nS:]
-    print('bitCombFitFinal=',bitCombFitFinal)
-    print('shape bitCombFitBackground', np.shape(bitCombFitBackground))
-    print('bitCombFitBackground=',bitCombFitBackground)
+    #print('bitCombFitFinal=',bitCombFitFinal)
+    #print('shape bitCombFitBackground', np.shape(bitCombFitBackground))
+    #print('bitCombFitBackground=',bitCombFitBackground)
 
     numBCon = np.sum(bitCombFitBackground)
     
