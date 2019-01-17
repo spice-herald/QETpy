@@ -1176,7 +1176,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     # squeeze amin 
     aminsqueeze = np.squeeze(amin)
     
-    
+    aminsqueezeNew = np.squeeze(aminNew)
     if lgcplot:
         lpFiltFreq = 30e3
         '''
@@ -1206,7 +1206,8 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit')
 
-    return aminsqueeze,tdelmin,chi2minNew,Pulset_BF,a0,chi20, chi2BOnlyCon
+    #return aminsqueeze,tdelmin,chi2min,Pulset_BF,a0,chi20, chi2BOnly
+    return aminsqueezeNew,tdelminNew,chi2minNew,Pulset_BF,a0,chi20, chi2BOnlyCon
 
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
