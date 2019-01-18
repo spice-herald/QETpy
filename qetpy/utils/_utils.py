@@ -375,9 +375,9 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
     time : ndarray, optional
         Array of time values corresponding to the trace array
     indbasepre : int, optional
-        The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
-    indbasepost : int,optional
-        The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
+        The bin number corresponding to the pre-pulse baseline, i.e. [:indbasepre]
+    indbasepost : int, optional
+        The bin number corresponding to the post-pulse baseline, i.e. [indbasepost:]
     
     
     Returns
@@ -394,15 +394,15 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
             raise ValueError('Must provide indbasepre or baseline')
         if indbasepost is not None:
             base_traces = np.hstack((base_traces, trace[..., indbasepost:]))
-        baseline = np.mean(base_traces, axis = -1, keepdims=True)
+        baseline = np.mean(base_traces, axis=-1, keepdims=True)
     
-    baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
-    trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
+    baseline_p0 = powertrace_simple(baseline, ioffset, qetbias, rload, rsh)
+    trace_power = powertrace_simple(trace, ioffset, qetbias, rload, rsh)
     
     if fs is not None:
-        integrated_energy = np.trapz(baseline_p0 - trace_power, axis = -1)/(fs*constants.e) 
+        integrated_energy = np.trapz(baseline_p0 - trace_power, axis=-1)/(fs*constants.e) 
     elif time is not None:
-        integrated_energy = np.trapz(baseline_p0 - trace_power, x = time, axis = -1)/constants.e 
+        integrated_energy = np.trapz(baseline_p0 - trace_power, x=time, axis=-1)/constants.e 
     else:
         raise ValueError('Must provide either fs or time')
         
