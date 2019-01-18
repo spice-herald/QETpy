@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
@@ -89,4 +90,24 @@ def test_energy_absorbed():
                                 rsh=1)
     assert int(energy) == 3
     
-
+    with pytest.raises(ValueError):
+        energy = energy_absorbed(trace=test_traces, 
+                                 fs=1e20,
+                                 time=None,
+                                 indbasepre=None,
+                                 indbasepost=None, 
+                                 ioffset=0, 
+                                 qetbias=1, 
+                                 rload=1, 
+                                 rsh=1)
+    
+    with pytest.raises(ValueError):
+        energy = energy_absorbed(trace=test_traces, 
+                                 fs=None,
+                                 time=None,
+                                 indbasepre=10,
+                                 indbasepost=None, 
+                                 ioffset=0, 
+                                 qetbias=1, 
+                                 rload=1, 
+                                 rsh=1)
