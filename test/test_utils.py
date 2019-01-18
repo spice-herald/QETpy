@@ -68,7 +68,7 @@ def test_energy_absorbed():
     assert int(energy) == 3
     
     energy = energy_absorbed(trace=test_traces, 
-                                fs = 1e20
+                                fs = 1e20,
                                 time=None,
                                 indbasepre=0,
                                 indbasepost=75, 
@@ -79,7 +79,7 @@ def test_energy_absorbed():
     assert int(energy) == 3
     
     energy = energy_absorbed(trace=test_traces, 
-                                fs = 1e20
+                                fs = 1e20,
                                 time=None,
                                 indbasepre=10,
                                 indbasepost=None, 
