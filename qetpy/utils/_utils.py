@@ -4,7 +4,7 @@ from scipy.ndimage.interpolation import shift
 
 
 __all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
-           "powertrace_simple", "integrate_powertrace_simple", "stdcomplex", "slope",
+           "powertrace_simple", "energy_absorbed", "stdcomplex", "slope",
            "fill_negatives"]
 
 def make_decreasing(y, x=None):
