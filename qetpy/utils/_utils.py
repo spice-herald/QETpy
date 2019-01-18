@@ -349,7 +349,8 @@ def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     return trace_p
 
 
-def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbias, rload, rsh):
+def energy_absorbed(trace, ioffset, qetbias, rload, rsh, 
+                    fs=None, baseline=None, time=None, indbasepre=None, indbasepost=None):
     """
     Function to calculate the energy collected by the TESs by integrating the power in the TES 
     as a function of time. This can be done for either a single trace, or an array of traces, as
@@ -359,12 +360,6 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
     ----------
     trace : ndarray
         Time series traces, where the last dimension is the trace length, referenced to TES current.
-    time : ndarray
-        Array of time values corresponding to the trace array
-    nbasepre : int
-        The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
-    nbasepost : int
-        The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
     ioffset : float
         The offset in the measured TES current
     qetbias : float
@@ -373,6 +368,17 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
         Load resistance of TES circuit (rp + rsh)
     rsh : float
         Value of the shunt resistor for the TES circuit
+    fs : float, optional
+        The sample rate of the DAQ
+    baseline : ndarray, optional
+        The baseline value of each trace, must be same dimension as trace
+    time : ndarray, optional
+        Array of time values corresponding to the trace array
+    indbasepre : int, optional
+        The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
+    indbasepost : int,optional
+        The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
+    
     
     Returns
     -------
@@ -381,12 +387,25 @@ def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbi
         
     """
     
-    baseline = np.mean(np.hstack((trace[..., :nbasepre],trace[..., nbasepost:])), axis = -1, keepdims=True)
+    if baseline is None:
+        if indbasepre is not None:
+            base_traces = trace[..., :indbasepre]
+        else:
+            raise ValueError('Must provide indbasepre or baseline')
+        if indbasepost is not None:
+            base_traces = np.hstack((base_traces, trace[..., indbasepost:]))
+        baseline = np.mean(base_traces, axis = -1, keepdims=True)
+    
     baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
     trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
     
-    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time, axis = -1)/constants.e 
-    
+    if fs is not None:
+        integrated_energy = np.trapz(baseline_p0 - trace_power, axis = -1)/(fs*constants.e) 
+    elif time is not None:
+        integrated_energy = np.trapz(baseline_p0 - trace_power, x = time, axis = -1)/constants.e 
+    else:
+        raise ValueError('Must provide either fs or time')
+        
     return integrated_energy
                                
                                
