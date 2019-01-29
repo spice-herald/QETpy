@@ -1163,21 +1163,30 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     #                      ,axis=1))
     
 
-
-    
     ###### ==== end test positive only constraint ====== ######
 
     
     ###### ==== start background only constraint   ====== ######
 
+    # find which amplitudes were positive in the original background fit
+    
+    bitCombFitBackground = np.squeeze(np.asarray(bOnlyA < 0,dtype=int))
+    # for now, always let the DC template (the last background fit) be negative
+    bitCombFitBackground[-1] = 1
+    
+    
+    # the following line is from OLD CODE, where the constraint for the background
+    # was based off the signal fit. Now were are basing this constraint off the original
+    # background fit
     # get the bitComb for background only
-    bitCombFitBackground = bitCombFitFinal[nS:]
+    # bitCombFitBackground = bitCombFitFinal[nS:]
+    
+    
     #print('bitCombFitFinal=',bitCombFitFinal)
     #print('shape bitCombFitBackground', np.shape(bitCombFitBackground))
     #print('bitCombFitBackground=',bitCombFitBackground)
 
     numBCon = np.sum(bitCombFitBackground)
-    
     indexBitMaskBackground = np.squeeze(np.nonzero(bitCombFitBackground))
 
     
