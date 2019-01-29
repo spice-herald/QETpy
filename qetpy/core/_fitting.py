@@ -11,8 +11,8 @@ import timeit
 from matplotlib.patches import Ellipse
 
    
-__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "chi2lowfreq", 
-           "chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "of_nSmB_fftTemplate",
+           "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 
 def ofamp(signal, template, psd, fs, withdelay=True, coupling='AC', lgcsigma = False, 
@@ -695,9 +695,7 @@ def of_nSmB_setup(sTemplatet,bTemplatet,psd,fs,lgcforcepolarity=False, polarity 
     #print('time of of_nSmB_getP = ',time()-start)
         
     # check if matrices are the same within tolerance
-    #lgcClose = np.allclose(iWt2, iWt[:,:,0],rtol=0, atol=1e-20)
-    #print("lgcClose = ",lgcClose)
-    
+    #lgcClose = np.allclose(iWt2, iWt[:,:,0],rtol=0, atol=1e-20)    
 
     # if lgcforcepolarity, compute the other 2^nB
     # matrices analogous to iWt
@@ -925,7 +923,6 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     amin = a_t[:,ind_tdel]
     tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
     
-    
     ###### ==== test positive only constraint ====== ######
     chi2New = np.zeros((nt,1))
     a_tsetNew = np.zeros((nSB,nt))
@@ -1031,8 +1028,8 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
             print('PROBLEM, second collapsing did not fix negatives')
             print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
 
-         
-            
+        
+        # plotting checks
         '''
         if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
             print(f'ii={ii}')
@@ -1126,7 +1123,48 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         plt.grid(which='both')
         #plt.ylim([6417, 6500])
         
+    ## check the gradient of the best fit positive only constraint
+    
+    ########
+    # gradient at the new minimum
+    #######
 
+    # get the weighting matrix (again) at the bin with the lowest chi2
+    # notice that we have to cast ind_tdel_New to an int
+    Wt_tmin, iWt_tmin = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=((2**nSB)-1),
+                                    bindelay=int(ind_tdel_New),bitComb=bitComb,bitMask=None)
+    
+    # change Pfiltt2 to (jtX2X1)
+    Pfiltt2_tmin = Pfiltt2N[int(ind_tdel_New)]
+    #print('shape(Pfiltt2_tmin)=',np.shape(Pfiltt2_tmin))
+    a_tmin = np.matmul(iWt_tmin,Pfiltt2_tmin)
+    
+    # the vector that points from the absolute minimum to the new minimum
+    vecFromAbsMin = aminNew - a_tmin
+    #print('shape vecFromAbsMin', np.shape(vecFromAbsMin))
+
+    # note that we are working the space where the absolute (unconstrained) min
+    # is at the origin and vecFromAbsMin points to the constrained minimum
+    gradX2aNew = np.matmul(Wt_tmin,vecFromAbsMin)    
+    # this minus is because we want the negative gradient
+    gradX2aNew = -gradX2aNew
+    # for the final dimension, automatically set the gradient to
+    # -99999
+    gradX2aNew[-1]=-99999
+    #print('gradX2aNew=', np.transpose(gradX2aNew))
+
+    #print('a_tmin=', np.transpose(a_tmin))
+
+    #print('a_tsetNew=', np.transpose(aminNew))
+
+
+    #print(np.concatenate((np.expand_dims(np.squeeze(gradX2aNew)<0,1),
+    #                      np.expand_dims(np.squeeze(aminNew)<0,1))
+    #                      ,axis=1))
+    
+
+
+    
     ###### ==== end test positive only constraint ====== ######
 
     
@@ -1160,6 +1198,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     # calc chi2
     chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
     
+    bminsqueezeNew = np.squeeze(bOnlyACon)
     
     ###### ==== end background only constraint   ====== ######
 
@@ -1196,6 +1235,10 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSig,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bFit')
         '''
+        # temporary: plot the original fit (no constraint) at the pos contraint delat
+        plotnSmBOFFit(pulset,omega,fs,tdelminNew,a_tmin,sbTemplatef,nS,nB,nt,psddnu,dt,
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit')
+        
         # plot the positive only constraint
         plotnSmBOFFit(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit')
@@ -1207,7 +1250,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit')
 
     #return aminsqueeze,tdelmin,chi2min,Pulset_BF,a0,chi20, chi2BOnly
-    return aminsqueezeNew,tdelminNew,chi2minNew,Pulset_BF,a0,chi20, chi2BOnlyCon
+    return aminsqueezeNew, tdelminNew, bminsqueezeNew, chi2minNew,Pulset_BF,a0,chi20, chi2BOnlyCon
 
 def chi2lowfreq(signal, template, amp, t0, psd, fs, fcutoff=10000):
     """
