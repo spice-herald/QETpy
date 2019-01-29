@@ -518,9 +518,15 @@ def of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=2^20, bindelay=0, bitComb=N
     Wt_l2 = np.zeros((nSBMask,nSBMask))
 
     
-    
     # make the signal-background horizontal piece (row 0 to nS)
-    tempIFFT = Wt_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])]
+        
+    try:
+        tempIFFT = Wt_l[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])]
+    except IndexError as error:
+        print('shape(Wf)=',np.shape(Wf_l))
+        print('indexBitMask[0:nS]=',indexBitMask[0:nS])
+        print('indexBitMask[0:nSBMask]=',indexBitMask[0:nSBMask])
+        
     #print(f"time of ifft of_nSmB_getWt = ",time()-start)
 
     #start = time()
@@ -1131,6 +1137,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
 
     # get the weighting matrix (again) at the bin with the lowest chi2
     # notice that we have to cast ind_tdel_New to an int
+    #print('going into of_nSmB_getWt for gradient (line 1136))
     Wt_tmin, iWt_tmin = of_nSmB_getWt(Wf_l, Wf_l_summed, Wt_l,nt,combInd=((2**nSB)-1),
                                     bindelay=int(ind_tdel_New),bitComb=bitComb,bitMask=None)
     
