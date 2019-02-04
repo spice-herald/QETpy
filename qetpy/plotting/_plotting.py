@@ -1307,8 +1307,9 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
-def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lpFiltFreq=None,lgcsaveplots=False,
-                  xlim=None,figPrefix='testFit'):
+def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
+                  lpFiltFreq=None,lgcsaveplots=False, xlim=None,figPrefix='testFit',
+                  background_templates_shifts=None):
     """
     
     Parameters
@@ -1347,7 +1348,6 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
         pulseFilt = lowpassfilter(pulset,lpFiltFreq,fs)
     
  
-
     # create a phase shift matrix
     # The signal gets phase shifted by tdelmin
     # The background templates have no phase shift
@@ -1356,9 +1356,11 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
     ampMat = amin@np.ones((1,nt))
     fitf= ampMat*sbTemplatef*phaseMat
-    fittotf=np.sum(fitf,axis=0, keepdims=True)        
+    fittotf=np.sum(fitf,axis=0, keepdims=True)
+    
     # get baseline of pulset
     pulsetBL = np.mean(pulset[0,0:300])
+    
     # now invert
     fitt = np.real(np.fft.ifft(fitf,axis=1)*nt)
     fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
@@ -1369,7 +1371,9 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     residTf = np.fft.fft(residT,axis=1)/nt
     chi2T = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     
+    
     chi2TFloat = float(chi2T)
+    
     
     # ===Time Domain ==================================================
     bins = np.arange(nt)
@@ -1377,24 +1381,36 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,lp
     timeP=bins*dt
     plt.figure(figsize=(12,7));
     if (lpFiltFreq):
-        plt.plot(bins.T, pulseFilt.T - pulsetBL,'-k',label='Data (LP filtered)');
-        plt.plot(bins.T, pulset.T - pulsetBL,'-b', alpha=0.4,linewidth=0.5, label='Data');
+        plt.plot(bins.T, pulseFilt.T,'-k',label='Data (LP filtered)');
+        plt.plot(bins.T, pulset.T,'-b', alpha=0.4,linewidth=0.5, label='Data');
     else:
-        plt.plot(bins.T, pulset.T - pulsetBL,'-k',label='Data');
+        plt.plot(bins.T, pulset.T,'-k',label='Data');
     plt.plot(bins.T, fittott.T, '-g', label=f'Total Fit. $\chi^2$={chi2TFloat:.1f}', linewidth=5)    
     # plot the background template best fit
-    # note the loop starts at nS 
-    for jSB in range(nS,nSB):
+    # note 2 things:
+    #    1) the loop starts at nS and only goes to nSB - 2
+    #       thereby leaving out the DC and slope component
+    #    2) the DC and slope components are added to the
+    #       pulse background templates
+    for jSB in range(nS,nSB-2):
         if(jSB==nS):
-            plt.plot(bins.T, fitt[jSB,:,None], '-', c='r', label='Background Fit')
+            plt.plot(bins.T, fitt[jSB,:,None] + fitt[-1,:,None] + fitt[-2,:,None], '-', c='r', label='Background Fit')
         else:
-            plt.plot(bins.T, fitt[jSB,:,None], '-', c='r')
+            plt.plot(bins.T, fitt[jSB,:,None] + fitt[-1,:,None] + fitt[-2,:,None], '-', c='r')
     # plot the signal template fit if the amplitude
     # is larger than a small threshold
     if (np.abs(amin[0])>1e-20):
-        plt.plot(bins.T, fitt[0,:,None], '-c',label='Signal Fit');
+        plt.plot(bins.T, fitt[0,:,None]  + fitt[-1,:,None] + fitt[-2,:,None], '-c',label='Signal Fit');
     
-    
+    if background_templates_shifts is not None:
+            for ii in range(nB):
+                if (ii==0):
+                    plt.axvline(x=background_templates_shifts[ii],
+                                linestyle='--', color='m',linewidth=1,
+                               label='Bckg. start times')
+                else:
+                    plt.axvline(x=background_templates_shifts[ii],linestyle='--', color='m',linewidth=1)
+                    
     plt.xlabel(f'bins (1 bin = {(dt*1e6):.2f} $\mu$s)');
     plt.ylabel('Amps');
 
