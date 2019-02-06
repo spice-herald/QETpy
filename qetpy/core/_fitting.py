@@ -1120,7 +1120,7 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
             
         # save the bitCombFit array
         bitCombFitVec[:,ii]= bitCombFit
-        if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
+        #if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
             #print('PROBLEM, second collapsing did not fix negatives')
             #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
 
