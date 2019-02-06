@@ -1719,7 +1719,7 @@ class OFnonlin(object):
             chi2 = self.calcchi2(self.onepole(variables[0], variables[1],variables[2]))
     
         jac = result['jac']
-        cov = np.linalg.inv(np.dot(np.transpose(jac),jac))
+        cov = np.linalg.pinv(np.dot(np.transpose(jac),jac))
         errors = np.sqrt(cov.diagonal())
         
         if lgcplot:
