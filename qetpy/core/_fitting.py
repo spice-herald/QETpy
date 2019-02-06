@@ -929,8 +929,6 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
     chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
     chi2BOnlyCon_LF = np.real(np.sum(np.conj(residBOnlyfCon[0:lfIndex])/psddnu.T[0:lfIndex]*residBOnlyfCon[0:lfIndex],0))
     
-    
-    
     bminsqueezeNew = np.squeeze(bOnlyACon)
     
 
@@ -1123,8 +1121,8 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         # save the bitCombFit array
         bitCombFitVec[:,ii]= bitCombFit
         if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
-            print('PROBLEM, second collapsing did not fix negatives')
-            print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            #print('PROBLEM, second collapsing did not fix negatives')
+            #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
 
         
         # plotting checks
