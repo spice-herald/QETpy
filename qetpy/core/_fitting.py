@@ -1672,7 +1672,7 @@ class OFnonlin(object):
             else:
                 ampguess = np.mean(templateforguess[maxind-7:maxind+7])*ampscale
                 tauval = 0.37*ampguess
-                tauind = np.argmin(np.abs(pulse[maxind:maxind+int(300e-6*self.fs)]-tauval)) + maxind
+                tauind = np.argmin(np.abs(pulse[maxind+1:maxind+1+int(300e-6*self.fs)]-tauval)) + maxind+1
                 taufallguess = (tauind-maxind)/self.fs
                 tauriseguess = 20e-6
                 t0guess = maxind/self.fs
@@ -1683,26 +1683,24 @@ class OFnonlin(object):
             p0 = (Aguess, Bguess, Cguess, tauriseguess, taufall1guess, taufall2guess, taufall3guess, t0guess)
             boundslower = (Aguess/100, Bguess/100, Cguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, taufall3guess/10, t0guess - 30/self.fs)
             boundsupper = (Aguess*100, Bguess*100, Cguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, taufall3guess*10, t0guess + 30/self.fs)
-            bounds = (boundslower,boundsupper)
         elif (self.npolefit==3):
             self.dof = 6
             p0 = (Aguess, Bguess, tauriseguess, taufall1guess, taufall2guess, t0guess)
             boundslower = (Aguess/100, Bguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, t0guess - 30/self.fs)
             boundsupper = (Aguess*100, Bguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, t0guess + 30/self.fs)
-            bounds = (boundslower,boundsupper)
         elif (self.npolefit==2):
             self.dof = 4
             p0 = (ampguess, tauriseguess, taufallguess, t0guess)
             boundslower = (ampguess/100, tauriseguess/10, taufallguess/10, t0guess - 30/self.fs)
             boundsupper = (ampguess*100, tauriseguess*10, taufallguess*10, t0guess + 30/self.fs)
-            bounds = (boundslower,boundsupper)
         else:
             self.dof = 3
             p0 = (ampguess, taufallguess, t0guess)
             boundslower = (ampguess/100, taufallguess/10, t0guess - 30/self.fs)
             boundsupper = (ampguess*100,  taufallguess*10, t0guess + 30/self.fs)
-            bounds = (boundslower,boundsupper)
-            
+        
+        bounds = (boundslower, boundsupper)
+        
         result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=p0 , jac = '3-point',
                                loss = 'linear', xtol = 2.3e-16, ftol = 2.3e-16)
         variables = result['x']
