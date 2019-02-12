@@ -1,16 +1,51 @@
 import numpy as np
-from scipy.signal import butter, filtfilt, fftconvolve
+from scipy import interpolate, signal, constants
 from scipy.ndimage.interpolation import shift
-from scipy.optimize import least_squares
-from scipy.stats import skew
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
-from scipy import constants
 
 
-__all__ = ["calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
-           "powertrace_simple", "integrate_powertrace_simple", "stdcomplex", "slope",
+__all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
+           "powertrace_simple", "energy_absorbed", "stdcomplex", "slope",
            "fill_negatives"]
 
+def make_decreasing(y, x=None):
+    """
+    Function to take an array of values and make it monotonically decreasing. This is done
+    by simply tossing out any values that are larger than the last value, moving from the first
+    index to the last, and interpolating between values.
+    
+    Parameters
+    ----------
+    y : ndarray
+        Array of values to make monotonically decreasing.
+    x : ndarray, optional
+        The x-values corresponding to `y`, can be useful if the x-values are not evenly spaced.
+    
+    Returns
+    -------
+    out : ndarray
+        A monotonically decreasing version of `y`.
+    
+    """
+    
+    if x is None:
+        x = np.arange(len(y))
+        
+    y_dec = np.zeros(len(y))
+    y_dec[0] = y[0]
+    last_val = y[0]
+    
+    for ii, val in enumerate(y):
+        if (last_val > val):
+            last_val = y[ii]
+            y_dec[ii] = y[ii]
+
+    interp_inds = y_dec!=0
+    
+    f = interpolate.interp1d(x[interp_inds], y[interp_inds], fill_value="extrapolate")
+    
+    out = f(x)
+        
+    return out
 
 def stdcomplex(x, axis=0):
     """
@@ -156,8 +191,8 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     
     nyq = 0.5*fs
     cut_off = cut_off_freq/nyq
-    b,a = butter(order, cut_off)
-    filt_traces = filtfilt(b,a,traces, padtype='even')
+    b,a = signal.butter(order, cut_off)
+    filt_traces = signal.filtfilt(b,a,traces, padtype='even')
     
     return filt_traces
 
@@ -199,7 +234,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
     traces_norm = traces_temp/(np.amax(traces_temp, axis = -1,keepdims = True))
     
     t1 = traces_norm[0] #use the first trace to define the origin of alignment
-    orig = np.argmax(fftconvolve(t1,t1[::-1],mode = 'full'))  #define the origin
+    orig = np.argmax(signal.fftconvolve(t1,t1[::-1],mode = 'full'))  #define the origin
 
     traces_aligned = np.zeros_like(traces) #initialize empty array to store the aligned traces
     shifts = np.zeros(traces.shape[0])
@@ -207,7 +242,7 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         t2 = traces_norm[ii]
         # Convolve each trace against the origin trace, find the index of the
         # max value, then subtract of the index of the origin trace
-        t2_shift = np.argmax(fftconvolve(t1,t2[::-1],mode = 'full'))-orig
+        t2_shift = np.argmax(signal.fftconvolve(t1,t2[::-1],mode = 'full'))-orig
         shifts[ii] = t2_shift
         if not lgcjustshifts:
             traces_aligned[ii] = shift(traces[ii],t2_shift,cval = np.NAN)
@@ -226,7 +261,7 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     
     Parameters
     ----------
-    avemuon : array
+    avemuon : ndarray
         An average of 'good' muons in time domain, referenced to TES current
     qetbias : float
         Applied QET bias current
@@ -278,77 +313,99 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
                                
                                
                                
-def powertrace_simple(trace, ioffset,qetbias, rload, rsh):
+def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     """
     Function to convert time series trace from units of TES current to units of power.
+    This can be done for either a single trace, or an array of traces, as
+    long as the first dimension is the number of traces.
     
-    The function takes into account the second order depenace on current, but assumes
+    The function takes into account the second order dependence on current, but assumes
     the infinite irwin loop gain approximation. 
     
     Parameters
     ----------
-    trace : array
-        Time series trace, referenced to TES current
+    trace : ndarray
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
     ioffset : float
         The offset in the measured TES current
     qetbias : float
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
         
     Returns
     -------
-    trace_p : array
+    trace_p : ndarray
         Time series trace, in units of power referenced to the TES
         
     """
     
     vbias = qetbias*rsh
-    trace_i0 = trace - qetoffset
+    trace_i0 = trace - ioffset
     trace_p = trace_i0*vbias - (rload)*trace_i0**2
     
     return trace_p
 
 
-def integrate_powertrace_simple(trace, time, nbasepre, nbasepost, ioffset, qetbias, rload, rsh):
+def energy_absorbed(trace, ioffset, qetbias, rload, rsh, 
+                    fs=None, baseline=None, time=None, indbasepre=None, indbasepost=None):
     """
     Function to calculate the energy collected by the TESs by integrating the power in the TES 
-    as a function of time. 
+    as a function of time. This can be done for either a single trace, or an array of traces, as
+    long as the first dimension is the number of traces.
     
     Parameters
     ----------
-    trace : array
-        Time series trace, referenced to TES current
-    time : array
-        Array of time values corresponding to the trace array
-    nbasepre : int
-        The bin number corresponding to the pre-pulse baseline, i.e. [0:nbasepre]
-    nbasepost : int
-        The bin number corresponding to the post-pulse baseline, i.e. [nbasepost:-1]
+    trace : ndarray
+        Time series traces, where the last dimension is the trace length, referenced to TES current.
     ioffset : float
         The offset in the measured TES current
     qetbias : float
         Applied QET bias current
     rload : float
         Load resistance of TES circuit (rp + rsh)
-    rsh : float, optional
+    rsh : float
         Value of the shunt resistor for the TES circuit
+    fs : float, optional
+        The sample rate of the DAQ
+    baseline : ndarray, optional
+        The baseline value of each trace, must be same dimension as trace
+    time : ndarray, optional
+        Array of time values corresponding to the trace array
+    indbasepre : int, optional
+        The bin number corresponding to the pre-pulse baseline, i.e. [:indbasepre]
+    indbasepost : int, optional
+        The bin number corresponding to the post-pulse baseline, i.e. [indbasepost:]
+    
     
     Returns
     -------
-    integrated_energy : float
+    integrated_energy : float, ndarray
         The energy absorbed by the TES in units of eV
         
     """
     
-    baseline = np.mean(np.hstack((trace[:nbasepre],trace[nbasepost:])))
-    baseline_p0 = powertrace_simple(baseline, ioffset,qetbias,rload, rsh)
+    if baseline is None:
+        if indbasepre is not None:
+            base_traces = trace[..., :indbasepre]
+        else:
+            raise ValueError('Must provide indbasepre or baseline')
+        if indbasepost is not None:
+            base_traces = np.hstack((base_traces, trace[..., indbasepost:]))
+        baseline = np.mean(base_traces, axis=-1, keepdims=True)
     
-    trace_power = powertrace_simple(trace, ioffset,qetbias,rload, rsh)
-    integrated_energy = np.trapz(baseline_p0 - trace_power, x = time)/constants.e 
+    baseline_p0 = powertrace_simple(baseline, ioffset, qetbias, rload, rsh)
+    trace_power = powertrace_simple(trace, ioffset, qetbias, rload, rsh)
     
+    if fs is not None:
+        integrated_energy = np.trapz(baseline_p0 - trace_power, axis=-1)/(fs*constants.e) 
+    elif time is not None:
+        integrated_energy = np.trapz(baseline_p0 - trace_power, x=time, axis=-1)/constants.e 
+    else:
+        raise ValueError('Must provide either fs or time')
+        
     return integrated_energy
                                
                                

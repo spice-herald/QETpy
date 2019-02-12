@@ -8,10 +8,10 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import qetpy.plotting as utils
-from qetpy.utils import slope, fill_negatives
+from qetpy.utils import slope, fill_negatives, make_decreasing
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "calc_psd", "gen_noise", "Noise"]
+__all__ = ["foldpsd", "calc_psd", "smooth_psd", "gen_noise", "Noise"]
 
 
 def foldpsd(psd, fs):
@@ -90,6 +90,39 @@ def calc_psd(x, fs=1.0, folded_over=True):
         f = fftfreq(x.shape[-1], d=1.0/fs)
     return f, psd
 
+def smooth_psd(psd):
+    """
+    Function that uses `make_decreasing` to smooth a PSD. Useful for removing spikes 
+    from a PSD. 
+    
+    Parameters
+    ----------
+    psd : ndarray
+        The two-sided PSD to be smoothed.
+    
+    Returns
+    -------
+    psd_out : ndarray
+        The outputted, smoothed PSD.
+    
+    """
+    f = fftfreq(len(psd))
+    f_inds = f >= 0
+    
+    if len(psd)%2 == 0:
+        f_inds[len(psd)//2] = True
+        
+    out = make_decreasing(psd[f_inds])
+
+    psd_out = np.zeros(len(psd))
+    psd_out[f_inds] = out
+    
+    if len(psd)%2 == 0:
+        psd_out[~f_inds] = out[::-1][1:-1]
+    else:
+        psd_out[~f_inds] = out[::-1][:-1]
+    
+    return psd_out
 
 def gen_noise(psd, fs=1.0, ntraces=1):
     """
@@ -123,6 +156,8 @@ def gen_noise(psd, fs=1.0, ntraces=1):
     noise = ifft(noisefft).real
     
     return noise
+
+
 
 class Noise(object):
     """

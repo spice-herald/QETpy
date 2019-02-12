@@ -1202,6 +1202,11 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     else:
         nmax = t0ind + int(7*tau_f*OFnonlinOBJ.fs) # 7 falltimes after offset
     
+    nbaseline = int(OFnonlinOBJ.fs*t0) - 1000
+    if nbaseline > 0:
+        pulse = pulse - np.mean(pulse[:nbaseline])
+    else:
+        pulse = pulse - np.mean(pulse[nbaseline + 10000 :])
     
     f = OFnonlinOBJ.freqs
     cf = f > 0

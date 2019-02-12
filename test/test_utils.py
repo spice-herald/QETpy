@@ -1,7 +1,8 @@
+import pytest
 import numpy as np
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
-from qetpy.utils import stdcomplex, lowpassfilter, align_traces, calc_offset
+from qetpy.utils import stdcomplex, lowpassfilter, align_traces, calc_offset, energy_absorbed, powertrace_simple
 
 def test_align_traces():
     traces = np.random.randn(100, 32000)
@@ -46,3 +47,67 @@ def test_lowpassfilter():
     res = lowpassfilter(traces)
     
     assert res.shape == traces.shape
+    
+def test_powertrace_simple():
+    test_traces = 4*np.ones(shape = (10,10))
+    power_test = powertrace_simple(trace = test_traces, 
+                ioffset = 1, qetbias = 1, rload = 1, rsh = 1)
+    
+    assert np.all(power_test == -6)
+    
+def test_energy_absorbed():
+    test_traces = np.zeros(shape=100)
+    test_traces[50:75] = 2
+    energy = energy_absorbed(trace=test_traces, 
+                                time=np.arange(100)*1e-20,
+                                indbasepre=0,
+                                indbasepost=75, 
+                                ioffset=0, 
+                                qetbias=1, 
+                                rload=1, 
+                                rsh=1)
+    assert int(energy) == 3
+    
+    energy = energy_absorbed(trace=test_traces, 
+                                fs = 1e20,
+                                time=None,
+                                indbasepre=0,
+                                indbasepost=75, 
+                                ioffset=0, 
+                                qetbias=1, 
+                                rload=1, 
+                                rsh=1)
+    assert int(energy) == 3
+    
+    energy = energy_absorbed(trace=test_traces, 
+                                fs = 1e20,
+                                time=None,
+                                indbasepre=10,
+                                indbasepost=None, 
+                                ioffset=0, 
+                                qetbias=1, 
+                                rload=1, 
+                                rsh=1)
+    assert int(energy) == 3
+    
+    with pytest.raises(ValueError):
+        energy = energy_absorbed(trace=test_traces, 
+                                 fs=1e20,
+                                 time=None,
+                                 indbasepre=None,
+                                 indbasepost=None, 
+                                 ioffset=0, 
+                                 qetbias=1, 
+                                 rload=1, 
+                                 rsh=1)
+    
+    with pytest.raises(ValueError):
+        energy = energy_absorbed(trace=test_traces, 
+                                 fs=None,
+                                 time=None,
+                                 indbasepre=10,
+                                 indbasepost=None, 
+                                 ioffset=0, 
+                                 qetbias=1, 
+                                 rload=1, 
+                                 rsh=1)

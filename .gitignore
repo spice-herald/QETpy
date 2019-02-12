@@ -28,4 +28,11 @@ demos/didv/*.png
 ### ignore the document build folder
 docs/_build/*
 
+### ignore checkpoint files from regenerating demos
+docs/example_demos/*-checkpoint*
+
+### ignore code coverage generated files
+.coverage
+/*.png
+
 
