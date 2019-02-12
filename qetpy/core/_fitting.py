@@ -1257,29 +1257,32 @@ class OFnonlin(object):
         self.freqs = np.fft.fftfreq(len(psd), 1/fs)
         self.time = np.arange(len(psd))/fs
         self.template = template
-
+        
         self.data = None
         self.npolefit = 1
-
+        
         self.taurise = None
         self.error = None
         self.dof = None
         self.norm = np.sqrt(fs*len(psd))
         
+    
     def fourpole(self, A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0):
         """
         Functional form of pulse in frequency domain with 1 rise time and three fall times
-        The rise time and one fall time share an amplitude (A). The second and third fall time 
-        have independent amplitudes (B and C). The functional form (time domain) is:
-        A*(1-exp(-t/\tau_rise))*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) + C*(exp(-t/\tau_fall3)).
-        Therefore, the "amplitudes" take on different meanings than in the one/two pole functions below
+        The fall times have independent amplitudes (A,B,C). The condition f(0)=0 requires
+        the rise time to have amplitude (A+B+C). Therefore, the "amplitudes" take on different
+        meanings than in other n-pole functions. The functional form (time-domain) is:
+        A*(exp(-t/tau_fall1)) + B*(exp(-t/tau_fall2)) + 
+        C*(exp(-t/tau_fall3)) - (A+B+C)*(exp(-t/tau_rise))
         
-        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        4 rise/fall times, 3 amplitudes, and time offset allowed to float
+        
         
         Parameters
         ----------
         A : float
-            Amplitude for rise time and first fall time
+            Amplitude for first fall time
         B : float
             Amplitude for second fall time
         C : float
@@ -1293,8 +1296,8 @@ class OFnonlin(object):
         tau_f3 : float
             Third fall time of pulse
         t0 : float
-            Time offset of three pole pulse
-                
+            Time offset of four pole pulse
+               
         Returns
         -------
         pulse : ndarray, complex
@@ -1303,27 +1306,27 @@ class OFnonlin(object):
         """
         omega = 2*np.pi*self.freqs
         phaseTDelay = np.exp(-(0+1j)*omega*t0)
-        tau_rf1 = (tau_f1*tau_r)/(tau_f1 + tau_r)
-        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j)) - tau_rf1/(1+omega*tau_rf1*(0+1j))) + \
-        B*(tau_f2/(1+omega*tau_f2*(0+1j))) + \
-        C*(tau_f3/(1+omega*tau_f3*(0+1j)))) * phaseTDelay
+        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j))) + B*(tau_f2/(1+omega*tau_f2*(0+1j))) + \
+        C*(tau_f3/(1+omega*tau_f3*(0+1j))) - (A+B+C)*(tau_r/(1+omega*tau_r*(0+1j)))) * phaseTDelay
         return pulse*np.sqrt(self.df)
         
         
-    def fourpoletime(self, A, B, C,tau_r, tau_f1, tau_f2, tau_f3, t0):
+    def fourpoletime(self, A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0):
         """
         Functional form of pulse in time domain with 1 rise time and three fall times
-        The rise time and one fall time share an amplitude (A). The second and third fall time 
-        have independent amplitudes (B and C). Therefore, the "amplitudes" take on different
-        meanings than in the one/two pole functions below
+        The fall times have independent amplitudes (A,B,C). The condition f(0)=0 requires
+        the rise time to have amplitude (A+B+C). Therefore, the "amplitudes" take on different
+        meanings than in other n-pole functions. The functional form (time-domain) is:
+        A*(exp(-t/tau_fall1)) + B*(exp(-t/tau_fall2)) + 
+        C*(exp(-t/tau_fall3)) - (A+B+C)*(exp(-t/tau_rise))
         
-        3 rise/fall times, 2 amplitudes, and time offset allowed to float
+        4 rise/fall times, 3 amplitudes, and time offset allowed to float
         
         
         Parameters
         ----------
         A : float
-            Amplitude for rise time and first fall time
+            Amplitude for first fall time
         B : float
             Amplitude for second fall time
         C : float
@@ -1337,7 +1340,7 @@ class OFnonlin(object):
         tau_f3 : float
             Third fall time of pulse
         t0 : float
-            Time offset of three pole pulse
+            Time offset of four pole pulse
             
         Returns
         -------
@@ -1345,25 +1348,26 @@ class OFnonlin(object):
             Array of amplitude values as a function of time
         """
         
-        pulse = A*(1-np.exp(-self.time/tau_r))*(np.exp(-self.time/tau_f1)) + \
+        pulse = A*(np.exp(-self.time/tau_f1)) + \
         B*(np.exp(-self.time/tau_f2)) + \
-        C*(np.exp(-self.time/tau_f3))
+        C*(np.exp(-self.time/tau_f3)) - \
+        (A+B+C)*(np.exp(-self.time/tau_r))
         return np.roll(pulse, int(t0*self.fs))       
-     
+    
     def threepole(self, A, B, tau_r, tau_f1, tau_f2, t0):
         """
         Functional form of pulse in frequency domain with 1 rise time and two fall times
-        The rise time and one fall time share an amplitude (A) and the second fall time 
-        has an independent amplitude (B). The functional form (time domain) is:
-        A*(1-exp(-t/\tau_rise))*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) and therefore
-        the "amplitudes" take on different meanings than in the one/two pole functions below
+        The  fall times have independent amplitudes (A,B) and the condition f(0)=0 constrains 
+        the rise time to have amplitude (A+B). The functional form (time domain) is:
+        A*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) - (A+B)*(exp(-t/\tau_rise)) and therefore
+        the "amplitudes" take on different meanings than in the other n-pole functions
         
         3 rise/fall times, 2 amplitudes, and time offset allowed to float
         
         Parameters
         ----------
         A : float
-            Amplitude for rise time and first fall time
+            Amplitude for first fall time
         B : float
             Amplitude for second fall time
         tau_r : float
@@ -1383,24 +1387,25 @@ class OFnonlin(object):
         """
         omega = 2*np.pi*self.freqs
         phaseTDelay = np.exp(-(0+1j)*omega*t0)
-        tau_rf1 = (tau_f1*tau_r)/(tau_f1 + tau_r)
-        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j)) - tau_rf1/(1+omega*tau_rf1*(0+1j))) + \
-        B*(tau_f2/(1+omega*tau_f2*(0+1j)))) * phaseTDelay
+        pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j))) + B*(tau_f2/(1+omega*tau_f2*(0+1j))) - \
+        (A+B)*(tau_r/(1+omega*tau_r*(0+1j)))) * phaseTDelay
         return pulse*np.sqrt(self.df)
         
+    
     def threepoletime(self, A, B, tau_r, tau_f1, tau_f2, t0):
         """
         Functional form of pulse in time domain with 1 rise time and two fall times
-        The rise time and one fall time share an amplitude (A) and the second fall time 
-        has an independent amplitude (B). Therefore the "amplitudes" take on different
-        meanings than in the one/two pole functions below
+        The  fall times have independent amplitudes (A,B) and the condition f(0)=0 constrains 
+        the rise time to have amplitude (A+B). The functional form (time domain) is:
+        A*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) - (A+B)*(exp(-t/\tau_rise)) and therefore
+        the "amplitudes" take on different meanings than in the other n-pole functions
         
         3 rise/fall times, 2 amplitudes, and time offset allowed to float
         
         Parameters
         ----------
         A : float
-            Amplitude for rise time and first fall time
+            Amplitude for first fall time
         B : float
             Amplitude for second fall time
         tau_r : float
@@ -1411,16 +1416,18 @@ class OFnonlin(object):
             Second fall time of pulse
         t0 : float
             Time offset of three pole pulse
-            
+        
         Returns
         -------
         pulse : ndarray
             Array of amplitude values as a function of time
         """
         
-        pulse = A*(1-np.exp(-self.time/tau_r))*(np.exp(-self.time/tau_f1)) + B*(np.exp(-self.time/tau_f2))
+        pulse = A*(np.exp(-self.time/tau_f1)) + B*(np.exp(-self.time/tau_f2)) - \
+        (A+B)*(np.exp(-self.time/tau_r))
         return np.roll(pulse, int(t0*self.fs))  
         
+    
     def twopole(self, A, tau_r, tau_f,t0):
         """
         Functional form of pulse in frequency domain with the amplitude, rise time,
