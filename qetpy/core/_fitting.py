@@ -10,8 +10,7 @@ import timeit
 from matplotlib.patches import Ellipse
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "of_nSmB_fftTemplate",
-           "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nSmB_setup", "of_nSmB_inside", "of_nSmB_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None):
     """
@@ -1997,7 +1996,8 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         
         # plot the positive only constraint
         plotnSmBOFFit(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
-                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit')
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
+                      background_templates_shifts = background_templates_shifts)
     
         # plot background only fit without constraint
         #aminNoSig = np.insert(bOnlyA,0,0)
@@ -2010,11 +2010,137 @@ def of_nSmB_inside(pulset,OFfiltf, Wf_l, Wf_l_summed, Wt_l, sbTemplatef,sbTempla
         aminNoSigCon = np.insert(bOnlyACon,0,0)
         aminNoSigCon = np.expand_dims(aminNoSigCon,1)
         plotnSmBOFFit(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
-                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit')
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit',
+                      background_templates_shifts = background_templates_shifts)
 
     #return aminsqueeze,tdelmin,chi2min,Pulset_BF,a0,chi20, chi2BOnly
     return aminsqueezeNew, tdelminNew, bminsqueezeNew, chi2minNew, chi2minNew_LF, Pulset_BF,a0,chi20, chi2BOnlyCon, chi2BOnlyCon_LF
 
+def get_slope_dc_template_nsmb(nbin):
+    """
+    Function for constructing the background templates for the OF nsmb fit when
+    the backgrounds to be fitted are just a slope and dc component. These background
+    templates could fit the effects of muons, for example, so would be useful to use
+    in surface detector testing
+    
+    Parameters
+    ----------
+    nbin : int
+        The number of bins to make the template
+        
+    Returns
+    -------
+    backgroundtemplates : ndarray
+        The time domain background templates
+    backgroundtemplateshifts : ndarray
+        The time domain bin shifts of the template, which is an optional
+        parameter for the OF nsmb. Slope and dc templates have no offsets,
+        so these are set to nan
+    """
+    
+    # construct the background templates
+    backgroundtemplates = np.ones((nbin,2))
+    
+    # construct the sloped background
+    backgroundtemplates[:,-2] = np.arange(0,1,1/nbin)
+    
+    backgroundtemplatesshifts = np.empty((2))
+    backgroundtemplatesshifts[:] = np.nan
+    
+    return backgroundtemplates, backgroundtemplatesshifts
+    
+    
+def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, lgcpositivepolarity=True):
+    """
+    Function for constructing the background templates for the OF nsmb fit when
+    the backgrounds to be fitted are just a slope and dc component. These background
+    templates could fit the effects of muons, for example, so would be useful to use
+    in surface detector testing
+    
+    Parameters
+    ----------
+    template : ndarray
+        The time domain background template with the pulse centered
+    fs : float
+        The sample rate of the data being taken (in Hz).
+    ttlrate : float
+        The rate of the ttl pulses
+    lgcconstrainpolarity : bool
+        Boolean flag for whether in the OF fit to constrain
+        the ttl amplitudes to be a certain polarity. Default
+        is False
+    lgcpositivepolarity : bool
+        Boolean flag for whether the the polarity of the
+        pulses are positive or negative. Used to set the 
+        returned array backgroundpolarityconstraint
+    Returns
+    -------
+    backgroundtemplates : ndarray
+        The time domain background templates
+    backgroundtemplateshifts : ndarray
+        The time domain bin shifts of the template, which is an optional
+        parameter for the OF nsmb. Slope and dc templates have no offsets,
+        so these are set to nan
+    backgroundpolarityconstraint : ndarray
+        The array to tell the OF fit whether or not to constrain the polarity
+        of the amplitude.
+            If 0, then no constraint on the pulse direction is set
+            If 1, then a positive pulse constraint is set.
+            If -1, then a negative pulse constraint is set.
+    """
+    
+    nbin = len(template)
+
+    # time between ttl triggers
+    ttltimeBetween = 1/ttlrate
+
+    # bins between ttl triggers
+    ttlbinsBetween = ttltimeBetween*fs
+
+    # how many ttl triggers in the trace
+    tLengthTrace = nbin/fs
+    
+    nTTLs = int(tLengthTrace/ttltimeBetween)
+
+    # shift the template back by nTTLs/2*ttlbinsBetween bins
+    #
+    binShift = int(-nTTLs/2*ttlbinsBetween)
+    firsttemplate = np.roll(template,binShift)
+    
+    # create matrix of background templates
+    backgroundtemplates = np.ones((nbin,nTTLs+2))
+    # record of bin shifts
+    backgroundtemplateshifts = np.zeros((nTTLs+2))
+    
+    # set polarity constrain for the OF fit
+    backgroundpolarityconstraint = np.zeros((nTTLs+2))
+
+    #circularly shift template in time for background templates
+    for ii in range(0,nTTLs):
+        backgroundtemplateshift = int(np.rint(ttlbinsBetween*ii))
+        backgroundtemplateshifts[ii] = backgroundtemplateshift
+        if (ii==0):
+            backgroundtemplates[:,ii] = firsttemplate
+        else:
+            backgroundtemplates[:,ii] = np.pad(firsttemplate,(backgroundtemplateshift,0), mode='constant')[:-backgroundtemplateshift]
+        
+        if lgcconstrainpolarity:
+            if lgcpositivepolarity:
+                backgroundpolarityconstraint[ii] = 1
+            else:
+                backgroundpolarityconstraint[ii] = -1
+            
+    # construct the sloped background for the second to last template
+    backgroundtemplates[:,-2] = np.arange(0,1,1/nbin)
+
+    # the slope and dc background don't have a bin shift,
+    # so set these values to nan
+    backgroundtemplateshifts[-1] = np.nan
+    backgroundtemplateshifts[-2] = np.nan
+    
+    return backgroundtemplates, backgroundtemplateshifts, backgroundpolarityconstraint
+    
+    
 
 def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000, coupling="AC"):
     """

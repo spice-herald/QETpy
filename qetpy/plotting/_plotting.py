@@ -1349,7 +1349,6 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
 
     nSB = nS + nB
 
-
     if (lpFiltFreq!=None):
         pulseFilt = lowpassfilter(pulset,lpFiltFreq,fs)
     
@@ -1379,7 +1378,6 @@ def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
     
     
     chi2TFloat = float(chi2T)
-    
     
     # ===Time Domain ==================================================
     bins = np.arange(nt)
