@@ -69,7 +69,7 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
 
 def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
     """
-    Function written for creating example TTL pulses with 2 kHz frequency with a charge leakage pulse
+    Function written for creating example TTL pulses with certain frequency with a charge leakage pulse
     
     Parameters
     ----------
@@ -164,7 +164,7 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
 def test_ofnsmb_muonsubtraction():
     """
     Testing function for `qetpy.of_nsmb_setup and qetpy.of_nsmb`. This is a simple
-    test in that 
+    test in that we only have two backgrounds, thus the matrices are only 3X3
     
     """
     
@@ -305,7 +305,8 @@ def test_ofnsmb_ttlfitting():
         
     # check the signal amplitude and the first three background
     # background amplitudes
-    priorPulseAmp = -3.82861366e-08
+    #priorPulseAmp = -3.82861366e-08
+    priorPulseAmp = -3
     priorB1Amp = -2.89749852e-08
     priorB2Amp = -4.61737507e-09
     priorB3Amp = -1.68752504e-08

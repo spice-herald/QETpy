@@ -2053,9 +2053,8 @@ def get_slope_dc_template_nsmb(nbin):
 def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, lgcpositivepolarity=True):
     """
     Function for constructing the background templates for the OF nsmb fit when
-    the backgrounds to be fitted are just a slope and dc component. These background
-    templates could fit the effects of muons, for example, so would be useful to use
-    in surface detector testing
+    the backgrounds to be fitted are pulses from an periodic laser (TTL) firing.
+    A slope and dc component are also included in the background templates. 
     
     Parameters
     ----------
