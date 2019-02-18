@@ -303,10 +303,9 @@ def test_ofnsmb_ttlfitting():
                                                           lgc_interp=False, lgcplot=lgcplotnsmb, lgcsaveplots=False)
    
         
-    # check the signal amplitude and the first three background
+    # check the signal amplitude and the first three
     # background amplitudes
-    #priorPulseAmp = -3.82861366e-08
-    priorPulseAmp = -3
+    priorPulseAmp = -3.82861366e-08
     priorB1Amp = -2.89749852e-08
     priorB2Amp = -4.61737507e-09
     priorB3Amp = -1.68752504e-08

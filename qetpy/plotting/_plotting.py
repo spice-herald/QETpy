@@ -9,7 +9,7 @@ from qetpy.utils import lowpassfilter
 __all__ = ["plot_psd", "plot_reim_psd", "plot_corrcoeff", "plot_csd", "plot_decorrelatednoise",
            "compare_noise", "plot_noise_sim", "plot_full_trace", "plot_single_period_of_trace",
            "plot_zoomed_in_trace", "plot_didv_flipped", "plot_re_im_didv", "plot_iv",
-           "plot_rv", "plot_pv", "plot_all_curves", "plotnonlin", "plotnSmBOFFit"]
+           "plot_rv", "plot_pv", "plot_all_curves", "plotnonlin", "plotnsmb"]
 
 
 def plot_psd(noise, lgcoverlay = True, lgcsave = False, savepath = None):
@@ -1313,7 +1313,7 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
-def plotnSmBOFFit(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
+def plotnsmb(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
                   lpFiltFreq=None,lgcsaveplots=False, xlim=None,figPrefix='testFit',
                   background_templates_shifts=None):
     """
