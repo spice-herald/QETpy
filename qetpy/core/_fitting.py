@@ -1714,11 +1714,12 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
         a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
         
-        if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
-            
+        if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
+                        
             # find polarity of amplitudes
-            negamp = np.squeeze(np.asarray(a_tsetNew < 0,dtype=int))
-            posamp = np.squeeze(np.asarray(a_tsetNew > 0,dtype=int))
+            negamp = np.squeeze(np.asarray(a_tsetNew[:,ii] < 0,dtype=int))
+            posamp = np.squeeze(np.asarray(a_tsetNew[:,ii] > 0,dtype=int))
+            
             # find the negative amps which are constrained to be positive
             negfit_poscon = negamp & (sbpolcon == 1)
             # find the positive backgrounds find which are constrained to be negative
