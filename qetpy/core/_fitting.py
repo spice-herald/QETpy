@@ -1464,12 +1464,14 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     # if bkgpolarityconstraint is not set,
     # populate it with zeros to set all backgrounds unconstrained
     
+
     if bkgpolarityconstraint is None:
         bkgpolarityconstraint = np.zeros(nB)
     if sigpolarityconstraint is None:
         sigpolarityconstraint = np.zeros(1)
     
     sbpolcon = np.concatenate((sigpolarityconstraint, bkgpolarityconstraint), axis = 0)
+    
     
     # DAQ constants
     dt = float(1)/fs
@@ -1658,8 +1660,7 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         
         qt_tset = qtN[ii]
         a_tset = np.matmul(iPt_tset,qt_tset)
-      
-        
+              
         # find polarity of amplitudes
         negamp = np.squeeze(np.asarray(a_tset < 0,dtype=int))
         posamp = np.squeeze(np.asarray(a_tset > 0,dtype=int))
@@ -1673,6 +1674,7 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         # bitcomb_fitis an array that has 1 in indices for the
         # background templates that will not be forced to zero
         bitCombFit = 1 - bitcomb_forcezero
+        
         
         ######
         # gradient at Zero
@@ -1714,11 +1716,13 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
         a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
         
+        
         if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
-                        
             # find polarity of amplitudes
             negamp = np.squeeze(np.asarray(a_tsetNew[:,ii] < 0,dtype=int))
             posamp = np.squeeze(np.asarray(a_tsetNew[:,ii] > 0,dtype=int))
+            zeroamp = np.squeeze(np.asarray(a_tsetNew[:,ii] == 0,dtype=int))
+
             
             # find the negative amps which are constrained to be positive
             negfit_poscon = negamp & (sbpolcon == 1)
@@ -1726,10 +1730,15 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
             posfit_negcon = posamp & (sbpolcon == -1)
             # take the OR of negfit_poscon and posfit_negcon to find all amplitudes
             # to force to zero amplitude in the fit
-            bitcomb_forcezero = (negfit_poscon | posfit_negcon)
+            bitcomb_forcezero = (negfit_poscon | posfit_negcon | zeroamp)
             # bitcomb_fitis an array that has 1 in indices for the
             # background templates that will not be forced to zero
+            #print('bitCombFit=',bitCombFit)
+
             bitCombFit = 1 - bitcomb_forcezero
+            
+            #print('bitCombFit2=',bitCombFit)
+            
             
             Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l,nt,combInd=None,
                                         bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
@@ -1751,6 +1760,7 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         #if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
             #print('PROBLEM, second collapsing did not fix negatives')
             #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            
 
         
         # plotting checks
