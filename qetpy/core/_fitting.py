@@ -10,7 +10,7 @@ import timeit
 from matplotlib.patches import Ellipse
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_mb", "of_nsmb_inside", "of_nsmb_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_nsmb_getiPt", "of_mb", "of_nsmb","of_nsmb_con", "of_nsmb_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None):
     """
@@ -1310,10 +1310,7 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
     Pf, Pfsummed, OFfiltf = of_nsmb_getPf(sbTemplatef,psddnu,nS,nB,nt)
     
     # calculate P matrix in time domain
-    Pt_l=np.fft.ifft(Pf,axis=2)*nt
-    
-    # make a copy to manipulate
-    Pt = Pt_l.copy()
+    Pt=np.fft.ifft(Pf,axis=2)*nt
     Pt = np.real(Pt)
     
     # the elements that share a time domain delay contain only the
@@ -1341,7 +1338,23 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
         for jc in range(nSB):
             if jr>jc:
                 Pt[jr,jc,:] = Pt[jc,jr,:]
+   
+    # === Invert the background-background matrix ===
+    BB = np.squeeze(noTimeShiftBBMat)
+    iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
+    
+    bitComb = [list(i) for i in itertools.product([0,1],repeat=nSB)]
+        
+    lfindex=500
+        
+    return psddnu, OFfiltf, Pfsummed, Pt, sbTemplatef, sbTemplatet, iBB, BB, nS, nB, bitComb,lfindex
 
+
+def of_nsmb_getiPt(Pt):
+    
+    nSB = np.shape(Pt)[0]
+    nt = np.shape(Pt)[-1]
+    
     # invert P matrix
     # create the inverted weighting matrices
     # as a function of the time offset
@@ -1354,23 +1367,13 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
         # any numerical jitter
         iPt[:,:,jt]=np.linalg.pinv(Pt[:,:,jt]);
         
-    # check if matrices are the same within tolerance
-    #lgcClose = np.allclose(iPt2, iPt[:,:,0],rtol=0, atol=1e-20)    
-
-    # === Invert the background-background matrix ===
-    BB = np.squeeze(noTimeShiftBBMat)
-    iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
+    return iPt
     
-    bitComb = [list(i) for i in itertools.product([0,1],repeat=nSB)]
-        
-    
-    return psddnu, OFfiltf, Pf, Pfsummed, Pt_l, sbTemplatef, sbTemplatet, iPt, iBB, BB, nS, nB, bitComb
 
-def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB,
+def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB, lfindex=500,
                    background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
                    lgc_interp=False, lgcplot=False, lgcsaveplots=False):
 
-    lfIndex = 500
     lgcplotcheck=False
     
     # === Input Dimensions ===
@@ -1457,7 +1460,7 @@ def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB,
     residBOnlyfCon = np.fft.fft(residBOnlyCon,axis=0)/nt
     # calc chi2
     chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
-    chi2BOnlyCon_LF = np.real(np.sum(np.conj(residBOnlyfCon[0:lfIndex])/psddnu.T[0:lfIndex]*residBOnlyfCon[0:lfIndex],0))
+    chi2BOnlyCon_LF = np.real(np.sum(np.conj(residBOnlyfCon[0:lfindex])/psddnu.T[0:lfindex]*residBOnlyfCon[0:lfindex],0))
     
     bminsqueezeNew = np.squeeze(bOnlyACon)
         
@@ -1474,7 +1477,152 @@ def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB,
     return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
 
 
-def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate,iPt,iBB,BB,psddnu,fs,ind_window,nS,nB, bitComb,
+def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS, nB, bitComb, lfindex=500,
+            background_templates_shifts=None, lgc_interp=False, lgcplot=False, lgcsaveplots=False):
+    
+    lgcplotcheck=False
+    
+    # === Input Dimensions ===
+    pulset = np.expand_dims(pulset,1)
+    pulset = pulset.T
+
+    pulsetShape = pulset.shape
+    nt = pulsetShape[1]
+    OFfiltfShape = OFfiltf.shape
+    nSB = OFfiltfShape[0]
+
+    # DAQ constants
+    dt = float(1)/fs
+    dnu = float(1)/(nt*dt)
+    nu = np.arange(0.,float(nt))*dnu
+    lgc= nu> nt*dnu/2
+    nu[lgc]= nu[lgc]-nt*dnu
+    omega= (2*np.pi)*nu
+    
+    # fft of the pulse
+    pulsef = np.fft.fft(pulset,axis=1)/nt
+
+    # apply the OF
+    qf = np.zeros((nSB,nt),dtype=complex)
+    
+    for jT in range(nSB):
+        qf[jT] = OFfiltf[None,jT,:]*pulsef
+    
+    # inverse fourier transform the signal part of qf for qt
+    qt = np.zeros((nSB,nt))
+    qt[0:nS] = np.real(np.fft.ifft(qf[0:nS],axis=1))*nt
+    
+    # the background templates do not time shift
+    # so for them only the sum, not the ifft, is calculated
+    backgroundsum=np.real(np.sum(qf[nS:nSB], axis=1, keepdims=True))
+    # change backgroundsum (nBx1) into new matrix (nBxnt) where column is just repeated
+    backgroundsum_expand = backgroundsum@np.ones((1,nt))
+    
+    # populate qt with the background part
+    qt[nS:nSB] = backgroundsum_expand
+    qt = np.expand_dims(qt,axis=2)    
+    
+    # === Multiply by P matrix to get amplitudes at all times ===
+    
+    # change iPt to (jtXnSBXnSB)
+    iPtN = np.moveaxis(iPt,2,0)
+    
+    # move time axis of qt first dimension
+    # qtN gets dimension (jt X nSB X 1)
+    qtN = np.moveaxis(qt,1,0)
+    a_tN = np.matmul(iPtN,qtN)
+    a_tN = np.squeeze(a_tN)
+    a_t = a_tN.T
+
+    # first calculate the chi2 component which is independent of the time delay
+    chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
+
+    chi2base_LF = np.real(np.sum(np.conj(pulsef[:,0:lfindex])/psddnu[:,0:lfindex]*pulsef[:,0:lfindex],1))
+
+    #calculate the component which is a function of t0
+    chi2t0 = np.sum(a_t*np.squeeze(qt),axis=0)
+
+    chi2_t=chi2base-chi2t0
+    #print('shape(chi2_t)=',np.shape(chi2_t))
+
+    #=== Save and Output 0 delay values ===     
+    a0 = a_t[:,0]
+    chi20=chi2_t[0]
+    
+    # === Constrain best guess based on ind_window ===
+    # sometimes the window given wraps around to negative values
+    # convert to all positive values
+    lgcneg = ind_window<0
+    ind_window[lgcneg] = nt+ind_window[lgcneg]
+
+    #finally ensure that nothing is larger than nt
+    lgc_toobig= ind_window >= nt;
+    ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
+    
+    
+    # plot the chi2_t to check for absolute minima without numerical jitter
+    if lgcplotcheck:
+        plt.figure(figsize=(12, 7))
+        plt.plot(np.arange(nt), chi2_t, '.b');
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$')
+        plt.grid(which='both')
+        if background_templates_shifts is not None:
+            for ii in range(nB):
+                plt.axvline(x=background_templates_shifts[ii])
+                
+        plt.figure(figsize=(6,3))
+        plt.plot(np.arange(nt), chi2_t,'.');
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$')
+        plt.grid(which='minor', linestyle='--')
+        if background_templates_shifts is not None:
+            for ii in range(nB):
+                plt.axvline(x=background_templates_shifts[ii])
+        plt.xlim([ind_tdel - 10, ind_tdel + 10])
+            
+    
+    # find the chi2 minimum
+    chi2min= np.amin(chi2_t[ind_window])
+    ind_tdel_sm = np.argmin(chi2_t[ind_window])
+    #print('chi2min=', chi2min)
+    ind_tdel=ind_window[:,ind_tdel_sm]    
+        
+    #output the lowest chi2 value on the digitized grid 
+    amin = a_t[:,ind_tdel]
+    tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
+    
+    # create a phase shift matrix
+    # The signal gets phase shifted by tdelmin
+    # The background templates have no phase shift
+    phase = np.exp(-1j*omega*tdelmin)
+    phaseAr = np.ones((nS,1))@phase[None,:]
+    phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+    ampMat = amin@np.ones((1,nt))
+    fitf= ampMat*sbTemplatef*phaseMat
+    fittotf=np.sum(fitf,axis=0, keepdims=True)
+    # now invert
+    fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
+    # make residual 
+    residT = pulset - fittott
+    # check the chi2
+    residTf = np.fft.fft(residT,axis=1)/nt
+    chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
+    chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
+    
+    aminsqueeze = np.squeeze(amin)
+    tdelminsqueeze = np.squeeze(tdelmin)
+    
+    if lgcplot:
+        lpFiltFreq = 30e3
+        
+        plotnsmb(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
+                      background_templates_shifts = background_templates_shifts)
+    
+    return aminsqueeze, tdelmin, chi2min, chi2minNew_LF
+    
+def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddnu,fs,ind_window,nS,nB, bitComb, lfindex=500,
                    background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
                    lgc_interp=False, lgcplot=False, lgcsaveplots=False):
     
@@ -1557,7 +1705,6 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     
     """
 
-    lfIndex = 500
     lgcplotcheck=False
     
     # === Input Dimensions ===
@@ -1579,7 +1726,6 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         sigpolarityconstraint = np.zeros(nS)
     
     sbpolcon = np.concatenate((sigpolarityconstraint, bkgpolarityconstraint), axis = 0)
-    
     
     # DAQ constants
     dt = float(1)/fs
@@ -1612,79 +1758,15 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     qt[nS:nSB] = backgroundsum_expand
     qt = np.expand_dims(qt,axis=2)    
     
-        
-    # === Multiply by P matrix to get amplitudes at all times ===
-    
-    # change iPt to (jtXnSBXnSB)
-    iPtN = np.moveaxis(iPt,2,0)
-    
     # move time axis of qt first dimension
     # qtN gets dimension (jt X nSB X 1)
     qtN = np.moveaxis(qt,1,0)
-    a_tN = np.matmul(iPtN,qtN)
-    a_tN = np.squeeze(a_tN)
-    a_t = a_tN.T
 
     # first calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
-
-    chi2base_LF = np.real(np.sum(np.conj(pulsef[:,0:lfIndex])/psddnu[:,0:lfIndex]*pulsef[:,0:lfIndex],1))
-
-    #calculate the component which is a function of t0
-    chi2t0 = np.sum(a_t*np.squeeze(qt),axis=0)
-
-    chi2_t=chi2base-chi2t0
-    #print('shape(chi2_t)=',np.shape(chi2_t))
-
-    #=== Save and Output 0 delay values ===     
-    a0 = a_t[:,0]
-    chi20=chi2_t[0]
     
-    # === Constrain best guess based on ind_window ===
-    # sometimes the window given wraps around to negative values
-    # convert to all positive values
-    lgcneg = ind_window<0
-    ind_window[lgcneg] = nt+ind_window[lgcneg]
-
-    #finally ensure that nothing is larger than nt
-    lgc_toobig= ind_window >= nt;
-    ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
-    
-    # find the chi2 minimum
-    chi2min= np.amin(chi2_t[ind_window])
-    ind_tdel_sm = np.argmin(chi2_t[ind_window])
-    #print('chi2min=', chi2min)
-    ind_tdel=ind_window[:,ind_tdel_sm]
-        
-    # plot the chi2_t to check for absolute minima without numerical jitter
-    if lgcplotcheck:
-        plt.figure(figsize=(12, 7))
-        plt.plot(np.arange(nt), chi2_t, '.b');
-        plt.xlabel('bin offset')
-        plt.ylabel('$\chi^2$')
-        plt.grid(which='both')
-        if background_templates_shifts is not None:
-            for ii in range(nB):
-                plt.axvline(x=background_templates_shifts[ii])
-                
-        plt.figure(figsize=(6,3))
-        plt.plot(np.arange(nt), chi2_t,'.');
-        plt.xlabel('bin offset')
-        plt.ylabel('$\chi^2$')
-        plt.grid(which='minor', linestyle='--')
-        if background_templates_shifts is not None:
-            for ii in range(nB):
-                plt.axvline(x=background_templates_shifts[ii])
-        plt.xlim([ind_tdel - 10, ind_tdel + 10])
-            
-        
-    #output the lowest chi2 value on the digitized grid 
-    amin = a_t[:,ind_tdel]
-    tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
-    
-    ###### ==== test positive only constraint ====== ######
+    ###### ==== positive only constraint ====== ######
     chi2New = np.zeros((nt,1))
-    chi2New_LF = np.zeros((nt,1))
 
     a_tsetNew = np.zeros((nSB,nt))
     bitCombFitVec = np.zeros((nSB,nt),dtype=int)
@@ -1697,8 +1779,8 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         # (i.e. bitComb[combInd] will
         # have 1s for the backgrounds
         # we want to remove from fit)
-        Pt_tset, iPt_tset = of_nsmb_getPt(Pf_l_summed, Pt_l,nt,combInd=((2**nSB)-1),
-                                    bindelay=ii,bitComb=bitComb,bitMask=None)
+        Pt_tset, iPt_tset = of_nsmb_getPt(Pf_l_summed, Pt_l, nt, combInd=((2**nSB)-1),
+                                    bindelay=ii, bitComb=bitComb, bitMask=None)
                
         
         qt_tset = qtN[ii]
@@ -1881,30 +1963,34 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
 
         chi2New[ii] = chi2base-chi2t0setMask
         
-        # WARNING: the LF chie 
-        chi2New_LF[ii] = chi2base_LF-chi2t0setMask
-        
-        tempLF1 = a_tsetMask
-        tempLF2 = qt_tsetMask
 
-        #print('tempLF1=', np.shape(tempLF1))
-        #print('tempLF2=', np.shape(tempLF2))
-
-
-                
     chi2New = np.squeeze(chi2New)
     chi2minNew= np.amin(chi2New[ind_window])
     ind_tdel_smNew = np.argmin(chi2New[ind_window])
     ind_tdel_New=ind_window[:,ind_tdel_smNew]
     
-    chi2minNew_LF = chi2New_LF[ind_tdel_New]
-    
     aminNew = a_tsetNew[:,ind_tdel_New]
     tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
     bitCombFitFinal = np.squeeze(bitCombFitVec[:,ind_tdel_New])
     
-    #print('chi2minNew=', chi2minNew)
-    #print('chi2minNew_LF=', chi2minNew_LF)
+    # create a phase shift matrix
+    # The signal gets phase shifted by tdelmin
+    # The background templates have no phase shift
+    phase = np.exp(-1j*omega*tdelminNew)
+    phaseAr = np.ones((nS,1))@phase[None,:]
+    phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+    ampMat = aminNew@np.ones((1,nt))
+    fitf= ampMat*sbTemplatef*phaseMat
+    fittotf=np.sum(fitf,axis=0, keepdims=True)
+    # now invert
+    fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
+
+    # make residual 
+    residT = pulset - fittott
+    # check the chi2
+    residTf = np.fft.fft(residT,axis=1)/nt
+    chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
+    chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
 
     
     #print('ind_tdel_New=', ind_tdel_New)
@@ -1961,21 +2047,6 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     
 
     ###### ==== end test positive only constraint ====== ######
-
-    #=== Subtract off the background for residual ===
-    
-    # get amplitudes of background templates
-    aminb = amin[nS:nSB]
-    
-    # make just the background template in time
-    bTemplate = sbTemplate[:,nS:nSB]
-    
-    # construct time domain total background best fit
-    bestFitB = bTemplate@aminb  
-    # make signal residual (pulse minus total background best fit)
-    Pulset_BF= np.squeeze(pulset.T - bestFitB)
-    # squeeze amin 
-    aminsqueeze = np.squeeze(amin)
     
     aminsqueezeNew = np.squeeze(aminNew)
     if lgcplot:
@@ -1987,7 +2058,7 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
                       background_templates_shifts = background_templates_shifts)
 
 
-    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, Pulset_BF, a0, chi20
+    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT
 
 def get_slope_dc_template_nsmb(nbin):
     """
