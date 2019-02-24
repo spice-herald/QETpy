@@ -10,7 +10,7 @@ import timeit
 from matplotlib.patches import Ellipse
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_nsmb_inside", "of_nsmb_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_mb", "of_nsmb_inside", "of_nsmb_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None):
     """
@@ -1366,6 +1366,114 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
     
     return psddnu, OFfiltf, Pf, Pfsummed, Pt_l, sbTemplatef, sbTemplatet, iPt, iBB, BB, nS, nB, bitComb
 
+def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB,
+                   background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
+                   lgc_interp=False, lgcplot=False, lgcsaveplots=False):
+
+    lfIndex = 500
+    lgcplotcheck=False
+    
+    # === Input Dimensions ===
+    pulset = np.expand_dims(pulset,1)
+    pulset = pulset.T
+
+    pulsetShape = pulset.shape
+    nt = pulsetShape[1]
+    OFfiltfShape = OFfiltf.shape
+    nSB = OFfiltfShape[0]
+    
+    # DAQ constants
+    dt = float(1)/fs
+    dnu = float(1)/(nt*dt)
+    nu = np.arange(0.,float(nt))*dnu
+    lgc= nu> nt*dnu/2
+    nu[lgc]= nu[lgc]-nt*dnu
+    omega= (2*np.pi)*nu
+    
+    # if bkgpolarityconstraint is not set,
+    # populate it with zeros to set all backgrounds unconstrained
+    if bkgpolarityconstraint is None:
+        bkgpolarityconstraint = np.zeros(nB)
+    
+    # fft of the pulse
+    pulsef = np.fft.fft(pulset,axis=1)/nt
+
+    # apply the OF
+    qf = np.zeros((nSB,nt),dtype=complex)
+    
+    for jT in range(nSB):
+        qf[jT] = OFfiltf[None,jT,:]*pulsef
+    
+    # the background templates do not time shift
+    # so for them only the sum, not the ifft, is calculated
+    backgroundsum=np.real(np.sum(qf[nS:nSB], axis=1, keepdims=True))
+
+    # fit amplitudes for only the background templates
+    bOnlyA = iBB@backgroundsum
+    
+    # make just the background template in time and frequency
+    bTemplate = sbTemplate[:,nS:nSB]
+    bTemplatef = sbTemplatef[nS:nSB,:]
+    
+    ###### ==== start background only constraint   ====== ######    
+        
+    # find polarity of background amplitudes in the original background fit
+    negbkgamp = np.squeeze(np.asarray(bOnlyA < 0,dtype=int))
+    posbkgamp = np.squeeze(np.asarray(bOnlyA > 0,dtype=int))
+
+    # for the negative backgrounds find which are constrained to be positive
+    negfit_poscon = negbkgamp & (bkgpolarityconstraint == 1)
+    
+    # for the positive backgrounds find which are constrained to be negative
+    posfit_negcon = posbkgamp & (bkgpolarityconstraint == -1)
+
+    # take the OR of negfit_poscon and posfit_negcon to find all amplitudes
+    # to force to zero amplitude in the fit
+    bitcomb_forcezero = (negfit_poscon | posfit_negcon)
+    
+    # bitcomb_fitbackground is an array that has 1 in indices for the
+    # background templates that will not be forced to zero
+    bitCombFitBackground = 1 - bitcomb_forcezero
+
+    numBCon = np.sum(bitCombFitBackground)
+    indexBitMaskBackground = np.squeeze(np.nonzero(bitCombFitBackground))
+    
+    tempBackgroundSum  = backgroundsum[np.ix_(indexBitMaskBackground)]
+    
+    BB_Mask = BB[np.ix_(indexBitMaskBackground, indexBitMaskBackground)]
+    iBB_Mask = np.linalg.pinv(BB_Mask)
+    
+    # background only fit with only the masked backgrounds active    
+    bOnlyAConMask = iBB_Mask@backgroundsum[np.ix_(indexBitMaskBackground)]
+    
+    bOnlyACon = np.zeros((nSB-nS,1))
+    bOnlyACon[np.ix_(indexBitMaskBackground)] = bOnlyAConMask
+    
+    # calc chi2 of constrained background only fit
+    bestFitBOnlyCon = bTemplate@bOnlyACon
+    # make residual (pulse minus background best fit)
+    residBOnlyCon= pulset.T - bestFitBOnlyCon
+    # take FFT of residual
+    residBOnlyfCon = np.fft.fft(residBOnlyCon,axis=0)/nt
+    # calc chi2
+    chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
+    chi2BOnlyCon_LF = np.real(np.sum(np.conj(residBOnlyfCon[0:lfIndex])/psddnu.T[0:lfIndex]*residBOnlyfCon[0:lfIndex],0))
+    
+    bminsqueezeNew = np.squeeze(bOnlyACon)
+        
+    if lgcplot:
+        lpFiltFreq = 30e3
+    
+        # plot background only fit with constraint
+        aminNoSigCon = np.insert(bOnlyACon,0,0)
+        aminNoSigCon = np.expand_dims(aminNoSigCon,1)
+        plotnsmb(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
+                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit',
+                      background_templates_shifts = background_templates_shifts)
+        
+    return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
+
+
 def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate,iPt,iBB,BB,psddnu,fs,ind_window,nS,nB, bitComb,
                    background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
                    lgc_interp=False, lgcplot=False, lgcsaveplots=False):
@@ -1468,7 +1576,7 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     if bkgpolarityconstraint is None:
         bkgpolarityconstraint = np.zeros(nB)
     if sigpolarityconstraint is None:
-        sigpolarityconstraint = np.zeros(1)
+        sigpolarityconstraint = np.zeros(nS)
     
     sbpolcon = np.concatenate((sigpolarityconstraint, bkgpolarityconstraint), axis = 0)
     
@@ -1502,73 +1610,9 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     
     # populate qt with the background part
     qt[nS:nSB] = backgroundsum_expand
-    qt = np.expand_dims(qt,axis=2)
-
-    # fit amplitudes for only the background templates
-    bOnlyA = iBB@backgroundsum
+    qt = np.expand_dims(qt,axis=2)    
     
-    # make just the background template in time and frequency
-    bTemplate = sbTemplate[:,nS:nSB]
-    bTemplatef = sbTemplatef[nS:nSB,:]
-    
-    # calc chi2 of background only fit
-    bestFitBOnly = bTemplate@bOnlyA
-    # make residual (pulse minus background best fit)
-    residBOnly= pulset.T - bestFitBOnly
-    # take FFT of residual
-    residBOnlyf = np.fft.fft(residBOnly,axis=0)/nt
-    # calc chi2
-    chi2BOnly = np.real(np.sum(np.conj(residBOnlyf)/psddnu.T*residBOnlyf,0))    
-    
-    
-    ###### ==== start background only constraint   ====== ######    
         
-    # find polarity of background amplitudes in the original background fit
-    negbkgamp = np.squeeze(np.asarray(bOnlyA < 0,dtype=int))
-    posbkgamp = np.squeeze(np.asarray(bOnlyA > 0,dtype=int))
-
-    # for the negative backgrounds find which are constrained to be positive
-    negfit_poscon = negbkgamp & (bkgpolarityconstraint == 1)
-    
-    # for the positive backgrounds find which are constrained to be negative
-    posfit_negcon = posbkgamp & (bkgpolarityconstraint == -1)
-
-    # take the OR of negfit_poscon and posfit_negcon to find all amplitudes
-    # to force to zero amplitude in the fit
-    bitcomb_forcezero = (negfit_poscon | posfit_negcon)
-    
-    # bitcomb_fitbackground is an array that has 1 in indices for the
-    # background templates that will not be forced to zero
-    bitCombFitBackground = 1 - bitcomb_forcezero
-
-    numBCon = np.sum(bitCombFitBackground)
-    indexBitMaskBackground = np.squeeze(np.nonzero(bitCombFitBackground))
-    
-    tempBackgroundSum  = backgroundsum[np.ix_(indexBitMaskBackground)]
-    
-    BB_Mask = BB[np.ix_(indexBitMaskBackground, indexBitMaskBackground)]
-    iBB_Mask = np.linalg.pinv(BB_Mask)
-    
-    # background only fit with only the masked backgrounds active    
-    bOnlyAConMask = iBB_Mask@backgroundsum[np.ix_(indexBitMaskBackground)]
-    
-    bOnlyACon = np.zeros((nSB-nS,1))
-    bOnlyACon[np.ix_(indexBitMaskBackground)] = bOnlyAConMask
-    
-    # calc chi2 of constrained background only fit
-    bestFitBOnlyCon = bTemplate@bOnlyACon
-    # make residual (pulse minus background best fit)
-    residBOnlyCon= pulset.T - bestFitBOnlyCon
-    # take FFT of residual
-    residBOnlyfCon = np.fft.fft(residBOnlyCon,axis=0)/nt
-    # calc chi2
-    chi2BOnlyCon = np.real(np.sum(np.conj(residBOnlyfCon)/psddnu.T*residBOnlyfCon,0))
-    chi2BOnlyCon_LF = np.real(np.sum(np.conj(residBOnlyfCon[0:lfIndex])/psddnu.T[0:lfIndex]*residBOnlyfCon[0:lfIndex],0))
-    
-    bminsqueezeNew = np.squeeze(bOnlyACon)
-    
-    ###### ==== end background only constraint   ====== ######
-    
     # === Multiply by P matrix to get amplitudes at all times ===
     
     # change iPt to (jtXnSBXnSB)
@@ -1581,7 +1625,6 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     a_tN = np.squeeze(a_tN)
     a_t = a_tN.T
 
-    
     # first calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
 
@@ -1924,6 +1967,9 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
     # get amplitudes of background templates
     aminb = amin[nS:nSB]
     
+    # make just the background template in time
+    bTemplate = sbTemplate[:,nS:nSB]
+    
     # construct time domain total background best fit
     bestFitB = bTemplate@aminb  
     # make signal residual (pulse minus total background best fit)
@@ -1939,15 +1985,9 @@ def of_nsmb_inside(pulset,OFfiltf, Pf_l, Pf_l_summed, Pt_l, sbTemplatef,sbTempla
         plotnsmb(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
                       background_templates_shifts = background_templates_shifts)
-    
-        # plot background only fit with constraint
-        aminNoSigCon = np.insert(bOnlyACon,0,0)
-        aminNoSigCon = np.expand_dims(aminNoSigCon,1)
-        plotnsmb(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
-                      lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit',
-                      background_templates_shifts = background_templates_shifts)
 
-    return aminsqueezeNew, tdelminNew, bminsqueezeNew, chi2minNew, chi2minNew_LF, Pulset_BF,a0,chi20, chi2BOnlyCon, chi2BOnlyCon_LF
+
+    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, Pulset_BF, a0, chi20
 
 def get_slope_dc_template_nsmb(nbin):
     """
