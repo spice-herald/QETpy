@@ -1313,7 +1313,7 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
-def plotnsmb(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
+def plotnsmb(pulset,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,
                   lpFiltFreq=None,lgcsaveplots=False, xlim=None,figPrefix='testFit',
                   background_templates_shifts=None):
     """
@@ -1352,7 +1352,14 @@ def plotnsmb(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
     if (lpFiltFreq!=None):
         pulseFilt = lowpassfilter(pulset,lpFiltFreq,fs)
     
- 
+    # === DAQ Setup ===
+    dt = float(1)/fs
+    dnu = float(1)/(nt*dt)
+    nu = np.arange(0.,float(nt))*dnu
+    lgc= nu> nt*dnu/2
+    nu[lgc]= nu[lgc]-nt*dnu
+    omega= (2*np.pi)*nu
+
     # create a phase shift matrix
     # The signal gets phase shifted by tdelmin
     # The background templates have no phase shift

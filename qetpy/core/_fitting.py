@@ -10,7 +10,7 @@ import timeit
 from matplotlib.patches import Ellipse
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_nsmb_getiPt", "of_mb", "of_nsmb","of_nsmb_con", "of_nsmb_fftTemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "of_nsmb_setup", "of_nsmb_getiP", "of_mb", "of_nsmb","of_nsmb_con", "of_nsmb_ffttemplate", "get_slope_dc_template_nsmb", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None):
     """
@@ -1093,136 +1093,171 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
     return a1, a2, t2, chi2
     
 
-def of_nsmb_fftTemplate(sTemplatet,bTemplatet):
+def of_nsmb_ffttemplate(stemplatet,btemplatet):
     """
+    A function to concatenate signal and background templates and output them
+    in the time and frequency dimensions
+    
     Parameters
     ----------
-    sTemplatet : ndarray
+    stemplatet : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (time bins) X ()
-    bTemplatet : ndarray
+    btemplatet : ndarray
         The m templates for the background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (m)
         
     Returns
     -------
-    sbTemplatef : ndarray
+    sbtemplatef : ndarray
         Frequency domain templates for the signal and background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (n + m)
-    sbTemplatet : ndarray
+    sbtemplatet : ndarray
         Time domain templates for the signal and background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (n + m)
     
     """
     
-    sTemplateShape = sTemplatet.shape
-    nt = sTemplateShape[0]
+    stemplateShape = stemplatet.shape
+    nt = stemplateShape[0]
     
     #=== Concatenate signal and background template matrices ====
     catAxis = 1
-    sbTemplatet = np.concatenate((sTemplatet, bTemplatet), axis=catAxis)
+    sbtemplatet = np.concatenate((stemplatet, btemplatet), axis=catAxis)
 
-    #=== FFT of Template ==================================================
-    sbTemplatef = np.fft.fft(sbTemplatet,axis=0)/nt
+    #=== FFT of template ==================================================
+    sbtemplatef = np.fft.fft(sbtemplatet,axis=0)/nt
     
-    return sbTemplatef, sbTemplatet
+    return sbtemplatef, sbtemplatet
 
-def of_nsmb_getPf(sbTemplatef,psddnu,nS,nB,nt):
+def of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt):
+    """
+    Function for creation of filter and P matrices in frequency domain
     
-    #=== Creation of Filter and Weighting Matrices ========================
-    # initialize:
-    #   1) filter matrix in fourier domain
-    #   2) weighting matrix in fourier domain
+    Parameters
+    ----------
+    sbtemplatef : ndarray. 
+        signal and background templates, in frequency domain, concatenated
+        Dimensions : nt X nsb
+    psddnu : ndarray
+        psd multiplied by dnu (in Amps^2)
+        Dimensions: nt X 1
+    ns : int
+        number of signals
+    nb : int
+        number of backgrounds
+    nt : int
+        number of time points
     
-    nSB=nS+nB
+    
+    Returns
+    -------
+    Pf : ndarray
+        Frequency domain P matrix, with no sum along the third (frequency) dimension
+        Dimensions : nsb X nsb X nt
+    Pfs : ndarray
+        Summed frequency domain P matrix, with sum along the third (frequency) dimension
+        Dimensions : nsb X nsb X nt
+    phi : ndarray
+        The optimum filter
+        Dimensions : nsb X nt
+    
+    """
+    
+    nsb=ns+nb
 
     # rotate indices for easier matrix multiplication
-    OFfiltf = np.zeros((nSB,nt),dtype=complex)
-    Pf = np.zeros((nSB,nSB,nt), dtype=complex)
+    phi = np.zeros((nsb,nt),dtype=complex)
+    Pf = np.zeros((nsb,nsb,nt), dtype=complex)
             
-    for jr in range(nSB):
-        conjTemp = np.conj(sbTemplatef[:,jr]);
+    for jr in range(nsb):
+        conjTemp = np.conj(sbtemplatef[:,jr]);
         conjTemp2= np.expand_dims(conjTemp,axis=1)
-        OFfiltf[jr,:] = np.squeeze(conjTemp2/psddnu);
-        for jc in range(nSB):
-            conjTemp3 = sbTemplatef[:,jc]
+        phi[jr,:] = np.squeeze(conjTemp2/psddnu);
+        for jc in range(nsb):
+            conjTemp3 = sbtemplatef[:,jc]
             conjTemp4 = np.expand_dims(conjTemp3,axis=1)
             Pf[jr,jc,:]= np.squeeze(conjTemp2/psddnu*conjTemp4);
 
     # sum Pf along frequency dimension
-    # for later calculations
-    Pf_summed = np.real(np.sum(Pf,axis=2))
-            
-    return Pf, Pf_summed, OFfiltf
+    Pfs = np.real(np.sum(Pf,axis=2))
 
-def of_nsmb_getPt(Pf_summed, Pt, nt,combInd=2^20, bindelay=0, bitComb=None,bitMask=None):
-    
-    # check if bitMask has been supplied
-    # and if not create it from combInd and bitComb
-    if bitMask is None:
-        bitMask = np.asarray(bitComb[combInd])
-    
-    #print('bitMask=', bitMask)
-    #print('shape(bitMask)=', np.shape(bitMask))
+    return Pf, Pfs, phi
 
+def of_nsmb_getPt(Pfs, P, combind=2^20, bindelay=0, bitcomb=None,bitmask=None):
+    """
+    Function for slicing P matrix along its time dimenstion (third dimension), applying a mask
+    to the slive, and returning both the slice and the inverse
+    
+    Parameters
+    ----------
+    Pfs : ndarray. 
+        Matrix of dot products between different templates in the frequency domain
+        for the of nsmb fit
+        Dimensions : nsb X nsb
+    P : ndarray. 
+        Matrix of element-wise multiplications of different templates
+        for the of nsmb fit
+        Dimensions : nsb X nsb X nt
+    combind: int, optional
+        A number between 0 and 2^nsb that is used in combination with bitcomb to
+        say which dimensions to remove from the fit
+    bindelay: int, optional
+        The time bin to calculate Pt
+    bitcomb : list, optional
+        A list of all possible bit (0 or 1) combinations for an array of length nsb
+    bitmask : ndarray, optinal
+        An array with 1s in the elements to keep in the fit
+    
+    Returns
+    -------
+    Pt_mask : ndarray
+        A slice of the P matrix at the bindelay P(:,:,bindelay) masked along the dimesions
+        given by bitmask
+        Dimensions : sum(bitmask) X sum(bitmask)
+    iPt_mask : nd array
+        Inverse of Pt_mask
+        Dimensions : sum(bitmask) X sum(bitmask)
+    
+    """
+    
+
+    if bitmask is None:
+        bitmask = np.asarray(bitcomb[combind])
+   
     # check if the signal is forced to zero
-    if (bitMask[0]==1):
-        nS = 1
+    # TODO: generalize for multiple signals
+    if (bitmask[0]==1):
+        ns = 1
     else:
-        nS = 0
+        ns = 0
     
     # number of signal and backgrounds remaining in fit
-    nSBMask = np.sum(bitMask)
+    nsbmask = np.sum(bitmask)
+    
     # get indices of the nonzero elements in the mask
-    indexBitMask = np.squeeze(np.nonzero(bitMask)) 
-    #print('shape(indexBitMask)=',np.shape(indexBitMask))
-    #print('indexBitMask=',indexBitMask)
-    
-    #start = time()
-    
-    #print('shape(WfMask)=',np.shape(WfMask))
-    
-    # make Pt
-    #start = time()
-
-    Pt_mask = np.zeros((nSBMask,nSBMask))
-
-    # make the signal-background horizontal piece (row 0 to nS)
+    indexbitmask = np.squeeze(np.nonzero(bitmask)) 
         
     try:
-        tempIFFT = Pt[np.ix_(indexBitMask[0:nS], indexBitMask[0:nSBMask])]
+        Pmask = P[np.ix_(indexbitmask[0:ns], indexbitmask[0:nsbmask])]
     except IndexError as error:
-        print('indexBitMask[0:nS]=',indexBitMask[0:nS])
-        print('indexBitMask[0:nSBMask]=',indexBitMask[0:nSBMask])
-        
-    #print(f"time of ifft of_nsmb_getWt = ",time()-start)
-
-    #start = time()
-
-    #print('shape(tempIFFT) = ', np.shape(tempIFFT))
-    #print('shape(transpose(tempIFFT) = ', np.shape(np.transpose(tempIFFT)))
-    #print('shape(transpose(tempIFFT[:,:,bindelay]) = ', np.shape(np.transpose(tempIFFT[:,:,bindelay])))
+        print('indexBitMask[0:ns]=',indexbitmask[0:ns])
+        print('indexBitMask[0:nsbMask]=',indexbitmask[0:nsbmask])
     
-    Pt_mask[0:nS,0:nSBMask]=np.real(tempIFFT[:,:,bindelay])
     
-    #print(f"time of real Wt_l2 of_nsmb_getWt = ",time()-start)
+    Pt_mask = np.zeros((nsbmask,nsbmask))
 
-    #start = time()
-    # make the signal-background vertical piece (column 0 to nS)
-    Pt_mask[0:nSBMask,0:nS]=np.real(np.transpose(tempIFFT[:,:,bindelay]))
+    # make the signal-background horizontal piece (row 0 to ns)
+    Pt_mask[0:ns,0:nsbmask]=np.real(Pmask[:,:,bindelay])
     
-    #print(f"time of transpose Wt_l2 of_nsmb_getWt = ",time()-start)
-
-    #start = time()
+    # make the signal-background vertical piece (column 0 to ns)
+    Pt_mask[0:nsbmask,0:ns]=np.real(np.transpose(Pmask[:,:,bindelay]))
+    
     # make the top (signal-signal) corner (partial overwriting)
-    Pt_mask[0:nS,0:nS] = Pf_summed[np.ix_(indexBitMask[0:nS], indexBitMask[0:nS])]
+    Pt_mask[0:ns,0:ns] = Pfs[np.ix_(indexbitmask[0:ns], indexbitmask[0:ns])]
     
-    #print(f"time of sum Wt_l2 of_nsmb_getWt = ",time()-start)
-
-    #start = time()
-
     #make the bottom (background-background) corner
-    Pt_mask[nS:nSBMask,nS:nSBMask] = Pf_summed[np.ix_(indexBitMask[nS:nSBMask], indexBitMask[nS:nSBMask])];
+    Pt_mask[ns:nsbmask,ns:nsbmask] = Pfs[np.ix_(indexbitmask[ns:nsbmask], indexbitmask[ns:nsbmask])];
     
     iPt_mask =np.linalg.pinv(Pt_mask)
     
@@ -1230,16 +1265,16 @@ def of_nsmb_getPt(Pf_summed, Pt, nt,combInd=2^20, bindelay=0, bitComb=None,bitMa
     
 
     
-def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
+def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
     """
     The setup function for OF_nsmb_inside
         
     Parameters
     ----------
-    sTemplatet : ndarray
+    stemplatet : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (time bins) X ()
-    bTemplatet : ndarray
+    btemplatet : ndarray
         The m templates for the background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (m)
     psd : ndarray
@@ -1256,13 +1291,13 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
     psddnu : ndarray
         Two-sided psd multiplied by dnu (in Amps^2)
         Dimensions: (time bins) X (1)
-    OFfiltf : ndarray
+    phi : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (n + m) X (time bins)
-    sbTemplatef : ndarray
+    sbtemplatef : ndarray
         Frequency domain templates for the signal and background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (n + m)
-    sbTemplatet : ndarray
+    sbtemplatet : ndarray
         Time domain templates for the signal and background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (n + m)
     iWt : ndarray
@@ -1271,47 +1306,40 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
     iBB : ndarray
         Inverse time-domain weighting matrix for background only fit
         Dimensions: (m) X (m) X (time bins)
-    nS : int
+    ns : int
         Number of signal templates
-    nB : int
+    nb : int
         Number of background templates
-    
-    
     
     """""
 
     lgc_verbose = False
     
-    sTemplatet = np.expand_dims(sTemplatet,1)
-    sTemplateShape = sTemplatet.shape
-    nt = sTemplateShape[0]
+    stemplatet = np.expand_dims(stemplatet,1)
+    nt = stemplatet.shape[0]
     
-    nS = int(sTemplateShape[1])
-    bTemplateShape = bTemplatet.shape
-    nB = int(bTemplateShape[1])
+    ns = stemplatet.shape[1]
+    nb = btemplatet.shape[1]
+    nsb=ns+nb
+
+    dt = 1/fs
+    dnu = 1/(nt*dt)
     
-    nSB=nS+nB
-    
-    # === DAQ Setup ===
-    dt = float(1)/fs
-    dnu = float(1)/(nt*dt)
-   
     # convert psd to units of A^2 instead of A^2/hz
-    # and renormalize to single sided normalization
-    # psddnu=np.expand_dims(psd,1)*dnu*2;
     psddnu=np.expand_dims(psd,1)*dnu;
-    
-    # make the 0 bin of the PSD equivalent to the first bin
+    # psd DC bin could be estimated incorrectly if noise
+    # traces had their baselines subtracted. to counteract
+    # this, set DC noise to noise of first freqency
     psddnu[0] = psddnu[1]
     
     # concatenate signal and background template matrices and take FFT
-    sbTemplatef, sbTemplatet = of_nsmb_fftTemplate(sTemplatet, bTemplatet)
+    sbtemplatef, sbtemplatet = of_nsmb_ffttemplate(stemplatet, btemplatet)
     
-    Pf, Pfsummed, OFfiltf = of_nsmb_getPf(sbTemplatef,psddnu,nS,nB,nt)
+    # construct the optimal filter and the frequency domain P matrices
+    Pf, Pfs, phi = of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt)
     
-    # calculate P matrix in time domain
-    Pt=np.fft.ifft(Pf,axis=2)*nt
-    Pt = np.real(Pt)
+    # construct the P matrix section by section
+    P = np.real(np.fft.ifft(Pf,axis=2)*nt)
     
     # the elements that share a time domain delay contain only the
     # ifft value corresponding to t0=0, i.e. the zero element.
@@ -1319,58 +1347,70 @@ def of_nsmb_setup(sTemplatet,bTemplatet, psd,fs):
     # corners of the P matrix
 
     # signal-signal piece
-    # the piece being repeated has dimensions of nSxnS
-    # this makes it nSxnSxnt
-    noTimeShiftSSMat = Pt[0:nS,0:nS,0,None]
-    Pt[0:nS,0:nS,:] = noTimeShiftSSMat@np.ones((1,nt))
+    # repeat the nsxns piece to be nsxnsxnt
+    S = P[0:ns,0:ns,0,None]
+    P[0:ns,0:ns,:] = S@np.ones((1,nt))
 
     #background-background piece
-    noTimeShiftBBMat = Pt[nS:nSB,nS:nSB,0,None]
-    Pt[nS:nSB,nS:nSB,:] = noTimeShiftBBMat@np.ones((1,nt))
+    B = P[ns:nsb,ns:nsb,0,None]
+    P[ns:nsb,ns:nsb,:] = B@np.ones((1,nt))
     
     # signal-background piece is the ifft
     # no need for added manipulation
 
-    # background-signal piece needs to be flipped in time
-    # since Pt is symmetric, build it from the top
-    # section
-    for jr in range(nSB):
-        for jc in range(nSB):
+    # background-signal piece of P is symmetric. enforce this
+    for jr in range(nsb):
+        for jc in range(nsb):
             if jr>jc:
-                Pt[jr,jc,:] = Pt[jc,jr,:]
+                P[jr,jc,:] = P[jc,jr,:]
    
-    # === Invert the background-background matrix ===
-    BB = np.squeeze(noTimeShiftBBMat)
-    iBB = np.linalg.pinv(np.squeeze(noTimeShiftBBMat))
+    # invert the background-background matrix
+    B = np.squeeze(B)
+    iB = np.linalg.pinv(B)
     
-    bitComb = [list(i) for i in itertools.product([0,1],repeat=nSB)]
+    bitComb = [list(i) for i in itertools.product([0,1],repeat=nsb)]
         
     lfindex=500
         
-    return psddnu, OFfiltf, Pfsummed, Pt, sbTemplatef, sbTemplatet, iBB, BB, nS, nB, bitComb,lfindex
+    return psddnu, phi, Pfs, P, sbtemplatef, sbtemplatet, iB, B, ns, nb, bitComb, lfindex
 
 
-def of_nsmb_getiPt(Pt):
+def of_nsmb_getiP(P): 
+    """
+    Function for inverting the P matrix along its time dimenstion (third dimension).
+    Uses the pseudo inverse to solve numerical jitter issues
     
-    nSB = np.shape(Pt)[0]
-    nt = np.shape(Pt)[-1]
+    Parameters
+    ----------
+    P : ndarray. 
+        Matrix of element-wise multiplication different templates
+        fot the of nsmb fit
+        Dimensions : nsb X nsb X nt
+        
     
-    # invert P matrix
-    # create the inverted weighting matrices
-    # as a function of the time offset
-    iPt= np.zeros((nSB,nSB,nt))
+    Returns
+    -------
+    iP : ndarray
+        Inverse of P
+        Dimensions : nsb X nsb X nt
+    
+    """
+    
+    nsb = np.shape(P)[0]
+    nt = np.shape(P)[-1]
+    
+    iP= np.zeros((nsb,nsb,nt))
     
     for jt in range(nt):
         # the regular inv function had a problematic level of numerical jitter
-        # e.g. the chi2(t0) could be negative for some t0
-        # so use pseudo inverse which has not exhibited
-        # any numerical jitter
-        iPt[:,:,jt]=np.linalg.pinv(Pt[:,:,jt]);
+        # e.g. the chi2(t0) could be negative for some t0 so use pseudo inverse
+        # which has not exhibited any numerical jitter
+        iP[:,:,jt]=np.linalg.pinv(P[:,:,jt]);
         
-    return iPt
+    return iP
     
 
-def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB, lfindex=500,
+def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfindex=500,
                    background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
                    lgc_interp=False, lgcplot=False, lgcsaveplots=False):
 
@@ -1380,43 +1420,33 @@ def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB, 
     pulset = np.expand_dims(pulset,1)
     pulset = pulset.T
 
-    pulsetShape = pulset.shape
-    nt = pulsetShape[1]
-    OFfiltfShape = OFfiltf.shape
-    nSB = OFfiltfShape[0]
-    
-    # DAQ constants
-    dt = float(1)/fs
-    dnu = float(1)/(nt*dt)
-    nu = np.arange(0.,float(nt))*dnu
-    lgc= nu> nt*dnu/2
-    nu[lgc]= nu[lgc]-nt*dnu
-    omega= (2*np.pi)*nu
+    nt = pulset.shape[1]
+    nsb = phi.shape[0]
     
     # if bkgpolarityconstraint is not set,
     # populate it with zeros to set all backgrounds unconstrained
     if bkgpolarityconstraint is None:
-        bkgpolarityconstraint = np.zeros(nB)
+        bkgpolarityconstraint = np.zeros(nb)
     
     # fft of the pulse
     pulsef = np.fft.fft(pulset,axis=1)/nt
 
-    # apply the OF
-    qf = np.zeros((nSB,nt),dtype=complex)
+    # apply OF
+    qf = np.zeros((nsb,nt),dtype=complex)
     
-    for jT in range(nSB):
-        qf[jT] = OFfiltf[None,jT,:]*pulsef
+    for isb in range(nsb):
+        qf[isb] = phi[None,isb,:]*pulsef
     
     # the background templates do not time shift
     # so for them only the sum, not the ifft, is calculated
-    backgroundsum=np.real(np.sum(qf[nS:nSB], axis=1, keepdims=True))
+    backgroundsum=np.real(np.sum(qf[ns:nsb], axis=1, keepdims=True))
 
     # fit amplitudes for only the background templates
-    bOnlyA = iBB@backgroundsum
+    bOnlyA = iB@backgroundsum
     
     # make just the background template in time and frequency
-    bTemplate = sbTemplate[:,nS:nSB]
-    bTemplatef = sbTemplatef[nS:nSB,:]
+    btemplate = sbtemplate[:,ns:nsb]
+    btemplatef = sbtemplatef[ns:nsb,:]
     
     ###### ==== start background only constraint   ====== ######    
         
@@ -1443,17 +1473,17 @@ def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB, 
     
     tempBackgroundSum  = backgroundsum[np.ix_(indexBitMaskBackground)]
     
-    BB_Mask = BB[np.ix_(indexBitMaskBackground, indexBitMaskBackground)]
-    iBB_Mask = np.linalg.pinv(BB_Mask)
+    B_Mask = B[np.ix_(indexBitMaskBackground, indexBitMaskBackground)]
+    iB_Mask = np.linalg.pinv(B_Mask)
     
     # background only fit with only the masked backgrounds active    
-    bOnlyAConMask = iBB_Mask@backgroundsum[np.ix_(indexBitMaskBackground)]
+    bOnlyAConMask = iB_Mask@backgroundsum[np.ix_(indexBitMaskBackground)]
     
-    bOnlyACon = np.zeros((nSB-nS,1))
+    bOnlyACon = np.zeros((nsb-ns,1))
     bOnlyACon[np.ix_(indexBitMaskBackground)] = bOnlyAConMask
     
     # calc chi2 of constrained background only fit
-    bestFitBOnlyCon = bTemplate@bOnlyACon
+    bestFitBOnlyCon = btemplate@bOnlyACon
     # make residual (pulse minus background best fit)
     residBOnlyCon= pulset.T - bestFitBOnlyCon
     # take FFT of residual
@@ -1470,14 +1500,14 @@ def of_mb(pulset, OFfiltf, sbTemplatef, sbTemplate, iBB, BB, psddnu, fs, nS,nB, 
         # plot background only fit with constraint
         aminNoSigCon = np.insert(bOnlyACon,0,0)
         aminNoSigCon = np.expand_dims(aminNoSigCon,1)
-        plotnsmb(pulset,omega,fs,0,aminNoSigCon,sbTemplatef,nS,nB,nt,psddnu,dt,
+        plotnsmb(pulset,fs,0,aminNoSigCon,sbtemplatef,ns,nb,nt,psddnu,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit',
                       background_templates_shifts = background_templates_shifts)
         
     return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
 
 
-def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS, nB, bitComb, lfindex=500,
+def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,ind_window, ns, nb, bitComb, lfindex=500,
             background_templates_shifts=None, lgc_interp=False, lgcplot=False, lgcsaveplots=False):
     
     lgcplotcheck=False
@@ -1486,75 +1516,62 @@ def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS
     pulset = np.expand_dims(pulset,1)
     pulset = pulset.T
 
-    pulsetShape = pulset.shape
-    nt = pulsetShape[1]
-    OFfiltfShape = OFfiltf.shape
-    nSB = OFfiltfShape[0]
-
-    # DAQ constants
-    dt = float(1)/fs
-    dnu = float(1)/(nt*dt)
-    nu = np.arange(0.,float(nt))*dnu
+    nt = pulset.shape[1]
+    nsb = phi.shape[0]
+    
+    dt = 1/fs
+    dnu = 1/(nt*dt)
+    nu = np.arange(0.,nt)*dnu
     lgc= nu> nt*dnu/2
     nu[lgc]= nu[lgc]-nt*dnu
-    omega= (2*np.pi)*nu
+    omega= 2*np.pi*nu
+    
     
     # fft of the pulse
     pulsef = np.fft.fft(pulset,axis=1)/nt
 
-    # apply the OF
-    qf = np.zeros((nSB,nt),dtype=complex)
+    # apply OF
+    qf = np.zeros((nsb,nt),dtype=complex)
+    for isb in range(nsb):
+        qf[isb] = phi[None,isb,:]*pulsef
     
-    for jT in range(nSB):
-        qf[jT] = OFfiltf[None,jT,:]*pulsef
-    
-    # inverse fourier transform the signal part of qf for qt
-    qt = np.zeros((nSB,nt))
-    qt[0:nS] = np.real(np.fft.ifft(qf[0:nS],axis=1))*nt
+    # for qt, iFFT the signal part of qf
+    qt = np.zeros((nsb,nt))
+    qt[0:ns] = np.real(np.fft.ifft(qf[0:ns],axis=1))*nt
     
     # the background templates do not time shift
-    # so for them only the sum, not the ifft, is calculated
-    backgroundsum=np.real(np.sum(qf[nS:nSB], axis=1, keepdims=True))
-    # change backgroundsum (nBx1) into new matrix (nBxnt) where column is just repeated
-    backgroundsum_expand = backgroundsum@np.ones((1,nt))
+    # so only the sum, not the ifft, is calculated
+    qtb=np.real(np.sum(qf[ns:nsb], axis=1, keepdims=True))
+    # change qtb (nbx1) into new matrix (nbxnt) where column is repeated
+    qtb = qtb@np.ones((1,nt))
     
     # populate qt with the background part
-    qt[nS:nSB] = backgroundsum_expand
+    qt[ns:nsb] = qtb
     qt = np.expand_dims(qt,axis=2)    
-    
-    # === Multiply by P matrix to get amplitudes at all times ===
     
     # change iPt to (jtXnSBXnSB)
     iPtN = np.moveaxis(iPt,2,0)
     
     # move time axis of qt first dimension
-    # qtN gets dimension (jt X nSB X 1)
+    # qtN gets dimension (jt X nsb X 1)
     qtN = np.moveaxis(qt,1,0)
     a_tN = np.matmul(iPtN,qtN)
     a_tN = np.squeeze(a_tN)
     a_t = a_tN.T
 
-    # first calculate the chi2 component which is independent of the time delay
+    # calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
-
-    chi2base_LF = np.real(np.sum(np.conj(pulsef[:,0:lfindex])/psddnu[:,0:lfindex]*pulsef[:,0:lfindex],1))
 
     #calculate the component which is a function of t0
     chi2t0 = np.sum(a_t*np.squeeze(qt),axis=0)
 
     chi2_t=chi2base-chi2t0
-    #print('shape(chi2_t)=',np.shape(chi2_t))
-
-    #=== Save and Output 0 delay values ===     
-    a0 = a_t[:,0]
-    chi20=chi2_t[0]
     
-    # === Constrain best guess based on ind_window ===
-    # sometimes the window given wraps around to negative values
-    # convert to all positive values
-    lgcneg = ind_window<0
+    # constrain best guess based on ind_window ===
+    # if the window given wraps to negative values convert all to positive values
+    lgcneg = ind_window < 0
     ind_window[lgcneg] = nt+ind_window[lgcneg]
-
+    
     #finally ensure that nothing is larger than nt
     lgc_toobig= ind_window >= nt;
     ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
@@ -1568,7 +1585,7 @@ def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS
         plt.ylabel('$\chi^2$')
         plt.grid(which='both')
         if background_templates_shifts is not None:
-            for ii in range(nB):
+            for ii in range(nb):
                 plt.axvline(x=background_templates_shifts[ii])
                 
         plt.figure(figsize=(6,3))
@@ -1577,7 +1594,7 @@ def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS
         plt.ylabel('$\chi^2$')
         plt.grid(which='minor', linestyle='--')
         if background_templates_shifts is not None:
-            for ii in range(nB):
+            for ii in range(nb):
                 plt.axvline(x=background_templates_shifts[ii])
         plt.xlim([ind_tdel - 10, ind_tdel + 10])
             
@@ -1585,44 +1602,37 @@ def of_nsmb(pulset, OFfiltf, sbTemplatef,sbTemplate,iPt,psddnu,fs,ind_window, nS
     # find the chi2 minimum
     chi2min= np.amin(chi2_t[ind_window])
     ind_tdel_sm = np.argmin(chi2_t[ind_window])
-    #print('chi2min=', chi2min)
     ind_tdel=ind_window[:,ind_tdel_sm]    
         
     #output the lowest chi2 value on the digitized grid 
     amin = a_t[:,ind_tdel]
     tdelmin = ((ind_tdel) - nt*(ind_tdel>nt/2 ))*dt
     
-    # create a phase shift matrix
-    # The signal gets phase shifted by tdelmin
-    # The background templates have no phase shift
+    # construct best fit in time domain
     phase = np.exp(-1j*omega*tdelmin)
-    phaseAr = np.ones((nS,1))@phase[None,:]
-    phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+    phaseAr = np.ones((ns,1))@phase[None,:]
+    phaseMat= np.concatenate((phaseAr,np.ones((nb,nt))),axis=0)
     ampMat = amin@np.ones((1,nt))
-    fitf= ampMat*sbTemplatef*phaseMat
+    fitf= ampMat*sbtemplatef*phaseMat
     fittotf=np.sum(fitf,axis=0, keepdims=True)
-    # now invert
     fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
     # make residual 
     residT = pulset - fittott
     # check the chi2
     residTf = np.fft.fft(residT,axis=1)/nt
     chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
-    chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
-    
-    aminsqueeze = np.squeeze(amin)
-    tdelminsqueeze = np.squeeze(tdelmin)
+    chi2minlf = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
     
     if lgcplot:
         lpFiltFreq = 30e3
         
-        plotnsmb(pulset,omega,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,dt,
+        plotnsmb(pulset,fs,tdelmin,amin,sbtemplatef,ns,nb,nt,psddnu,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
                       background_templates_shifts = background_templates_shifts)
     
-    return aminsqueeze, tdelmin, chi2min, chi2minNew_LF
+    return np.squeeze(amin), tdelmin, chi2min, chi2minlf, residT
     
-def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddnu,fs,ind_window,nS,nB, bitComb, lfindex=500,
+def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs,indwindow_nsmb,ns,nb, bitComb, lfindex=500,
                    background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
                    lgc_interp=False, lgcplot=False, lgcsaveplots=False):
     
@@ -1634,13 +1644,13 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     pulset : ndarray
         The signal that we want to apply the optimum filter to (units should be Amps).
         Dimensions: (time bins) X ()
-    OFfiltf : ndarray
+    phi : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (n + m) X (time bins)
-    sbTemplatef : ndarray
+    sbtemplatef : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (n + m) X (freq bins = time bins)
-    sbTemplate : ndarray
+    sbtemplate : ndarray
         The m templates for the background (should be normalized to max(temp)=1)
         Dimensions: (time bins) X (n + m)
     iPt : ndarray
@@ -1655,13 +1665,14 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     fs : float
         Sample rate in Hz
         Dimensions: 1
-    indwindow: ndarray
-        Indices over which one should search for the minimum chi2 of the signal template 
-        Dimensions: 1 X (time bins)
-    nS : int
+    indwindow_nsmb : list of ndarray
+        Each ndarray of the list has indices over which the nsmb fit searches for the minimum chi2. Multiple
+        entries in the list will output multiple RQs corresponding to the different windows 
+        Dimension of ndarrays: 1 X (time bins)
+    ns : int
         Number of signal templates
         Dimensions: 1
-    nB : int
+    nb : int
         Number of background templates
         Dimensions: 1
     bkgpolarityconstraint : ndarray
@@ -1706,61 +1717,53 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     """
 
     lgcplotcheck=False
-    
+
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
     pulset = pulset.T
 
-    pulsetShape = pulset.shape
-    nt = pulsetShape[1]
-    OFfiltfShape = OFfiltf.shape
-    nSB = OFfiltfShape[0]
+    nt = pulset.shape[1]
+    nsb = phi.shape[0]
     
-    # if bkgpolarityconstraint is not set,
-    # populate it with zeros to set all backgrounds unconstrained
+    dt = 1/fs
+    dnu = 1/(nt*dt)
+    nu = np.arange(0.,nt)*dnu
+    lgc= nu> nt*dnu/2
+    nu[lgc]= nu[lgc]-nt*dnu
+    omega= 2*np.pi*nu
     
-
+    # make all backgrounds/signals unconstrained if polarity constraint is None
     if bkgpolarityconstraint is None:
-        bkgpolarityconstraint = np.zeros(nB)
+        bkgpolarityconstraint = np.zeros(nb)
     if sigpolarityconstraint is None:
-        sigpolarityconstraint = np.zeros(nS)
+        sigpolarityconstraint = np.zeros(ns)
     
     sbpolcon = np.concatenate((sigpolarityconstraint, bkgpolarityconstraint), axis = 0)
     
-    # DAQ constants
-    dt = float(1)/fs
-    dnu = float(1)/(nt*dt)
-    nu = np.arange(0.,float(nt))*dnu
-    lgc= nu> nt*dnu/2
-    nu[lgc]= nu[lgc]-nt*dnu
-    omega= (2*np.pi)*nu
-    
-    # fft of the pulse
     pulsef = np.fft.fft(pulset,axis=1)/nt
 
-    # apply the OF
-    qf = np.zeros((nSB,nt),dtype=complex)
+    # apply OF
+    qf = np.zeros((nsb,nt),dtype=complex)
+    for isb in range(nsb):
+        qf[isb] = phi[None,isb,:]*pulsef
     
-    for jT in range(nSB):
-        qf[jT] = OFfiltf[None,jT,:]*pulsef
-    
-    # inverse fourier transform the signal part of qf for qt
-    qt = np.zeros((nSB,nt))
-    qt[0:nS] = np.real(np.fft.ifft(qf[0:nS],axis=1))*nt
+    # for qt, iFFT the signal part of qf
+    qt = np.zeros((nsb,nt))
+    qt[0:ns] = np.real(np.fft.ifft(qf[0:ns],axis=1))*nt
     
     # the background templates do not time shift
     # so for them only the sum, not the ifft, is calculated
-    backgroundsum=np.real(np.sum(qf[nS:nSB], axis=1, keepdims=True))
-    # change backgroundsum (nBx1) into new matrix (nBxnt) where column is just repeated
-    backgroundsum_expand = backgroundsum@np.ones((1,nt))
+    qtb=np.real(np.sum(qf[ns:nsb], axis=1, keepdims=True))
+    # change qtb (nbx1) into new matrix (nbxnt) where column is repeated
+    qtb = qtb@np.ones((1,nt))
     
     # populate qt with the background part
-    qt[nS:nSB] = backgroundsum_expand
+    qt[ns:nsb] = qtb
     qt = np.expand_dims(qt,axis=2)    
     
-    # move time axis of qt first dimension
-    # qtN gets dimension (jt X nSB X 1)
-    qtN = np.moveaxis(qt,1,0)
+    # move time axis of qt to first dimension
+    # qt gets dimension (jt X nsb X 1)
+    qt = np.moveaxis(qt,1,0)
 
     # first calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
@@ -1768,22 +1771,22 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     ###### ==== positive only constraint ====== ######
     chi2New = np.zeros((nt,1))
 
-    a_tsetNew = np.zeros((nSB,nt))
-    bitCombFitVec = np.zeros((nSB,nt),dtype=int)
+    a_tsetNew = np.zeros((nsb,nt))
+    bitCombFitVec = np.zeros((nsb,nt),dtype=int)
     
     for ii in range(nt):
         
         # first do the fit with all backgrounds floating
         
-        # combInd (2**nSB -1) for all positive
+        # combInd (2**nsb -1) for all positive
         # (i.e. bitComb[combInd] will
         # have 1s for the backgrounds
         # we want to remove from fit)
-        Pt_tset, iPt_tset = of_nsmb_getPt(Pf_l_summed, Pt_l, nt, combInd=((2**nSB)-1),
-                                    bindelay=ii, bitComb=bitComb, bitMask=None)
+        Pt_tset, iPt_tset = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=((2**nsb)-1),
+                                    bindelay=ii, bitcomb=bitComb, bitmask=None)
                
         
-        qt_tset = qtN[ii]
+        qt_tset = qt[ii]
         a_tset = np.matmul(iPt_tset,qt_tset)
               
         # find polarity of amplitudes
@@ -1823,8 +1826,8 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
         # end gradient at Zero
         #######
         
-        Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l,nt,combInd=None,
-                                        bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
+        Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
+                                        bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
         # select the elements that are not zero
         indexBitMask = np.squeeze(np.nonzero(bitCombFit))
         
@@ -1836,7 +1839,7 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
         
         # make a_tsetNew with dimentions of a_tset and populate it
         # with the a_tsetMask values
-        a_tsetNewOneT = np.zeros((nSB,1))
+        a_tsetNewOneT = np.zeros((nsb,1))
         a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
         #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
         a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
@@ -1858,15 +1861,11 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
             bitcomb_forcezero = (negfit_poscon | posfit_negcon | zeroamp)
             # bitcomb_fitis an array that has 1 in indices for the
             # background templates that will not be forced to zero
-            #print('bitCombFit=',bitCombFit)
 
             bitCombFit = 1 - bitcomb_forcezero
             
-            #print('bitCombFit2=',bitCombFit)
-            
-            
-            Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l,nt,combInd=None,
-                                        bindelay=ii,bitComb=bitComb,bitMask=bitCombFit)
+            Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
+                                        bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
             # select the elements that are not zero
             indexBitMask = np.squeeze(np.nonzero(bitCombFit))
 
@@ -1874,7 +1873,7 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
             a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
             
             
-            a_tsetNewOneT = np.zeros((nSB,1))
+            a_tsetNewOneT = np.zeros((nsb,1))
             a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
             # reset the a_tsetNew vector
             a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
@@ -1886,8 +1885,6 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
             #print('PROBLEM, second collapsing did not fix negatives')
             #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
             
-
-        
         # plotting checks
         '''
         if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
@@ -1895,9 +1892,9 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
             print('a_tset=',np.transpose(a_tset))
             print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
             lpFiltFreq = 30e3
-            plotnsmb(pulset,omega,fs,ii*dt,a_tset,sbTemplatef,nS,nB,nt,psddnu,dt,
+            plotnsmb(pulset,omega,fs,ii*dt,a_tset,sbtemplatef,ns,nb,nt,psddnu,dt,
                           lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
-            plotnsmb(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetNew[:,ii],1),sbTemplatef,nS,nB,nt,psddnu,dt,
+            plotnsmb(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetNew[:,ii],1),sbtemplatef,ns,nb,nt,psddnu,dt,
                           lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
         
             idxOfInt = 11
@@ -1964,23 +1961,37 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
         chi2New[ii] = chi2base-chi2t0setMask
         
 
+    indwindow = indwindow_nsmb[0]
     chi2New = np.squeeze(chi2New)
-    chi2minNew= np.amin(chi2New[ind_window])
-    ind_tdel_smNew = np.argmin(chi2New[ind_window])
-    ind_tdel_New=ind_window[:,ind_tdel_smNew]
+    chi2minNew= np.amin(chi2New[indwindow])
+    ind_tdel_smNew = np.argmin(chi2New[indwindow])
+    ind_tdel_New=indwindow[:,ind_tdel_smNew]
     
     aminNew = a_tsetNew[:,ind_tdel_New]
     tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
     bitCombFitFinal = np.squeeze(bitCombFitVec[:,ind_tdel_New])
     
+    
+    ncwindow = len(indwindow_nsmb)-1
+    chi2min_cwindow = np.zeros(ncwindow)
+    asig_cwindow = np.zeros((ncwindow,ns))
+    for iwin in range(ncwindow):
+        indwindow = indwindow_nsmb[iwin]
+        chi2min_cwindow[iwin] = np.amin(chi2New[indwindow])
+        ind_tdel_smNew = np.argmin(chi2New[indwindow])
+        ind_tdel_New=indwindow[:,ind_tdel_smNew]
+        asig_cwindow[iwin,:] = a_tsetNew[0:ns,ind_tdel_New]
+        tdelmin_cwindow = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
+    
+    
     # create a phase shift matrix
     # The signal gets phase shifted by tdelmin
     # The background templates have no phase shift
     phase = np.exp(-1j*omega*tdelminNew)
-    phaseAr = np.ones((nS,1))@phase[None,:]
-    phaseMat= np.concatenate((phaseAr,np.ones((nB,nt))),axis=0)
+    phaseAr = np.ones((ns,1))@phase[None,:]
+    phaseMat= np.concatenate((phaseAr,np.ones((nb,nt))),axis=0)
     ampMat = aminNew@np.ones((1,nt))
-    fitf= ampMat*sbTemplatef*phaseMat
+    fitf= ampMat*sbtemplatef*phaseMat
     fittotf=np.sum(fitf,axis=0, keepdims=True)
     # now invert
     fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
@@ -1992,7 +2003,6 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
 
-    
     #print('ind_tdel_New=', ind_tdel_New)
     #print('aminNew=', aminNew)
     #print('tdelminNew=', tdelminNew)
@@ -2014,10 +2024,10 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
     # get the weighting matrix (again) at the bin with the lowest chi2
     # notice that we have to cast ind_tdel_New to an int
     #print('going into of_nsmb_getPt for gradient (line 1136))
-    Pt_tmin, iPt_tmin = of_nsmb_getPt(Pf_l_summed, Pt_l,nt,combInd=((2**nSB)-1),
-                                    bindelay=int(ind_tdel_New),bitComb=bitComb,bitMask=None)
+    Pt_tmin, iPt_tmin = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=((2**nsb)-1),
+                                    bindelay=int(ind_tdel_New),bitcomb=bitComb,bitmask=None)
     
-    qt_tmin = qtN[int(ind_tdel_New)]
+    qt_tmin = qt[int(ind_tdel_New)]
     #print('shape(qt2_tmin)=',np.shape(qt2_tmin))
     a_tmin = np.matmul(iPt_tmin,qt_tmin)
     
@@ -2053,12 +2063,12 @@ def of_nsmb_con(pulset,OFfiltf, Pf_l_summed, Pt_l, sbTemplatef,sbTemplate, psddn
         lpFiltFreq = 30e3
         
         # plot the positive only constraint
-        plotnsmb(pulset,omega,fs,tdelminNew,aminNew,sbTemplatef,nS,nB,nt,psddnu,dt,
+        plotnsmb(pulset,fs,tdelminNew,aminNew,sbtemplatef,ns,nb,nt,psddnu,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
                       background_templates_shifts = background_templates_shifts)
 
 
-    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT
+    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT, asig_cwindow.T, chi2min_cwindow
 
 def get_slope_dc_template_nsmb(nbin):
     """
@@ -2138,16 +2148,16 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
     ttltimeBetween = 1/ttlrate
 
     # bins between ttl triggers
-    ttlbinsBetween = ttltimeBetween*fs
+    ttlbinsbetween = ttltimeBetween*fs
 
     # how many ttl triggers in the trace
     tLengthTrace = nbin/fs
     
     nTTLs = int(tLengthTrace/ttltimeBetween)
 
-    # shift the template back by nTTLs/2*ttlbinsBetween bins
+    # shift the template back by nTTLs/2*ttlbinsbetween bins
     #
-    binShift = int(-nTTLs/2*ttlbinsBetween)
+    binShift = int(-nTTLs/2*ttlbinsbetween)
     firsttemplate = np.roll(template,binShift)
     
     # create matrix of background templates
@@ -2160,7 +2170,7 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
 
     #circularly shift template in time for background templates
     for ii in range(0,nTTLs):
-        backgroundtemplateshift = int(np.rint(ttlbinsBetween*ii))
+        backgroundtemplateshift = int(np.rint(ttlbinsbetween*ii))
         backgroundtemplateshifts[ii] = backgroundtemplateshift
         if (ii==0):
             backgroundtemplates[:,ii] = firsttemplate
