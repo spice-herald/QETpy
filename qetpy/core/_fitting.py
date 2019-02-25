@@ -7,7 +7,7 @@ from qetpy.plotting import plotnonlin
 __all__ = ["OptimumFilter", "ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq", 
            "chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
-def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None):
+def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=None, windowcenter=0):
     """
     Helper function for finding the index for the minimum of a chi^2. Includes
     options for constraining the values of chi^2.
@@ -29,7 +29,9 @@ def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=
     constraint_mask : NoneType, boolean ndarray, optional
         An additional constraint on the chi^2 to apply, which should be in the form 
         of a boolean mask. If left as None, no additional constraint is applied.
-    
+    windowcenter: int, optional
+        The bin, relative to the center bin of the traec, on which the delay window is cenetered. Default of 0
+        centers the delay window in the center of the trace.
     Returns
     -------
     bestind : int, ndarray, float
@@ -41,6 +43,12 @@ def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=
     
     nbins = chi2.shape[-1]
     
+    if windowcenter is not None:
+        if windowcenter < -(nbins//2):
+            raise ValueError(f"windowcenter must be greater than half number of bins ({-nbins//2})")
+        if windowcenter > (nbins//2):
+            raise ValueError(f"windowcenter must be less than half number of bins ({nbins//2})")
+    
     if nconstrain is not None:
         if nconstrain>nbins:
             nconstrain = nbins
@@ -48,10 +56,11 @@ def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False, constraint_mask=
             raise ValueError(f"nconstrain must be a positive integer less than {nbins}")
         
         if lgcoutsidewindow:
-            inds = np.r_[0:nbins//2-nconstrain//2, -nbins//2+nconstrain//2+nconstrain%2:0]
+            inds = np.r_[0:nbins//2-nconstrain//2+windowcenter, -nbins//2+nconstrain//2+nconstrain%2+windowcenter:0]
             inds[inds<0]+=nbins
         else:
-            inds = np.arange(nbins//2-nconstrain//2, nbins//2+nconstrain//2+nconstrain%2)
+            inds = np.arange(nbins//2-nconstrain//2+windowcenter, nbins//2+nconstrain//2+nconstrain%2+windowcenter)
+            inds = inds[(inds>=0) & (inds<nbins)]
             
         if constraint_mask is not None:
             inds = inds[constraint_mask[inds]]
@@ -357,17 +366,18 @@ class OptimumFilter(object):
         return amp, chi2
     
     def ofamp_withdelay(self, nconstrain=None, lgcoutsidewindow=False, 
-                        pulse_direction_constraint=0):
+                        pulse_direction_constraint=0, windowcenter=0):
         """
         Function for calculating the optimum amplitude of a pulse in data with time delay.
 
         Parameters
         ----------
         nconstrain : int, NoneType, optional
-            The length of the window (in bins) to constrain the possible t0 values to, 
-            centered on the unshifted trigger. If left as None, then t0 is uncontrained. 
-            If `nconstrain` is larger than `self.nbins`, then the function sets `nconstrain` 
-            to `self.nbins`, as this is the maximum number of values that t0 can vary over.
+            The length of the window (in bins) to constrain the possible t0 values to. 
+            By default centered on the unshifted trigger, non-default center choosen with
+            windowcenter. If left as None, then t0 is uncontrained. If `nconstrain` is 
+            larger than `self.nbins`, then the function sets `nconstrain` to `self.nbins`, 
+            as this is the maximum number of values that t0 can vary over.
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether the Optimum Filter should look inside 
             `nconstrain` or outside it. If False, the filter will minimize the chi^2 in the 
@@ -378,6 +388,9 @@ class OptimumFilter(object):
             pulse direction is set. If 1, then a positive pulse constraint is set for all fits. 
             If -1, then a negative pulse constraint is set for all fits. If any other value, then
             an ValueError will be raised.
+        windowcenter: int, optional
+            The bin, relative to the center bin of the traec, on which the delay window is cenetered. Default of 0
+            centers the delay window in the center of the trace.
             
         Returns
         -------
@@ -415,7 +428,8 @@ class OptimumFilter(object):
         
         # find time of best fit
         bestind = _argmin_chi2(self.chi_withdelay, nconstrain=nconstrain, 
-                               lgcoutsidewindow=lgcoutsidewindow, constraint_mask=constraint_mask)
+                               lgcoutsidewindow=lgcoutsidewindow, constraint_mask=constraint_mask,
+                              windowcenter=windowcenter)
         
         if np.isnan(bestind):
             amp = 0.0

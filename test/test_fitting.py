@@ -213,6 +213,9 @@ def test_OptimumFilter():
     res = OF.ofamp_withdelay(nconstrain=100, lgcoutsidewindow=True)
     assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
     
+    res = OF.ofamp_withdelay(nconstrain=3,windowcenter=-5)
+    assert isclose(res, (-1.748136068514983e-07, -9.6e-06, 2870630.5945196496))
+    
     res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000)
     assert isclose(res, 1052.9089578293142)
     
