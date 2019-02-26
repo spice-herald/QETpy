@@ -1521,11 +1521,14 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
     return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
 
 
-def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,ind_window, ns, nb, bitComb, lfindex=500,
+def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns, nb, bitComb, lfindex=500,
             background_templates_shifts=None, lgc_interp=False, lgcplot=False, lgcsaveplots=False):
     
     lgcplotcheck=False
     
+    indwindow = indwindow_nsmb[0]
+
+
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
     pulset = pulset.T
@@ -1581,14 +1584,14 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,ind_window, ns, nb
 
     chi2_t=chi2base-chi2t0
     
-    # constrain best guess based on ind_window ===
+    # constrain best guess based on indwindow ===
     # if the window given wraps to negative values convert all to positive values
-    lgcneg = ind_window < 0
-    ind_window[lgcneg] = nt+ind_window[lgcneg]
+    lgcneg = indwindow < 0
+    indwindow[lgcneg] = nt+indwindow[lgcneg]
     
     #finally ensure that nothing is larger than nt
-    lgc_toobig= ind_window >= nt;
-    ind_window[lgc_toobig]=np.mod(ind_window[lgc_toobig],nt)    
+    lgc_toobig= indwindow >= nt;
+    indwindow[lgc_toobig]=np.mod(indwindow[lgc_toobig],nt)    
     
     
     # plot the chi2_t to check for absolute minima without numerical jitter
@@ -1614,9 +1617,9 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,ind_window, ns, nb
             
     
     # find the chi2 minimum
-    chi2min= np.amin(chi2_t[ind_window])
-    ind_tdel_sm = np.argmin(chi2_t[ind_window])
-    ind_tdel=ind_window[:,ind_tdel_sm]    
+    chi2min= np.amin(chi2_t[indwindow])
+    ind_tdel_sm = np.argmin(chi2_t[indwindow])
+    ind_tdel=indwindow[:,ind_tdel_sm]    
         
     #output the lowest chi2 value on the digitized grid 
     amin = a_t[:,ind_tdel]
