@@ -177,9 +177,10 @@ def test_ofnsmb_muonsubtraction():
     # construct the background templates
     backgroundtemplates, backgroundtemplatesshifts = qp.core._fitting.get_slope_dc_template_nsmb(nbin)
    
-
-    psddnu,OFfiltf,Wf, Wf_summed, Wt, sbTemplatef,sbTemplatet,iWt,iBB,BB,nS,nB,bitComb  = qp.of_nSmB_setup(template,backgroundtemplates,psd, fs)
+    psddnu,phi,Pfs, P, sbtemplatef, sbtemplatet,iB,B,ns,nb,bitcomb,lfindex  = qp.of_nsmb_setup(template,backgroundtemplates,psd, fs)
     
+    iP = qp.of_nsmb_getiP(P)
+
     # construct allowed window for signal template
     indwindow = np.arange(0,len(template))
     # make indwindow dimensions 1 X (time bins)
@@ -190,7 +191,7 @@ def test_ofnsmb_muonsubtraction():
     highInd = 1
     restrictInd = np.arange(-lowInd,highInd+1)
     
-    for ii in range(1,nB-1):
+    for ii in range(1,nb-1):
         # start with the second index
         restrictInd = np.concatenate((restrictInd,
                                      np.arange(int(backgroundtemplatesshifts[ii]-lowInd),
@@ -210,14 +211,11 @@ def test_ofnsmb_muonsubtraction():
     # make indwindow dimensions 1 X (time bins)
     indwindow = indwindow[:,None].T
 
-
+    indwindow_nsmb = [indwindow]
     lgcplotnsmb=False
     s = signal
-    amps_nsmb,t0_s_nsmb,ampsBOnly_nsmb, chi2_nsmb, chi2_nsmb_lf,_,_,_,chi2BOnly_nsmb, chi2BOnly_nsmb_lf = qp.of_nSmB_inside(s, OFfiltf, Wf, Wf_summed,
-                                                                                        Wt,sbTemplatef.T, sbTemplatet,
-                                                                                        iWt, iBB, BB, psddnu.T, fs,
-                                                                                        indwindow, nS,nB, bitComb, 
-                                                                                        lgc_interp=False, lgcplot=lgcplotnsmb,lgcsaveplots=False)
+
+    amps_nsmb, t0_s_nsmb, chi2_nsmb, chi2_nsmb_lf,resid = qp.of_nsmb(s, phi, sbtemplatef.T, sbtemplatet, iP, psddnu.T, fs, indwindow_nsmb, ns, nb, bitcomb, lfindex, lgc_interp=False, lgcplot=lgcplotnsmb,lgcsaveplots=False)
    
     
     priorPulseAmp = -4.07338835e-08
@@ -228,91 +226,3 @@ def test_ofnsmb_muonsubtraction():
     
     rtol = 1e-7
     assert np.all(np.isclose(amps_nsmb, savedVals, rtol=rtol, atol=0)) 
-
-    
-def test_ofnsmb_ttlfitting():
-    """
-    Testing function for `qetpy.of_nsmb_setup and qetpy.of_nsmb`.
-    
-    """
-    
-    fs = 625e3
-    ttlrate = 2e3
-    
-    signal, template, psd = create_example_ttl_leakage_pulses(fs,ttlrate)
-
-    nbin = len(signal)
-    
-    (backgroundtemplates,
-    backgroundtemplateshifts,
-    backgroundpolarityconstraint) = qp.core._fitting.maketemplate_ttlfit_nsmb(template, 
-                                                                             fs, 
-                                                                             ttlrate, 
-                                                                             lgcconstrainpolarity=True,
-                                                                             lgcpositivepolarity=False)
-    
-    # construct the background templates
-    (psddnu,OFfiltf,Wf, Wf_summed,
-    Wt, sbTemplatef,sbTemplatet, 
-    iWt,iBB,BB,nS,nB,bitComb)  = qp.of_nSmB_setup(template,backgroundtemplates,psd, fs)
-    
-    # construct allowed window for signal template
-    indwindow = np.arange(0,len(template))
-    # make indwindow dimensions 1 X (time bins)
-    indwindow = indwindow[:,None].T
-
-    # find all indices within -lowInd and +highInd bins of background_template_shifts
-    lowInd = 1
-    highInd = 1
-    
-    #restrictInd = np.arange(-lowInd,highInd+1)
-    restrictInd = np.ndarray(0,dtype=int)
-
-    for ii in range(0,nB-2):
-        restrictInd = np.concatenate((restrictInd,
-                                     np.arange(int(backgroundtemplateshifts[ii]-lowInd),
-                                               int(backgroundtemplateshifts[ii]+highInd+1))))
-
-    # if values of restrictInd are negative
-    # wrap them around to the end of the window
-    lgcneg = restrictInd<0
-    restrictInd[lgcneg] = len(template)+restrictInd[lgcneg]
-
-    # make restictInd 1 X (time bins)
-    restrictInd = restrictInd[:,None].T
-
-    # delete the restrictedInd from indwindow
-    indwindow = np.delete(indwindow,restrictInd)
-
-    # make indwindow dimensions 1 X (time bins)
-    indwindow = indwindow[:,None].T
-
-
-    lgcplotnsmb=False
-    s = signal
-    
-    (amps_nsmb, t0_s_nsmb, ampsBOnly_nsmb, chi2_nsmb,
-    chi2_nsmb_lf, _,_,_,
-    chi2BOnly_nsmb, chi2BOnly_nsmb_lf) = qp.of_nSmB_inside(s, OFfiltf, 
-                                                          Wf, Wf_summed, 
-                                                          Wt,sbTemplatef.T, sbTemplatet,
-                                                          iWt, iBB, BB, 
-                                                          psddnu.T, fs,
-                                                          indwindow, nS,nB, 
-                                                          bitComb, background_templates_shifts = backgroundtemplateshifts,
-                                                          lgc_interp=False, lgcplot=lgcplotnsmb, lgcsaveplots=False)
-   
-        
-    # check the signal amplitude and the first three
-    # background amplitudes
-    priorPulseAmp = -3.82861366e-08
-    priorB1Amp = -2.89749852e-08
-    priorB2Amp = -4.61737507e-09
-    priorB3Amp = -1.68752504e-08
-    savedVals = (priorPulseAmp,  priorB1Amp, priorB2Amp, priorB3Amp)
-    
-    newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3])
-    
-    
-    rtol = 1e-7
-    assert np.all(np.isclose(newVals, savedVals, rtol=rtol, atol=0))
