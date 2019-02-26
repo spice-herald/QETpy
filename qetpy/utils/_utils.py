@@ -3,7 +3,7 @@ from scipy import interpolate, signal, constants
 from scipy.ndimage.interpolation import shift
 
 
-__all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon", 
+__all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon",
            "powertrace_simple", "energy_absorbed", "stdcomplex", "slope",
            "fill_negatives"]
 
@@ -12,61 +12,61 @@ def make_decreasing(y, x=None):
     Function to take an array of values and make it monotonically decreasing. This is done
     by simply tossing out any values that are larger than the last value, moving from the first
     index to the last, and interpolating between values.
-    
+
     Parameters
     ----------
     y : ndarray
         Array of values to make monotonically decreasing.
     x : ndarray, optional
         The x-values corresponding to `y`, can be useful if the x-values are not evenly spaced.
-    
+
     Returns
     -------
     out : ndarray
         A monotonically decreasing version of `y`.
-    
+
     """
-    
+
     if x is None:
         x = np.arange(len(y))
-        
+
     y_dec = np.zeros(len(y))
     y_dec[0] = y[0]
     last_val = y[0]
-    
+
     for ii, val in enumerate(y):
         if (last_val > val):
             last_val = y[ii]
             y_dec[ii] = y[ii]
 
     interp_inds = y_dec!=0
-    
+
     f = interpolate.interp1d(x[interp_inds], y[interp_inds], fill_value="extrapolate")
-    
+
     out = f(x)
-        
+
     return out
 
 def stdcomplex(x, axis=0):
     """
-    Function to return complex standard deviation (individually computed for real and imaginary 
+    Function to return complex standard deviation (individually computed for real and imaginary
     components) for an array of complex values.
-    
+
     Parameters
     ----------
     x : ndarray
         An array of complex values from which we want the complex standard deviation.
     axis : int, optional
-        Which axis to take the standard deviation of (should be used if the 
+        Which axis to take the standard deviation of (should be used if the
         dimension of the array is greater than 1)
-        
+
     Returns
     -------
     std_complex : ndarray
         The complex standard deviation of the inputted array, along the specified axis.
-            
+
     """
-    
+
     rstd = np.std(x.real, axis=axis)
     istd = np.std(x.imag, axis=axis)
     std_complex = rstd+1.0j*istd
@@ -75,7 +75,7 @@ def stdcomplex(x, axis=0):
 def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     """
     Calculates the DC offset of time series trace.
-    
+
     Parameters
     ----------
     x : ndarray
@@ -87,31 +87,31 @@ def calc_offset(x, fs=1.0, sgfreq=100.0, is_didv=False):
     is_didv : bool, optional
         If False, average of full trace is returned. If True, then the average of
         n Periods is returned (where n is the max number of full periods present in a trace).
-    
+
     Returns
     -------
     offset : ndarray
         Array of offsets with same shape as input x minus the last dimension
     std : ndarray
         Array of std with same shape as offset
-    
+
     """
-    
+
     if is_didv:
         period =  1.0/sgfreq
         period_bins = period*fs
         n_periods = int(x.shape[-1]/period_bins)
         x = x[..., :int(n_periods*period_bins)]
-           
+
     offset = np.mean(np.mean(x, axis=-1), axis=0)
     std = np.std(np.mean(x, axis=-1), axis=0)/np.sqrt(x.shape[0])
-    
+
     return offset, std
 
 def slope(x, y, removemeans=True):
     """
     Computes the maximum likelihood slope of a set of x and y points.
-    
+
     Parameters
     ----------
     x : array_like
@@ -122,47 +122,42 @@ def slope(x, y, removemeans=True):
         Boolean flag for if the mean of x should be subtracted. This
         should be set to True if x has not already had its mean subtracted.
         Set to False if the mean has been subtracted. Default is True.
-            
+
     Returns
     -------
     slope : float
         Maximum likelihood slope estimate, calculated as
         sum((x-<x>)(y-<y>))/sum((x-<x>)**2)
-        
+
     """
-    
-    if removemeans:
-        slope = np.sum((x-np.mean(x))*(y-np.mean(x)))/np.sum((x-np.mean(x))**2)
-    else:
-        slope = np.sum(x*y)/np.sum(x**2)
-        
-    return slope
-            
+    x_mean = np.mean(x) if removemeans else 0
+    return np.sum((x - x_mean) * (y - x_mean)) / np.sum((x - x_mean) ** 2)
+
 def fill_negatives(arr):
     """
     Simple helper function to remove negative and zero values from PSD's and replace
     them with interpolated values.
-    
+
     Parameters
     ----------
     arr: ndarray
         Array of values to replace neagive values on
-            
+
     Returns
     -------
     arr: ndarray
         Modified input array with the negative and zero values replace by interpelate values
-            
+
     """
-    
+
     zeros = np.array(arr <= 0)
     inds_zero = np.where(zeros)[0]
     inds_not_zero = np.where(~zeros)[0]
     good_vals = arr[~zeros]
-    
+
     if len(good_vals) != 0:
         arr[zeros] = np.interp(inds_zero, inds_not_zero, good_vals)
-        
+
     return arr
 
 
@@ -170,7 +165,7 @@ def fill_negatives(arr):
 def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     """
     Applies a low pass filter to the inputted time series traces
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -181,26 +176,26 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
         Digitization rate of data, defaults to 625e3 Hz.
     order : int, optional
         The order of the low pass filter, defaults to 1.
-    
+
     Returns
     -------
     filt_traces : ndarray
         Array of low pass filtered traces with the same shape as inputted traces.
-            
+
     """
-    
+
     nyq = 0.5*fs
     cut_off = cut_off_freq/nyq
     b,a = signal.butter(order, cut_off)
     filt_traces = signal.filtfilt(b,a,traces, padtype='even')
-    
+
     return filt_traces
 
 def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 5000.0, fs = 625e3):
     """
     Function to align dIdV traces if each trace does not trigger at the same point. Uses
     a convolution of the traces to find the time offset.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -209,13 +204,13 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         If False, the aligned traces and the phase shifts are returned.
         If True, just the phase shifts are returned. Default is False.
     n_cut : int, optional
-        The number of bins to use to do the convolution. Just need enough 
+        The number of bins to use to do the convolution. Just need enough
         information to see the periodic signal. Default is 5000.
     cut_off_freq : float or int, optional
         3dB cut off frequency for filter. Default is 5000 Hz.
     fs : float or int, optional
         Sample rate of data in Hz. Default is 625e3 Hz.
-    
+
     Returns
     -------
     shifts : ndarray
@@ -224,15 +219,15 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         Array of time shift corrected traces, same shape as input traces.
         The masked array masks the np.NaN values in the time shifted traces so that
         normal numpy functions will ignore the nan's in computations.
-            
+
     """
-    
-    
+
+
     # Filter and truncate all traces to speed up.
-    traces_filt = lowpassfilter(traces[:,:n_cut], cut_off_freq = 5000, fs = 625e3) 
+    traces_filt = lowpassfilter(traces[:,:n_cut], cut_off_freq = 5000, fs = 625e3)
     traces_temp = traces_filt - np.mean(traces_filt, axis = -1,keepdims = True)
     traces_norm = traces_temp/(np.amax(traces_temp, axis = -1,keepdims = True))
-    
+
     t1 = traces_norm[0] #use the first trace to define the origin of alignment
     orig = np.argmax(signal.fftconvolve(t1,t1[::-1],mode = 'full'))  #define the origin
 
@@ -246,19 +241,19 @@ def align_traces(traces, lgcjustshifts = False, n_cut = 5000, cut_off_freq = 500
         shifts[ii] = t2_shift
         if not lgcjustshifts:
             traces_aligned[ii] = shift(traces[ii],t2_shift,cval = np.NAN)
-    
+
     if lgcjustshifts:
         return shifts
     else:
         flat_aligned = traces_aligned.flatten()
         masked_aligned = np.ma.array(flat_aligned, mask = np.isnan(flat_aligned)).reshape(traces_aligned.shape)
-        
+
         return shifts, masked_aligned
-    
+
 def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, lgcfullrtn=True):
     """
-    Function to calculate the offset in the measured TES current using an average muon. 
-    
+    Function to calculate the offset in the measured TES current using an average muon.
+
     Parameters
     ----------
     avemuon : ndarray
@@ -276,52 +271,52 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     lgcfullrtn : bool, optional
         If True, the offset, r0, i0, and bias power is returned,
         If False, just the offset is returned
-        
+
     Returns
     -------
     ioffset : float
         The offset in the measured TES current
     r0 : float
-        The resistance of the TES 
+        The resistance of the TES
     i0 : float
         The quiescent current through the TES
     p0 : float
         The quiescent bias power of the TES
-    
+
     """
-    
+
     muon_max = np.max(avemuon)
     baseline = np.mean(avemuon[:int(nbaseline)])
     peak_loc = np.argmax(avemuon)
-    
+
     muon_saturation = np.mean(avemuon[peak_loc:peak_loc+200])
     muon_deltaI =  muon_saturation - baseline
-    
+
     vbias = qetbias*rsh
     inormal = vbias/(rload+rn)
-    
+
     i0 = inormal - muon_deltaI
     ioffset = baseline - i0
-    
+
     r0 = inormal*(rnormal+rload)/i0 - rload
     p0 = i0*rsh*qetbias - rload*i0**2
-    
+
     if lgcfullrtn:
         return ioffset, r0, i0, p0
     else:
         return ioffset
-                               
-                               
-                               
+
+
+
 def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
     """
     Function to convert time series trace from units of TES current to units of power.
     This can be done for either a single trace, or an array of traces, as
     long as the first dimension is the number of traces.
-    
+
     The function takes into account the second order dependence on current, but assumes
-    the infinite irwin loop gain approximation. 
-    
+    the infinite irwin loop gain approximation.
+
     Parameters
     ----------
     trace : ndarray
@@ -334,28 +329,28 @@ def powertrace_simple(trace, ioffset, qetbias, rload, rsh):
         Load resistance of TES circuit (rp + rsh)
     rsh : float
         Value of the shunt resistor for the TES circuit
-        
+
     Returns
     -------
     trace_p : ndarray
         Time series trace, in units of power referenced to the TES
-        
+
     """
-    
+
     vbias = qetbias*rsh
     trace_i0 = trace - ioffset
     trace_p = trace_i0*vbias - (rload)*trace_i0**2
-    
+
     return trace_p
 
 
-def energy_absorbed(trace, ioffset, qetbias, rload, rsh, 
+def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
                     fs=None, baseline=None, time=None, indbasepre=None, indbasepost=None):
     """
-    Function to calculate the energy collected by the TESs by integrating the power in the TES 
+    Function to calculate the energy collected by the TESs by integrating the power in the TES
     as a function of time. This can be done for either a single trace, or an array of traces, as
     long as the first dimension is the number of traces.
-    
+
     Parameters
     ----------
     trace : ndarray
@@ -378,15 +373,15 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
         The bin number corresponding to the pre-pulse baseline, i.e. [:indbasepre]
     indbasepost : int, optional
         The bin number corresponding to the post-pulse baseline, i.e. [indbasepost:]
-    
-    
+
+
     Returns
     -------
     integrated_energy : float, ndarray
         The energy absorbed by the TES in units of eV
-        
+
     """
-    
+
     if baseline is None:
         if indbasepre is not None:
             base_traces = trace[..., :indbasepre]
@@ -395,20 +390,15 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
         if indbasepost is not None:
             base_traces = np.hstack((base_traces, trace[..., indbasepost:]))
         baseline = np.mean(base_traces, axis=-1, keepdims=True)
-    
+
     baseline_p0 = powertrace_simple(baseline, ioffset, qetbias, rload, rsh)
     trace_power = powertrace_simple(trace, ioffset, qetbias, rload, rsh)
-    
+
     if fs is not None:
-        integrated_energy = np.trapz(baseline_p0 - trace_power, axis=-1)/(fs*constants.e) 
+        integrated_energy = np.trapz(baseline_p0 - trace_power, axis=-1)/(fs*constants.e)
     elif time is not None:
-        integrated_energy = np.trapz(baseline_p0 - trace_power, x=time, axis=-1)/constants.e 
+        integrated_energy = np.trapz(baseline_p0 - trace_power, x=time, axis=-1)/constants.e
     else:
         raise ValueError('Must provide either fs or time')
-        
+
     return integrated_energy
-                               
-                               
-                               
-                               
-                               
