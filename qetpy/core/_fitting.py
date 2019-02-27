@@ -103,10 +103,12 @@ def _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=0):
     Returns
     -------
     constraint_mask : NoneType, ndarray
-        If not constraint is set, this is set to None. If
+        If no constraint is set, this is set to None. If
         `pulse_direction_constraint` is 1 or -1, then this is the boolean array
         of the constraint.
+
     """
+
     if pulse_direction_constraint not in (-1, 0, 1):
         raise ValueError(
             "pulse_direction_constraint should be set to 0, 1, or -1",
