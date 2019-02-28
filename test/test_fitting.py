@@ -152,10 +152,7 @@ def test_argmin_chi2():
     
     """
     
-    np.random.seed(1)
-    
     x = np.array([-0.1, -1, 0.1, 1])
-    
     
     res1 = _argmin_chi2(x)
     assert res1 == 1
@@ -183,6 +180,14 @@ def test_argmin_chi2():
     assert res3 == 0
     res4 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True, constraint_mask=np.array([False, False, False, False]))
     assert np.isnan(res4)
+        
+    res1 = _argmin_chi2(x, nconstrain=2, windowcenter=1)
+    assert res1 == 2
+    res2 = _argmin_chi2(x, nconstrain=2, lgcoutsidewindow=True,  windowcenter=1)
+    assert res2 == 1
+    
+    with pytest.raises(ValueError):
+        res3 = _argmin_chi2(x, nconstrain=1, windowcenter=4)
     
     
 def test_OptimumFilter():
