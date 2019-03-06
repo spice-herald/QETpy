@@ -1717,7 +1717,8 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
         Dimensions: 1
     indwindow_nsmb : list of ndarray
         Each ndarray of the list has indices over which the nsmb fit searches for the minimum chi2. Multiple
-        entries in the list will output multiple RQs corresponding to the different windows 
+        entries in the list will output multiple RQs corresponding to the different windows. indices correspond
+        to the start of the trace (as opposed to start of the signal template)
         Dimension of ndarrays: 1 X (time bins)
     ns : int
         Number of signal templates
@@ -1819,9 +1820,9 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
     
     ###### ==== positive only constraint ====== ######
-    chi2New = np.zeros((nt,1))
+    chi2new = np.zeros((nt,1))
 
-    a_tsetNew = np.zeros((nsb,nt))
+    a_tsetnew = np.zeros((nsb,nt))
     bitCombFitVec = np.zeros((nsb,nt),dtype=int)
     
     for ii in range(nt):
@@ -1887,19 +1888,19 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
         #print('shape(a_tsetMask)=',np.shape(a_tsetMask))
         #print('a_tsetMask=',a_tsetMask)
         
-        # make a_tsetNew with dimentions of a_tset and populate it
+        # make a_tsetnew with dimentions of a_tset and populate it
         # with the a_tsetMask values
-        a_tsetNewOneT = np.zeros((nsb,1))
-        a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
-        #print('shape(a_tsetNewOneT)=',np.shape(a_tsetNewOneT))
-        a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
+        a_tsetnewonet = np.zeros((nsb,1))
+        a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
+        #print('shape(a_tsetnewonet)=',np.shape(a_tsetnewonet))
+        a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
         
         
-        if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
+        if (np.amax(a_tsetnew[0:-2,ii]) > 0.0):
             # find polarity of amplitudes
-            negamp = np.squeeze(np.asarray(a_tsetNew[:,ii] < 0,dtype=int))
-            posamp = np.squeeze(np.asarray(a_tsetNew[:,ii] > 0,dtype=int))
-            zeroamp = np.squeeze(np.asarray(a_tsetNew[:,ii] == 0,dtype=int))
+            negamp = np.squeeze(np.asarray(a_tsetnew[:,ii] < 0,dtype=int))
+            posamp = np.squeeze(np.asarray(a_tsetnew[:,ii] > 0,dtype=int))
+            zeroamp = np.squeeze(np.asarray(a_tsetnew[:,ii] == 0,dtype=int))
 
             
             # find the negative amps which are constrained to be positive
@@ -1922,29 +1923,28 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
             qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
             a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
             
-            
-            a_tsetNewOneT = np.zeros((nsb,1))
-            a_tsetNewOneT[np.ix_(indexBitMask)] = a_tsetMask
-            # reset the a_tsetNew vector
-            a_tsetNew[:,ii]=np.squeeze(a_tsetNewOneT)
+            a_tsetnewonet = np.zeros((nsb,1))
+            a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
+            # reset the a_tsetnew vector
+            a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
             
             
         # save the bitCombFit array
         bitCombFitVec[:,ii]= bitCombFit
-        #if (np.amax(a_tsetNew[0:-2,ii]) > 0.0):
+        #if (np.amax(a_tsetnew[0:-2,ii]) > 0.0):
             #print('PROBLEM, second collapsing did not fix negatives')
-            #print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            #print('a_tsetnew[:,ii]=',a_tsetnew[:,ii])
             
         # plotting checks
         '''
-        if (np.amax(a_tsetNew[0:-1,ii]) > 0.0):
+        if (np.amax(a_tsetnew[0:-1,ii]) > 0.0):
             print(f'ii={ii}')
             print('a_tset=',np.transpose(a_tset))
-            print('a_tsetNew[:,ii]=',a_tsetNew[:,ii])
+            print('a_tsetnew[:,ii]=',a_tsetnew[:,ii])
             lpFiltFreq = 30e3
             plotnsmb(pulset,omega,fs,ii*dt,a_tset,sbtemplatef,ns,nb,nt,psddnu,dt,
                           lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
-            plotnsmb(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetNew[:,ii],1),sbtemplatef,ns,nb,nt,psddnu,dt,
+            plotnsmb(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetnew[:,ii],1),sbtemplatef,ns,nb,nt,psddnu,dt,
                           lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
         
             idxOfInt = 11
@@ -2008,42 +2008,105 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
         # calc chi2 of positive constraint fit 
         chi2t0setMask = np.sum(a_tsetMask*qt_tsetMask,0)
 
-        chi2New[ii] = chi2base-chi2t0setMask
+        chi2new[ii] = chi2base-chi2t0setMask
         
-
+        
     indwindow = indwindow_nsmb[0]
-    chi2New = np.squeeze(chi2New)
-    chi2minNew= np.amin(chi2New[indwindow])
-    ind_tdel_smNew = np.argmin(chi2New[indwindow])
+    chi2new = np.squeeze(chi2new)
+    chi2minNew= np.amin(chi2new[indwindow])
+    ind_tdel_smNew = np.argmin(chi2new[indwindow])
     ind_tdel_New=indwindow[:,ind_tdel_smNew]
     
-    aminNew = a_tsetNew[:,ind_tdel_New]
-    tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
+    aminnew = a_tsetnew[:,ind_tdel_New]
+    
+    # if the min index is in the second half of the trace, subtract nt from it
+    # such that tdelminNew[0] is the template start time (in the middle of the trace)
+    tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2))*dt
     bitCombFitFinal = np.squeeze(bitCombFitVec[:,ind_tdel_New])
     
+    timearray_chi2 = np.arange(nt)*dt 
+    
+    time_chi2min_interp, chi2minNew_interp, aminsqueezeNew_int = _interpchi2(ind_tdel_New,
+                                                                       chi2new,
+                                                                       a_tsetnew[0,:],
+                                                                       timearray_chi2)
+
+    tdelminNew_interp = (time_chi2min_interp - nt*dt*(time_chi2min_interp>(nt*dt/2)))
+
+    if lgcplotcheck:
+        print('plotting...')
+
+        ind_interp_new = np.linspace(ind_interp[0], ind_interp[-1], 50)
+        chi2_interp_new = f_interp(ind_interp_new)
+        
+        plt.figure(figsize=(12, 7))
+        plt.plot(timebin[int(ind_tdel_New-5):int(ind_tdel_New+5)],
+                 chi2new[int(ind_tdel_New-5):int(ind_tdel_New+5)], '.b');
+        plt.plot(timebin[ind_tdel_New], chi2new[ind_tdel_New], '.r');
+        plt.plot(ind_interp_new, chi2_interp_new, '--k');
+        plt.plot(ind_chi2min_interp, chi2min_interp, '.c')
+        plt.xlabel('bin offset')
+        plt.ylabel('$\chi^2$ (new)')
+        plt.grid(which='both')
+        #plt.xlim([ind_tdel_New-5,ind_tdel_New+5])
+        plt.show()
+        
+        plt.figure(figsize=(12, 7))
+        plt.plot(ind_interp,
+                 amin_s_interp, '.b');
+        plt.plot(timebin[ind_tdel_New], a_tsetnew[0,ind_tdel_New], '.r');
+        plt.plot(ind_chi2min_interp, a_chi2min_interp, '.c')
+        plt.xlabel('bin offset')
+        plt.ylabel('signal amp')
+        plt.grid(which='both')
+        plt.show()
     
     ncwindow = len(indwindow_nsmb)-1
     chi2min_cwindow = np.zeros(ncwindow)
     asig_cwindow = np.zeros((ncwindow,ns))
+    tdelmin_cwindow = np.zeros(ncwindow)
+    
+    chi2min_cwindow_int = np.zeros(ncwindow)
+    asig_cwindow_int = np.zeros((ncwindow,ns))
+    tdelmin_cwindow_int = np.zeros(ncwindow)
+    
+    # the chi2new parameter is indexed relative to the start of the signal template
+    # whereas the indwindow_nsmb is indexed relative to the start of the trace.
+    # therefore roll the chi2new by nt/2
+    chi2newroll = np.roll(chi2new, int(nt/2))
+    a_tsetnewroll = np.roll(a_tsetnew, int(nt/2), axis=1)
+    
     for iwin in range(ncwindow):
-        indwindow = indwindow_nsmb[iwin]
-        chi2min_cwindow[iwin] = np.amin(chi2New[indwindow])
-        ind_tdel_smNew = np.argmin(chi2New[indwindow])
-        ind_tdel_New=indwindow[:,ind_tdel_smNew]
-        asig_cwindow[iwin,:] = a_tsetNew[0:ns,ind_tdel_New]
-        tdelmin_cwindow = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2 ))*dt
-    
-    
+        indwindow = np.squeeze(indwindow_nsmb[iwin+1]) # indwindow_nsmb[1] is the first index window        
+        chi2min_cwindow[iwin] = np.amin(chi2newroll[indwindow])
+        ind_tdel_smNew = np.argmin(chi2newroll[indwindow])
+        ind_tdel_New=indwindow[ind_tdel_smNew]
+        asig_cwindow[iwin,:] = a_tsetnewroll[0:ns,ind_tdel_New]
+        tdelmin_cwindow[iwin] = ind_tdel_New*dt
+        
+        if (ind_tdel_smNew==0 or ind_tdel_smNew==(len(indwindow) - 1)):
+            # skip interpolation since min index is at edge
+            tdelmin_cwindow_int[iwin]=tdelmin_cwindow[iwin]
+            chi2min_cwindow_int[iwin]=chi2min_cwindow[iwin]
+            asig_cwindow_int[iwin,:] = asig_cwindow[iwin,:]
+        else:
+            (tdelmin_cwindow_int[iwin], 
+             chi2min_cwindow_int[iwin], 
+             asig_cwindow_int[iwin,:])= _interpchi2(ind_tdel_smNew,
+                                                    chi2newroll[indwindow],
+                                                    np.squeeze(a_tsetnewroll[0,indwindow]),
+                                                    indwindow*dt)
+        
     # create a phase shift matrix
     # The signal gets phase shifted by tdelmin
     # The background templates have no phase shift
     phase = np.exp(-1j*omega*tdelminNew)
     phaseAr = np.ones((ns,1))@phase[None,:]
     phaseMat= np.concatenate((phaseAr,np.ones((nb,nt))),axis=0)
-    ampMat = aminNew@np.ones((1,nt))
+    ampMat = aminnew@np.ones((1,nt))
     fitf= ampMat*sbtemplatef*phaseMat
     fittotf=np.sum(fitf,axis=0, keepdims=True)
-    # now invert
+    # invert to time domain
     fittott = np.real(np.fft.ifft(fittotf,axis=1)*nt);
 
     # make residual 
@@ -2053,17 +2116,6 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
 
-    #print('ind_tdel_New=', ind_tdel_New)
-    #print('aminNew=', aminNew)
-    #print('tdelminNew=', tdelminNew)
-    
-    if lgcplotcheck:
-        plt.figure(figsize=(12, 7))
-        plt.plot(np.arange(nt), chi2New, '.b');
-        plt.xlabel('bin offset')
-        plt.ylabel('$\chi^2$ (new)')
-        plt.grid(which='both')
-        #plt.ylim([6417, 6500])
         
     ## check the gradient of the best fit positive only constraint
     
@@ -2082,7 +2134,7 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     a_tmin = np.matmul(iPt_tmin,qt_tmin)
     
     # the vector that points from the absolute minimum to the new minimum
-    vecFromAbsMin = aminNew - a_tmin
+    vecFromAbsMin = aminnew - a_tmin
     #print('shape vecFromAbsMin', np.shape(vecFromAbsMin))
 
     # note that we are working the space where the absolute (unconstrained) min
@@ -2098,27 +2150,54 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
 
     #print('a_tmin=', np.transpose(a_tmin))
 
-    #print('a_tsetNew=', np.transpose(aminNew))
+    #print('a_tsetnew=', np.transpose(aminnew))
 
 
     #print(np.concatenate((np.expand_dims(np.squeeze(gradX2aNew)<0,1),
-    #                      np.expand_dims(np.squeeze(aminNew)<0,1))
+    #                      np.expand_dims(np.squeeze(aminnew)<0,1))
     #                      ,axis=1))
     
 
     ###### ==== end test positive only constraint ====== ######
     
-    aminsqueezeNew = np.squeeze(aminNew)
+    aminsqueezeNew = np.squeeze(aminnew)
     if lgcplot:
         lpFiltFreq = 30e3
         
         # plot the positive only constraint
-        plotnsmb(pulset,fs,tdelminNew,aminNew,sbtemplatef,ns,nb,nt,psddnu,
+        plotnsmb(pulset,fs,tdelminNew,aminnew,sbtemplatef,ns,nb,nt,psddnu,
                       lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='scFit',
                       background_templates_shifts = background_templates_shifts)
 
 
-    return aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT, asig_cwindow.T, chi2min_cwindow
+    #chi2min_cwindow_int = np.zeros(ncwindow)
+    #asig_cwindow_int = np.zeros((ncwindow,ns))
+    #tdelmin_cwindow_int = np.zeros(ncwindow)
+     
+    #print('int win = ',np.shape(tdelmin_cwindow_int), np.shape(chi2min_cwindow_int), np.shape(asig_cwindow_int))
+    #print('no int win = ', np.shape(tdelmin_cwindow), np.shape(chi2min_cwindow), np.shape(asig_cwindow.T))
+    
+    return (aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT, asig_cwindow.T, chi2min_cwindow, tdelmin_cwindow,
+            aminsqueezeNew_int, tdelminNew_interp, chi2minNew_interp, asig_cwindow_int.T, chi2min_cwindow_int, tdelmin_cwindow_int)
+
+def _interpchi2(indmin, chi2, amp, time):
+    
+    t_to_interp = time[int(indmin-1):int(indmin+2)]
+        
+    chi2_interp = chi2[int(indmin-1):int(indmin+2)]
+    amin_s_interp = amp[int(indmin-1):int(indmin+2)]
+
+    z_interp = np.polyfit(t_to_interp, chi2_interp,2)
+    f_interp = np.poly1d(z_interp)
+
+    t_chi2min_interp = -z_interp[1]/(2*z_interp[0])
+    chi2min_interp = f_interp(t_chi2min_interp)
+
+    za_interp = np.polyfit(t_to_interp, amin_s_interp,2)
+    fa_interp = np.poly1d(za_interp)
+    a_chi2min_interp = fa_interp(t_chi2min_interp)
+    
+    return t_chi2min_interp, chi2min_interp, a_chi2min_interp
 
 def get_slope_dc_template_nsmb(nbin):
     """
