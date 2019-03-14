@@ -4,6 +4,33 @@ from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
 from qetpy.utils import stdcomplex, lowpassfilter, align_traces, calc_offset, energy_absorbed, powertrace_simple, shift
 
+def isclose(a, b, rtol=1e-10, atol=0):
+    """
+    Function for checking if two arrays are close up to certain tolerance parameters.
+    This is a wrapper for `numpy.isclose`, where we have simply changed the default 
+    parameters.
+    
+    Parameters
+    ----------
+    a : array_like
+        Input array to compare.
+    b : array_like
+        Input array to compare.
+    rtol : float, optional
+        The relative tolerance parameter.
+    atol : float, optional
+        The absolute tolerance parameter.
+
+    Returns
+    -------
+    y : bool
+        Returns a boolean value of whether all values of `a` and `b`
+        were equal within the given tolerance.
+    
+    """
+    
+    return np.all(np.isclose(a, b, rtol=rtol, atol=atol))
+
 def test_shift():
     """
     Testing function for `qetpy.utils.shift`.
@@ -30,6 +57,26 @@ def test_shift():
     res4[:9] = np.linspace(0.5, 8.5, num=9)
     
     assert np.all(shift(arr, -0.5, fill_value=1) == res4)
+    
+def test_make_template():
+    """
+    Testing function for `qetpy.utils.make_template`.
+    
+    """
+    
+    fs = 625e3
+    tau_r = 20e-6
+    tau_f = 80e-6
+    offset = -4
+    time = np.arange(1000)/fs
+    time_offset =  (len(time)//2)/fs + offset/fs
+    
+    # calculate the pulse in an equivalent way, such that the result should be the same
+    pulse = np.heaviside(time - time_offset, 0) 
+    pulse *= (np.exp(-(time - time_offset)/tau_f) - np.exp(-(time - time_offset)/tau_r))
+    pulse /= pulse.max()
+
+    assert isclose(make_template(time, tau_r, tau_f, offset), pulse)
 
 def test_align_traces():
     traces = np.random.randn(100, 32000)
