@@ -2,7 +2,9 @@ import pytest
 import numpy as np
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
-from qetpy.utils import stdcomplex, lowpassfilter, align_traces, calc_offset, energy_absorbed, powertrace_simple, shift
+from qetpy.utils import (stdcomplex, lowpassfilter, align_traces,
+                         calc_offset, energy_absorbed, powertrace_simple,
+                         shift, make_template)
 
 def isclose(a, b, rtol=1e-10, atol=0):
     """
