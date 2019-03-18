@@ -501,38 +501,7 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
 				background_templates_shifts = background_templates_shifts)
 
 
-	print('type(pulset)=', type(pulset))
-	print('type(phi)=', type(phi))
-	print('type(sbtemplatef)', type(sbtemplatef))
-	print('type(sbtemplate)', type(sbtemplate))
-	print('type(iB)', type(iB))
-	print('type(B)', type(B))
-	print('type(psddnu)', type(psddnu))
-	print('type(fs)', type(fs))
-	print('type(background_templates_shifts)', type(background_templates_shifts))
-	print('type(bkgpolarityconstraint)', type(bkgpolarityconstraint))
-	print('type(sigpolarityconstraint)', type(sigpolarityconstraint))
 
-	print('np.shape(pulset)=', np.shape(pulset))
-	print('np.shape(phi)=', np.shape(phi))
-	print('np.shape(sbtemplatef)', np.shape(sbtemplatef))
-	print('np.shape(sbtemplate)', np.shape(sbtemplate))
-	print('np.shape(iB)', np.shape(iB))
-	print('np.shape(B)', np.shape(B))
-	print('np.shape(psddnu)', np.shape(psddnu))
-	print('np.shape(fs)', np.shape(fs))
-	print('np.shape(background_templates_shifts)', np.shape(background_templates_shifts))
-	print('np.shape(bkgpolarityconstraint)', np.shape(bkgpolarityconstraint))
-	print('np.shape(sigpolarityconstraint)', np.shape(sigpolarityconstraint))
-
-	"""
-	print('np.shape(bminsqueezeNew)=', type(bminsqueezeNew))
-	print('type(chi2BOnlyCon)=', type(chi2BOnlyCon))
-	print('type(chi2BOnlyCon_LF)', type(chi2BOnlyCon_LF))
-	print('np.shape(bminsqueezeNew)=', np.shape(bminsqueezeNew))
-	print('np.shape(chi2BOnlyCon)=', np.shape(chi2BOnlyCon))
-	print('np.shape(chi2BOnlyCon_LF)', np.shape(chi2BOnlyCon_LF))
-	"""
 	return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
 
 

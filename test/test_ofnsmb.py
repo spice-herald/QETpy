@@ -102,6 +102,9 @@ def test_ofnsmb_ttlfitting():
                                                                   lgcpositivepolarity=False,
                                                                   notch_window_size=1)
 
+    # add a second npdarray to the window list
+    # to test the window functionality
+    indwindow_nsmb.append(np.arange(0,100))
 
     # concatenate signal and background template matrices and take FFT
     sbtemplatef, sbtemplatet = qp.of_nsmb_ffttemplate(np.expand_dims(template,1), backgroundtemplates)
@@ -150,9 +153,19 @@ def test_ofnsmb_ttlfitting():
 
     priorbonlyB1 = -3.01203573e-08
     priorbonlyB2 = -4.93831067e-09
-    savedVals = (priorPulseAmp,  priorB1Amp, priorB2Amp, priorB3Amp, priorbonlyB1, priorbonlyB2)
 
-    newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3], ampsbonly_nsmb[0], ampsbonly_nsmb[1])
+    priorampwindow = -4.79771072e-09
+    priorampwindow_int = -4.79831334e-09
+    
+    savedVals = (priorPulseAmp,  priorB1Amp, 
+                priorB2Amp, priorB3Amp, 
+                priorbonlyB1, priorbonlyB2,
+                priorampwindow, priorampwindow_int)
+
+    newVals = (amps_nsmb[0], amps_nsmb[1],
+                amps_nsmb[2], amps_nsmb[3],
+                ampsbonly_nsmb[0], ampsbonly_nsmb[1],
+                amps_sig_nsmb_cwindow, amps_sig_nsmb_cwindow_int)
 
 
     rtol = 1e-7
