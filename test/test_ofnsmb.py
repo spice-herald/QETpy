@@ -124,7 +124,7 @@ def test_ofnsmb_ttlfitting():
                                              lgc_interp=False,lgcplot=False,lgcsaveplots=False)
 
 
-
+    print("amps_nsmb=", amps_nsmb)
     # check the signal amplitude and the first three
     # background amplitudes
     priorPulseAmp = -3.82861366e-08
@@ -136,5 +136,5 @@ def test_ofnsmb_ttlfitting():
     newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3])
 
 
-    rtol = 1e-10
+    rtol = 1e-7
     assert np.all(np.isclose(newVals, savedVals, rtol=rtol, atol=0))
