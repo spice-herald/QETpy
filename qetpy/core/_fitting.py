@@ -2259,7 +2259,7 @@ def get_slope_dc_template_nsmb(nbin):
     return backgroundtemplates, backgroundtemplatesshifts
     
     
-def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, lgcpositivepolarity=True):
+def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, lgcpositivepolarity=True, notch_window_size=0):
     """
     Function for constructing the background templates for the OF nsmb fit when
     the backgrounds to be fitted are pulses from an periodic laser (TTL) firing.
@@ -2281,6 +2281,10 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
         Boolean flag for whether the the polarity of the
         pulses are positive or negative. Used to set the 
         returned array backgroundpolarityconstraint
+    notch_window_size : int
+        Size of the window around the background template
+        shift points that will be notched out of indwindow_nsmb,
+        taking those bins out of the fit
     Returns
     -------
     backgroundtemplates : ndarray
@@ -2295,6 +2299,9 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
             If 0, then no constraint on the pulse direction is set
             If 1, then a positive pulse constraint is set.
             If -1, then a negative pulse constraint is set.
+    indwindow_nsmb : list of ndarray
+        Each ndarray of the list has indices over which the nsmb fit searches for the minimum chi2.
+        Dimension of ndarrays: 1 X (time bins)
     """
     
     nbin = len(template)
@@ -2343,10 +2350,37 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
 
     # the slope and dc background don't have a bin shift,
     # so set these values to nan
-    backgroundtemplateshifts[-1] = np.nan
-    backgroundtemplateshifts[-2] = np.nan
+    backgroundtemplateshifts[-1] = 0
+    backgroundtemplateshifts[-2] = 0
+
+
+    # construct index window
+    indwindowfull = np.arange(0,len(template))
+    # make indwindow dimensions 1 X (time bins)
+    indwindowfull = indwindowfull[:,None].T
+
+    # find all indices within -lowind and +highind bins of backgroundtemplateshifts
+    # manually do the first range
+    lowind = notch_window_size
+    highind = notch_window_size
+    restrictind = np.empty(0,dtype=int)
+    for ii in range(0,nTTLs):
+        restrictind = np.concatenate((restrictind,
+                                     np.arange(int(backgroundtemplateshifts[ii]-lowind),
+                                               int(backgroundtemplateshifts[ii]+highind+1))))
+
+    # if values of restrictind are negative wrap them around to the end of the window
+    lgcneg = restrictind<0
+    restrictind[lgcneg] = len(template)+restrictind[lgcneg]
+
+    # delete the restrictedind from indwindow
+    indwindow = np.delete(indwindowfull,restrictind)
+    # make indwindow dimensions 1 X (time bins)
+    indwindow = indwindow[:,None].T
+
+    indwindow_nsmb = [indwindow]
     
-    return backgroundtemplates, backgroundtemplateshifts, backgroundpolarityconstraint
+    return backgroundtemplates, backgroundtemplateshifts, backgroundpolarityconstraint, indwindow_nsmb
     
     
 def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000, coupling="AC"):

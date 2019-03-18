@@ -69,3 +69,72 @@ def test_ofnsmb_muonsubtraction():
     
     rtol = 1e-7
     assert np.all(np.isclose(amps_nsmb, savedVals, rtol=rtol, atol=0)) 
+
+
+def test_ofnsmb_ttlfitting():
+    """
+    Testing function for `qetpy.of_nsmb_setup and qetpy.of_nsmb`.
+
+    """
+
+    fs = 625e3
+    ttlrate = 2e3
+
+    signal, template, psd = qp.sim._sim_nsmb.create_example_ttl_leakage_pulses(fs,ttlrate)
+
+    nbin = len(signal)
+
+    (backgroundtemplates,
+    backgroundtemplateshifts,
+    backgroundpolarityconstraint,
+    indwindow_nsmb) = qp.core._fitting.maketemplate_ttlfit_nsmb(template, 
+                                                                  fs, 
+                                                                  ttlrate, 
+                                                                  lgcconstrainpolarity=True,
+                                                                  lgcpositivepolarity=False,
+                                                                  notch_window_size=1)
+
+
+    # concatenate signal and background template matrices and take FFT
+    sbtemplatef, sbtemplatet = qp.of_nsmb_ffttemplate(np.expand_dims(template,1), backgroundtemplates)
+
+    (psddnu, phi, Pfs, P,
+    sbtemplatef, sbtemplatet, iB,
+    B, ns, nb, bitcomb, lfindex)  = qp.of_nsmb_setup(template, backgroundtemplates, psd, fs)
+
+    sigpolarityconstraint = (-1)*np.ones(1)
+    s = signal
+
+    (amps_nsmb,t0_s_nsmb, 
+     chi2_nsmb,chi2_nsmb_lf,
+     resid,amps_sig_nsmb_cwindow,
+     chi2_nsmb_cwindow,
+     t0_s_nsmb_cwindow,
+     amp_s_nsmb_int,
+     t0_s_nsmb_int,
+     chi2_nsmb_int,
+     amps_sig_nsmb_cwindow_int,
+     chi2_nsmb_cwindow_int,
+     t0_s_nsmb_cwindow_int) = qp.of_nsmb_con(s, phi, Pfs,
+                                             P, sbtemplatef.T, sbtemplatet,
+                                             psddnu.T, fs, indwindow_nsmb, ns,nb, bitcomb, lfindex,
+                                             background_templates_shifts = backgroundtemplateshifts,
+                                             bkgpolarityconstraint = backgroundpolarityconstraint,
+                                             sigpolarityconstraint = sigpolarityconstraint,
+                                             lgc_interp=False,lgcplot=False,lgcsaveplots=False)
+
+
+
+    # check the signal amplitude and the first three
+    # background amplitudes
+    priorPulseAmp = -3.82861366e-08
+    priorB1Amp = -2.89749852e-08
+    priorB2Amp = -4.61737507e-09
+    priorB3Amp = -1.68752504e-08
+    savedVals = (priorPulseAmp,  priorB1Amp, priorB2Amp, priorB3Amp)
+
+    newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3])
+
+
+    rtol = 1e-10
+    assert np.all(np.isclose(newVals, savedVals, rtol=rtol, atol=0))

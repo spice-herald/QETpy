@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.constants as constants
 from qetpy.core._fitting import maketemplate_ttlfit_nsmb
-from qetpy.sim._sim import TESnoise
+from qetpy.sim import *
 from qetpy.core._noise import gen_noise
+
 
 __all__ = ["create_example_pulseplusmuontail", "create_example_ttl_leakage_pulses"]
 
@@ -108,7 +109,7 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
     nbin = 6250
     
     f = np.fft.fftfreq(nbin, d=1/fs)
-    noisesim = sim.TESnoise(r0=0.03)
+    noisesim = TESnoise(r0=0.03)
 
     psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
 
@@ -130,11 +131,14 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
 
     (backgroundtemplates, 
     backgroundtemplateshifts, 
-    backgroundpolarityconstraint) = core._fitting.maketemplate_ttlfit_nsmb(template, 
-                                                                           fs, 
-                                                                           ttlrate, 
-                                                                           lgcconstrainpolarity=True, 
-                                                                           lgcpositivepolarity=False)
+    backgroundpolarityconstraint,
+    indwindow_nsmb) = maketemplate_ttlfit_nsmb(template, 
+                                               fs, 
+                                               ttlrate, 
+                                               lgcconstrainpolarity=True, 
+                                               lgcpositivepolarity=False)
+
+    #qetpy.core._fitting.
     
     
     
