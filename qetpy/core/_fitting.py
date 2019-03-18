@@ -1513,10 +1513,10 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
     
     # bitcomb_fitbackground is an array that has 1 in indices for the
     # background templates that will not be forced to zero
-    bitCombFitBackground = 1 - bitcomb_forcezero
+    bitcombfitBackground = 1 - bitcomb_forcezero
 
-    numBCon = np.sum(bitCombFitBackground)
-    indexBitMaskBackground = np.squeeze(np.nonzero(bitCombFitBackground))
+    numBCon = np.sum(bitcombfitBackground)
+    indexBitMaskBackground = np.squeeze(np.nonzero(bitcombfitBackground))
     
     tempBackgroundSum  = backgroundsum[np.ix_(indexBitMaskBackground)]
     
@@ -1816,130 +1816,124 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     # qt gets dimension (jt X nsb X 1)
     qt = np.moveaxis(qt,1,0)
 
-    # first calculate the chi2 component which is independent of the time delay
+    # calculate the chi2 component which is independent of the time delay
     chi2base = np.real(np.sum(np.conj(pulsef)/psddnu*pulsef,1))
     
-    ###### ==== positive only constraint ====== ######
+    # start amplitude polarity constraint loop
     chi2new = np.zeros((nt,1))
-
     a_tsetnew = np.zeros((nsb,nt))
-    bitCombFitVec = np.zeros((nsb,nt),dtype=int)
-    
+    bitcombfitVec = np.zeros((nsb,nt),dtype=int)
     for ii in range(nt):
         
-        # first do the fit with all backgrounds floating
-        
-        # combInd (2**nsb -1) for all positive
-        # (i.e. bitComb[combInd] will
-        # have 1s for the backgrounds
-        # we want to remove from fit)
+        # first do the fit with all backgrounds floating by setting combInd = (2**nsb -1)
+        # this way bitComb[combInd] will have 1s for all signal and backgrounds
         Pt_tset, iPt_tset = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=((2**nsb)-1),
                                     bindelay=ii, bitcomb=bitComb, bitmask=None)
-               
         
         qt_tset = qt[ii]
         a_tset = np.matmul(iPt_tset,qt_tset)
-              
 
+        # find the amplitudes that were fit in a disallowed region
         bitcomb_forcezero = _index_disallowed(a_tset, sbpolcon)
-
-        """
-        # find polarity of amplitudes
-        negamp = np.squeeze(np.asarray(a_tset < 0,dtype=int))
-        posamp = np.squeeze(np.asarray(a_tset > 0,dtype=int))
-        # find the negative amps which are constrained to be positive
-        negfit_poscon = negamp & (sbpolcon == 1)
-        # find the positive backgrounds find which are constrained to be negative
-        posfit_negcon = posamp & (sbpolcon == -1)
-        # take the OR of negfit_poscon and posfit_negcon to find all amplitudes
-        # to force to zero amplitude in the fit
-        bitcomb_forcezero = (negfit_poscon | posfit_negcon)
-        # bitcomb_fit is an array that has 1 in indices for the
-        # background templates that will not be forced to zero
-        bitCombFit = 1 - bitcomb_forcezero
-        """
         
         
         ######
         # gradient at the closest allowed point in the parameter space
         ######
-        a_tset_bound = np.copy(a_tset)
-        # select the elements that will be forced to zero
+        a_tset_boundary = np.copy(a_tset)
+
+        # set the elements in disallowed region to boundary (0.0)
         index_forcezero = np.squeeze(np.nonzero(bitcomb_forcezero))
-        a_tset_bound[index_forcezero] = 0.0
-        #print("shape of the a_tset_bound", np.shape(a_tset_bound))
+        a_tset_boundary[index_forcezero] = 0.0
 
-        #print("a_tset=", a_tset)
-        #print("a_tset_bound=",a_tset_bound)
-        vecFromAbsMin = a_tset_bound - a_tset
+        # calculate vector from absolute minimum to closest allowed point
+        vecfromabsmin = a_tset_boundary - a_tset
 
-        gradX2 = np.matmul(Pt_tset,vecFromAbsMin)
-        # this minus is because we want the negative gradient
-        gradX2 = -gradX2
-        # for the DC and slope component, automatically set the gradient to
-        # a negative number we always want these fitted to be either pos or negative
-        gradX2[-1]=-1
-        gradX2[-2]=-1
-        #record where the gradient is pointing
-        # since if is positive we will set the amplitude to zero (taking them out of the fit)
-        # which we do by setting the array elements to zero
-        #!!! Changing this to be the check that determines zero!!!#
-        bitCombFitGrad = np.squeeze(np.asarray(gradX2 < 0,dtype=int))
-        # bigCombFitGrad has ones in the elements that have a gradient pointing in the allowed direction
-        # bitCombFit (to be changed below) has ones in the elements that have amplitudes in the allowed space
-        # 
-        # if the amplitude is in the disallowed region and the gradient is pointing in the disallowed space
-        # set it to zero
-        bitCombFit = 1-(bitcomb_forcezero & (1-bitCombFitGrad))
+        # calculate gradient at the closest allowed point
+        gradX2 = np.matmul(Pt_tset,vecfromabsmin)
 
+        # we are minimizing so we are interested in negative gradients
+        neggradX2 = -gradX2
 
-        #print('ii=', ii, 'settozero 1     =', 1- bitCombFit)
-
-        #print('bitCombFitNorm=',bitCombFit)
-        #######
-        # end gradient at the closest allowed point in the parameter space
-        #######
+        # get indices where gradient points to disallowed region
+        bitcomb_disallowed_grad = _index_disallowed(neggradX2, sbpolcon)
         
+        # if the amplitude is in the disallowed region and the gradient is pointing into the disallowed region
+        # set the amplitudes to zero:
+        # bitcombfit has ones in the elements that have amplitudes allowed to float in the fit
+        bitcombfit_it1 = 1-(bitcomb_forcezero & bitcomb_disallowed_grad)
+        # copy for subsequent saving 
+        bitcombfit = bitcombfit_it1
+
+        # calculate collapsed matrix with the allowed amplitudes
         Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
-                                        bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
+                                        bindelay=ii,bitcomb=bitComb,bitmask=bitcombfit_it1)
         # select the elements that are not zero
-        indexBitMask = np.squeeze(np.nonzero(bitCombFit))
+        indexBitMask = np.squeeze(np.nonzero(bitcombfit_it1))
         
         qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
-        #print('shape(qt2_tsetMask)=',np.shape(qt2_tsetMask))
+        # redo fit in collapsed space
         a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
-        #print('shape(a_tsetMask)=',np.shape(a_tsetMask))
         
-        # make a_tsetnew with dimentions of a_tset and populate it
-        # with the a_tsetMask values
+        # expand amplitudes from collapsed space and store
         a_tsetnewonet = np.zeros((nsb,1))
         a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
         a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
         
+        
+        ######
+        # evaluate gradient at new minumum
+        ######
+        
+        bitcomb_forcezero = _index_disallowed(a_tsetnew[:,ii], sbpolcon)
+        a_tset_boundary = np.expand_dims(np.copy(a_tsetnew[:,ii]), axis=1)
 
-        """
-        if (np.amax(a_tsetnew[0:-2,ii]) > 0.0):
-            # find polarity of amplitudes
-            negamp = np.squeeze(np.asarray(a_tsetnew[:,ii] < 0,dtype=int))
-            posamp = np.squeeze(np.asarray(a_tsetnew[:,ii] > 0,dtype=int))
-            zeroamp = np.squeeze(np.asarray(a_tsetnew[:,ii] == 0,dtype=int))
+        # set the elements in disallowed region to boundary (0.0)
+        index_forcezero = np.squeeze(np.nonzero(bitcomb_forcezero))
+        a_tset_boundary[index_forcezero] = 0.0
+        vecfromabsmin = a_tset_boundary - a_tset
 
-            # find the negative amps which are constrained to be positive
-            negfit_poscon = negamp & (sbpolcon == 1)
-            # find the positive backgrounds find which are constrained to be negative
-            posfit_negcon = posamp & (sbpolcon == -1)
-            # take the OR of negfit_poscon and posfit_negcon to find all amplitudes
-            # to force to zero amplitude in the fit
-            bitcomb_forcezero = (negfit_poscon | posfit_negcon | zeroamp)
-            # bitcomb_fitis an array that has 1 in indices for the
-            # background templates that will not be forced to zero
+        # calc grad 
+        gradX2 = np.matmul(Pt_tset,vecfromabsmin)
+        neggradX2 = -gradX2
+        bitcomb_disallowed_grad = _index_disallowed(neggradX2, sbpolcon)
 
-            bitCombFit = 1 - bitcomb_forcezero
-            
+        bitcombfit_it2 = 1-(bitcomb_forcezero & bitcomb_disallowed_grad)
+
+        if (np.array_equal(bitcombfit_it1, bitcombfit_it2)==False):
+
+            bitcombfit = bitcombfit_it2
+
             Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
-                                        bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
+                                            bindelay=ii,bitcomb=bitComb,bitmask=bitcombfit_it2)
             # select the elements that are not zero
-            indexBitMask = np.squeeze(np.nonzero(bitCombFit))
+            indexBitMask = np.squeeze(np.nonzero(bitcombfit_it2))
+            
+            qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
+            a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
+            
+            # make a_tsetnew with dimentions of a_tset and populate it
+            # with the a_tsetMask values
+            a_tsetnewonet = np.zeros((nsb,1))
+            a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
+            #print('shape(a_tsetnewonet)=',np.shape(a_tsetnewonet))
+            a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
+
+        ######
+        # check, and fix, if any amplitudes are in disallowed region
+        ######
+
+        bitcomb_forcezero = _index_disallowed(a_tsetnew[:,ii], sbpolcon)
+        bitcombfit_it3 = 1 - bitcomb_forcezero
+        
+        if (np.array_equal(bitcombfit_it2, bitcombfit_it3)==False):
+
+            bitcombfit = bitcombfit_it3
+
+            Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
+                                        bindelay=ii,bitcomb=bitComb,bitmask=bitcombfit_it3)
+            # select the elements that are not zero
+            indexBitMask = np.squeeze(np.nonzero(bitcombfit_it3))
 
             qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
             a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
@@ -1948,96 +1942,9 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
             a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
             # reset the a_tsetnew vector
             a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
-        """
-        
-        ######
-        # evaluate gradient at new min and adjust if need be
-        ######
-        
-        bitcomb_forcezero = _index_disallowed(a_tsetnew[:,ii], sbpolcon)
 
-        a_tset_bound = np.expand_dims(np.copy(a_tsetnew[:,ii]), axis=1)
-
-        # select the elements that will be forced to zero
-        index_forcezero = np.squeeze(np.nonzero(bitcomb_forcezero))
-        a_tset_bound[index_forcezero] = 0.0
-        #print("a_tset=", a_tset)
-        #print("a_tsetnew=",np.transpose(a_tsetnew[:,ii]))
-
-        vecFromAbsMin = a_tset_bound - a_tset
-
-        gradX2 = np.matmul(Pt_tset,vecFromAbsMin)
-        # this minus is because we want the negative gradient
-        gradX2 = -gradX2
-        # for the DC and slope component, automatically set the gradient to
-        # a negative number we always want these fitted to be either pos or negative
-        gradX2[-1]=-1
-        gradX2[-2]=-1
-
-        #record where the gradient is pointing
-        # since if is positive we will set the amplitude to zero (taking them out of the fit)
-        # which we do by setting the array elements to zero
-        bitCombFitGrad2 = np.squeeze(np.asarray(gradX2 < 0,dtype=int))
-        #print('ii=', ii, 'grad pos @ min1 =', 1- bitCombFitGrad2)
-
-        aposzero = a_tset_bound > -1e-10
-        #print('ii=', ii, 'aposzero   pos =', np.transpose(aposzero.astype(int)))
-
-        # if the amplitude is in the disallowed region and the gradient is pointing in the disallowed space
-        # set it to zero
-        bitCombFit = 1-(np.squeeze(aposzero) & (1-bitCombFitGrad2))
-        #print("bitCombFit=", bitCombFit)
-        #if (np.count_nonzero(bitCombFit==0)):
-        #    print("number of zeros in bit comb fit=", np.count_nonzero(bitCombFit==0))
-
-
-        Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
-                                        bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
-        # select the elements that are not zero
-        indexBitMask = np.squeeze(np.nonzero(bitCombFit))
-        
-        qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
-        #print('shape(qt2_tsetMask)=',np.shape(qt2_tsetMask))
-        a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
-        #print('shape(a_tsetMask)=',np.shape(a_tsetMask))
-        
-        # make a_tsetnew with dimentions of a_tset and populate it
-        # with the a_tsetMask values
-        a_tsetnewonet = np.zeros((nsb,1))
-        a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
-        #print('shape(a_tsetnewonet)=',np.shape(a_tsetnewonet))
-        a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
-        
-
-
-        bitcomb_forcezero = _index_disallowed(a_tsetnew[:,ii], sbpolcon)
-        
-        # bitcomb_fitis an array that has 1 in indices for the
-        # background templates that will not be forced to zero
-        bitCombFit = 1 - bitcomb_forcezero
-        
-        Pt_tsetMask, iPt_tsetMask = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=None,
-                                    bindelay=ii,bitcomb=bitComb,bitmask=bitCombFit)
-        # select the elements that are not zero
-        indexBitMask = np.squeeze(np.nonzero(bitCombFit))
-
-        qt_tsetMask = qt_tset[np.ix_(indexBitMask)]
-        a_tsetMask = np.matmul(iPt_tsetMask,qt_tsetMask)
-        
-        a_tsetnewonet = np.zeros((nsb,1))
-        a_tsetnewonet[np.ix_(indexBitMask)] = a_tsetMask
-        # reset the a_tsetnew vector
-        a_tsetnew[:,ii]=np.squeeze(a_tsetnewonet)
-
-
-        # save the bitCombFit array
-        bitCombFitVec[:,ii]= bitCombFit
-
-
-
-        #if (np.amax(a_tsetnew[0:-2,ii]) > 0.0):
-        #    print('PROBLEM, second collapsing did not fix negatives')
-        #    print('a_tsetnew[:,ii]=',a_tsetnew[:,ii])
+        #save the bitcombfit array
+        bitcombfitVec[:,ii]= bitcombfit
             
         # plotting checks
         '''
@@ -2108,10 +2015,8 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
             plt.show()
         '''
             
-        
         # calc chi2 of positive constraint fit 
         chi2t0setMask = np.sum(a_tsetMask*qt_tsetMask,0)
-
         chi2new[ii] = chi2base-chi2t0setMask
         
         
@@ -2128,7 +2033,7 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     # if the min index is in the second half of the trace, subtract nt from it
     # such that tdelminNew[0] is the template start time (in the middle of the trace)
     tdelminNew = ((ind_tdel_New) - nt*(ind_tdel_New>nt/2))*dt
-    bitCombFitFinal = np.squeeze(bitCombFitVec[:,ind_tdel_New])
+    bitcombfitFinal = np.squeeze(bitcombfitVec[:,ind_tdel_New])
     
     timearray_chi2 = np.arange(nt)*dt 
     
@@ -2223,42 +2128,40 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
     chi2minNew = np.real(np.sum(np.conj(residTf.T)/psddnu.T*residTf.T,0))
     chi2minNew_LF = np.real(np.sum(np.conj(residTf.T[0:lfindex])/psddnu.T[0:lfindex]*residTf.T[0:lfindex],0))
 
-        
-    ## check the gradient of the best fit positive only constraint
-    
-    ########
-    # gradient at the new minimum
-    #######
 
-    # get the weighting matrix (again) at the bin with the lowest chi2
-    # notice that we have to cast ind_tdel_New to an int
-    #print('going into of_nsmb_getPt for gradient (line 1136))
+    # check the gradient at the best fit polarity constrained min
+    
+    # note that we cast ind_tdel_New to an int
     Pt_tmin, iPt_tmin = of_nsmb_getPt(Pf_l_summed, Pt_l, combind=((2**nsb)-1),
                                     bindelay=int(ind_tdel_New_nowindow),bitcomb=bitComb,bitmask=None)
     
     qt_tmin = qt[int(ind_tdel_New_nowindow)]
-    #print('shape(qt2_tmin)=',np.shape(qt2_tmin))
     a_tmin = np.matmul(iPt_tmin,qt_tmin)
     
     # the vector that points from the absolute minimum to the new minimum
-    vecFromAbsMin = aminnew - a_tmin
-    #print('shape vecFromAbsMin', np.shape(vecFromAbsMin))
+    vecfromabsmin = aminnew - a_tmin
 
-    # note that we are working the space where the absolute (unconstrained) min
-    # is at the origin and vecFromAbsMin points to the constrained minimum
-    gradX2aNew = np.matmul(Pt_tmin,vecFromAbsMin)    
+    # note that we are working the space where the absolute (unconstrained) minimum
+    # is at the origin and vecfromabsmin points to the constrained minimum
+    gradX2aNew = np.matmul(Pt_tmin,vecfromabsmin)    
     # this minus is because we want the negative gradient
-    gradX2aNew = -gradX2aNew
-    # for the final 2 dimensions, automatically set the gradient to
-    # -99999
-    gradX2aNew[-1]=-99999
-    gradX2aNew[-2]=-99999
-    #print('gradX2aNew=', np.transpose(gradX2aNew))
+    neggradX2aNew = -gradX2aNew
 
-    #print('a_tmin=', np.transpose(a_tmin))
-    #print('aminnew=', np.transpose(aminnew))
 
-    gradposzero = gradX2aNew > -1e-13
+    bitcomb_disallowed_grad = _index_disallowed(neggradX2aNew, sbpolcon)
+    bitcomb_disallowed = _index_disallowed(aminnew, sbpolcon)
+
+    # count the amplitudes in the disallowed region that have the gradient pointing into the disallowed region
+    ngoodboundary = np.sum((bitcomb_disallowed & bitcomb_disallowed_grad))
+    # count the number of amplitudes in the boundary
+    nboundary = np.sum(bitcomb_disallowed)
+    if (nboundary!=ngoodboundary):
+        print("bad boundary points.", ngoodboundary, ' ', nboundary)
+    else:
+        print("all good")
+
+    """
+    gradposzero = neggradX2aNew > -1e-13
     print("gposzero = ", np.transpose(gradposzero.astype(int)))
 
     aposzero = aminnew > -1e-13
@@ -2272,13 +2175,8 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
         print(f'some amplitude still positive! ii= {ii}')
         print('aminnew=', aminnew)
 
-    #print(np.concatenate((np.expand_dims(np.squeeze(gradX2aNew)<0,1),
-    #                      np.expand_dims(np.squeeze(aminnew)<0,1))
-    #                      ,axis=1))
-    
+    """
 
-    ###### ==== end test positive only constraint ====== ######
-    
     aminsqueezeNew = np.squeeze(aminnew)
     if lgcplot:
         lpFiltFreq = 30e3
@@ -2289,12 +2187,6 @@ def of_nsmb_con(pulset,phi, Pf_l_summed, Pt_l, sbtemplatef,sbtemplate, psddnu,fs
                       background_templates_shifts = background_templates_shifts)
 
 
-    #chi2min_cwindow_int = np.zeros(ncwindow)
-    #asig_cwindow_int = np.zeros((ncwindow,ns))
-    #tdelmin_cwindow_int = np.zeros(ncwindow)
-     
-    #print('int win = ',np.shape(tdelmin_cwindow_int), np.shape(chi2min_cwindow_int), np.shape(asig_cwindow_int))
-    #print('no int win = ', np.shape(tdelmin_cwindow), np.shape(chi2min_cwindow), np.shape(asig_cwindow.T))
     
     return (aminsqueezeNew, tdelminNew, chi2minNew, chi2minNew_LF, residT, asig_cwindow.T, chi2min_cwindow, tdelmin_cwindow,
             aminsqueezeNew_int, tdelminNew_interp, chi2minNew_interp, asig_cwindow_int.T, chi2min_cwindow_int, tdelmin_cwindow_int)
