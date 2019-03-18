@@ -58,7 +58,15 @@ def test_ofnsmb_muonsubtraction():
     lgcplotnsmb=False
     s = signal
 
-    amps_nsmb, t0_s_nsmb, chi2_nsmb, chi2_nsmb_lf,resid = qp.of_nsmb(s, phi, sbtemplatef.T, sbtemplatet, iP, psddnu.T, fs, indwindow_nsmb, ns, nb, bitcomb, lfindex, lgc_interp=False, lgcplot=lgcplotnsmb,lgcsaveplots=False)
+    (amps_nsmb, t0_s_nsmb, chi2_nsmb,
+    chi2_nsmb_lf,resid) = qp.of_nsmb(s,
+                                    phi, 
+                                    sbtemplatef.T, 
+                                    sbtemplatet, iP, 
+                                    psddnu.T, fs, 
+                                    indwindow_nsmb, ns, nb, 
+                                    bitcomb, lfindex, 
+                                    lgcplot=lgcplotnsmb,lgcsaveplots=False)
    
     
     priorPulseAmp = -4.07338835e-08
@@ -121,7 +129,7 @@ def test_ofnsmb_ttlfitting():
                                              background_templates_shifts = backgroundtemplateshifts,
                                              bkgpolarityconstraint = backgroundpolarityconstraint,
                                              sigpolarityconstraint = sigpolarityconstraint,
-                                             lgc_interp=False,lgcplot=False,lgcsaveplots=False)
+                                             lgcplot=False,lgcsaveplots=False)
 
 
     (ampsbonly_nsmb, chi2bonly_nsmb,
@@ -130,7 +138,7 @@ def test_ofnsmb_ttlfitting():
                                         background_templates_shifts = backgroundtemplateshifts,
                                         bkgpolarityconstraint = backgroundpolarityconstraint,
                                         sigpolarityconstraint = sigpolarityconstraint,
-                                        lgc_interp=False, lgcplot=False, lgcsaveplots=False)
+                                        lgcplot=False, lgcsaveplots=False)
     print(ampsbonly_nsmb)
 
     # check the signal amplitude and the first three
