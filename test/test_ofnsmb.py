@@ -165,7 +165,7 @@ def test_ofnsmb_ttlfitting():
     newVals = (amps_nsmb[0], amps_nsmb[1],
                 amps_nsmb[2], amps_nsmb[3],
                 ampsbonly_nsmb[0], ampsbonly_nsmb[1],
-                amps_sig_nsmb_cwindow[0], amps_sig_nsmb_cwindow_int[0])
+                amps_sig_nsmb_cwindow[0,0], amps_sig_nsmb_cwindow_int[0,0])
 
 
     rtol = 1e-7
