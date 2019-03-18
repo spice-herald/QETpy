@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.constants as constants
-from qetpy.core._fitting import maketemplate_ttlfit_nsmb
+from qetpy.core._of_nsmb import maketemplate_ttlfit_nsmb
 from qetpy.sim import *
 from qetpy.core._noise import gen_noise
 
@@ -136,10 +136,7 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
                                                fs, 
                                                ttlrate, 
                                                lgcconstrainpolarity=True, 
-                                               lgcpositivepolarity=False)
-
-    #qetpy.core._fitting.
-    
+                                               lgcpositivepolarity=False)    
     
     
     tt = t

@@ -18,7 +18,7 @@ def test_ofnsmb_muonsubtraction():
     nbin = len(signal)
     
     # construct the background templates
-    backgroundtemplates, backgroundtemplatesshifts = qp.core._fitting.get_slope_dc_template_nsmb(nbin)
+    backgroundtemplates, backgroundtemplatesshifts = qp.core._of_nsmb.get_slope_dc_template_nsmb(nbin)
    
     psddnu,phi,Pfs, P, sbtemplatef, sbtemplatet,iB,B,ns,nb,bitcomb,lfindex  = qp.of_nsmb_setup(template,backgroundtemplates,psd, fs)
     
@@ -87,7 +87,7 @@ def test_ofnsmb_ttlfitting():
     (backgroundtemplates,
     backgroundtemplateshifts,
     backgroundpolarityconstraint,
-    indwindow_nsmb) = qp.core._fitting.maketemplate_ttlfit_nsmb(template, 
+    indwindow_nsmb) = qp.core._of_nsmb.maketemplate_ttlfit_nsmb(template, 
                                                                   fs, 
                                                                   ttlrate, 
                                                                   lgcconstrainpolarity=True,
