@@ -124,16 +124,27 @@ def test_ofnsmb_ttlfitting():
                                              lgc_interp=False,lgcplot=False,lgcsaveplots=False)
 
 
-    print("amps_nsmb=", amps_nsmb)
+    (ampsbonly_nsmb, chi2bonly_nsmb,
+     chi2bonly_nsmb_lf) = qp.of_mb(s, phi, sbtemplatef.T, sbtemplatet,
+                                        iB, B, psddnu.T, fs, ns, nb, lfindex,
+                                        background_templates_shifts = backgroundtemplateshifts,
+                                        bkgpolarityconstraint = backgroundpolarityconstraint,
+                                        sigpolarityconstraint = sigpolarityconstraint,
+                                        lgc_interp=False, lgcplot=False, lgcsaveplots=False)
+    print(ampsbonly_nsmb)
+
     # check the signal amplitude and the first three
     # background amplitudes
     priorPulseAmp = -3.82861366e-08
     priorB1Amp = -2.89749852e-08
     priorB2Amp = -4.61737507e-09
     priorB3Amp = -1.68752504e-08
-    savedVals = (priorPulseAmp,  priorB1Amp, priorB2Amp, priorB3Amp)
 
-    newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3])
+    priorbonlyB1 = -3.01203573e-08
+    priorbonlyB2 = -4.93831067e-09
+    savedVals = (priorPulseAmp,  priorB1Amp, priorB2Amp, priorB3Amp, priorbonlyB1, priorbonlyB2)
+
+    newVals = (amps_nsmb[0], amps_nsmb[1], amps_nsmb[2], amps_nsmb[3], ampsbonly_nsmb[0], ampsbonly_nsmb[1])
 
 
     rtol = 1e-7
