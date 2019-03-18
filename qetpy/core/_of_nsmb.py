@@ -624,7 +624,7 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
 	nt = pulset.shape[1]
 	nsb = phi.shape[0]
 
-	dt = 1/fsq
+	dt = 1/fs
 	dnu = 1/(nt*dt)
 	nu = np.arange(0.,nt)*dnu
 	lgc= nu> nt*dnu/2
