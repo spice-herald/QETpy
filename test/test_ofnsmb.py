@@ -156,7 +156,7 @@ def test_ofnsmb_ttlfitting():
 
     priorampwindow = -4.79771072e-09
     priorampwindow_int = -4.79831334e-09
-    
+
     savedVals = (priorPulseAmp,  priorB1Amp, 
                 priorB2Amp, priorB3Amp, 
                 priorbonlyB1, priorbonlyB2,
@@ -165,7 +165,7 @@ def test_ofnsmb_ttlfitting():
     newVals = (amps_nsmb[0], amps_nsmb[1],
                 amps_nsmb[2], amps_nsmb[3],
                 ampsbonly_nsmb[0], ampsbonly_nsmb[1],
-                amps_sig_nsmb_cwindow, amps_sig_nsmb_cwindow_int)
+                amps_sig_nsmb_cwindow[0], amps_sig_nsmb_cwindow_int[0])
 
 
     rtol = 1e-7
