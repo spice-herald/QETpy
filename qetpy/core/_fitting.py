@@ -1615,8 +1615,8 @@ class OFnonlin(object):
 
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
-    def fit_falltimes(self, pulse, npolefit=1, errscale=1, guess=None, taurise=None,
-                      lgcfullrtn=False, lgcplot=False):
+    def fit_falltimes(self, pulse, npolefit=1, errscale=1, guess=None, bounds=None,
+                      taurise=None, lgcfullrtn=False, lgcplot=False):
         """
         Function to do the fit
 
@@ -1638,6 +1638,11 @@ class OFnonlin(object):
             Guess of initial values for fit, must be the same size as the model being used for fit.
             If lgcdouble is True, then the order should be (ampguess, tauriseguess, taufallguess, t0guess).
             If lgcdouble is False, then the order should be (ampguess, taufallguess, t0guess).
+        bounds : 2-tuple of array_like, optional
+            Lower and upper bounds on independent variables. Each array must match the size of guess.
+            Use np.inf with an appropriate sign to disable bounds on all or some variables.
+            If None, bounds are automatically set to within a factor of 100 of amplitude guesses, 
+            a factor of 10 of rise/fall time guesses, and within 30 samples of start time guess.
         taurise : float, optional
             The value of the rise time of the pulse if the single pole function is being use for fit
         lgcfullrtn : bool, optional
@@ -1656,6 +1661,7 @@ class OFnonlin(object):
             The convariance matrix returned from the fit
         chi2 : float
             The reduced chi squared statistic evaluated at the optimum point of the fit
+        success : True if the fit converged
 
         Raises
         ------
@@ -1741,29 +1747,37 @@ class OFnonlin(object):
         if (self.npolefit==4):
             self.dof = 8
             p0 = (Aguess, Bguess, Cguess, tauriseguess, taufall1guess, taufall2guess, taufall3guess, t0guess)
-            boundslower = (Aguess/100, Bguess/100, Cguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, taufall3guess/10, t0guess - 30/self.fs)
-            boundsupper = (Aguess*100, Bguess*100, Cguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, taufall3guess*10, t0guess + 30/self.fs)
+            if bounds is None:
+                boundslower = (Aguess/100, Bguess/100, Cguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, taufall3guess/10, t0guess - 30/self.fs)
+                boundsupper = (Aguess*100, Bguess*100, Cguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, taufall3guess*10, t0guess + 30/self.fs)
+                bounds = (boundslower, boundsupper)
         elif (self.npolefit==3):
             self.dof = 6
             p0 = (Aguess, Bguess, tauriseguess, taufall1guess, taufall2guess, t0guess)
-            boundslower = (Aguess/100, Bguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, t0guess - 30/self.fs)
-            boundsupper = (Aguess*100, Bguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, t0guess + 30/self.fs)
+            if bounds is None:
+                boundslower = (Aguess/100, Bguess/100, tauriseguess/10, taufall1guess/10, taufall2guess/10, t0guess - 30/self.fs)
+                boundsupper = (Aguess*100, Bguess*100, tauriseguess*10, taufall1guess*10, taufall2guess*10, t0guess + 30/self.fs)
+                bounds = (boundslower, boundsupper)
         elif (self.npolefit==2):
             self.dof = 4
             p0 = (ampguess, tauriseguess, taufallguess, t0guess)
-            boundslower = (ampguess/100, tauriseguess/10, taufallguess/10, t0guess - 30/self.fs)
-            boundsupper = (ampguess*100, tauriseguess*10, taufallguess*10, t0guess + 30/self.fs)
+            if bounds is None:
+                boundslower = (ampguess/100, tauriseguess/10, taufallguess/10, t0guess - 30/self.fs)
+                boundsupper = (ampguess*100, tauriseguess*10, taufallguess*10, t0guess + 30/self.fs)
+                bounds = (boundslower, boundsupper)
         else:
             self.dof = 3
             p0 = (ampguess, taufallguess, t0guess)
-            boundslower = (ampguess/100, taufallguess/10, t0guess - 30/self.fs)
-            boundsupper = (ampguess*100,  taufallguess*10, t0guess + 30/self.fs)
+            if bounds is None:
+                boundslower = (ampguess/100, taufallguess/10, t0guess - 30/self.fs)
+                boundsupper = (ampguess*100,  taufallguess*10, t0guess + 30/self.fs)
+                bounds = (boundslower, boundsupper)
 
-        bounds = (boundslower, boundsupper)
 
         result = least_squares(self.residuals, x0 = p0, bounds=bounds, x_scale=p0 , jac = '3-point',
                                loss = 'linear', xtol = 2.3e-16, ftol = 2.3e-16)
         variables = result['x']
+        success = result['success']
 
 
         if (self.npolefit==4):
@@ -1785,7 +1799,7 @@ class OFnonlin(object):
         if lgcplot:
             plotnonlin(self,pulse, variables, errors)
         if lgcfullrtn:
-            return variables, errors, cov, chi2
+            return variables, errors, cov, chi2, success
         else:
             return variables
 
