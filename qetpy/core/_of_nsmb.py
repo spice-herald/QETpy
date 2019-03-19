@@ -1193,10 +1193,11 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
     ngoodboundary = np.sum((bitcomb_disallowed & bitcomb_disallowed_grad))
     # count the number of amplitudes in the boundary
     nboundary = np.sum(bitcomb_disallowed)
+
     if (nboundary!=ngoodboundary):
         print("bad boundary points.", ngoodboundary, ' ', nboundary)
-    else:
-        print("all good")
+    #else:
+        #print("all good")
 
     """
     gradposzero = neggradX2aNew > -1e-13
