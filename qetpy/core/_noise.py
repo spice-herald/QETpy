@@ -176,7 +176,7 @@ class Noise(object):
         A list of strings that name each of the channels.
     time : ndarray
         The time values for each bin in each trace.
-    fname : str
+    name : str
         The file name of the data, this will be used when saving the file.
     tracegain : float
         The factor that traces should be divided by to convert the units to Amps. If rawtraces
@@ -210,7 +210,7 @@ class Noise(object):
             
     """
     
-    def __init__(self, traces, fs, channames, tracegain = 1.0, fname = None, time = None):
+    def __init__(self, traces, fs, channames, tracegain = 1.0, name = None, time = None):
         """
         Initialization of the Noise object.
         
@@ -226,7 +226,7 @@ class Noise(object):
         tracegain : float, optional
             The factor that traces should be divided by to convert the units to Amps. If rawtraces
             already has units of Amps, then this should be set to 1.0
-        fname : str, optional
+        name : str, optional
             The file name of the data, this will be used when saving the file.
         time : ndarray, optional
             The time values for each bin in each trace.
@@ -248,7 +248,7 @@ class Noise(object):
         else:
             self.time = time # array of x-values in units of time [sec]
             
-        self.fname = fname
+        self.name = name
         self.tracegain = tracegain #conversion of trace amplitude from ADC bins to Amps 
         self.freqs = np.fft.rfftfreq(self.traces.shape[2],d = 1/fs)
         self.psd = None
@@ -346,18 +346,18 @@ class Noise(object):
         
         if self.csd is None:
             self.calculate_csd()
-        else:
-            inv_csd = np.zeros_like(self.csd)
-            uncorrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
-            corrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
-            for ii in range(self.csd.shape[2]):
-                inv_csd[:,:,ii] = np.linalg.inv(self.csd[:,:,ii])
-            for jj in range(self.csd.shape[0]):
-                uncorrnoise[jj] = 1/np.abs(inv_csd[jj][jj][:])
-                corrnoise[jj] = self.real_csd[jj][jj]-1/np.abs(inv_csd[jj][jj][:])
+        
+        inv_csd = np.zeros_like(self.csd)
+        uncorrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
+        corrnoise = np.zeros(shape=(self.csd.shape[0], self.csd.shape[2]))
+        for ii in range(self.csd.shape[2]):
+            inv_csd[:,:,ii] = np.linalg.inv(self.csd[:,:,ii])
+        for jj in range(self.csd.shape[0]):
+            uncorrnoise[jj] = 1/np.abs(inv_csd[jj][jj][:])
+            corrnoise[jj] = self.real_csd[jj][jj]-1/np.abs(inv_csd[jj][jj][:])
 
-            self.corrnoise = corrnoise
-            self.uncorrnoise = uncorrnoise
+        self.corrnoise = corrnoise
+        self.uncorrnoise = uncorrnoise
         
     def calculate_csd(self):
         """
@@ -520,6 +520,6 @@ class Noise(object):
         if path[-1] != '/':
             path += '/'
             
-        with open(path+self.fname.replace(" ", "_")+'.pkl','wb') as savefile:
+        with open(path+self.name.replace(" ", "_")+'.pkl','wb') as savefile:
             pickle.dump(self, savefile, pickle.HIGHEST_PROTOCOL)
             
