@@ -977,75 +977,6 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
 		#save the bitcombfit array
 		bitcombfitVec[:,ii]= bitcombfit
 			
-		# plotting checks
-		'''
-		if (np.amax(a_tsetnew[0:-1,ii]) > 0.0):
-			print(f'ii={ii}')
-			print('a_tset=',np.transpose(a_tset))
-			print('a_tsetnew[:,ii]=',a_tsetnew[:,ii])
-			lpFiltFreq = 30e3
-			plotnsmb(pulset,omega,fs,ii*dt,a_tset,sbtemplatef,ns,nb,nt,psddnu,dt,
-						  lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
-			plotnsmb(pulset,omega,fs,ii*dt,np.expand_dims(a_tsetnew[:,ii],1),sbtemplatef,ns,nb,nt,psddnu,dt,
-						  lpFiltFreq,lgcsaveplots=0,figPrefix=f'p1bin2805sFitIndex{ii}')
-		
-			idxOfInt = 11
-			reducedMat = iPt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
-			#print('np.shape(reducedMat)=', np.shape(reducedMat))
-			#print('reducedMat = ', reducedMat)
-			
-			reducedHess =  Pt_tset[np.ix_([0,idxOfInt], [0,idxOfInt])]
-			#print('reducedHess = ', reducedHess)
-			
-			gradX2red = np.matmul(reducedHess,np.array((-a_tset[0], -a_tset[idxOfInt])))
-			ngradX2red = -gradX2red
-			
-			lambda_, v = np.linalg.eig(reducedMat)
-			#print('lambda=', lambda_)
-			lambda_ = np.sqrt(lambda_)
-			#print('v=',v)
-			theta = np.degrees(np.arctan2(*v[:,0][::-1]))
-			
-			fig = plt.figure(0)
-			ax = fig.add_subplot(111, aspect='equal')
-			
-			nsigmas=3
-			factorSig = 0.05
-			for sigma in range(1,nsigmas+1):
-				width = lambda_[0]*2*sigma*factorSig
-				height = lambda_[1]*2*sigma*factorSig
-				ell = Ellipse(xy=(a_tset[0], a_tset[idxOfInt]),
-											width=width,
-											height=height,
-											angle=theta,
-											linewidth=2,
-											edgecolor=([0, 0, 1]),
-										   facecolor='none')
-				ax.add_artist(ell)
-				
-			plt.plot(a_tset[0], a_tset[idxOfInt], '*r')
-			#plt.plot(0,0,'+b', markersize=20)
-			
-			plotAx = np.max([width,height])/1.5
-			plt.xlim([a_tset[0]-plotAx, a_tset[0]+plotAx])
-			plt.ylim([a_tset[idxOfInt]-plotAx, a_tset[idxOfInt]+plotAx])
-			plt.axvline(x=0.0, color='k',linestyle='--' )
-			plt.axhline(y=0.0, color='k',linestyle='--')
-			
-			plt.grid()
-			plt.ticklabel_format(style='sci',axis='both', scilimits=(0,0))
-			plt.xlabel('signal amplitude')
-			plt.ylabel('background amplitude')
-			plt.title(f'$\chi^2$ with signal bin offset ={ii}')
-			plt.quiver([0],[0],ngradX2red[0],ngradX2red[1],color='m',scale=1,scale_units='xy')
-
-			
-			if False:
-				saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
-				plt.savefig(saveDir + f"p1bin2805ellipse{ii}" + '.png', bbox_inches='tight')
-			plt.show()
-		'''
-			
 		# calc chi2 of polarity constrained fit 
 		chi2t0setMask = np.sum(a_tsetMask*qt_tsetMask,0)
 		chi2new[ii] = chi2base-chi2t0setMask
@@ -1071,34 +1002,6 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
 																	   timearray_chi2)
 
 	tdelmin_interp = (time_chi2min_interp - nt*dt*(time_chi2min_interp>(nt*dt/2)))
-
-	if lgcplotcheck:
-		print('plotting...')
-
-		ind_interp_new = np.linspace(ind_interp[0], ind_interp[-1], 50)
-		chi2_interp_new = f_interp(ind_interp_new)
-		
-		plt.figure(figsize=(12, 7))
-		plt.plot(timebin[int(ind_tdel_New-5):int(ind_tdel_New+5)],
-				 chi2new[int(ind_tdel_New-5):int(ind_tdel_New+5)], '.b');
-		plt.plot(timebin[ind_tdel_New], chi2new[ind_tdel_New], '.r');
-		plt.plot(ind_interp_new, chi2_interp_new, '--k');
-		plt.plot(ind_chi2min_interp, chi2min_interp, '.c')
-		plt.xlabel('bin offset')
-		plt.ylabel('$\chi^2$ (new)')
-		plt.grid(which='both')
-		#plt.xlim([ind_tdel_New-5,ind_tdel_New+5])
-		plt.show()
-		
-		plt.figure(figsize=(12, 7))
-		plt.plot(ind_interp,
-				 amin_s_interp, '.b');
-		plt.plot(timebin[ind_tdel_New], a_tsetnew[0,ind_tdel_New], '.r');
-		plt.plot(ind_chi2min_interp, a_chi2min_interp, '.c')
-		plt.xlabel('bin offset')
-		plt.ylabel('signal amp')
-		plt.grid(which='both')
-		plt.show()
 	
 	ncwindow = len(indwindow_nsmb)-1
 	chi2min_cwindow = np.zeros(ncwindow)
