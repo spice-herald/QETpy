@@ -55,7 +55,7 @@ def test_ofnsmb_muonsubtraction():
     indwindow = indwindow[:,None].T
 
     indwindow_nsmb = [indwindow]
-    lgcplotnsmb=False
+    lgcplotnsmb=True
     s = signal
 
     (amps_nsmb, t0_s_nsmb, chi2_nsmb,

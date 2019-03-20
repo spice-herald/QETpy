@@ -393,20 +393,20 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
     sigpolarityconstraint : int
         Same as bkgpolarityconstraint but for the signal template
         Dimensions: n X ()
-    lgcplot: bool
+    lgcplot : bool
         Flag for plotting result
-    lgcsaveplots: False
+    lgcsaveplots : False
         Flag for saving plot. Give integer for unique file name
     
     Returns
     ----------
-    bminsqueezeNew: ndarray
+    bminsqueezeNew : ndarray
         Best fit amplitude for n signals and m backgrounds
         Dimensions: m X ()
-    chi2BOnlyCon: ndarray
+    chi2BOnlyCon : ndarray
         The chi^2 of the constrained fit
         Dimensions: 1 X ()
-    chi2BOnlyCon_LF: ndarray
+    chi2BOnlyCon_LF : ndarray
         The chi^2 of the constrained fit up to a low frequency
         cutoff given by lfindex
         Dimensions: 1 X ()
@@ -545,9 +545,9 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
         The indices at which the background templates start
         Only used for plotting
         Dimensions: m X ()
-    lgcplot: bool
+    lgcplot : bool
         Flag for plotting result
-    lgcsaveplots: False
+    lgcsaveplots : False
         Flag for saving plot. Give integer for unique file name
     
     Returns
@@ -558,14 +558,14 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
     tdelmin : ndarray
         The best fit time delay of the n signals
         Dimensions:  1 X 0
-    chi2min: tuple
+    chi2min : tuple
         The chi^2 of the fit
         Dimensions: 1
-    chi2minlf: tuple
+    chi2minlf : tuple
         The chi^2 of the fit up to a low frequency
         cutoff given by lfindex
         Dimensions: 1
-    residT: ndarray
+    residT : ndarray
         Residual (data - fit) in time domain 
 
     History
@@ -708,16 +708,16 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
         Dimensions : nsb X nsb X nt
     sbtemplatef : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
-        Dimensions: (n + m) X (freq bins = time bins)
+        Dimensions : (n + m) X (freq bins = time bins)
     sbtemplate : ndarray
         The m templates for the background (should be normalized to max(temp)=1)
-        Dimensions: (time bins) X (n + m)
+        Dimensions : (time bins) X (n + m)
     psddnu : ndarray
         Two-sided psd multiplied by dnu (in Amps^2)
-        Dimensions: (time bins) X 1
+        Dimensions : (time bins) X 1
     fs : float
         Sample rate in Hz
-        Dimensions: 1
+        Dimensions : 1
     indwindow_nsmb : list of ndarray
         Each ndarray of the list has indices over which the nsmb fit searches for the minimum chi2. Multiple
         entries in the list will output multiple RQs corresponding to the different windows. indices correspond
@@ -726,7 +726,7 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
         Dimension of ndarrays: 1 X (time bins)
     ns : int
         Number of signal templates
-        Dimensions: 1
+        Dimensions : 1
     nb : int
         Number of background templates
         Dimensions: 1
@@ -743,9 +743,9 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
             If -1, then a negative pulse constraint is set.
     sigpolaritconstraint : int
         Same as bkgpolarityconstraint but for the signal template
-    lgcplot: bool
+    lgcplot : bool
         Flag for plotting result
-    lgcsaveplots: False
+    lgcsaveplots : False
         Flag for saving plot. Give integer for unique file name
         
 
@@ -757,30 +757,30 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
     tdelmin : ndarray
         The best fit time delay of the n signals
         Dimensions:  1 X 0
-    chi2min: tuple
+    chi2min : tuple
         The chi^2 of the fit
         Dimensions: 1
-    chi2min_LF: tuple
+    chi2min_LF : tuple
         The chi^2 of the fit up to a low frequency
         cutoff given by lfindex
-        Dimensions: 1
+        Dimensions : 1
     residT: ndarray
         Residual (data - fit) in time domain 
     asig_cwindowT : ndarray
         Signal amplitudes in the windows defined in the list indwindow_nsmb
         Dimensions: ns X nwindow
-    chi2min_cwindow: ndarray
+    chi2min_cwindow : ndarray
         chi^2 vals in the windows defined in the list indwindow_nsmb
         Dimensions: nwindow
-    tdelmin_cwindow: ndarray
+    tdelmin_cwindow : ndarray
         time delays in the windows defined in the list indwindow_nsmb
-        Dimensions: nwindow
-    amincon_int: same as above but interpolated 
-    tdelmin_interp: same as above but interpolated 
-    chi2min_interp: same as above but interpolated 
-    asig_cwindow_intT: same as above but interpolated 
-    chi2min_cwindow_int: same as above but interpolated 
-    tdelmin_cwindow_int: same as above but interpolated 
+        Dimensions : nwindow
+    amincon_int : same as above but interpolated 
+    tdelmin_interp : same as above but interpolated 
+    chi2min_interp : same as above but interpolated 
+    asig_cwindow_intT : same as above but interpolated 
+    chi2min_cwindow_int : same as above but interpolated 
+    tdelmin_cwindow_int : same as above but interpolated 
 
     """
 
@@ -1098,33 +1098,33 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
 def _interpchi2(indmin, chi2, amp, time):
     
     """
-
     Function for interpolating to a lower chi2 by interpolating quadratically
     between time bins. After finding the inter-bin chi2 minimum, the interpolated
     amplitude is also calculated.
 
     Parameters
     ----------
-    indmin: int
+    indmin : int
         The index of the minimum in discrete space
-    chi2: ndarray
+    chi2 : ndarray
         Array of chi^2 values. chi2[indmin] is the discrete minimum
-        Dimensions: nt X ()
-    amp: ndarray
+        Dimensions : nt X ()
+    amp : ndarray
         Array of amplitude values corresponding to chi2
-    time: ndarray
+    time : ndarray
         Array of time values corresponding to amp and chi2
 
     Returns
     ----------
-    t_chi2min_interp: float
+    t_chi2min_interp : float
         Time at interpolated chi^2 minimum
-    chi2min_interp: float
+    chi2min_interp : float
         Interpolated chi^2 minimum
-    a_chi2min_interp: float
+    a_chi2min_interp : float
         Amplitude at interpolated chi^2 minimum
-    ----------
+
     """
+
     t_to_interp = time[int(indmin-1):int(indmin+2)]
         
     chi2_interp = chi2[int(indmin-1):int(indmin+2)]
@@ -1151,11 +1151,11 @@ def _index_disallowed(amp_array, con_array):
 
     Parameters
     ----------
-    amp_array: ndarray
+    amp_array : ndarray
         Array of values (amplitudes or gradients) whose polarity will
         be checked to see if they lie or point towards the disallowed
         region
-    con_array: ndarray
+    con_array : ndarray
         The array indicating the allowed region
             If 0, then no constraint in the region
             If 1, then positive region allowed

@@ -1315,36 +1315,42 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
 
 def plotnsmb(pulset,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,
                   lpFiltFreq=None,lgcsaveplots=False, xlim=None,figPrefix='testFit',
-                  background_templates_shifts=None):
+                  background_templates_shifts=None, savepath='./'):
     """
     
     Parameters
     ----------
-    pulset: tuple
+    pulset : tuple
         Data to be plotted
         Dimensions: 1 X (time bins)
-    omega: tuple
+    omega : tuple
         Angular frequency of the pulse in the frequency domain
         Dimensions: (time bins) X ()
-    fs: tuple
+    fs : tuple
         Sampling frequency in Hz
-    tdelmin: tuple
+    tdelmin : tuple
         The best fit time delay of the signal, offset from the original signal template
-    amin: tuple
+    amin : tuple
         The best fit amplitude of the signal
         Dimensions: (nS + nB) X 1
-    sbTemplatef:
+    sbTemplatef :
         The frequency domain signal and background templates
         Dimensions: (nS + nB) X (time bins)
-    nt: tuple
+    nt : tuple
         The number of time domain points of the signal and template
-    lpFiltFreq: tuple
+    lpFiltFreq : tuple
         The frequency of the LF filter to pulset (default None)
-    lgcsaveplots: bool or int
+    lgcsaveplots : bool or int
         Flag for whether or not to save plots (default False)
         If not False, should be int to append to saved fig filename
-    figPrefix: string
+    figPrefix : string
         The saved fig filename prefix (whatever text before the number)
+    background_templates_shifts : ndarray, optional
+        The indices at which the background templates start
+        Dimensions: m X ()
+    savepath : string, optional
+        Path to dsave directory
+
     """
 
     nSB = nS + nB
@@ -1432,5 +1438,4 @@ def plotnsmb(pulset,fs,tdelmin,amin,sbTemplatef,nS,nB,nt,psddnu,
     plt.ticklabel_format(style='sci',axis='both', scilimits=(0,0))
 
     if lgcsaveplots:
-        saveDir = '/galbascratch/wpage/analysis/samsNBs/Figures/'
-        plt.savefig(saveDir + figPrefix + str(lgcsaveplots) + '.png', bbox_inches='tight')
+        plt.savefig(savepath + figPrefix + str(lgcsaveplots) + '.png', bbox_inches='tight')
