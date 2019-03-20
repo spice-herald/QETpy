@@ -1103,7 +1103,9 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
 	asig_cwindowT = asig_cwindow.T
 	asig_cwindow_intT = asig_cwindow_int.T
 
-	return (amincon, tdelmin, chi2min, chi2min_LF, residT, asig_cwindowT, chi2min_cwindow, tdelmin_cwindow,
+	aminconsqueeze = np.squeeze(amincon)
+
+	return (aminconsqueeze, tdelmin, chi2min, chi2min_LF, residT, asig_cwindowT, chi2min_cwindow, tdelmin_cwindow,
 			amincon_int, tdelmin_interp, chi2min_interp, asig_cwindow_intT, chi2min_cwindow_int, tdelmin_cwindow_int)
 
 def _interpchi2(indmin, chi2, amp, time):
