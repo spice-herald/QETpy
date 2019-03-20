@@ -3,12 +3,12 @@ from numpy.fft import fft, ifft
 from qetpy.plotting import plotnsmb
 import itertools
 
-__all__ = ["of_nsmb_ffttemplate", "of_nsmb_getPf", "of_nsmb_getPt", "of_nsmb_setup", 
-            "of_nsmb_getiP", "of_mb", "of_nsmb","of_nsmb_con",  "get_slope_dc_template_nsmb",
-            "maketemplate_ttlfit_nsmb"]
+__all__ = ["of_nsmb_ffttemplate", "of_nsmb_getPf", "of_nsmb_getPt", "of_nsmb_setup",
+           "of_nsmb_getiP", "of_mb", "of_nsmb","of_nsmb_con", "get_slope_dc_template_nsmb",
+           "maketemplate_ttlfit_nsmb"]
 
 
-def of_nsmb_ffttemplate(stemplatet,btemplatet):
+def of_nsmb_ffttemplate(stemplatet, btemplatet):
     """
     A function to concatenate signal and background templates and output them
     in the time and frequency dimensions
@@ -45,7 +45,7 @@ def of_nsmb_ffttemplate(stemplatet,btemplatet):
     
     return sbtemplatef, sbtemplatet
 
-def of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt):
+def of_nsmb_getPf(sbtemplatef, psddnu, ns, nb, nt):
     """
     Function for creation of filter and P matrices in frequency domain
     
@@ -63,8 +63,7 @@ def of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt):
         number of backgrounds
     nt : int
         number of time points
-    
-    
+
     Returns
     -------
     Pf : ndarray
@@ -99,25 +98,25 @@ def of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt):
 
     return Pf, Pfs, phi
 
-def of_nsmb_getPt(Pfs, P, combind=2**20, bindelay=0, bitcomb=None,bitmask=None):
+def of_nsmb_getPt(Pfs, P, combind=2**20, bindelay=0, bitcomb=None, bitmask=None):
     """
     Function for slicing P matrix along its time dimenstion (third dimension), applying a mask
     to the slice, and returning both the slice and the inverse
     
     Parameters
     ----------
-    Pfs : ndarray. 
+    Pfs : ndarray
         Matrix of dot products between different templates in the frequency domain
         for the of nsmb fit
         Dimensions : nsb X nsb
-    P : ndarray. 
+    P : ndarray
         Matrix of element-wise multiplications of different templates
         for the of nsmb fit
         Dimensions : nsb X nsb X nt
-    combind: int, optional
+    combind : int, optional
         A number between 0 and 2^nsb that is used in combination with bitcomb to
         say which dimensions to remove from the fit
-    bindelay: int, optional
+    bindelay : int, optional
         The time bin to calculate Pt
     bitcomb : list, optional
         A list of all possible bit (0 or 1) combinations for an array of length nsb
@@ -130,12 +129,11 @@ def of_nsmb_getPt(Pfs, P, combind=2**20, bindelay=0, bitcomb=None,bitmask=None):
         A slice of the P matrix at the bindelay P(:,:,bindelay) masked along the dimesions
         given by bitmask
         Dimensions : sum(bitmask) X sum(bitmask)
-    iPt_mask : nd array
+    iPt_mask : ndarray
         Inverse of Pt_mask
         Dimensions : sum(bitmask) X sum(bitmask)
     
     """
-    
 
     if bitmask is None:
         bitmask = np.asarray(bitcomb[combind])
@@ -178,9 +176,9 @@ def of_nsmb_getPt(Pfs, P, combind=2**20, bindelay=0, bitcomb=None,bitmask=None):
     
     return Pt_mask, iPt_mask
 
-def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
+def of_nsmb_setup(stemplatet, btemplatet, psd, fs):
     """
-    The setup function for of_nsmb and of_nsmb_con
+    The setup function for `of_nsmb` and `of_nsmb_con`
         
     Parameters
     ----------
@@ -194,11 +192,9 @@ def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
         Two-sided psd that will be used to describe the noise on the pulse (in Amps^2/Hz)
         Converted to one sided immediately below for the matrix generation
         Dimensions: (freq bins = time bins) X ()
-    fs : 
+    fs : float
         Sample rate in Hz
-        
-        
-        
+
     Returns
     -------
     psddnu : ndarray
@@ -207,11 +203,11 @@ def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
     phi : ndarray
         The n templates for the signal (should be normalized to max(temp)=1)
         Dimensions: (n + m) X (time bins)
-    Pfs : ndarray. 
+    Pfs : ndarray
         Matrix of dot products between different templates in the frequency domain
         for the of nsmb fit
         Dimensions : nsb X nsb
-    P : ndarray. 
+    P : ndarray
         Matrix of element-wise multiplications of different templates
         for the of nsmb fit
         Dimensions : nsb X nsb X nt
@@ -235,10 +231,9 @@ def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
         A list of all possible bit (0 or 1) combinations for an array of length n+m
     lfindex : int
         The index at which to cut off the low frequency chi2 calculations
-    """""
 
-    lgc_verbose = False
-    
+    """
+
     stemplatet = np.expand_dims(stemplatet,1)
     nt = stemplatet.shape[0]
     
@@ -260,7 +255,7 @@ def of_nsmb_setup(stemplatet,btemplatet, psd,fs):
     sbtemplatef, sbtemplatet = of_nsmb_ffttemplate(stemplatet, btemplatet)
     
     # construct the optimal filter and the frequency domain P matrices
-    Pf, Pfs, phi = of_nsmb_getPf(sbtemplatef,psddnu,ns,nb,nt)
+    Pf, Pfs, phi = of_nsmb_getPf(sbtemplatef, psddnu, ns, nb, nt)
     
     # construct the P matrix section by section
     P = np.real(np.fft.ifft(Pf,axis=2)*nt)
@@ -306,7 +301,7 @@ def of_nsmb_getiP(P):
     
     Parameters
     ----------
-    P : ndarray. 
+    P : ndarray
         Matrix of element-wise multiplication different templates
         fot the of nsmb fit
         Dimensions : nsb X nsb X nt
@@ -334,13 +329,10 @@ def of_nsmb_getiP(P):
     return iP
 
 
-
-def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfindex=500,
-               background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
-               lgcplot=False, lgcsaveplots=False):
-
+def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns, nb, lfindex=500,
+          background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
+          lgcplot=False, lgcsaveplots=False):
     """
-
     Function complementary to of_nsmb and of_nsmb_con that performs the fit with only the
     background templates (no signal component). This is useful for comparing the chi2 between
     the fits in order see if there is evidence of signal in the data. 
@@ -377,29 +369,29 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
     nb : int
         Number of background templates
         Dimensions: 1
-    lfindex : int
+    lfindex : int, optional
         The index at which to cut off the low frequency chi2 calculations
-    background_templates_shifts : ndarray
+    background_templates_shifts : ndarray, optional
         The indices at which the background templates start
         Only used for plotting
         Dimensions: m X ()
-    bkgpolarityconstraint : ndarray
+    bkgpolarityconstraint : ndarray, optional
         The array to tell the OF fit whether or not to constrain the polarity
         of the amplitude.
             If 0, then no constraint on the pulse direction is set
             If 1, then a positive pulse constraint is set.
             If -1, then a negative pulse constraint is set.
         Dimensions: m X ()
-    sigpolarityconstraint : int
+    sigpolarityconstraint : int, optional
         Same as bkgpolarityconstraint but for the signal template
         Dimensions: n X ()
-    lgcplot : bool
+    lgcplot : bool, optional
         Flag for plotting result
-    lgcsaveplots : False
-        Flag for saving plot. Give integer for unique file name
+    lgcsaveplots : bool, int, optional
+        Flag for saving plot. Give integer for unique file name. Default is False
     
     Returns
-    ----------
+    -------
     bminsqueezeNew : ndarray
         Best fit amplitude for n signals and m backgrounds
         Dimensions: m X ()
@@ -410,6 +402,7 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
         The chi^2 of the constrained fit up to a low frequency
         cutoff given by lfindex
         Dimensions: 1 X ()
+
     """
     
     # === Input Dimensions ===
@@ -491,16 +484,12 @@ def of_mb(pulset, phi, sbtemplatef, sbtemplate, iB, B, psddnu, fs, ns,nb, lfinde
                 lpFiltFreq,lgcsaveplots=lgcsaveplots,figPrefix='bcFit',
                 background_templates_shifts = background_templates_shifts)
 
-
-
     return bminsqueezeNew, chi2BOnlyCon, chi2BOnlyCon_LF
 
 
-def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns, nb, bitcomb, lfindex=500,
-            background_templates_shifts=None, lgcplot=False, lgcsaveplots=False):
-    
+def of_nsmb(pulset, phi, sbtemplatef, sbtemplate, iPt, psddnu, fs, indwindow_nsmb, ns, nb,
+            bitcomb, lfindex=500, background_templates_shifts=None, lgcplot=False, lgcsaveplots=False):
     """
-
     Function that performs the optimum filter for n signals and m backgrounds for when amplitude polarity
     constraints are not being used (of_nsmb_con is the function to use if amplitude polarity constraints are
     desired). This fit is significantly faster than of_nsmb_con since only precomputed matrices are used. 
@@ -537,21 +526,21 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
     nb : int
         Number of background templates
         Dimensions: 1
-    bitcomb : list, optional
+    bitcomb : list
         A list of all possible bit (0 or 1) combinations for an array of length nsb
-    lfindex : int
+    lfindex : int, optional
         The index at which to cut off the low frequency chi2 calculations
-    background_templates_shifts : ndarray
+    background_templates_shifts : ndarray, optional
         The indices at which the background templates start
         Only used for plotting
         Dimensions: m X ()
-    lgcplot : bool
+    lgcplot : bool, optional
         Flag for plotting result
-    lgcsaveplots : False
-        Flag for saving plot. Give integer for unique file name
+    lgcsaveplots : bool, optional
+        Flag for saving plot. Give integer for unique file name. Default is False.
     
     Returns
-    ----------
+    -------
     aminsqueeze : ndarray
         Best fit amplitude for n signals and m backgrounds
         Dimensions: (n+m) X 0
@@ -577,10 +566,8 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
                         - significantly reworked
 
     """
-    lgcplotcheck=False
 
     indwindow = indwindow_nsmb[0]
-
 
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -680,12 +667,10 @@ def of_nsmb(pulset, phi, sbtemplatef,sbtemplate,iPt,psddnu,fs,indwindow_nsmb, ns
     
     return np.squeeze(amin), tdelmin, chi2min, chi2minlf, residT
     
-def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_nsmb,ns,nb, bitcomb, lfindex=500,
-                   background_templates_shifts=None, bkgpolarityconstraint=None, sigpolarityconstraint=None,
-                   lgcplot=False, lgcsaveplots=False):
-    
+def of_nsmb_con(pulset, phi, Pfs, P, sbtemplatef, sbtemplate, psddnu, fs, indwindow_nsmb, ns, nb, bitcomb,
+                lfindex=500, background_templates_shifts=None, bkgpolarityconstraint=None,
+                sigpolarityconstraint=None, lgcplot=False, lgcsaveplots=False):
     """
-
     Function that performs the optimum filter for n signals and m backgrounds for when amplitude polarity
     constraints are being used. Significantly slower than of_nsmb since collapsing to a constrained dimensional
     space prohibits the use of precomputed matrices. 
@@ -730,24 +715,23 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
     nb : int
         Number of background templates
         Dimensions: 1
-    bitcomb : list, optional
+    bitcomb : list
         A list of all possible bit (0 or 1) combinations for an array of length nsb
-    background_templates_shifts : ndarray
+    background_templates_shifts : ndarray, optional
         The indices at which the background templates start
         Only used for plotting
-    bkgpolarityconstraint : ndarray
+    bkgpolarityconstraint : ndarray, optional
         The array to tell the OF fit whether or not to constrain the polarity
         of the amplitude.
             If 0, then no constraint on the pulse direction is set
             If 1, then a positive pulse constraint is set.
             If -1, then a negative pulse constraint is set.
-    sigpolaritconstraint : int
+    sigpolaritconstraint : int, optional
         Same as bkgpolarityconstraint but for the signal template
-    lgcplot : bool
+    lgcplot : bool, optional
         Flag for plotting result
-    lgcsaveplots : False
-        Flag for saving plot. Give integer for unique file name
-        
+    lgcsaveplots : bool, optional
+        Flag for saving plot. Give integer for unique file name. Default is False.
 
     Returns
     -------
@@ -775,16 +759,20 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
     tdelmin_cwindow : ndarray
         time delays in the windows defined in the list indwindow_nsmb
         Dimensions : nwindow
-    amincon_int : same as above but interpolated 
-    tdelmin_interp : same as above but interpolated 
-    chi2min_interp : same as above but interpolated 
-    asig_cwindow_intT : same as above but interpolated 
-    chi2min_cwindow_int : same as above but interpolated 
-    tdelmin_cwindow_int : same as above but interpolated 
+    amincon_int : ndarray
+        Same as `amincon`, but interpolated to the best fit value.
+    tdelmin_interp : ndarray
+        Same as `tdelmin`, but interpolated to the best fit value.
+    chi2min_interp : tuple
+        Same as `chi2min`, but interpolated to the best fit value.
+    asig_cwindow_intT : ndarray
+        Same as `asig_cwindowT`, but interpolated to the best fit value.
+    chi2min_cwindow_int : ndarray
+        Same as `chi2min_cwindow`, but interpolated to the best fit value.
+    tdelmin_cwindow_int : ndarray
+        Same as `tdelmin_cwindow`, but interpolated to the best fit value.
 
     """
-
-    lgcplotcheck=False
 
     # === Input Dimensions ===
     pulset = np.expand_dims(pulset,1)
@@ -1074,8 +1062,6 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
 
     if (nboundary!=ngoodboundary):
         print("bad boundary points.", ngoodboundary, ' ', nboundary)
-    #else:
-        #print("all good")
 
     if lgcplot:
         lpFiltFreq = 30e3
@@ -1096,7 +1082,6 @@ def of_nsmb_con(pulset,phi, Pfs, P, sbtemplatef,sbtemplate, psddnu,fs,indwindow_
             amincon_int, tdelmin_interp, chi2min_interp, asig_cwindow_intT, chi2min_cwindow_int, tdelmin_cwindow_int)
 
 def _interpchi2(indmin, chi2, amp, time):
-    
     """
     Function for interpolating to a lower chi2 by interpolating quadratically
     between time bins. After finding the inter-bin chi2 minimum, the interpolated
@@ -1115,7 +1100,7 @@ def _interpchi2(indmin, chi2, amp, time):
         Array of time values corresponding to amp and chi2
 
     Returns
-    ----------
+    -------
     t_chi2min_interp : float
         Time at interpolated chi^2 minimum
     chi2min_interp : float
@@ -1143,9 +1128,7 @@ def _interpchi2(indmin, chi2, amp, time):
     return t_chi2min_interp, chi2min_interp, a_chi2min_interp
 
 def _index_disallowed(amp_array, con_array):
-    
     """
-
     Function that finds which elements of amp_array have a disallowed poalrity based on the
     constraint array given by con_array
 
@@ -1162,8 +1145,8 @@ def _index_disallowed(amp_array, con_array):
             If -1, then negative region allowed
 
     Returns
-    ----------
-    bitcomb_forcezero: ndarray
+    -------
+    bitcomb_forcezero : ndarray
         Array of ones and zeros, same size as amp_array, with 1s for elements
         where amp_array is in the disallowed region OR on the boundary (0)
     
@@ -1202,6 +1185,7 @@ def get_slope_dc_template_nsmb(nbin):
         The time domain bin shifts of the template, which is an optional
         parameter for the OF nsmb. Slope and dc templates have no offsets,
         so these are set to nan
+
     """
     
     # construct the background templates
@@ -1214,9 +1198,10 @@ def get_slope_dc_template_nsmb(nbin):
     backgroundtemplatesshifts[:] = np.nan
     
     return backgroundtemplates, backgroundtemplatesshifts
-    
-    
-def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, lgcpositivepolarity=True, notch_window_size=0):
+
+
+def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False,
+                             lgcpositivepolarity=True, notch_window_size=0):
     """
     Function for constructing the background templates for the OF nsmb fit when
     the backgrounds to be fitted are pulses from an periodic laser (TTL) firing.
@@ -1234,14 +1219,15 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
         Boolean flag for whether in the OF fit to constrain
         the ttl amplitudes to be a certain polarity. Default
         is False
-    lgcpositivepolarity : bool
+    lgcpositivepolarity : bool, optional
         Boolean flag for whether the the polarity of the
         pulses are positive or negative. Used to set the 
         returned array backgroundpolarityconstraint
-    notch_window_size : int
+    notch_window_size : int, optional
         Size of the window around the background template
         shift points that will be notched out of indwindow_nsmb,
         taking those bins out of the fit
+
     Returns
     -------
     backgroundtemplates : ndarray
@@ -1259,6 +1245,7 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False, 
     indwindow_nsmb : list of ndarray
         Each ndarray of the list has indices over which the nsmb fit searches for the minimum chi2.
         Dimension of ndarrays: 1 X (time bins)
+
     """
     
     nbin = len(template)
