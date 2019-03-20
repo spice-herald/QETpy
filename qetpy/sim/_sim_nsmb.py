@@ -15,7 +15,6 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     
     Parameters
     ----------
-    
     lgcbaseline : bool, optional
         Flag for whether or not the trace should be shifted vertically from zero.
         
@@ -69,19 +68,18 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     return signal, template, psd_sim
 
 
-def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
+def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3, lgcbaseline=False):
     """
-    Function written for creating example TTL pulses with certain frequency with a charge leakage pulse
+    Function written for creating example TTL pulses with certain frequency with a charge leakage pulse.
     
     Parameters
     ----------
-    
-    lgcbaseline : bool, optional
-        Flag for whether or not the trace should be shifted vertically from zero.
     fs : float
         The sample rate of the data being taken (in Hz).
     ttlrate : float
         The rate of the ttl pulses
+    lgcbaseline : bool, optional
+        Flag for whether or not the trace should be shifted vertically from zero.
         
     Returns
     -------
@@ -97,7 +95,6 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
 
     # specify the random seed for consistent testing
     np.random.seed(1) 
-
     
     pulse_amp = -4e-8
     bkgampscale = -4e-8
@@ -156,6 +153,5 @@ def create_example_ttl_leakage_pulses(fs=625e3, ttlrate=2e3,lgcbaseline=False):
 
     if lgcbaseline:
         signal += baseline_shift
-        
-    
+
     return signal, template, psd_sim
