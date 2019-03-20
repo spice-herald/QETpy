@@ -1,12 +1,11 @@
 import numpy as np
 from scipy.optimize import least_squares
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
-from qetpy.plotting import plotnonlin, plotnsmb
-import itertools
-from time import time
+from qetpy.plotting import plotnonlin
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary",
+           "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
 
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False,
@@ -1136,10 +1135,6 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
     return a1, a2, t2, chi2
 
 
-
-
-    
-    
 def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000, coupling="AC"):
     """
     Function for calculating the low frequency chi^2 of the optimum filter, given some cut off
