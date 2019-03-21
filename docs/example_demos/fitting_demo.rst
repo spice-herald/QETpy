@@ -117,8 +117,8 @@ freedom.
 
 .. parsed-literal::
 
-    No Delay Fit: amp = -0.04 μA, χ^2 = 209928.98
-    With Delay Fit: amp = 1.00 μA, t_0 = 160.0 μs, χ^2 = 32629.41
+    No Delay Fit: amp = -0.04 μA, χ^2 = 210399.75
+    With Delay Fit: amp = 1.00 μA, t_0 = 160.0 μs, χ^2 = 32407.30
 
 
 Since we have added a 160 us shift, we see that the "with delay" optimum
@@ -165,8 +165,8 @@ Let's now add a second (pileup) pulse in order to see how we can use
 
 .. parsed-literal::
 
-    With Delay Fit: amp = 1.00 μA, t_0 = 160.0 μs, χ^2 = 209220.29
-    Pileup Fit: amp = 1.00 μA, t_0 = 16000.0 μs, χ^2 = 32628.25
+    With Delay Fit: amp = 1.00 μA, t_0 = 160.0 μs, χ^2 = 209503.04
+    Pileup Fit: amp = 1.00 μA, t_0 = 16000.0 μs, χ^2 = 32407.28
 
 
 As expected, the pileup optimum filter fit the data very well, as we can
@@ -230,7 +230,7 @@ will see that the chi-squared indicates a non-ideal fit.
 
 .. parsed-literal::
 
-    With Delay Fit: amp = 1.07 μA, t_0 = 163.20 μs, χ^2 = 73286.77
+    With Delay Fit: amp = 1.07 μA, t_0 = 163.20 μs, χ^2 = 72524.20
 
 
 Let's use ``qetpy.OFnonlin`` to do the fit. To help visualize the fit,
@@ -248,7 +248,7 @@ domain and time domain
 .. code:: ipython3
 
     nonlinof = qp.OFnonlin(psd_sim, fs, template=None)
-    params, error, _, chi2_nonlin = nonlinof.fit_falltimes(signal, npolefit=2, lgcfullrtn=True, lgcplot=True)
+    params, error, _, chi2_nonlin, success = nonlinof.fit_falltimes(signal, npolefit=2, lgcfullrtn=True, lgcplot=True)
 
 
 
@@ -262,7 +262,7 @@ domain and time domain
 
 .. parsed-literal::
 
-    Nonlinear fit: χ^2 = 32700.75
+    Nonlinear fit: χ^2 = 32719.95
 
 
 And we see that the fit using ``qetpy.OFnonlin`` is great! The
@@ -272,4 +272,3 @@ indicates that we have a good fit.
 For further documentation on the different fitting functions, please
 visit
 https://qetpy.readthedocs.io/en/latest/qetpy.core.html#module-qetpy.core.\_fitting.
-

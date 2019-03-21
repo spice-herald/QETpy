@@ -50,13 +50,20 @@ Create noise object
 
 .. code:: ipython3
 
+    Noise?
+
+.. code:: ipython3
+
     #savePath = 'example_Figs/' #used for test, user should define new path for test so they don't save over these figs
     savePath = '' #user needs to define new path
     
-    sampleRate = 625e3 #define sample rate
+    fs = 625e3 #define sample rate
     channels = [ 'PCS1' , 'PES1' , 'PFS1' , 'PAS2' , 'PBS2' , 'PES2' , 'PDS2' ] #define the channel names
-    g124_noise = Noise(traces_PT_on, sampleRate, channels) #initialize a noise object
-    g124_noise.name = 'G124 SLAC Run 37 Pulse Tube On'
+    g124_noise = Noise(traces=traces_PT_on,
+                       fs=fs, 
+                       channames=channels,
+                       name= 'G124 SLAC Run 37 Pulse Tube On') #initialize a noise object
+    
     
 
 
@@ -103,7 +110,7 @@ Test plotting of PSD and corrCoeff
 
 
 
-.. image:: noise_example_files/noise_example_17_0.png
+.. image:: noise_example_files/noise_example_18_0.png
 
 
 .. code:: ipython3
@@ -114,7 +121,7 @@ Test plotting of PSD and corrCoeff
 
 
 
-.. image:: noise_example_files/noise_example_18_0.png
+.. image:: noise_example_files/noise_example_19_0.png
 
 
 .. code:: ipython3
@@ -123,7 +130,7 @@ Test plotting of PSD and corrCoeff
 
 
 
-.. image:: noise_example_files/noise_example_19_0.png
+.. image:: noise_example_files/noise_example_20_0.png
 
 
 Plot a few CSDs
@@ -134,11 +141,11 @@ Plot a few CSDs
 
 
 
-.. image:: noise_example_files/noise_example_21_0.png
+.. image:: noise_example_files/noise_example_22_0.png
 
 
 
-.. image:: noise_example_files/noise_example_21_1.png
+.. image:: noise_example_files/noise_example_22_1.png
 
 
 Try to plot a CSD for a non existant channel
@@ -166,7 +173,7 @@ Try to save a figure with a bad path
 
 
 
-.. image:: noise_example_files/noise_example_25_1.png
+.. image:: noise_example_files/noise_example_26_1.png
 
 
 Plot Real vs Imaginary PSDs
@@ -177,7 +184,7 @@ Plot Real vs Imaginary PSDs
 
 
 
-.. image:: noise_example_files/noise_example_27_0.png
+.. image:: noise_example_files/noise_example_28_0.png
 
 
 Plot unCorrelated part of the noise PSD
@@ -193,7 +200,7 @@ Plot unCorrelated part of the noise PSD
 
 
 
-.. image:: noise_example_files/noise_example_30_0.png
+.. image:: noise_example_files/noise_example_31_0.png
 
 
 .. code:: ipython3
@@ -202,7 +209,7 @@ Plot unCorrelated part of the noise PSD
 
 
 
-.. image:: noise_example_files/noise_example_31_0.png
+.. image:: noise_example_files/noise_example_32_0.png
 
 
 Create noise simulation object
@@ -230,5 +237,5 @@ demostration
 
 
 
-.. image:: noise_example_files/noise_example_35_1.png
+.. image:: noise_example_files/noise_example_36_1.png
 
