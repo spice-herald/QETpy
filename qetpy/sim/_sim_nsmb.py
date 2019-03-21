@@ -1,8 +1,7 @@
 import numpy as np
 import scipy.constants as constants
-from qetpy.core._of_nsmb import maketemplate_ttlfit_nsmb
-from qetpy.sim import *
-from qetpy.core._noise import gen_noise
+from qetpy import maketemplate_ttlfit_nsmb, gen_noise
+from qetpy.sim import TESnoise
 
 
 __all__ = ["create_example_pulseplusmuontail", "create_example_ttl_leakage_pulses"]
