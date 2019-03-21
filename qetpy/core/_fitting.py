@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.optimize import least_squares
-import numpy as np
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
 
-__all__ = ["OptimumFilter", "ofamp", "ofamp_pileup", "ofamp_pileup_stationary", "chi2lowfreq",
-           "chi2_nopulse", "OFnonlin", "MuonTailFit"]
+
+__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary",
+           "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False,
                  constraint_mask=None, windowcenter=0):
@@ -98,7 +99,7 @@ def _get_pulse_direction_constraint_mask(amps, pulse_direction_constraint=0):
         constraint on the pulse direction is set. If 1, then a positive pulse
         constraint is set for all fits. If -1, then a negative pulse constraint
         is set for all fits. If any other value, then an ValueError will be
-        raised.
+        raised. 
 
     Returns
     -------
@@ -1133,6 +1134,7 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC', ncons
 
     return a1, a2, t2, chi2
 
+
 def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000, coupling="AC"):
     """
     Function for calculating the low frequency chi^2 of the optimum filter, given some cut off
@@ -1356,7 +1358,6 @@ class OFnonlin(object):
         C*(tau_f3/(1+omega*tau_f3*(0+1j))) - (A+B+C)*(tau_r/(1+omega*tau_r*(0+1j)))) * phaseTDelay
         return pulse*np.sqrt(self.df)
 
-
     def fourpoletime(self, A, B, C, tau_r, tau_f1, tau_f2, tau_f3, t0):
         """
         Functional form of pulse in time domain with 1 rise time and three fall times
@@ -1468,6 +1469,7 @@ class OFnonlin(object):
         pulse : ndarray
             Array of amplitude values as a function of time
         """
+
 
         pulse = A*(np.exp(-self.time/tau_f1)) + B*(np.exp(-self.time/tau_f2)) - \
         (A+B)*(np.exp(-self.time/tau_r))
