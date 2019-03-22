@@ -1,7 +1,7 @@
 import numpy as np
 import qetpy as qp
 
-from helpers import isclose
+from helpers import isclose, create_example_pulseplusmuontail, create_example_ttl_leakage_pulses
 
 
 def test_ofnsmb_muonsubtraction():
@@ -11,7 +11,7 @@ def test_ofnsmb_muonsubtraction():
     
     """
     
-    signal, template, psd = qp.sim.create_example_pulseplusmuontail(lgcbaseline=False)
+    signal, template, psd = create_example_pulseplusmuontail(lgcbaseline=False)
         
     fs = 625e3
     
@@ -106,7 +106,7 @@ def test_ofnsmb_ttlfitting():
     fs = 625e3
     ttlrate = 2e3
 
-    signal, template, psd = qp.sim.create_example_ttl_leakage_pulses(fs, ttlrate)
+    signal, template, psd = create_example_ttl_leakage_pulses(fs, ttlrate)
 
     nbin = len(signal)
 
