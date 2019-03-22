@@ -278,7 +278,7 @@ def create_example_ttl_leakage_pulses(
     backgroundpulses = backgroundtemplates@bkgamps
     backgroundpulses = backgroundpulses * bkgampscale
 
-    noise = gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
     signal = noise + backgroundpulses + leakagepulse
 
     if lgcbaseline:
