@@ -1,18 +1,140 @@
 import numpy as np
-
-from qetpy import gen_noise
-from qetpy import maketemplate_ttlfit_nsmb
-from qetpy.sim import TESnoise
+import qetpy as qp
 
 
 __all__ = [
+    "isclose",
+    "create_example_data",
+    "create_example_muontail",
     "create_example_pulseplusmuontail",
     "create_example_ttl_leakage_pulses",
 ]
+
 PULSE_AMP = -4e-8
 TAU_RISE = 20e-6
 TAU_FALL = 66e-6
 
+def isclose(a, b, rtol=1e-10, atol=0):
+    """
+    Function for checking if two arrays are close up to certain tolerance parameters.
+    This is a wrapper for `numpy.isclose`, where we have simply changed the default 
+    parameters.
+    
+    Parameters
+    ----------
+    a : array_like
+        Input array to compare.
+    b : array_like
+        Input array to compare.
+    rtol : float, optional
+        The relative tolerance parameter.
+    atol : float, optional
+        The absolute tolerance parameter.
+
+    Returns
+    -------
+    y : bool
+        Returns a boolean value of whether all values of `a` and `b`
+        were equal within the given tolerance.
+    
+    """
+    
+    return np.all(np.isclose(a, b, rtol=rtol, atol=atol))
+
+def create_example_data(lgcpileup=False, lgcbaseline=False):
+    """
+    Function written for creating example data when testing different
+    optimum filters.
+    
+    Parameters
+    ----------
+    lgcpileup : bool, optional
+        Flag for whether or not a second pulse should be added to the trace.
+    lgcbaseline : bool, optional
+        Flag for whether or not the trace should be shifted from zero.
+        
+    Returns
+    -------
+    signal : ndarray
+        An array of values containing the specified signal in time domain, including
+        some noise.
+    template : ndarray
+        The template for a pulse (normalized to a maximum height of 1).
+    psd_sim : ndarray
+        The two-sided power spectral density used to generate the noise for `signal`.
+    
+    """
+
+    np.random.seed(1) # need to specify the random seed for testing
+
+    fs = 625e3
+    pulse_amp = 4e-6
+    baseline_shift = 0.02e-6
+    tau_rise = 20e-6
+    tau_fall = 66e-6
+
+    f = np.fft.fftfreq(32500, d=1/fs)
+    noisesim = qp.sim.TESnoise(r0=0.03)
+
+    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
+
+    t = np.arange(len(psd_sim))/fs
+    
+    
+    pulse = np.exp(-t/tau_fall)-np.exp(-t/tau_rise)
+    pulse_shifted = np.roll(pulse, len(t)//2)
+    template = pulse_shifted/pulse_shifted.max()
+    
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    signal = noise + np.roll(template, 100)*(pulse_amp)
+
+    if lgcpileup:
+        signal += pulse_amp * np.roll(template, 1000)
+
+    if lgcbaseline:
+        signal += baseline_shift
+
+    return signal, template, psd_sim
+
+def create_example_muontail():
+    """
+    Function written for creating an example muon tail for 
+    testing `qetpy.MuonTailFit`.
+    
+    Parameters
+    ----------
+    None
+        
+    Returns
+    -------
+    signal : ndarray
+        An array of values containing the specified signal in time domain, including
+        some noise.
+    psd_sim : ndarray
+        The two-sided power spectral density used to generate the noise for `signal`.
+    
+    """
+
+    np.random.seed(1) # need to specify the random seed for testing
+
+    fs = 625e3
+    tau_fall = 20e-3
+    pulse_amp = 0.5e-6
+
+    f = np.fft.fftfreq(32500, d=1/fs)
+    noisesim = qp.sim.TESnoise(r0=0.03)
+
+    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
+
+    t = np.arange(len(psd_sim))/fs
+    
+    pulse = np.exp(-t/tau_fall)
+    template = pulse/pulse.max()
+    
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    signal = noise + template * pulse_amp
+
+    return signal, psd_sim
 
 def create_example_pulseplusmuontail(lgcbaseline=False):
     """
@@ -45,19 +167,17 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     baseline_shift = 0.2e-6
 
     f = np.fft.fftfreq(32500, d=1/fs)
-    noisesim = TESnoise(r0=0.03)
+    noisesim = qp.sim.TESnoise(r0=0.03)
 
-    psd_sim = noisesim.s_iload(
-        freqs=f,
-    ) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
+    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
 
     t = np.arange(len(psd_sim))/fs
 
-    pulse = np.exp(-t/TAU_FALL)-np.exp(-t/TAU_RISE)
+    pulse = np.exp(-t/TAU_FALL) - np.exp(-t/TAU_RISE)
 
     # randomize the delay
     delayRand = np.random.uniform(size=1)
-    pulse_shifted = np.roll(pulse, int(len(t)*delayRand))
+    pulse_shifted = np.roll(pulse, int(len(t) * delayRand))
     template = pulse_shifted/pulse_shifted.max()
 
     muon_fall = 200e-3
@@ -66,7 +186,7 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     muon_pulse = np.exp(-t/muon_fall)
     muon_template = muon_pulse/muon_pulse.max()
 
-    noise = gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
     signal = noise + template*PULSE_AMP + muon_template*muon_amp
 
     if lgcbaseline:
@@ -115,7 +235,7 @@ def create_example_ttl_leakage_pulses(
     nbin = 6250
 
     f = np.fft.fftfreq(nbin, d=1/fs)
-    noisesim = TESnoise(r0=0.03)
+    noisesim = qp.sim.TESnoise(r0=0.03)
 
     psd_sim = noisesim.s_iload(freqs=f) + \
         noisesim.s_ites(freqs=f) + \
@@ -141,7 +261,7 @@ def create_example_ttl_leakage_pulses(
         backgroundtemplateshifts,
         backgroundpolarityconstraint,
         indwindow_nsmb,
-    ) = maketemplate_ttlfit_nsmb(
+    ) = qp.maketemplate_ttlfit_nsmb(
         template,
         fs,
         ttlrate,
@@ -158,7 +278,7 @@ def create_example_ttl_leakage_pulses(
     backgroundpulses = backgroundtemplates@bkgamps
     backgroundpulses = backgroundpulses * bkgampscale
 
-    noise = gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
     signal = noise + backgroundpulses + leakagepulse
 
     if lgcbaseline:

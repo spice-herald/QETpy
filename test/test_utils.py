@@ -1,37 +1,12 @@
 import pytest
 import numpy as np
+
+from helpers import isclose
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
 from qetpy.utils import (stdcomplex, lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
                          shift, make_template)
-
-def isclose(a, b, rtol=1e-10, atol=0):
-    """
-    Function for checking if two arrays are close up to certain tolerance parameters.
-    This is a wrapper for `numpy.isclose`, where we have simply changed the default 
-    parameters.
-    
-    Parameters
-    ----------
-    a : array_like
-        Input array to compare.
-    b : array_like
-        Input array to compare.
-    rtol : float, optional
-        The relative tolerance parameter.
-    atol : float, optional
-        The absolute tolerance parameter.
-
-    Returns
-    -------
-    y : bool
-        Returns a boolean value of whether all values of `a` and `b`
-        were equal within the given tolerance.
-    
-    """
-    
-    return np.all(np.isclose(a, b, rtol=rtol, atol=atol))
 
 def test_shift():
     """
@@ -125,9 +100,8 @@ def test_lowpassfilter():
     assert res.shape == traces.shape
 
 def test_powertrace_simple():
-    test_traces = 4*np.ones(shape = (10,10))
-    power_test = powertrace_simple(trace = test_traces,
-                ioffset = 1, qetbias = 1, rload = 1, rsh = 1)
+    test_traces = 4*np.ones(shape=(10, 10))
+    power_test = powertrace_simple(trace=test_traces, ioffset=1, qetbias=1, rload=1, rsh=1)
 
     assert np.all(power_test == -6)
 
