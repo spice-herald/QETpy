@@ -106,7 +106,35 @@ def test_noise():
     g124_noise.plot_decorrelatednoise(lgccorrelated=True)
     
     noise_sim = TESnoise(freqs = g124_noise.freqs[1:])
-    plot_noise_sim(g124_noise.freqs, g124_noise.psd[0,:], noise_sim, istype='power')
+    #plot_noise_sim(g124_noise.freqs, g124_noise.psd[0,:], noise_sim, istype='power')
+    plot_noise_sim(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim,
+                   istype='power', qetbias=1, lgcsave=False, figsavepath='', 
+                  xlims=None, ylims=None)
+    plot_noise_sim(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim,
+                   istype='current', qetbias=1, lgcsave=False, figsavepath='', 
+                  xlims=None, ylims=None)
+    plot_noise_sim(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim,
+                   istype='sc', qetbias=1, lgcsave=False, figsavepath='', 
+                  xlims=None, ylims=None)
+    plot_noise_sim(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim,
+                   istype='normal', qetbias=1, lgcsave=False, figsavepath='', 
+                  xlims=None, ylims=None)
+    _plot_ti_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=None, ylims=None)
+    _plot_ti_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=(10,1e5), ylims=(1e-12, 1e-9))
+    _plot_tp_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=None, ylims=None)
+    _plot_tp_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=(10,1e5), ylims=(1e-12, 1e-9))
+    _plot_sc_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=None, ylims=None)
+    _plot_sc_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=(10,1e5), ylims=(1e-12, 1e-9))
+    _plot_n_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=None, ylims=None)
+    _plot_n_noise(f=g124_noise.freqs, psd=g124_noise.psd[0,:], noise_sim=noise_sim, 
+                   xlims=(10,1e5), ylims=(1e-12, 1e-9))
     
     assert len(g124_noise.psd) > 0
     assert len(noise_sim.freqs) > 0
