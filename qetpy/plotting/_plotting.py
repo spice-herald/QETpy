@@ -449,7 +449,8 @@ def compare_noise(arr, channels, lgcdecorrelatednoise=False, lgcsave=False, save
     
     
     
-def plot_noise_sim(f, psd, noise_sim, istype, figsize=(12, 8), lgcsave=False, savepath=''):
+def plot_noise_sim(f, psd, noise_sim, istype, qetbias, lgcsave=False, figsavepath='', 
+                  xlims=None, ylims=None):
     """
     Plots psd with simulated noise model
     
@@ -460,16 +461,74 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize=(12, 8), lgcsave=False, sa
     psd : array_like 
         Power spectral density
     istype : str
-        Must be 'current' or 'power'
+        Must be 'current', 'power', 'sc', or 'normal'
         If 'current' the noise is plotted referenced to TES current
         If 'power' the noise is plotted referenced to TES power
-    figsize : tuple, optional
-        Desired size of figure
+    qetbias : float
+        Applied QET bias
     lgcsave : boolean, optional
         If True, plot is saved
-    savepath : str, optional
+    figsavepath : str, optional
         Directory to save trace
+    xlims : NoneType, tuple, optional
+        Limits to be passed to ax.set_xlim()
+    ylims : NoneType, tuple, optional
+        Limits to be passed to ax.set_ylim()
             
+    Returns
+    -------
+    fig : Object
+        fig object from matplotlib.pyplot
+    ax : Object
+        ax object from matplotlib.pyplot
+
+    """
+    
+    if istype is 'current':
+        fig, ax = _plot_ti_noise(f, psd, noise_sim, xlims, ylims)
+        if lgcsave:
+            fig.savefig(figsavepath+f'current_qetbias{qetbias*1e6:.3f}muA.png',  
+                        bbox_inches='tight')
+        else:
+            return fig, ax 
+    elif istype is 'power':
+        fig, ax = _plot_tp_noise(f, psd, noise_sim, xlims, ylims)
+        if lgcsave:
+            fig.savefig(figsavepath+f'power_noise_qetbias{qetbias*1e6:.3f}muA.png',  
+                        bbox_inches='tight')
+        else:
+            return fig, ax 
+    elif istype is 'sc':
+        fig, ax = _plot_sc_noise(f, psd, noise_sim, qetbias, xlims, ylims)    
+        if lgcsave:
+            plt.savefig(f'{figsavepath}SC_noise_qetbias{qetbias*1e6:.3f}muA.png')
+        else:
+            return fig, ax 
+    elif istype is 'normal':
+        fig, ax = _plot_n_noise(f, psd, noise_sim, qetbias, xlims, ylims)    
+        if lgcsave:
+            plt.savefig(f'{figsavepath}normal_noise_qetbias{qetbias*1e6:.3f}muA.png')
+        else:
+            return fig, ax 
+
+def _plot_ti_noise(f, psd, noise_sim, xlims, ylims):
+    """
+    Helper function to plot transition noise in 
+    units of current
+    
+    Parameters
+    ----------
+    f : ndarray
+        Array of frequency values
+    psd : ndarray
+        One sided Power spectral density
+    noise_sim : TESnoise object
+        The noise simulation object
+    xlims : NoneType, tuple
+        Limits to be passed to ax.set_xlim()
+    ylims : NoneType, tuple
+        Limits to be passed to ax.set_ylim()
+    
     Returns
     -------
     fig : Object
@@ -483,40 +542,207 @@ def plot_noise_sim(f, psd, noise_sim, istype, figsize=(12, 8), lgcsave=False, sa
     psd = psd[1:]
     noise_sim.freqs = freqs
     
-    fig, ax = plt.subplots(figsize=figsize)
+    
+    fig, ax = plt.subplots(1,1, figsize=(11,6))
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_ylim(ylims)
 
-    ax.grid(which="major")
+    ax.grid(which="major", linestyle='--')
     ax.grid(which="minor", linestyle="dotted", alpha=0.5)
+    ax.tick_params(which="both", direction="in", right=True, top=True)
+    ax.set_xlabel(r'Frequency [Hz]')
+    ax.set_title(f"Current Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), color='#1f77b4',
+               linewidth=1.5, label='TES johnson Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), color='#ff7f0e',
+               linewidth=1.5, label='Load Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), color='#2ca02c',
+               linewidth=1.5, label='TFN Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), color='#d62728',
+               linewidth=1.5, label='Total Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), color='#9467bd',
+               linewidth=1.5, label='Squid+Electronics Noise')
+    ax.loglog(freqs, np.sqrt(psd), color = '#8c564b', alpha = 0.8, label ='Raw Data')
+    ax.set_ylabel('TES Current Noise $[A/\sqrt{\mathrm{Hz}}]$')
+        
+    lgd = plt.legend(loc='upper right')
+    
+    return fig, ax
+    
+    
+def _plot_tp_noise(f, psd, noise_sim, xlims, ylims):
+    """
+    Helper function to plot transition noise in 
+    units of power
+    
+    Parameters
+    ----------
+    f : ndarray
+        Array of frequency values
+    psd : ndarray
+        One sided Power spectral density
+    noise_sim : TESnoise object
+        The noise simulation object
+    qetbias : float
+        Applied QET bias
+    xlims : NoneType, tuple
+        Limits to be passed to ax.set_xlim()
+    ylims : NoneType, tuple
+        Limits to be passed to ax.set_ylim()
+    
+    Returns
+    -------
+    fig : Object
+        fig object from matplotlib.pyplot
+    ax : Object
+        ax object from matplotlib.pyplot
+
+    """
+    
+    freqs = f[1:]
+    psd = psd[1:]
+    noise_sim.freqs = freqs
+    
+    
+    fig, ax = plt.subplots(1,1, figsize=(11,6))
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+
+    ax.grid(which="major", linestyle='--')
+    ax.grid(which="minor", linestyle="dotted", alpha=0.5)
+    ax.tick_params(which="both", direction="in", right=True, top=True)
     ax.set_xlabel(r'Frequency [Hz]')
     
-    if istype is 'current':
-        ax.set_title(f"Current Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ites())), label=r'$\sqrt{S_{ITES}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_iload())), label=r'$\sqrt{S_{ILoad}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itfn())), label=r'$\sqrt{S_{ITFN}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_itot())), label=r'$\sqrt{S_{Itot}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_isquid())), label=r'$\sqrt{S_{Isquid}}$')
-        ax.loglog(freqs, np.sqrt(psd), label ='data')
-        ax.set_ylabel('TES Current Noise $[A/\sqrt{\mathrm{Hz}}]$')
+    ax.set_title(f"Power Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), color='#1f77b4',
+               linewidth=1.5, label='TES johnson Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), color='#ff7f0e',
+               linewidth=1.5, label='Load Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), color='#2ca02c',
+               linewidth=1.5, label='TFN Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptot())), color='#d62728',
+               linewidth=1.5, label='Total Noise')
+    ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_psquid())), color='#9467bd',
+               linewidth=1.5, label='Squid+Electronics Noise')
+    ax.loglog(freqs, np.sqrt(psd/(np.abs(noise_sim.dIdP(freqs))**2)), color = '#8c564b',
+              alpha = 0.8, label ='Raw Data')
+    ax.set_ylabel(r'Input Referenced Power Noise [W/$\sqrt{\mathrm{Hz}}$]')
+        
+    lgd = plt.legend(loc='upper right')
+
+    return fig, ax
+
+def _plot_sc_noise(f, psd, noise_sim, qetbias, xlims, ylims):
+    """
+    Helper function to plot SC noise 
     
-    elif istype is 'power':
-        ax.set_title(f"Power Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptes())), label=r'$\sqrt{S_{PTES}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_pload())), label=r'$\sqrt{S_{PLoad}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptfn())), label=r'$\sqrt{S_{PTFN}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_ptot())), label=r'$\sqrt{S_{Ptot}}$')
-        ax.loglog(noise_sim.freqs, np.sqrt(np.abs(noise_sim.s_psquid())), label=r'$\sqrt{S_{Psquid}}$')
-        ax.loglog(freqs, np.sqrt(psd/(np.abs(noise_sim.dIdP(freqs))**2)), label ='data')
-        ax.set_ylabel(r'Input Referenced Power Noise [W/$\sqrt{\mathrm{Hz}}$]')
+    Parameters
+    ----------
+    f : ndarray
+        Array of frequency values
+    psd : ndarray
+        One sided Power spectral density
+    noise_sim : TESnoise object
+        The noise simulation object
+    qetbias : float
+        Applied QET bias
+    xlims : NoneType, tuple
+        Limits to be passed to ax.set_xlim()
+    ylims : NoneType, tuple
+        Limits to be passed to ax.set_ylim()
+    
+    Returns
+    -------
+    fig : Object
+        fig object from matplotlib.pyplot
+    ax : Object
+        ax object from matplotlib.pyplot
+    """
+
+    f = f[1:]
+    psd = psd[1:]
+    fig, ax = plt.subplots(1,1, figsize=(11,6))
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_ylim(ylims)
         
+    ax.grid(True, linestyle = '--')
+    ax.grid(which="minor", linestyle="dotted", alpha=0.5)
+    ax.loglog(f, np.sqrt(psd), alpha = .5, color = '#8c564b',
+              label = 'Raw Data')
+    ax.loglog(f, np.sqrt(noise_sim.s_isquid(f)), color='#9467bd',
+              label = 'Squid+Electronics Noise')
+    ax.loglog(f, np.sqrt(noise_sim.s_iloadsc(f)), color='#ff7f0e',
+              label= 'Load Noise')
+    ax.loglog(f, np.sqrt(noise_sim.s_itotsc(f)), color='#d62728',
+              label= 'Total Noise')
+    ax.legend()
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
+    ax.set_title(f'Superconducting State noise for QETbias: {qetbias*1e6} $\mu$A')
+    ax.tick_params(which="both", direction="in", right=True, top=True)
+
+    return fig, ax    
         
-    lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    if lgcsave:
-        plt.savefig(savepath+f'{istype}_noise_{noise_sim.R0:.0f}.png', bbox_extra_artists=(lgd,), 
-                    bbox_inches='tight')
-    else:
-        #plt.show()
-        return fig, ax
+def _plot_n_noise(f, psd, noise_sim, qetbias, xlims, ylims):
+    """
+    Helper function to plot normal state noise 
+    
+    Parameters
+    ----------
+    f : ndarray
+        Array of frequency values
+    psd : ndarray
+        One sided Power spectral density
+    noise_sim : TESnoise object
+        The noise simulation object
+    qetbias : float
+        Applied QET bias
+    xlims : NoneType, tuple
+        Limits to be passed to ax.set_xlim()
+    ylims : NoneType, tuple
+        Limits to be passed to ax.set_ylim()    
+    
+    Returns
+    -------
+    fig : Object
+        fig object from matplotlib.pyplot
+    ax : Object
+        ax object from matplotlib.pyplot
+    """   
+
+    f = f[1:]
+    psd = psd[1:]
+    fig, ax = plt.subplots(1,1, figsize=(11,6))
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+        
+    ax.grid(True, linestyle = '--')
+    ax.grid(which="minor", linestyle="dotted", alpha=0.5)
+    ax.loglog(f, np.sqrt(psd), alpha = .5, color = '#8c564b',
+              label = 'Raw Data')
+    ax.loglog(f, np.sqrt(noise_sim.s_isquid(f)), color='#9467bd',
+              label = 'Squid+Electronics Noise')
+    ax.loglog(f, np.sqrt(noise_sim.s_itesnormal(f)), color='#1f77b4',
+              label= 'TES johnson Noise')
+    ax.loglog(f, np.sqrt(noise_sim.s_iloadnormal(f)), color='#ff7f0e',
+              label= 'Load Noise')
+    ax.loglog(f, np.sqrt(noise_sim.s_itotnormal(f)), color='#d62728',
+              label= 'Total Noise')
+    ax.legend()
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
+    ax.set_title(f'Normal State noise for QETbias: {qetbias*1e6} $\mu$A')
+    ax.tick_params(which="both", direction="in", right=True, top=True)
+
+    return fig, ax
 
 def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False, savepath="", savename=""):
     """
