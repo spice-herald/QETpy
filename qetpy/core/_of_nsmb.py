@@ -1,7 +1,9 @@
 import numpy as np
 from numpy.fft import fft, ifft
 from qetpy.plotting import plotnsmb
+from qetpy.utils import shift
 import itertools
+
 
 __all__ = ["of_nsmb_ffttemplate", "of_nsmb_getPf", "of_nsmb_getPt", "of_nsmb_setup",
            "of_nsmb_getiP", "of_mb", "of_nsmb","of_nsmb_con", "get_slope_dc_template_nsmb",
@@ -1263,8 +1265,14 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False,
 
     # shift the template back by nTTLs/2*ttlbinsbetween bins
     #
-    binShift = int(-nTTLs/2*ttlbinsbetween)
-    firsttemplate = np.roll(template,binShift)
+    binshift = -nTTLs/2*ttlbinsbetween
+
+    try:
+        firsttemplate = np.roll(template,binshift)
+    except TypeError:
+        print(f'The shift to create the first template ({binshift}) is a non integer.')
+        print(f'Casting to an integer ({int(binshift)}) which could produce sub-bin inaccuracies')
+        firsttemplate = np.roll(template,int(binshift))
     
     # create matrix of background templates
     backgroundtemplates = np.ones((nbin,nTTLs+2))
@@ -1276,12 +1284,13 @@ def maketemplate_ttlfit_nsmb(template, fs, ttlrate, lgcconstrainpolarity=False,
 
     #circularly shift template in time for background templates
     for ii in range(0,nTTLs):
-        backgroundtemplateshift = int(np.rint(ttlbinsbetween*ii))
+        backgroundtemplateshift = ttlbinsbetween*ii
+        backgroundtemplateshiftint = int(np.rint(ttlbinsbetween*ii))
         backgroundtemplateshifts[ii] = backgroundtemplateshift
         if (ii==0):
             backgroundtemplates[:,ii] = firsttemplate
         else:
-            backgroundtemplates[:,ii] = np.pad(firsttemplate,(backgroundtemplateshift,0), mode='constant')[:-backgroundtemplateshift]
+            backgroundtemplates[:,ii] = shift(firsttemplate,backgroundtemplateshift)
         
         if lgcconstrainpolarity:
             if lgcpositivepolarity:
