@@ -3,6 +3,11 @@ import glob
 import shutil
 from setuptools import setup, find_packages, Command
 
+# read the contents of your README file
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 class CleanCommand(Command):
     """Custom clean command to tidy up the project root."""
@@ -33,9 +38,11 @@ setup(
     name="QETpy", 
     version="1.2.0.dev0", 
     description="TES Detector Calibration and Analysis Python Tools", 
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author="Samuel Watkins, Caleb Fink", 
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu", 
-    url="https://github.com/berkeleycdms/QETpy", 
+    url="https://github.com/ucbpylegroup/QETpy", 
     packages=find_packages(), 
     zip_safe=False,
     cmdclass={
