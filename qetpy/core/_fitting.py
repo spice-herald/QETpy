@@ -1497,12 +1497,19 @@ class OFnonlin(object):
 
         """
 
+        #omega = 2*np.pi*self.freqs
+        #delta = tau_r-tau_f
+        #rat = tau_r/tau_f
+        #amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        #pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        #return pulse*np.sqrt(self.df)
+        
         omega = 2*np.pi*self.freqs
-        delta = tau_r-tau_f
-        rat = tau_r/tau_f
-        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
-        pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        phaseTDelay = np.exp(-(0+1j)*omega*t0)
+        pulse = (A*(tau_f/(1+omega*tau_f*(0+1j))) - A*(tau_r/(1+omega*tau_r*(0+1j)))) * phaseTDelay
         return pulse*np.sqrt(self.df)
+
+
 
     def twopoletime(self, A, tau_r, tau_f, t0):
         """
@@ -1526,11 +1533,14 @@ class OFnonlin(object):
             Array of amplitude values as a function of time
         """
 
-        delta = tau_r-tau_f
-        rat = tau_r/tau_f
-        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
-        pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        #delta = tau_r-tau_f
+        #rat = tau_r/tau_f
+        #amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+        #pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        #return np.roll(pulse, int(t0*self.fs))
+        pulse = A*(np.exp(-self.time/tau_f)) - A*(np.exp(-self.time/tau_r))
         return np.roll(pulse, int(t0*self.fs))
+
 
     def onepole(self, A, tau_f, t0):
         """

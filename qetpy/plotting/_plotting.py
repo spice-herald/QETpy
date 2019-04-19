@@ -1196,9 +1196,9 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
     ## get indices to define window ##
     t0ind = int(t0*OFnonlinOBJ.fs) #location of timeoffset
     
-    nmin = t0ind - int(5*tau_r*OFnonlinOBJ.fs) # 5 falltimes before offset
+    nmin = t0ind - int(5*tau_r*OFnonlinOBJ.fs) # 5 risetimes before offset
     if (OFnonlinOBJ.npolefit==3 or OFnonlinOBJ.npolefit==4):
-        nmax = t0ind + int(9*tau_f1*OFnonlinOBJ.fs) # 7 falltimes after offset
+        nmax = t0ind + int(9*tau_f1*OFnonlinOBJ.fs) # 9 falltimes after offset
     else:
         nmax = t0ind + int(7*tau_f*OFnonlinOBJ.fs) # 7 falltimes after offset
     
@@ -1299,7 +1299,7 @@ def plotnonlin(OFnonlinOBJ,pulse, params, errors):
                   ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
                   ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
     else:
-        labels = [f'Amplitude: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
+        labels = [f'A: ({A*1e6:.4f} +\- {A_err*1e6:.4f}) [$\mu$A]'\
                   ,f'τ$_f$: ({tau_f*1e6:.4f} +\- {tau_f_err*1e6:.4f}) [$\mu$s]'\
                   ,f'$t_0$: ({t0*1e3:.4f} +\- {t0_err*1e3:.4f}) [ms]'\
                   ,f'τ$_r$: ({tau_r*1e6:.4f} +\- {tau_r_err*1e6:.4f}) [$\mu$s]']
