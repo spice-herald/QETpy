@@ -1309,6 +1309,7 @@ class OFnonlin(object):
 
         self.data = None
         self.npolefit = 1
+        self.scale_amplitude=True
 
         self.taurise = None
         self.error = None
@@ -1477,15 +1478,19 @@ class OFnonlin(object):
         return shift(pulse, int(t0*self.fs))
 
 
-    def twopole(self, A, tau_r, tau_f,t0):
+    def twopole(self, A, tau_r, tau_f, t0):
         """
         Functional form of pulse in frequency domain with the amplitude, rise time,
-        fall time, and time offset allowed to float. This is meant to be a private function
+        fall time, and time offset allowed to float. The functional form (time domain) is:
+        A*(exp(-t/\tau_fall)) - A*(exp(-t/\tau_rise))
+        Note that there are 2 ways to interpret the 'A' parameter input to this function (see below).
+        This is meant to be a private function
 
         Parameters
         ----------
         A : float
-            Amplitude of pulse
+            Amplitude paramter or pulse height. If self.scale_amplitude is true, A represents the pulse height,
+            if false, A is the amplitude parameter in the time domain expression above.
         tau_r : float
             Rise time of two-pole pulse
         tau_f : float
@@ -1501,8 +1506,15 @@ class OFnonlin(object):
         """
 
         omega = 2*np.pi*self.freqs
-        phaseTDelay = np.exp(-(0+1j)*omega*t0)
-        pulse = (A*(tau_f/(1+omega*tau_f*(0+1j))) - A*(tau_r/(1+omega*tau_r*(0+1j)))) * phaseTDelay
+
+        if(self.scale_amplitude):
+            delta = tau_r-tau_f
+            rat = tau_r/tau_f
+            amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+            pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        else:
+            pulse = (A*(tau_f/(1+omega*tau_f*(0+1j))) - A*(tau_r/(1+omega*tau_r*(0+1j)))) * np.exp(-omega*t0*1.0j)
+
         return pulse*np.sqrt(self.df)
 
 
@@ -1510,12 +1522,16 @@ class OFnonlin(object):
     def twopoletime(self, A, tau_r, tau_f, t0):
         """
         Functional form of pulse in time domain with the amplitude, rise time,
-        fall time, and time offset allowed to float
+        fall time, and time offset allowed to float. The functional form (time domain) is:
+        A*(exp(-t/\tau_fall)) - A*(exp(-t/\tau_rise))
+        Note that there are 2 ways to interpret the 'A' parameter input to this function (see below).
+        This is meant to be a private function
 
         Parameters
         ----------
         A : float
-            Amplitude of pulse
+            Amplitude paramter or pulse height. If self.scale_amplitude is true, A represents the pulse height,
+            if false, A is the amplitude parameter in the time domain expression above.
         tau_r : float
             Rise time of two-pole pulse
         tau_f : float
@@ -1529,7 +1545,14 @@ class OFnonlin(object):
             Array of amplitude values as a function of time
         """
 
-        pulse = A*(np.exp(-self.time/tau_f)) - A*(np.exp(-self.time/tau_r))
+        if(self.scale_amplitude):
+            delta = tau_r-tau_f
+            rat = tau_r/tau_f
+            amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+            pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        else:
+            pulse = A*(np.exp(-self.time/tau_f)) - A*(np.exp(-self.time/tau_r))
+
         return shift(pulse, int(t0*self.fs))
 
 
@@ -1610,7 +1633,7 @@ class OFnonlin(object):
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
     def fit_falltimes(self, pulse, npolefit=1, errscale=1, guess=None, bounds=None,
-                      taurise=None, lgcfullrtn=False, lgcplot=False):
+                      taurise=None, scale_amplitude=True, lgcfullrtn=False, lgcplot=False):
         """
         Function to do the fit
 
@@ -1639,6 +1662,10 @@ class OFnonlin(object):
             a factor of 10 of rise/fall time guesses, and within 30 samples of start time guess.
         taurise : float, optional
             The value of the rise time of the pulse if the single pole function is being use for fit
+        scale_amplitude : bool, optional
+            If using the 1- or 2-pole fit, whether the parameter, A, should be treated as the pulse height 
+            (scale_amplitude=True, default) or as a scale parameter in the functional exression. See twopole and twopoletime
+            for details.
         lgcfullrtn : bool, optional
             If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
             the covariance matrix, and chi squared statistic are returned as well.
@@ -1668,6 +1695,7 @@ class OFnonlin(object):
         self.error = np.sqrt(self.psd/errscale)
 
         self.npolefit = npolefit
+        self.scale_amplitude=scale_amplitude
 
         if (self.npolefit==1):
             if taurise is None:
