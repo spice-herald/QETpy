@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import least_squares
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.plotting import plotnonlin
+from qetpy.utils import shift
 
 
 __all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary",
@@ -1276,10 +1277,14 @@ class OFnonlin(object):
         The number of degrees of freedom in the fit
     norm : float
         Normalization factor to go from continuous to FFT
+    scale_amplitude : bool
+        If using the 1- or 2-pole fit, whether the parameter, A, should be treated as the pulse height 
+        (`scale_amplitude` = True, default) or as a scale parameter in the functional expression. See 
+        `twopole` and `twopoletime` for details.
 
     """
 
-    def __init__(self, psd, fs, template = None):
+    def __init__(self, psd, fs, template=None):
         """
         Initialization of OFnonlin object
 
@@ -1289,10 +1294,10 @@ class OFnonlin(object):
             The power spectral density corresponding to the pulses that will be
             used in the fit. Must be the full psd (positive and negative frequencies),
             and should be properly normalized to whatever units the pulses will be in.
-        fs : int or float
+        fs : int, float
             The sample rate of the ADC
-        template : ndarray
-            The time series pulse template to use as a guess for initial parameters
+        template : ndarray, NoneType, optional
+            The time series pulse template to use as a guess for initial parameters, if inputted.
 
         """
 
@@ -1308,6 +1313,7 @@ class OFnonlin(object):
 
         self.data = None
         self.npolefit = 1
+        self.scale_amplitude = True
 
         self.taurise = None
         self.error = None
@@ -1325,7 +1331,6 @@ class OFnonlin(object):
         C*(exp(-t/tau_fall3)) - (A+B+C)*(exp(-t/tau_rise))
 
         4 rise/fall times, 3 amplitudes, and time offset allowed to float
-
 
         Parameters
         ----------
@@ -1352,6 +1357,7 @@ class OFnonlin(object):
             Array of amplitude values as a function of frequency
 
         """
+
         omega = 2*np.pi*self.freqs
         phaseTDelay = np.exp(-(0+1j)*omega*t0)
         pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j))) + B*(tau_f2/(1+omega*tau_f2*(0+1j))) + \
@@ -1368,7 +1374,6 @@ class OFnonlin(object):
         C*(exp(-t/tau_fall3)) - (A+B+C)*(exp(-t/tau_rise))
 
         4 rise/fall times, 3 amplitudes, and time offset allowed to float
-
 
         Parameters
         ----------
@@ -1393,13 +1398,14 @@ class OFnonlin(object):
         -------
         pulse : ndarray
             Array of amplitude values as a function of time
+
         """
 
         pulse = A*(np.exp(-self.time/tau_f1)) + \
         B*(np.exp(-self.time/tau_f2)) + \
         C*(np.exp(-self.time/tau_f3)) - \
         (A+B+C)*(np.exp(-self.time/tau_r))
-        return np.roll(pulse, int(t0*self.fs))
+        return shift(pulse, int(t0*self.fs))
 
     def threepole(self, A, B, tau_r, tau_f1, tau_f2, t0):
         """
@@ -1432,6 +1438,7 @@ class OFnonlin(object):
             Array of amplitude values as a function of frequency
 
         """
+
         omega = 2*np.pi*self.freqs
         phaseTDelay = np.exp(-(0+1j)*omega*t0)
         pulse = (A*(tau_f1/(1+omega*tau_f1*(0+1j))) + B*(tau_f2/(1+omega*tau_f2*(0+1j))) - \
@@ -1468,29 +1475,33 @@ class OFnonlin(object):
         -------
         pulse : ndarray
             Array of amplitude values as a function of time
-        """
 
+        """
 
         pulse = A*(np.exp(-self.time/tau_f1)) + B*(np.exp(-self.time/tau_f2)) - \
         (A+B)*(np.exp(-self.time/tau_r))
-        return np.roll(pulse, int(t0*self.fs))
+        return shift(pulse, int(t0*self.fs))
 
 
-    def twopole(self, A, tau_r, tau_f,t0):
+    def twopole(self, A, tau_r, tau_f, t0):
         """
         Functional form of pulse in frequency domain with the amplitude, rise time,
-        fall time, and time offset allowed to float. This is meant to be a private function
+        fall time, and time offset allowed to float. The functional form (time domain) is:
+        A*(exp(-t/\tau_fall)) - A*(exp(-t/\tau_rise))
+        Note that there are 2 ways to interpret the 'A' parameter input to this function (see below).
+        This is meant to be a private function
 
         Parameters
         ----------
         A : float
-            Amplitude of pulse
+            Amplitude paramter or pulse height. If self.scale_amplitude is true, A represents the pulse height,
+            if false, A is the amplitude parameter in the time domain expression above.
         tau_r : float
             Rise time of two-pole pulse
         tau_f : float
             Fall time of two-pole pulse
         t0 : float
-            Time offset of two pole pulse
+            Time offset of two-pole pulse
 
         Returns
         -------
@@ -1500,21 +1511,32 @@ class OFnonlin(object):
         """
 
         omega = 2*np.pi*self.freqs
-        delta = tau_r-tau_f
-        rat = tau_r/tau_f
-        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
-        pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+
+        if(self.scale_amplitude):
+            delta = tau_r-tau_f
+            rat = tau_r/tau_f
+            amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+            pulse = amp*np.abs(tau_r-tau_f)/(1+omega*tau_f*1j)*1/(1+omega*tau_r*1j)*np.exp(-omega*t0*1.0j)
+        else:
+            pulse = (A*(tau_f/(1+omega*tau_f*(0+1j))) - A*(tau_r/(1+omega*tau_r*(0+1j)))) * np.exp(-omega*t0*1.0j)
+
         return pulse*np.sqrt(self.df)
+
+
 
     def twopoletime(self, A, tau_r, tau_f, t0):
         """
         Functional form of pulse in time domain with the amplitude, rise time,
-        fall time, and time offset allowed to float
+        fall time, and time offset allowed to float. The functional form (time domain) is:
+        A*(exp(-t/\tau_fall)) - A*(exp(-t/\tau_rise))
+        Note that there are 2 ways to interpret the 'A' parameter input to this function (see below).
+        This is meant to be a private function
 
         Parameters
         ----------
         A : float
-            Amplitude of pulse
+            Amplitude paramter or pulse height. If self.scale_amplitude is true, A represents the pulse height,
+            if false, A is the amplitude parameter in the time domain expression above.
         tau_r : float
             Rise time of two-pole pulse
         tau_f : float
@@ -1526,13 +1548,19 @@ class OFnonlin(object):
         -------
         pulse : ndarray
             Array of amplitude values as a function of time
+
         """
 
-        delta = tau_r-tau_f
-        rat = tau_r/tau_f
-        amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
-        pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
-        return np.roll(pulse, int(t0*self.fs))
+        if(self.scale_amplitude):
+            delta = tau_r-tau_f
+            rat = tau_r/tau_f
+            amp = A/(rat**(-tau_r/delta)-rat**(-tau_f/delta))
+            pulse = amp*(np.exp(-(self.time)/tau_f)-np.exp(-(self.time)/tau_r))
+        else:
+            pulse = A*(np.exp(-self.time/tau_f)) - A*(np.exp(-self.time/tau_r))
+
+        return shift(pulse, int(t0*self.fs))
+
 
     def onepole(self, A, tau_f, t0):
         """
@@ -1552,7 +1580,8 @@ class OFnonlin(object):
         Returns
         -------
         pulse : ndarray, complex
-            Array of amplitude values as a function of freuqncy
+            Array of amplitude values as a function of frequency
+
         """
 
         tau_r = self.taurise
@@ -1560,7 +1589,7 @@ class OFnonlin(object):
 
     def residuals(self, params):
         """
-        Function ot calculate the weighted residuals to be minimized
+        Function to calculate the weighted residuals to be minimized
 
         Parameters
         ----------
@@ -1572,6 +1601,7 @@ class OFnonlin(object):
         z1d : ndarray
             Array containing residuals per frequency bin. The complex data is flatted into
             single array
+
         """
 
         if (self.npolefit==4):
@@ -1606,33 +1636,31 @@ class OFnonlin(object):
         -------
         chi2 : float
             The reduced chi squared statistic
+
         """
 
         return sum(np.abs(self.data-model)**2/self.error**2)/(len(self.data)-self.dof)
 
     def fit_falltimes(self, pulse, npolefit=1, errscale=1, guess=None, bounds=None,
-                      taurise=None, lgcfullrtn=False, lgcplot=False):
+                      taurise=None, scale_amplitude=True, lgcfullrtn=False, lgcplot=False):
         """
         Function to do the fit
 
         Parameters
         ----------
         pulse : ndarray
-            Time series traces to be fit
+            Time series traces to be fit. Should be a 1-dimensional array.
         npolefit: int, optional
-            The number of poles to fit
+            The number of poles to fit.
             If 1, the one pole fit is done, the user must provide the value of taurise
             If 2, the two pole fit is done
             If 3, the three pole fit is done (1 rise 2 fall). Second fall time amplitude is independent
             If 4, the four pole fit is done (1 rise 3 fall). Second and third fall time amplitudes are independent
-            If False, the twopole fit is done, if True, the one pole fit it done.
         errscale : float or int, optional
-            A scale factor for the psd. Ex: if fitting an average, the errscale should be
-            set to the number of traces used in the average
+            A scale factor for the psd. For example, if fitting an average, the errscale should be
+            set to the number of traces used in the average.
         guess : tuple, optional
             Guess of initial values for fit, must be the same size as the model being used for fit.
-            If lgcdouble is True, then the order should be (ampguess, tauriseguess, taufallguess, t0guess).
-            If lgcdouble is False, then the order should be (ampguess, taufallguess, t0guess).
         bounds : 2-tuple of array_like, optional
             Lower and upper bounds on independent variables. Each array must match the size of guess.
             Use np.inf with an appropriate sign to disable bounds on all or some variables.
@@ -1640,6 +1668,10 @@ class OFnonlin(object):
             a factor of 10 of rise/fall time guesses, and within 30 samples of start time guess.
         taurise : float, optional
             The value of the rise time of the pulse if the single pole function is being use for fit
+        scale_amplitude : bool, optional
+            If using the 1- or 2-pole fit, whether the parameter, A, should be treated as the pulse height 
+            (`scale_amplitude` = True, default) or as a scale parameter in the functional expression. See 
+            `twopole` and `twopoletime` for details.
         lgcfullrtn : bool, optional
             If False, only the best fit parameters are returned. If True, the errors in the fit parameters,
             the covariance matrix, and chi squared statistic are returned as well.
@@ -1650,13 +1682,16 @@ class OFnonlin(object):
         -------
         variables : tuple
             The best fit parameters
-        errors : tuple
-            The corresponding fit errors for the best fit parameters
-        cov : ndarray
-            The convariance matrix returned from the fit
-        chi2 : float
-            The reduced chi squared statistic evaluated at the optimum point of the fit
-        success : True if the fit converged
+        errors : tuple, optional
+            The corresponding fit errors for the best fit parameters. Returned if `lgcfullrtn` is True.
+        cov : ndarray, optional
+            The convariance matrix returned from the fit. Returned if `lgcfullrtn` is True.
+        chi2 : float, optional
+            The reduced chi squared statistic evaluated at the optimum point of the fit. Returned if
+            `lgcfullrtn` is True.
+        success : bool, optional
+           The success flag from `scipy.optimize.curve_fit`. True if the fit converged. Returned if
+           `lgcfullrtn` is True.
 
         Raises
         ------
@@ -1669,6 +1704,7 @@ class OFnonlin(object):
         self.error = np.sqrt(self.psd/errscale)
 
         self.npolefit = npolefit
+        self.scale_amplitude=scale_amplitude
 
         if (self.npolefit==1):
             if taurise is None:
@@ -1777,11 +1813,12 @@ class OFnonlin(object):
 
         if (self.npolefit==4):
             chi2 = self.calcchi2(self.fourpole(variables[0], variables[1],
-                                                variables[2],variables[3],
-                                                variables[4], variables[5],
+                                               variables[2],variables[3],
+                                               variables[4], variables[5],
                                                variables[6], variables[7]))
         elif (self.npolefit==3):
-            chi2 = self.calcchi2(self.threepole(variables[0], variables[1], variables[2],variables[3], variables[4], variables[5]))
+            chi2 = self.calcchi2(self.threepole(variables[0], variables[1], variables[2],
+                                                variables[3], variables[4], variables[5]))
         elif (self.npolefit==2):
             chi2 = self.calcchi2(self.twopole(variables[0], variables[1], variables[2],variables[3]))
         else:
