@@ -245,13 +245,19 @@ def test_OFnonlin():
     signal = np.roll(signal, -100) # undo the roll in create_example_data to make test easier
     
     nlin = qp.OFnonlin(psd, fs, template=template)
-    res1 = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6)
-    res2 = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True)
+    res1a = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=True)
+    res1 = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=False)
+    res2a = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=True)
+    res2 = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=False)
     res3 = nlin.fit_falltimes(signal, npolefit=3, lgcfullrtn=False, lgcplot=True)
     res4 = nlin.fit_falltimes(signal, npolefit=4, lgcfullrtn=False, lgcplot=True)
     
+    assert isclose(res1a, [4.008696926367952e-06, 6.577134966380607e-05,
+                          2.600003126086262e-02])
     assert isclose(res1, [9.690520626128428e-06, 6.577262665978902e-05,
                           2.600003114814408e-02])
+    assert isclose(res2a, [4.010777893773002e-06, 1.952058681743050e-05,
+                           6.667391354400327e-05, 2.600012092917421e-02])
     assert isclose(res2, [9.501376001058713e-06, 1.962953013808533e-05,
                           6.638332141659392e-05, 2.600010755026570e-02])
     assert isclose(res3, [9.308842323550344e-06, 1.332396374991919e-08,
