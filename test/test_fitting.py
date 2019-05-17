@@ -89,7 +89,10 @@ def test_OptimumFilter():
 
     res = OF.ofamp_withdelay()
     assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
-    
+
+    res2 = OF.ofamp_nodelay(windowcenter=int(res[1] * fs))
+    assert isclose(res2, res[::2])
+
     res = OF.time_resolution(res[0])
     assert isclose(res, 5.746611055379949e-09)
     
