@@ -5,8 +5,16 @@ from qetpy.plotting import plotnonlin
 from qetpy.utils import shift
 
 
-__all__ = ["OptimumFilter","ofamp", "ofamp_pileup", "ofamp_pileup_stationary",
-           "chi2lowfreq","chi2_nopulse", "OFnonlin", "MuonTailFit"]
+__all__ = [
+    "OptimumFilter",
+    "ofamp",
+    "ofamp_pileup",
+    "ofamp_pileup_stationary",
+    "chi2lowfreq",
+    "chi2_nopulse",
+    "OFnonlin",
+    "MuonTailFit",
+]
 
 
 def _argmin_chi2(chi2, nconstrain=None, lgcoutsidewindow=False,
@@ -343,29 +351,45 @@ class OptimumFilter(object):
 
         return chi2low
 
-    def ofamp_nodelay(self):
+    def ofamp_nodelay(self, windowcenter=0):
         """
         Function for calculating the optimum amplitude of a pulse in data with no time
-        shifting.
+        shifting, or at a specific time.
+
+        Parameters
+        ----------
+        windowcenter : int, optional
+            The bin, relative to the center bin of the trace, at which to calculate the
+            OF amplitude. Default of 0 calculates the usual no delay optimum filter. Equivalent
+            to calculating the OF amplitude at the bin `self.nbins//2 + windowcenter`. Useful for
+            calculating amplitudes at specific times, if there is some prior knowledge.
 
         Returns
         -------
         amp : float
             The optimum amplitude calculated for the trace (in Amps) with no time shifting
-            allowed.
+            allowed (or at the time specified by `windowcenter`).
         chi2 : float
-            The chi^2 value calculated from the optimum filter with no time shifting.
+            The chi^2 value calculated from the optimum filter with no time shifting (or at the
+            time specified by `windowcenter`).
 
         """
-        # compute OF amplitude no delay
-        amp = np.real(np.sum(self.signalfilt, axis=-1))*self.df
+
+        if windowcenter != 0 and self.freqs is None:
+            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+
+        if windowcenter != 0:
+            t0 = windowcenter / self.fs
+            amp = np.real(np.sum(self.signalfilt * np.exp(2.0j * np.pi * t0 * self.freqs), axis=-1)) * self.df
+        else:
+            amp = np.real(np.sum(self.signalfilt, axis=-1)) * self.df
 
         # signal part of chi2
         if self.chi0 is None:
-            self.chi0 = np.real(np.dot(self.v.conjugate()/self.psd, self.v)*self.df)
+            self.chi0 = np.real(np.dot(self.v.conjugate() / self.psd, self.v) * self.df)
 
         # fitting part of chi2
-        chit = (amp**2)*self.norm
+        chit = (amp**2) * self.norm
 
         chi2 = self.chi0 - chit
 
