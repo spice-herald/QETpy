@@ -241,6 +241,23 @@ class OptimumFilter(object):
         self.times = None
         self.freqs = None
 
+    def _check_freqs(self):
+        """
+        Hidden method for checking if we have initialized the FFT frequencies.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
+
+        if self.freqs is None:
+            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+
     def update_signal(self, signal):
         """
         Method to update `OptimumFilter` with a new signal if the PSD and template
@@ -293,8 +310,7 @@ class OptimumFilter(object):
 
         """
 
-        if self.freqs is None:
-            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        self._check_freqs()
 
         sigma = 1.0/np.sqrt(amp**2 * np.sum((2*np.pi*self.freqs)**2 * np.abs(self.s)**2 / self.psd) * self.df)
 
@@ -340,8 +356,7 @@ class OptimumFilter(object):
 
         """
 
-        if self.freqs is None:
-            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        self._check_freqs()
 
         chi2tot = self.df*np.abs(self.v-amp*np.exp(-2.0j*np.pi*t0*self.freqs)*self.s)**2/self.psd
 
@@ -375,10 +390,8 @@ class OptimumFilter(object):
 
         """
 
-        if windowcenter != 0 and self.freqs is None:
-            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
-
         if windowcenter != 0:
+            self._check_freqs()
             t0 = windowcenter / self.fs
             amp = np.real(np.sum(self.signalfilt * np.exp(2.0j * np.pi * t0 * self.freqs), axis=-1)) * self.df
         else:
@@ -523,8 +536,7 @@ class OptimumFilter(object):
 
         """
 
-        if self.freqs is None:
-            self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
+        self._check_freqs()
 
         if self.signalfilt_td is None:
             self.signalfilt_td = np.real(ifft(self.signalfilt*self.nbins, axis=-1))*self.df
