@@ -1199,6 +1199,7 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6, yerr=IVobject.ites_err[t, ch]*1e6,
+                        xerr=IVobject.vb_err[t, ch]*1e6,
                          linestyle='None', color='k')
             if showfit:
                 maxind = np.argmax(abs(IVobject.vb[t, ch]))
@@ -1278,6 +1279,7 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.r0[t, ch]*1e3, yerr=IVobject.r0_err[t, ch]*1e3,
+                        xerr=IVobject.vb_err[t, ch]*1e6,
                          linestyle='None', color='k')
 
     ax.legend(loc='best')
@@ -1348,6 +1350,7 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
                         color=ch_colors[it*len(chrange) + ich], s=10.0)
             ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, color=ch_colors[it*len(chrange) + ich], alpha=0.5)
             ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, yerr=IVobject.ptes_err[t, ch]*1e12,
+                        xerr=IVobject.vb_err[t, ch]*1e6,
                          linestyle='None', color='k')
 
     ax.legend(loc='best')
