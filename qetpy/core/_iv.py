@@ -237,6 +237,7 @@ class IV(object):
         Static method to calculate TES resistance
         """
         return ibias*rsh/(dites-ioff)-rload
+    
     @staticmethod
     def _rtes_err(ibias, rsh, dites, ioff, rload,  cov):
         """
@@ -320,22 +321,6 @@ class IV(object):
                     normalinds = _findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
                 else:
                     normalinds = self.normalinds
-#                 #######
-#                 yopt, ycov = curve_fit(_fitfunc, self.dites[t, ch, normalinds], self.vb[t, ch, normalinds],
-#                                      sigma=self.vb_err[t, ch, normalinds], absolute_sigma=True)
-#                 ####### [intercept, slope]
-                
-#                 jac = np.zeros((2,2))
-                
-#                 jac[0,0] = 1/yopt[1]
-#                 jac[1,1] = yopt[0]/(yopt[1]**2)
-#                 y_int_cov = jac.dot(ycov.dot(jac.transpose()))
-                
-#                 rfit[t,ch] = yopt[1]
-#                 rfit_err[t,ch] = ycov[1,1]**0.5
-                
-#                 ioff[t,ch] = - yopt[0]/yopt[1]
-#                 ioff_err[t,ch] = y_int_cov.sum()**0.5
                     
                 x, xcov = curve_fit(_fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
                                     sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
@@ -348,7 +333,6 @@ class IV(object):
                 covout = jac.dot(xcov.dot(jac.transpose()))
     
                 ioff[t,ch] = xout[0]
-                #print(ioff[t,ch])
                 ioff_err[t,ch] = covout[0,0]**0.5
 
                 rfit[t,ch] = xout[1] * self.rsh
@@ -361,38 +345,21 @@ class IV(object):
                     cov[2,2] = ioff_err[t,ch, ii]**2
                     cov[3,3] = self.rsh_err**2
                     cov[4,4] = self.rload_err[t,ch, ii]**2
-                    #print(cov)
-                    #print(self.ibias[t,ch,ii].shape, self.rsh, self.dites[t,ch,ii].shape, ioff[t,ch,ii].shape, self.rload[t,ch,ii].shape)
-                    #print(IV._rtes(self.ibias[t,ch,ii], self.rsh, self.dites[t,ch,ii], ioff[t,ch], self.rload[t,ch,ii]).shape)
-                    self.r0[t,ch,ii] = IV._rtes(self.ibias[t,ch,ii], self.rsh, self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
-                    self.r0_err[t,ch,ii] = IV._rtes_err(self.ibias[t,ch,ii], self.rsh, self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
-                    self.ptes[t,ch,ii] = IV._ptes(self.ibias[t,ch,ii], self.rsh, self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
-                    self.ptes_err[t,ch,ii] = IV._ptes_err(self.ibias[t,ch,ii], self.rsh, self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
-        
-       
-                
+                   
+                    self.r0[t,ch,ii] = IV._rtes(self.ibias[t,ch,ii], self.rsh, 
+                                                self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
+                    self.r0_err[t,ch,ii] = IV._rtes_err(self.ibias[t,ch,ii], self.rsh, 
+                                                        self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
+                    self.ptes[t,ch,ii] = IV._ptes(self.ibias[t,ch,ii], self.rsh, 
+                                                  self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
+                    self.ptes_err[t,ch,ii] = IV._ptes_err(self.ibias[t,ch,ii], self.rsh, 
+                                                          self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
+               
         rnorm = rfit - self.rload
         rnorm_err = (rfit_err**2 + self.rload_err**2)**0.5
         
-        
-
         self.ites = self.dites - ioff
         self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
-        
-#         self.r0 = DIDV._rtes(self.ibias, self.rsh, self.dites, self.ioff, self.rload)
-#         self.r0_err = DIDV._rtes_err(self.ibias, self.rsh, self.dites, self.ioff, self.rload, cov)
-#         self.p0 = DIDV._ptes(self.ibias, self.rsh, self.dites, self.ioff, self.rload)
-#         self.p0_err = DIDV._ptes_err(self.ibias, self.rsh, self.dites, self.ioff, self.rload, cov)
-
-#         self.r0 = self.vb/self.ites - self.rload
-#         self.r0_err = ((1/self.ites)**2*self.vb_err**2 + \
-#                        (self.vb/self.ites**2)**2*self.ites_err**2 + \
-#                        self.rload_err**2)**0.5
-
-#         self.ptes = self.ites**2 * self.r0
-#         self.ptes_err = ((self.vb-2*self.ites*self.rload)**2.0 * self.ites_err**2.0 + \
-#                          (self.ites)**2.0 * self.vb_err**2.0 + \
-#                          (self.ites**2.0)**2.0 * self.rload_err**2.0)**0.5
         
         self.ioff = ioff[:,:,0]
         self.ioff_err = ioff_err[:,:,0]
