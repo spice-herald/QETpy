@@ -1187,6 +1187,8 @@ class DIDV(object):
         Error in the load resistance, Ohms
     rshunt : float
         Shunt resistance in the circuit, Ohms
+    rshunt_err : float
+        Error in the shunt resistance in the circuit, Ohms
     tracegain : float
         The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
         already has units of Amps, then this should be set to 1.0
@@ -1301,8 +1303,22 @@ class DIDV(object):
             
     """
     
-    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0, r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
+    def __init__(self, 
+                 rawtraces, 
+                 fs, sgfreq, 
+                 sgamp, 
+                 rshunt, 
+                 rshunt_err=0, 
+                 tracegain=1.0, 
+                 r0=0.3, 
+                 r0_err=0.001, 
+                 rload=0.01, 
+                 rload_err=0.001,
+                 dutycycle=0.5, 
+                 add180phase=False, 
+                 priors=None, 
+                 invpriorscov=None, 
+                 dt0=10.0e-6):
         """
         Initialization of the DIDV class object
         
@@ -1320,6 +1336,8 @@ class DIDV(object):
             Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
         rshunt : float
             Shunt resistance in the circuit, Ohms
+        rshunt_err : float
+            Error in the shunt resistance in the circuit, Ohms
         tracegain : float, optional
             The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
             already has units of Amps, then this should be set to 1.0
@@ -1363,6 +1381,7 @@ class DIDV(object):
         self.rload = rload
         self.rload_err = rload_err
         self.rshunt = rshunt
+        self.rshunt_err = rshunt_err
         self.tracegain = tracegain
         self.dutycycle = dutycycle
         self.add180phase = add180phase
@@ -1494,9 +1513,13 @@ class DIDV(object):
         self.ntraces = len(self.traces)
         
         # divide by sqrt(N) for standard deviation of mean
-        self.didvstd = stdcomplex(didvs)/np.sqrt(self.ntraces)
-        self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
+        didvstd_stat = stdcomplex(didvs)/np.sqrt(self.ntraces)
         self.didvmean = np.mean(didvs, axis=0)
+        
+        didvstd_real = np.sqrt(didvstd_stat.real**2 + (self.didvmean.real/self.rshunt*self.rshunt_err)**2)
+        didvstd_imag = np.sqrt(didvstd_stat.imag**2 + (self.didvmean.imag/self.rshunt*self.rshunt_err)**2)
+        self.didvstd = didvstd_real + 1.0j*didvstd_imag
+        self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
 
         self.offset = np.mean(means)
         self.offset_err = np.std(means)/np.sqrt(self.ntraces)
