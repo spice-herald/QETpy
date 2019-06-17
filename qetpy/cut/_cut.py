@@ -90,7 +90,7 @@ def iterstat(data,cut=3,precision=1000.0):
             meanthis = np.mean(data)
             stdthis = np.std(data)
             mask = np.ones(len(data),dtype=bool)
-            break
+            return meanthis, stdthis, mask
 
         meanthis = np.mean(data[mask])
         stdthis = np.std(data[mask])
