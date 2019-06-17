@@ -9,15 +9,6 @@ __all__ = ["DIDV2"]
 
 
 
-
-
-
-
-
-
-
-
-
 class DIDV2(object):
     """
     Class for fitting a didv curve for different types of models of the didv. Also gives
@@ -37,18 +28,6 @@ class DIDV2(object):
         Frequency of the signal generator, in Hz
     sgamp : float
         Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
-    r0 : float
-        Resistance of the TES in Ohms
-    r0_err : float
-        Error in the resistance of the TES (Ohms)
-    rp : float
-        parasitic resistance of the circuit, Ohms
-    rp_err : float
-        Error in the parasitic resistance, Ohms
-    rshunt : float
-        Shunt resistance in the circuit, Ohms
-    rshunt_err : float
-        Error in the shunt resistance in the circuit, Ohms
     tracegain : float
         The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
         already has units of Amps, then this should be set to 1.0
@@ -93,92 +72,29 @@ class DIDV2(object):
         The offset (i.e. baseline value) of the didv trace, in Amps
     offset_err : float
         The error in the offset of the didv trace, in Amps
-    fitparams1 : ndarray
-        The fit parameters of the 1-pole fit, in order of (A, tau2, dt)
-    fitcov1 : ndarray
-        The corresponding covariance for the 1-pole fit parameters
-    fitcost1 : float
-        The cost of the 1-pole fit
-    irwinparams1 : ndarray
-        The Irwin parameters of the 1-pole fit, in order of (rtot, L , r0, rload, dt)
-    irwincov1 : ndarray
-        The corresponding covariance for the Irwin parameters for the 1-pole fit
-    falltimes1 : ndarray
-        The fall times of the 1-pole fit, same as tau2, in s
-    didvfit1_timedomain : ndarray
-        The 1-pole fit in time domain
-    didvfit1_freqdomain : ndarray
-        The 1-pole fit in frequency domain
-    fitparams2 : ndarray
-        The fit parameters of the 2-pole fit, in order of (A, B, tau1, tau2, dt)
-    fitcov2 : ndarray
-        The corresponding covariance for the 2-pole fit parameters
-    fitcost2 : float
-        The cost of the 2-pole fit
-    irwinparams2 : ndarray
-        The Irwin parameters of the 2-pole fit, in order of (rload, r0, beta, l, L, tau0, dt)
-    irwincov2 : ndarray
-        The corresponding covariance for the Irwin parameters for the 2-pole fit
-    falltimes2 : ndarray
-        The fall times of the 2-pole fit, tau_plus and tau_minus, in s
-    didvfit2_timedomain : ndarray
-        The 2-pole fit in time domain
-    didvfit2_freqdomain : ndarray
-        The 2-pole fit in frequency domain
-    fitparams3 : ndarray
-        The fit parameters of the 3-pole fit, in order of (A, B, C, tau1, tau2, tau3, dt)
-    fitcov3 : ndarray
-        The corresponding covariance for the 3-pole fit parameters
-    fitcost3 : float
-        The cost of the 3-pole fit
-    irwinparams3 : NoneType
-        The Irwin parameters of the 3-pole fit, this returns None now, as there is no model
-        that we convert to
-    irwincov3 : NoneType
-        The corresponding covariance for the Irwin parameters for the 3-pole fit,
-        also returns None
-    falltimes3 : ndarray
-        The fall times of the 3-pole fit in s
-    didvfit3_timedomain : ndarray
-        The 3-pole fit in time domain
-    didvfit3_freqdomain : ndarray
-        The 3-pole fit in frequency domain
-    fitparams2priors : ndarray
-        The fit parameters of the 2-pole priors fit, in order of (A, B, tau1, tau2, dt), converted from 
-        the Irwin parameters
-    fitcov2priors : ndarray
-        The corresponding covariance for the 2-pole priors fit parameters
-    fitcost2priors : float
-        The cost of the 2-pole priors fit
-    irwinparams2priors : ndarray
-        The Irwin parameters of the 2-pole priors fit, in order of (rload, r0, beta, l, L, tau0, dt)
-    irwincov2priors : ndarray
-        The corresponding covariance for the Irwin parameters for the 2-pole priors fit
-    falltimes2priors : ndarray
-        The fall times of the 2-pole priors fit, tau_plus and tau_minus, in s
-    didvfit2priors_timedomain : ndarray
-        The 2-pole priors fit in time domain
-    didvfit2priors_freqdomain : ndarray
-        The 2-pole priors fit in frequency domain
-            
+    irwinparams : ndarray
+        The Irwin parameters of the 1 or 2-pole fit, in order of (rshunt,rp,r0,beta,l,L,tau0,dt)
+        for 2-pole or (rshunt, rtot, L, dt) for 1-pole
+    irwincov : ndarray
+        The corresponding covariance for the Irwin parameters for the 1 or 2-pole fit
+    didvfit_timedomain : ndarray
+        The 1 or 2-pole fit in time domain
+    didvfit_freqdomain : ndarray
+        The 1 or 2-pole fit in frequency domain        
     """
     
     def __init__(self, 
                  rawtraces, 
                  fs, sgfreq, 
                  sgamp, 
-                 rshunt, 
-                 rshunt_err=0, 
                  tracegain=1.0, 
-                 r0=0.3, 
-                 r0_err=0.001, 
-                 rp=0.01, 
-                 rp_err=0.001,
                  dutycycle=0.5, 
                  add180phase=False, 
                  priors=None, 
                  invpriorscov=None, 
-                 dt0=10.0e-6):
+                 dt0=10.0e-6, 
+                 npoles=2,
+                ):
         """
         Initialization of the DIDV class object
         
@@ -201,15 +117,6 @@ class DIDV2(object):
         tracegain : float, optional
             The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
             already has units of Amps, then this should be set to 1.0
-        r0 : float, optional
-            Resistance of the TES in Ohms. Should be set if the Irwin parameters are desired.
-        r0_err : float, optional
-            Error in the resistance of the TES (Ohms). Should be set if the Irwin parameters are desired.
-        rload : float, optional
-            Load resistance of the circuit (rload = rshunt + rparasitic), Ohms. Should be set if the
-            Irwin parameters are desired.
-        rload_err : float,optional
-            Error in the load resistance, Ohms. Should be set if the Irwin parameters are desired.
         dutycycle : float, optional
             The duty cycle of the signal generator, should be a float between 0 and 1. Set to 0.5 by default
         add180phase : boolean, optional
@@ -230,24 +137,17 @@ class DIDV2(object):
             is far from the actual value, so a solution is to do this iteratively. 
         """
         
-        
-        
         self.rawtraces = rawtraces
         self.fs = fs
         self.sgfreq = sgfreq
         self.sgamp = sgamp
-        self.r0 = r0
-        self.r0_err = r0_err
-        self.rp = rp
-        self.rp_err = rp_err
-        self.rshunt = rshunt
-        self.rshunt_err = rshunt_err
         self.tracegain = tracegain
         self.dutycycle = dutycycle
         self.add180phase = add180phase
         self.priors = priors
         self.invpriorscov = invpriorscov
         self.dt0 = dt0
+        self.npoles = npoles
         
         self.freq = None
         self.time = None
@@ -261,42 +161,11 @@ class DIDV2(object):
         self.offset = None
         self.offset_err = None
         
-        self.fitparams1 = None
-        self.fitcov1 = None
-        self.fitcost1 = None
-        self.irwinparams1 = None
-        self.irwincov1 = None
-        self.falltimes1 = None
-        self.didvfit1_timedomain = None
-        self.didvfit1_freqdomain = None
-        
-        self.fitparams2 = None
-        self.fitcov2 = None
-        self.fitcost2 = None
-        self.irwinparams2 = None
-        self.irwincov2 = None
-        self.falltimes2 = None
-        self.didvfit2_timedomain = None
-        self.didvfit2_freqdomain = None
-        
-        self.fitparams3 = None
-        self.fitcov3 = None
-        self.fitcost3 = None
-        self.irwinparams3 = None
-        self.irwincov3 = None
-        self.falltimes3 = None
-        self.didvfit3_timedomain = None
-        self.didvfit3_freqdomain = None
-        
-        self.fitparams2priors = None
-        self.fitcov2priors = None
-        self.fitcost2 = None
-        self.irwinparams2priors = None
-        self.irwincov2priors = None
-        self.falltimes2priors = None
-        self.irwincov2priors_num = None
-        self.didvfit2priors_timedomain = None
-        self.didvfit2priors_freqdomain = None
+        self.fitparams = None
+        self.fitcov = None
+        self.fitcost = None
+        self.irwinparams = None
+        self.irwincov = None
         
     def _deconvolvedidv(self, x, trace, rshunt, sgamp, sgfreq, dutycycle):
         """
@@ -332,39 +201,41 @@ class DIDV2(object):
             be zero, so that we can ignore these points in the complex impedance.
 
         """
-
-
+        
         tracelength = len(x)
-
         # get the frequencies for a DFT, based on the sample rate of the data
         dx = x[1]-x[0]
         freq = fftfreq(len(x), d=dx)
-
         # FFT of the trace
         st = fft(trace)
-
         # analytic DFT of a duty cycled square wave
         sf = np.zeros_like(freq)*0.0j
-    
         # even frequencies are zero unless the duty cycle is not 0.5
+        
+        #due to float precision, np.mod will have errors on the order of 
+        # 1e-10 for large numbers, thus we set a bound on the error (1e-8)
         if (dutycycle==0.5):
-            oddinds = ((np.abs(np.mod(np.absolute(freq/sgfreq), 2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            oddinds = ((np.abs(np.mod(np.absolute(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = 1.0j/(pi*freq[oddinds]/sgfreq)*sgamp*tracelength
         else:
-            oddinds = ((np.abs(np.mod(np.abs(freq/sgfreq), 2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            oddinds = ((np.abs(np.mod(np.abs(freq/sgfreq), 2)-1))<1e-8) 
             sf[oddinds] = -1.0j/(2.0*pi*freq[oddinds]/sgfreq)*sgamp*tracelength*(np.exp(-2.0j*pi*freq[oddinds]/sgfreq*dutycycle)-1)
 
-            eveninds = ((np.abs(np.mod(np.abs(freq/sgfreq)+1,2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            eveninds = ((np.abs(np.mod(np.abs(freq/sgfreq)+1,2)-1))<1e-8) 
             eveninds[0] = False
             sf[eveninds] = -1.0j/(2.0*pi*freq[eveninds]/sgfreq)*sgamp*tracelength*(np.exp(-2.0j*pi*freq[eveninds]/sgfreq*dutycycle)-1)
 
-        # the tracelength/2 value from the FFT is purely real, which can cause errors when taking the standard deviation (get stddev = 0 for real part of didv at this frequency, leading to a divide by zero when calculating the residual when fitting)
+        # the tracelength/2 value from the FFT is purely real, which can cause errors when 
+        #taking the standard deviation (get stddev = 0 for real part of didv at this frequency, 
+        #leading to a divide by zero when calculating the residual when fitting)
         sf[tracelength//2] = 0.0j
 
         # deconvolve the trace from the square wave to get the didv in frequency space
         dvdi = (sf/st)
 
-        # set values that are within floating point error of zero to 1.0 + 1.0j (we will give these values virtually infinite error, so the value doesn't matter. Setting to 1.0+1.0j avoids divide by zero if we invert)
+        # set values that are within floating point error of zero to 1.0 + 1.0j 
+        #(we will give these values virtually infinite error, so the value doesn't matter. 
+        #Setting to 1.0+1.0j avoids divide by zero if we invert)
         zeroinds = np.abs(dvdi) < 1e-16
         dvdi[zeroinds] = (1.0+1.0j)
 
@@ -378,31 +249,10 @@ class DIDV2(object):
         Function to convert the fitted TES parameters for the complex impedance 
         to a TES response to a square wave jitter in time domain.
 
-        Parameters
+        Paramaters
         ----------
-        x : array_like
-            Time values for the trace (in s)
-        A : float
-            The fit parameter A in the complex impedance (in Ohms)
-        B : float
-            The fit parameter B in the complex impedance (in Ohms)
-        C : float
-            The fit parameter C in the complex impedance
-        tau1 : float
-            The fit parameter tau1 in the complex impedance (in s)
-        tau2 : float
-            The fit parameter tau2 in the complex impedance (in s)
-        tau3 : float
-            The fit parameter tau3 in the complex impedance (in s)
-        sgamp : float
-            The peak-to-peak size of the square wave jitter (in Amps)
-        rshunt : float
-            The shunt resistance of the TES electronics (in Ohms)
-        sgfreq : float
-            The frequency of the square wave jitter (in Hz)
-        dutycycle : float
-            The duty cycle of the square wave jitter (between 0 and 1)
-
+        None 
+        
         Returns
         -------
         np.real(st) : ndarray
@@ -417,62 +267,35 @@ class DIDV2(object):
         dx = x[1]-x[0]
         freq = fftfreq(len(x), d=dx)
         # didv of fit in frequency space
-        ci = self.didvfit2priors_freqdomain
+        ci = self.didvfit_freqdomain
         # analytic DFT of a duty cycled square wave
         sf = np.zeros_like(freq)*0.0j
         # even frequencies are zero unless the duty cycle is not 0.5
+        
+        #due to float precision, np.mod will have errors on the order of 1e-10 
+        # for large numbers, thus we set a bound on the error (1e-8)
         if (self.dutycycle==0.5):
-            oddinds = ((np.abs(np.mod(np.absolute(freq/self.sgfreq), 2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            oddinds = ((np.abs(np.mod(np.absolute(freq/self.sgfreq), 2)-1))<1e-8)
             sf[oddinds] = 1.0j/(pi*freq[oddinds]/self.sgfreq)*self.sgamp*tracelength
         else:
-            oddinds = ((np.abs(np.mod(np.abs(freq/self.sgfreq), 2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            oddinds = ((np.abs(np.mod(np.abs(freq/self.sgfreq), 2)-1))<1e-8) 
             sf[oddinds] = -1.0j/(2.0*pi*freq[oddinds]/self.sgfreq)*self.sgamp*tracelength*(np.exp(-2.0j*pi*freq[oddinds]/self.sgfreq*self.dutycycle)-1)
-            eveninds = ((np.abs(np.mod(np.abs(freq/self.sgfreq)+1,2)-1))<1e-8) #due to float precision, np.mod will have errors on the order of 1e-10 for large numbers, thus we set a bound on the error (1e-8)
+            eveninds = ((np.abs(np.mod(np.abs(freq/self.sgfreq)+1,2)-1))<1e-8) 
             eveninds[0] = False
             sf[eveninds] = -1.0j/(2.0*pi*freq[eveninds]/self.sgfreq)*self.sgamp*tracelength*(np.exp(-2.0j*pi*freq[eveninds]/self.sgfreq*self.dutycycle)-1)
 
         # convolve the square wave with the fit
         sftes = sf*ci
-
         # inverse FFT to convert to time domain
         st = ifft(sftes)
 
-        self.didvfit2priors_timedomain = np.real(st)
+        return np.real(st)
 
-    def _twopoleimpedancepriors(self, freq, rshunt, rp, r0, beta, l, L, tau0):
-        """
-        Function to calculate the impedance (dvdi) of a TES with the 2-pole fit from Irwin's TES parameters
-
-        Parameters
-        ----------
-        freq : array_like, float
-            The frequencies for which to calculate the admittance (in Hz)
-        rload : float
-            The load resistance of the TES (in Ohms)
-        r0 : float
-            The resistance of the TES (in Ohms)
-        beta : float
-            The current sensitivity of the TES
-        l : float
-            Irwin's loop gain
-        L : float
-            The inductance in the TES circuit (in Henrys)
-        tau0 : float
-            The thermal time constant of the TES (in s)
-
-        Returns
-        -------
-        dvdi : array_like, float
-            The complex impedance of the TES with the 2-pole fit from Irwin's TES parameters
-
-        """
-
-        dvdi = rp + rshunt + r0*(1.0+beta) + 2.0j*pi*freq*L + r0 * l * (2.0+beta)/(1.0-l) * 1.0/(1.0+2.0j*freq*pi*tau0/(1.0-l))
-        return dvdi
                                 
-    def _twopoleadmittancepriors(self, freq, rshunt, rp, r0, beta, l, L, tau0):
+    def _twopoleadmittance(self, freq, rshunt, rp, r0, beta, l, L, tau0):
         """
-        Function to calculate the admittance (didv) of a TES with the 2-pole fit from Irwin's TES parameters
+        Function to calculate the admittance (didv), scaled by Rshunt,  of a TES with the 2-pole fit from Irwin's TES parameters.
+        This is the functional form of the dI sensor, dI bias.
 
         Parameters
         ----------
@@ -493,13 +316,40 @@ class DIDV2(object):
 
         Returns
         -------
-        1.0/dvdi : array_like, float
+        didv : array_like, float
             The complex admittance of the TES with the 2-pole fit from Irwin's TES parameters
+            Note, this is really the complex admittance multiplied by Rshunt
+        """
+        dvdi = rp + rshunt + r0*(1.0+beta) + 2.0j*pi*freq*L + r0 * l * (2.0+beta)/(1.0-l) * 1.0/(1.0+2.0j*freq*pi*tau0/(1.0-l))
+        didv = rshunt/dvdi
+        return didv
+    
+    def _onepoleadmittance(self, freq, rshunt, rtot, L):
+        """
+        Function to calculate the admittance (didv), scaled by Rshunt, of a TES with the 1-pole (normal and SC)
+        fit from Irwin's TES parameters. This is the functional form of the dI sensor, dI bias.
+        
+
+        Parameters
+        ----------
+        freq : array_like, float
+            The frequencies for which to calculate the admittance (in Hz)
+        rload : float
+            The load resistance of the TES (in Ohms)
+        rtot : float
+            The resistance of the TES + parasitic resistance(in Ohms)
+        L : float
+            The inductance in the TES circuit (in Henrys)
+
+        Returns
+        -------
+        didv : array_like, float
+            The complex admittance of the TES with the 1-pole fit from Irwin's TES parameters
 
         """
-
-        dvdi = self._twopoleimpedancepriors(freq, rshunt, rp, r0, beta, l, L, tau0)
+        dvdi = (rshunt + rtot + 2.0j*pi*freq*L)
         return (rshunt/dvdi)
+      
     
     def _residual(self, params):
         """
@@ -515,9 +365,12 @@ class DIDV2(object):
         z1d : ndarray
             The residual array for the real and imaginary parts for each frequency.
         """
-
-        rshunt, rp, r0, beta, l, L, tau0, dt=params
-        ci = self._twopoleadmittancepriors(self.freq, rshunt, rp, r0, beta, l, L, tau0) * np.exp(-2.0j*pi*self.freq*dt)
+        if self.npoles == 2:
+            rshunt, rp, r0, beta, l, L, tau0, dt=params
+            ci = self._twopoleadmittance(self.freq, rshunt, rp, r0, beta, l, L, tau0) * np.exp(-2.0j*pi*self.freq*dt)
+        elif self.npoles == 1:
+            rshunt, rtot, L, dt=params
+            ci = self._onepoleadmittance(self.freq, rshunt, rtot, L) * np.exp(-2.0j*pi*self.freq*dt)
 
         # the difference between the data and the fit
         diff = self.didvmean-ci
@@ -535,16 +388,26 @@ class DIDV2(object):
         return z1d
     
     def _residualpriors(self, params):
-        # priors = prior known values of rload, r0, beta, l, L, tau0 (2-pole)
-        # invpriorscov = inverse of the covariance matrix of the priors
+        """
+        Helper function to incude the priors in the residual
+        
+        Parameters
+        ----------
+        params : array_like
+            The parameters to be used for calculating the residual.
+
+        Returns
+        -------
+        z1dpriors : ndarray
+            The residual array for the real and imaginary parts for each frequency.
+        """
 
         z1dpriors = np.sqrt((self.priors-params).dot(self.invpriorscov).dot(self.priors-params))
         return z1dpriors
     
-    def jaca(self, params):
+    def jaca2(self, params):
         """
-        Create the analytic Jacobian matrix for calculating the errors in the 
-        priors parameters.
+        Create the analytic Jacobian matrix for the 2-pole fit
 
         Parameters
         ----------
@@ -557,10 +420,7 @@ class DIDV2(object):
             The jacobian matrix for the parameters.
         """
 
-        # analytically calculate the Jacobian for 2 pole and three pole cases
         popt = params
-
-        # popt = rp,r0,beta,l,L,tau0,dt
         rshunt = popt[0]
         rp = popt[1]
         r0 = popt[2]
@@ -573,7 +433,6 @@ class DIDV2(object):
         # derivative of 1/x = -1/x**2 (without doing chain rule)
         x = 2.0j*pi*self.freq*L + rp + rshunt + r0*(1.0+beta) + r0*l*(2.0+beta)/(1.0-l)*1.0/(1.0+2.0j*pi*self.freq*tau0/(1-l))
         deriv1 = -rshunt/(x**2)
-        #deriv1 = -rshunt/(2.0j*pi*freq*L + rp + rshunt + r0*(1.0+beta) + r0*l*(2.0+beta)/(1.0-l)*1.0/(1.0+2.0j*pi*freq*tau0/(1-l)))**2
 
         dYdrshunt = np.zeros(self.freq.size*2, dtype = np.float64)
         dYdrshuntcomplex = 1/x + deriv1
@@ -611,15 +470,62 @@ class DIDV2(object):
         dYdtau0[1:dYdtau0.size:2] = np.imag(dYdtau0complex)
 
         dYddt = np.zeros(self.freq.size*2, dtype = np.float64)
-        dYddtcomplex = -2.0j*pi*self.freq/(2.0j*pi*self.freq*L + rp + rshunt + r0*(1.0+beta) + r0*l*(2.0+beta)/(1.0-l)*1.0/(1.0+2.0j*pi*self.freq*tau0/(1-l))) * np.exp(-2.0j*pi*self.freq*dt)
+        dYddtcomplex = -2.0j*pi*self.freq / x * np.exp(-2.0j*pi*self.freq*dt)
         dYddt[0:dYddt.size:2] = np.real(dYddtcomplex)
         dYddt[1:dYddt.size:2] = np.imag(dYddtcomplex)
 
         jac = np.column_stack((dYdrshunt, dYdrp, dYdr0, dYdbeta, dYdl, dYdL, dYdtau0, dYddt))
         return jac
+    
+    def jaca1(self, params):
+        """
+        Create the analytic Jacobian matrix for the 1-pole fit
+
+        Parameters
+        ----------
+        params : array_like
+            The parameters to be used for calculating the residual.
+
+        Returns
+        -------
+        jac : ndarray
+            The jacobian matrix for the parameters.
+        """
+        popt = params
+        rshunt = popt[0]
+        rtot = popt[1]
+        L = popt[2]
+        dt = popt[3]
+
+        # derivative of 1/x = -1/x**2 (without doing chain rule)
+        x = 2.0j*pi*self.freq*L + rtot + rshunt 
+        deriv1 = -rshunt/(x**2)
+
+        dYdrshunt = np.zeros(self.freq.size*2, dtype = np.float64)
+        dYdrshuntcomplex = 1/x + deriv1
+        dYdrshunt[0:dYdrshunt.size:2] = np.real(dYdrshuntcomplex)
+        dYdrshunt[1:dYdrshunt.size:2] = np.imag(dYdrshuntcomplex)
+
+        dYdrtot = np.zeros(self.freq.size*2, dtype = np.float64)
+        dYdrtotcomplex = deriv1 * np.exp(-2.0j*pi*self.freq*dt)
+        dYdrtot[0:dYdrtot.size:2] = np.real(dYdrtotcomplex)
+        dYdrtot[1:dYdrtot.size:2] = np.imag(dYdrtotcomplex)
+
+        dYdL = np.zeros(self.freq.size*2, dtype = np.float64)
+        dYdLcomplex = deriv1 * 2.0j*pi*self.freq * np.exp(-2.0j*pi*self.freq*dt)
+        dYdL[0:dYdL.size:2] = np.real(dYdLcomplex)
+        dYdL[1:dYdL.size:2] = np.imag(dYdLcomplex)
+
+        dYddt = np.zeros(self.freq.size*2, dtype = np.float64)
+        dYddtcomplex = -2.0j*pi*self.freq / x * np.exp(-2.0j*pi*self.freq*dt)
+        dYddt[0:dYddt.size:2] = np.real(dYddtcomplex)
+        dYddt[1:dYddt.size:2] = np.imag(dYddtcomplex)
+
+        jac = np.column_stack((dYdrshunt, dYdrtot, dYdL, dYddt))
+        return jac
         
     
-    def _fitdidvpriors(self, freq, didv, priors, invpriorscov, p0, yerr=None):
+    def _fitdidv(self, freq, didv, priors, invpriorscov, p0, yerr=None):
         """
         Function to directly fit Irwin's TES parameters (rload, r0, beta, l, L, tau0, dt)
         with the knowledge of prior known values any number of the parameters. 
@@ -635,7 +541,8 @@ class DIDV2(object):
             Complex impedance extracted from the trace in frequency space
         priors : ndarray
             Prior known values of Irwin's TES parameters for the trace. 
-            Should be in the order of (rload,r0,beta,l,L,tau0,dt)
+            Should be in the order of (rshunt0, rp0, r0, beta0, l0, L0, tau0, dt0)
+            for 2-pole fit and (rshunt0, rtot0, L0, dt0) for 1-pole fit
         invpriorscov : ndarray
             Inverse of the covariance matrix of the prior known values of 
             Irwin's TES parameters for the trace (any values that are set 
@@ -646,43 +553,31 @@ class DIDV2(object):
             standard deviation of the real part of the didv, and yerr_imag is 
             the standard deviation of the imaginary part of the didv. If left as None,
             then each frequency will be assumed to be equally weighted.
-        rload : float, optional
-            Guess of the load resistance of the TES circuit (in Ohms). Default is 0.35.
-        r0 : float, optional
-            Guess of the resistance of the TES (in Ohms). Default is 0.130.
-        beta : float, optional
-            Guess of the current sensitivity beta (unitless). Default is 0.5.
-        l : float, optional
-            Guess of Irwin's loop gain (unitless). Default is 10.0.
-        L : float, optional
-            Guess of the inductance (in Henrys). Default is 500.0e-9.
-        tau0 : float, optional
-            Guess of the thermal time constant (in s). Default is 500.0e-6.
-        dt : float, optional
-            Guess of the time shift (in s). Default is -10.0e-6.
+        p0 : array_like
+            Initial guess for fit. For 2-pole fit: (rshunt, rp, r0, beta, l, L, tau0, dt)
+            for 1-pole fit: (rshunt, rtot, L, dt)
 
         Returns
         -------
         popt : ndarray
-            The fitted parameters in the order of (rload, r0, beta, l, L, tau0, dt)
+            The fitted parameters,  in the order as p0.
         pcov : ndarray
             The corresponding covariance matrix for the fitted parameters
         cost : float
             The cost of the the fit
 
         """
-                
-        #p0 = (rshunt, rp, r0, beta, l, L, tau0, dt)
-        bounds=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),(1, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf))
+        if self.npoles == 2:        
+            #p0 = (rshunt, rp, r0, beta, l, L, tau0, dt)
+            bounds=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),(1, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf))
+        elif self.npoles == 1:
+            #p0 = (rshunt, rtot, L, dt)
+            bounds=((0.0, 0.0, 0.0, -np.inf),(1, np.inf, np.inf, np.inf))
         
         res = least_squares(self._residual, p0, bounds=bounds, loss='linear', max_nfev=1000, verbose=0, x_scale=np.abs(p0))
         popt = res['x']
         cost = res['cost']
-
-        pcovinv_num = np.dot(res["jac"].transpose(), res["jac"]) + invpriorscov
-        pcov_num = np.linalg.inv(pcovinv_num)
-
-        # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
+        
         if (not res['success']):
             print('Fit failed: '+str(res['status']))
 
@@ -697,11 +592,16 @@ class DIDV2(object):
         weightvals[0:weightvals.size:2] = weights.real**2
         weightvals[1:weightvals.size:2] = weights.imag**2
 
-        jac = self.jaca(popt)
+        if self.npoles == 2:        
+            jac = self.jaca2(popt)
+        elif self.npoles == 1:
+            jac = self.jaca1(popt)
+        
         jact = np.transpose(jac)
         wjac = np.zeros_like(jac)
 
-        # right multiply inverse of covariance matrix by the jacobian (we do this element by element, to avoid creating a huge covariance matrix)
+        # right multiply inverse of covariance matrix by the jacobian 
+        # (we do this element by element, to avoid creating a huge covariance matrix)
         for ii in range(0, len(popt)):
             wjac[:,ii] = np.multiply(weightvals, jac[:,ii])
 
@@ -709,12 +609,12 @@ class DIDV2(object):
         pcovinv = np.dot(jact, wjac) + invpriorscov
         pcov = np.linalg.inv(pcovinv)
 
-        return popt, pcov, cost, pcov_num
+        return popt, pcov, cost
         
     def processtraces(self):
         """
         This method processes the traces loaded to the DIDV class object. This sets 
-        up the object for fitting.
+        up the object for fitting. This processes the dI sensor, dI bias of the data
         """
         
         #converting sampling rate to time step
@@ -746,7 +646,7 @@ class DIDV2(object):
         #need these x-values to be properly scaled for maximum likelihood slope fitting
         period_unscaled = self.fs/self.sgfreq
 
-        #save the  "top slope" points in the trace, which are the points just before the overshoot in the dI/dV
+        #save the "top slope" points in the trace, which are the points just before the overshoot in the dI/dV
         flatindstemp = list()
         for i in range(0, int(nperiods)):
             # get index ranges for flat parts of trace
@@ -799,7 +699,7 @@ class DIDV2(object):
         self.offset_err = np.std(means)/np.sqrt(self.ntraces)
     
         
-    def dopriorsfit(self, guess):
+    def dofit(self, guess):
         """
         Class function to fit dIdV. Note, a good guess, is required. Also, for 
         best results, provide as many priors and prior errors as possible. 
@@ -808,7 +708,8 @@ class DIDV2(object):
         ----------
         guess : array_like
             Initial guess for fit parameters, must be in order:
-            (rshunt0, rp0, r0, beta0, l0, L0, tau0, dt0)
+            (rshunt0, rp0, r0, beta0, l0, L0, tau0, dt0) for 2-pole
+            and (rshunt0, rtot0, L0, dt0) for 1-pole
             
         Returns
         -------
@@ -822,10 +723,16 @@ class DIDV2(object):
             self.processtraces()
         
         # 2 pole fitting
-        self.irwinparams2priors, self.irwincov2priors, self.irwincost2priors, self.irwincov2priors_num = self._fitdidvpriors(self.freq, self.didvmean, self.priors, self.invpriorscov, p0=guess, yerr=self.didvstd)
-
-        self.didvfit2priors_freqdomain = self._twopoleadmittancepriors(self.freq, *self.irwinparams2priors[:-1]) * np.exp(-2.0j*pi*self.freq*self.irwinparams2priors[7])
+        self.irwinparams, self.irwincov, self.irwincost = self._fitdidv(self.freq, self.didvmean,
+                                                                        self.priors, self.invpriorscov, 
+                                                                        p0=guess, yerr=self.didvstd)
         
-        self._convolvedidv()
+        if self.npoles == 2:
+            didvfit_freqdomain = self._twopoleadmittance(self.freq, *self.irwinparams[:-1])
+        elif self.npoles == 1:
+            didvfit_freqdomain = self._onepoleadmittance(self.freq,*self.irwinparams[:-1])
+            
+        self.didvfit_freqdomain = didvfit_freqdomain * np.exp(-2.0j*pi*self.freq*self.irwinparams[-1])
+        self.didvfit_timedomain = self._convolvedidv()
         
         
