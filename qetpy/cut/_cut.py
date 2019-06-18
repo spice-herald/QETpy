@@ -1,12 +1,15 @@
 import numpy as np
 import random
 from qetpy import ofamp
+from scipy import stats
 from scipy.stats import skew
+import warnings
 
 
 __all__ = [
     "removeoutliers",
     "iterstat",
+    "itercov",
     "autocuts",
     "get_muon_cut",
 ]
@@ -46,7 +49,7 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
 
     return inds
 
-def iterstat(data,cut=3,precision=1000.0):
+def iterstat(data, cut=3, precision=1000.0):
     """
     Function to iteratively remove outliers based on how many standard deviations they are from the mean,
     where the mean and standard deviation are recalculated after each cut.
@@ -84,9 +87,9 @@ def iterstat(data,cut=3,precision=1000.0):
     while keepgoing:
         mask = abs(data - meanlast) < cut*stdlast
         if sum(mask) <=1:
-            print('ERROR in iterstat: Number of events passing iterative cut is <= 1')
-            print('Iteration not converging properly. Returning simple mean and std. No data will be cut.')
-
+            warnings.warn("The number of events passing iterative cut via iterstat is <= 1. "
+                          "Iteration not converging properly. Returning simple mean and std. "
+                          "No data will be cut.")
             meanthis = np.mean(data)
             stdthis = np.std(data)
             mask = np.ones(len(data),dtype=bool)
@@ -110,6 +113,118 @@ def iterstat(data,cut=3,precision=1000.0):
     datamask = mask
 
     return datamean, datastd, datamask
+
+def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
+    """
+    Function for iteratively determining the estimated covariance matrix of a multidimensional
+    normal distribution.
+
+    Parameters
+    ----------
+    args : array_like
+        The data to be iteratively cut on. Can be inputted as a single N-by-M array or a
+        s M arguments that are 1D vectors of length N, where N is the number of data points and
+        M is the number of dimensions.
+    nsigma : float, optional
+        The number of sigma that defines that maximum chi-squared each data point must be below.
+        Default is 2.75.
+    threshold : float, NoneType, optional
+        The threshold to cut data. If left as None, this is set to the larger of 3 sigma or
+        the number of sigma such that 95% of the data is kept if the data is normal.
+    maxiter : int, optional
+        The maximum number of iterations to perform when cutting. Default is 15.
+    frac_err : float, optional
+        The fractional error allowed before stopping the iterations. Default is 1e-3.
+
+    Returns
+    -------
+    datamean : ndarray
+        The estimated mean of the data points, after iteratively cutting outliers.
+    datacov : ndarray
+        The estimated covariance of the data points, after iteratively cutting outliers.
+    datamask : ndarray
+        The boolean mask of the original data that specifies which data points were kept.
+
+    Raises
+    ------
+    ValueError
+        If the data inputted is 1-dimensional.
+
+    """
+
+    datashape = np.shape(args)
+
+    if len(datashape) > 2:
+        ndim = datashape[-1]
+        nevts = datashape[0]
+        data = np.stack(args[0], axis=0)
+    elif len(datashape) == 2:
+        ndim = datashape[0]
+        nevts = datashape[-1]
+        data = np.stack(args, axis=1).T
+    else:
+        raise ValueError("Shape of data is inconsistent.")
+
+    if data.shape[0] == 1:
+        raise ValueError("The inputted data is 1-dimensional, use qetpy.cut.iterstat instead.")
+
+    if threshold is None:
+        sigma2 = stats.chi2.ppf(0.95**(1 / ndim), 1)**0.5
+        threshold = np.max([3, sigma2])
+
+    mean_last = np.mean(data, axis=1)
+    cov_last = np.atleast_1d(np.cov(data))
+
+    std_last = np.sqrt(np.diag(cov_last))
+
+    err_mean = frac_err * std_last
+    err_cov = frac_err * np.sum(std_last**2)
+
+    mean_chi2 = ndim
+    sig_chi2 = np.sqrt(2 * ndim)
+
+    max_chi2 = mean_chi2 + nsigma * sig_chi2
+
+    nstable = 0
+    keepgoing = True
+    jj = 0
+
+    while keepgoing:
+        delta = data - mean_last[:, np.newaxis]
+
+        chi2 = np.sum(delta * np.dot(np.linalg.inv(cov_last), delta), axis=0)
+        mask = chi2 < max_chi2
+
+        mask = mask & np.all(np.abs(delta) < std_last[:, np.newaxis] * threshold, axis=0)
+        nmask = np.sum(mask)
+
+        if nmask <= 1:
+            warnings.warn("The number of events passing iterative cut via itercov is <= 1. "
+                          "Iteration not converging properly. Returning simple mean and cov. "
+                          "No data will be cut.")
+            mean_this = np.mean(data, axis=1)
+            cov_this = np.atleast_1d(np.cov(data))
+            mask = np.ones(nevts, dtype=bool)
+
+            return mean_this, cov_this, mask
+
+        mean_this = np.mean(data[:, mask], axis=1)
+        cov_this = np.atleast_1d(np.cov(data[:, mask]))
+
+        if np.any(np.abs(mean_this - mean_last) < err_mean) or np.any(np.abs(cov_this - cov_last) < err_cov):
+            nstable = 0
+        else:
+            nstable += 1
+
+        if nstable >= 2 or jj > maxiter:
+            keepgoing = False
+
+        mean_last = mean_this
+        cov_last = cov_this
+        std_last = np.sqrt(np.diag(cov_last))
+        jj += 1
+
+    return mean_this, cov_this, mask
 
 def symmetrizedist(vals):
     """
