@@ -108,11 +108,7 @@ def iterstat(data, cut=3, precision=1000.0):
         meanlast = meanthis
         stdlast = stdthis
 
-    datamean = meanthis
-    datastd = stdthis
-    datamask = mask
-
-    return datamean, datastd, datamask
+    return meanthis, stdthis, mask
 
 def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
     """
