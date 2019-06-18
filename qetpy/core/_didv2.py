@@ -736,3 +736,117 @@ class DIDV2(object):
         self.didvfit_timedomain = self._convolvedidv()
         
         
+    def plot_full_trace(self, lgcsave = False, savepath = "", savename=""):
+        """
+        Module to plot the entire trace in time domain
+
+        Parameters
+        ----------
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+    
+        utils._plot_full_trace(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+    
+    def plot_single_period_of_trace(self, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot a single period of the trace in time domain
+
+        Parameters
+        ----------
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+    
+        utils._plot_single_period_of_trace(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+    
+    def plot_zoomed_in_trace(self, zoomfactor = 0.1, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
+        overshoot of the didv.
+
+        Parameters
+        ----------
+        zoomfactor : float, optional, optional
+            Number between zero and 1 to show different amounts of the zoomed in trace.
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+        
+        utils._plot_zoomed_in_trace(self, zoomfactor = zoomfactor, 
+                                       lgcsave = lgcsave, savepath = savepath, savename = savename)
+        
+    def plot_didv_flipped(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot the flipped trace in time domain. This function should be used to 
+        test if there are nonlinearities in the didv
+
+        Parameters
+        ----------
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+    
+        utils._plot_didv_flipped(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        
+    def plot_re_im_didv(self, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot the real and imaginary parts of the didv in frequency space.
+        Currently creates two different plots.
+
+        Parameters
+        ----------
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+        
+        utils._plot_re_im_didv(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        
+    def plot_re_vs_im_didv(self, lgcsave = False, savepath="", savename=""):
+        """
+        Module to plot the real vs imaginary parts of the didv.
+
+        Parameters
+        ----------
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+        """
+        
+        utils._plot_re_vs_im_didv(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        
