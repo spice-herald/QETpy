@@ -372,7 +372,7 @@ def get_offset_from_muon(avemuon, qetbias, rn, rload, rsh=5e-3, nbaseline=6000, 
     i0 = inormal - muon_deltaI
     ioffset = baseline - i0
 
-    r0 = inormal*(rnormal+rload)/i0 - rload
+    r0 = inormal*(rn+rload)/i0 - rload
     p0 = i0*rsh*qetbias - rload*i0**2
 
     if lgcfullrtn:
