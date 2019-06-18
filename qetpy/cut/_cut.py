@@ -144,6 +144,7 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
     Raises
     ------
     ValueError
+        If the shape of the data does not match the two options specified by `args`.
         If the data inputted is 1-dimensional.
 
     """
