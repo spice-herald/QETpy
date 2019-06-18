@@ -80,6 +80,11 @@ def test_iterstat():
 
     assert len(res)>0
 
+    expected_res_warn = (0, 0, np.array([True]))
+    res_warn = iterstat(np.array([0]))
+
+    assert np.all([np.all(expected_res_warn[ii] == res_warn[ii]) for ii in range(3)])
+
 def test_removeoutliers():
     traces = np.random.randn(100, 32000)
     offsets = traces.mean(axis=1)

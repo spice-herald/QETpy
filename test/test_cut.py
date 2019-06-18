@@ -44,3 +44,6 @@ def test_itercov():
 
     with pytest.raises(ValueError):
         qp.cut.itercov(np.random.rand(10), np.random.rand(9))
+
+    arr_in = np.array([[0, 1]])
+    assert np.all(qp.cut.itercov(arr_in)[0] == arr_in[0])
