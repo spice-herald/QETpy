@@ -152,8 +152,8 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
 
     if len(datashape) > 2:
         ndim = datashape[-1]
-        nevts = datashape[0]
-        data = np.stack(args[0], axis=0)
+        nevts = datashape[1]
+        data = args[0].T
     elif len(datashape) == 2:
         ndim = datashape[0]
         nevts = datashape[-1]
