@@ -1,16 +1,24 @@
 import numpy as np
 import random
 from qetpy import ofamp
+from scipy import stats
 from scipy.stats import skew
+import warnings
 
 
-__all__ = ["removeoutliers", "iterstat", "autocuts", "get_muon_cut"]
+__all__ = [
+    "removeoutliers",
+    "iterstat",
+    "itercov",
+    "autocuts",
+    "get_muon_cut",
+]
 
 
 def removeoutliers(x, maxiter=20, skewtarget=0.05):
     """
-    Function to return indices of inlying points, removing points by minimizing the skewness
-    
+    Function to return indices of inlying points, removing points by minimizing the skewness.
+
     Parameters
     ----------
     x : ndarray
@@ -19,14 +27,14 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
         Maximum number of iterations to continue to minimize skewness. Default is 20.
     skewtarget : float, optional
         Desired residual skewness of distribution. Default is 0.05.
-    
+
     Returns
     -------
     inds : ndarray
         Boolean indices indicating which values to select/reject, same length as x.
-        
+
     """
-    
+
     i=1
     inds=(x != np.inf)
     sk=skew(x[inds])
@@ -41,22 +49,22 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
 
     return inds
 
-def iterstat(data,cut=3,precision=1000.0):
+def iterstat(data, cut=3, precision=1000.0):
     """
     Function to iteratively remove outliers based on how many standard deviations they are from the mean,
     where the mean and standard deviation are recalculated after each cut.
-    
+
     Parameters
     ----------
     data : ndarray
-        Array of data that we want to remove outliers from
+        Array of data that we want to remove outliers from.
     cut : float, optional
         Number of standard deviations from the mean to be used for outlier rejection
     precision : float, optional
-        Threshold for change in mean or standard deviation such that we stop iterating. The threshold is 
+        Threshold for change in mean or standard deviation such that we stop iterating. The threshold is
         determined by np.std(data)/precision. This means that a higher number for precision means a lower
         threshold (i.e. more iterations).
-            
+
     Returns
     -------
     datamean : float
@@ -65,46 +73,159 @@ def iterstat(data,cut=3,precision=1000.0):
         Standard deviation of the data after outliers have been removed
     datamask : ndarray
         Boolean array indicating which values to keep or reject in data, same length as data.
-        
+
     """
-    
+
     stdcutoff = np.std(data)/precision
-    
+
     meanlast = np.mean(data)
     stdlast = np.std(data)
-    
+
     nstable = 0
     keepgoing = True
-    
+
     while keepgoing:
         mask = abs(data - meanlast) < cut*stdlast
         if sum(mask) <=1:
-            print('ERROR in iterstat: Number of events passing iterative cut is <= 1')
-            print('Iteration not converging properly. Returning simple mean and std. No data will be cut.')
-            
+            warnings.warn(
+                "The number of events passing iterative cut via iterstat is <= 1. "
+                "Iteration not converging properly. Returning simple mean and std. "
+                "No data will be cut."
+            )
             meanthis = np.mean(data)
             stdthis = np.std(data)
             mask = np.ones(len(data),dtype=bool)
-            break
-        
+            return meanthis, stdthis, mask
+
         meanthis = np.mean(data[mask])
         stdthis = np.std(data[mask])
-        
+
         if (abs(meanthis - meanlast) > stdcutoff) or (abs(stdthis - stdlast) > stdcutoff):
             nstable = 0
         else:
             nstable = nstable + 1
         if nstable >= 3:
             keepgoing = False
-             
+
         meanlast = meanthis
         stdlast = stdthis
-    
-    datamean = meanthis
-    datastd = stdthis
-    datamask = mask
-    
-    return datamean,datastd,datamask
+
+    return meanthis, stdthis, mask
+
+def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
+    """
+    Function for iteratively determining the estimated covariance matrix of a multidimensional
+    normal distribution.
+
+    Parameters
+    ----------
+    args : array_like
+        The data to be iteratively cut on. Can be inputted as a single N-by-M array or as
+        M arguments that are 1D vectors of length N, where N is the number of data points and
+        M is the number of dimensions.
+    nsigma : float, optional
+        The number of sigma that defines that maximum chi-squared each data point must be below.
+        Default is 2.75.
+    threshold : float, NoneType, optional
+        The threshold to cut data. If left as None, this is set to the larger of 3 sigma or
+        the number of sigma such that 95% of the data is kept if the data is normal.
+    maxiter : int, optional
+        The maximum number of iterations to perform when cutting. Default is 15.
+    frac_err : float, optional
+        The fractional error allowed before stopping the iterations. Default is 1e-3.
+
+    Returns
+    -------
+    datamean : ndarray
+        The estimated mean of the data points, after iteratively cutting outliers.
+    datacov : ndarray
+        The estimated covariance of the data points, after iteratively cutting outliers.
+    datamask : ndarray
+        The boolean mask of the original data that specifies which data points were kept.
+
+    Raises
+    ------
+    ValueError
+        If the shape of the data does not match the two options specified by `args`.
+        If the data inputted is 1-dimensional.
+
+    """
+
+    datashape = np.shape(args)
+
+    if len(datashape) > 2:
+        ndim = datashape[-1]
+        nevts = datashape[1]
+        data = args[0].T
+    elif len(datashape) == 2:
+        ndim = datashape[0]
+        nevts = datashape[-1]
+        data = np.stack(args, axis=1).T
+    else:
+        raise ValueError("Shape of data is inconsistent.")
+
+    if data.shape[0] == 1:
+        raise ValueError("The inputted data is 1-dimensional, use qetpy.cut.iterstat instead.")
+
+    if threshold is None:
+        sigma2 = stats.chi2.ppf(0.95**(1 / ndim), 1)**0.5
+        threshold = np.max([3, sigma2])
+
+    mean_last = np.mean(data, axis=1)
+    cov_last = np.atleast_1d(np.cov(data))
+
+    std_last = np.sqrt(np.diag(cov_last))
+
+    err_mean = frac_err * std_last
+    err_cov = frac_err * np.sum(std_last**2)
+
+    mean_chi2 = ndim
+    sig_chi2 = np.sqrt(2 * ndim)
+
+    max_chi2 = mean_chi2 + nsigma * sig_chi2
+
+    nstable = 0
+    keepgoing = True
+    jj = 0
+
+    while keepgoing:
+        delta = data - mean_last[:, np.newaxis]
+
+        chi2 = np.sum(delta * np.dot(np.linalg.inv(cov_last), delta), axis=0)
+        mask = chi2 < max_chi2
+
+        mask = mask & np.all(np.abs(delta) < std_last[:, np.newaxis] * threshold, axis=0)
+        nmask = np.sum(mask)
+
+        if nmask <= 1:
+            warnings.warn(
+                "The number of events passing iterative cut via itercov is <= 1. "
+                "Iteration not converging properly. Returning simple mean and cov. "
+                "No data will be cut."
+            )
+            mean_this = np.mean(data, axis=1)
+            cov_this = np.atleast_1d(np.cov(data))
+            mask = np.ones(nevts, dtype=bool)
+
+            return mean_this, cov_this, mask
+
+        mean_this = np.mean(data[:, mask], axis=1)
+        cov_this = np.atleast_1d(np.cov(data[:, mask]))
+
+        if np.any(np.abs(mean_this - mean_last) > err_mean) or np.any(np.abs(cov_this - cov_last) > err_cov):
+            nstable = 0
+        else:
+            nstable += 1
+
+        if nstable >= 2 or jj > maxiter:
+            keepgoing = False
+
+        mean_last = mean_this
+        cov_last = cov_this
+        std_last = np.sqrt(np.diag(cov_last))
+        jj += 1
+
+    return mean_this, cov_this, mask
 
 def symmetrizedist(vals):
     """
@@ -113,19 +234,19 @@ def symmetrizedist(vals):
     most of the measured slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
     muon tails, which we want to cut out). To do this, the algorithm randomly chooses points in a histogram
     to cut out until the histogram is symmetric about zero.
-    
+
     Parameters
     ----------
     vals : ndarray
         A 1-d array of the values that will be symmetrized.
-            
+
     Returns
     -------
     czeromeanslope : ndarray
         A boolean mask of the values that should be kept.
-        
+
     """
-    
+
     nvals = len(vals)
     # figure out which direction the slopes are usually
     valsmean, valsstd = iterstat(vals, cut=2, precision=10000.0)[:-1]
@@ -137,7 +258,7 @@ def symmetrizedist(vals):
     # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
     histupr=max(vals)
     histlwr=-histupr
-    
+
     # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
     histbins=int(np.sqrt(nvals))
     if np.mod(histbins,2)==0:
@@ -169,13 +290,13 @@ def symmetrizedist(vals):
     else:
         # don't do anything about the shape of the distrbution
         czeromeanvals = np.ones(nvals, dtype=bool)
-        
+
     return czeromeanvals
 
 def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemeans=False):
     """
     Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -193,46 +314,46 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
         Boolean flag on if the mean of each trace should be removed before doing the optimal filter (True) or
         if the means should not be removed (False). This is useful for dIdV traces, when we want to cut out
         pulses that have smaller amplitude than the dIdV overshoot. Default is False.
-            
+
     Returns
     -------
     cpileup : ndarray
         Boolean array giving which indices to keep or throw out based on the outlier algorithm
-            
+
     """
-    
+
     nbin = len(traces[0])
     ind_trigger = round(nbin/2)
     time = 1.0/fs*(np.arange(1, nbin+1)-ind_trigger)
     lgc_b0 = time < 0.0
-    
+
     # pulse shape
     tau_risepulse = 10.0e-6
     tau_fallpulse = 100.0e-6
     dummytemplate = (1.0-np.exp(-time/tau_risepulse))*np.exp(-time/tau_fallpulse)
     dummytemplate[lgc_b0]=0.0
     dummytemplate = dummytemplate/max(dummytemplate)
-    
+
     # assume we just have white noise
     dummypsd = np.ones(nbin)
-    
+
     if removemeans:
         mean = np.mean(traces, axis=1)
         traces -= mean[:, np.newaxis]
-    
+
     amps = np.zeros(len(traces))
-    
+
     #do optimum filter on all traces
     for itrace in range(0,len(traces)):
         amps[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[0]
-        
+
     if outlieralgo=="removeoutliers":
         cpileup = removeoutliers(abs(amps))
     elif outlieralgo=="iterstat":
         cpileup = iterstat(abs(amps), cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
-        
+
     return cpileup
 
 def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmetrizeflag=False, sgfreq=100.0):
@@ -240,7 +361,7 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     Function to automatically cut out outliers of the slopes of the inputted traces. Includes a routine that 
     attempts to symmetrize the distribution of slopes around zero, which is useful when the majority of traces 
     have a slope.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -261,18 +382,18 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
         Should be used if most of the traces have a slope
     sgfreq : float, optional
         If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
-            
+
     Returns
     -------
     cslope : ndarray
         Boolean array giving which indices to keep or throw out based on the outlier algorithm
-            
+
     """
-    
+
     nbin = len(traces[0])
     tracebegin = np.zeros(len(traces))
     traceend = np.zeros(len(traces))
-    
+
     # number of periods and bins in period to determine where to calculate slopes and baselines
     nperiods = np.floor((nbin/fs)*sgfreq)
     binsinperiod = fs/sgfreq
@@ -290,22 +411,22 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     else:
         sloperangebegin = range(0, int(nbin/10))
         sloperangeend = range(int(9*nbin/10), nbin)
-        
+
     tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
     traceend = np.mean(traces[:, sloperangeend], axis=1)
-    
+
     # now the slope cut to get rid of muon tails
     # first, create a symmetric distribution about zero slope to get rid of the biased results, 
     # but randomly cutting out events on biased side
     slopes = traceend - tracebegin
-    
+
     if symmetrizeflag:
         czeromeanslope = symmetrizedist(slopes)
         czeromeanslopeinds = np.where(czeromeanslope)[0]
     else:
         # don't do anything about the shape of the distrbution
         czeromeanslopeinds = np.arange(len(traces))
-        
+
     # now get rid of outliers from the symmetrized distribution
     if outlieralgo=="removeoutliers":
         cslope = removeoutliers(slopes[czeromeanslopeinds])
@@ -314,16 +435,16 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
     cslopeinds = czeromeanslopeinds[cslope]
-    
+
     cslopetot = np.ones(len(traces), dtype=bool)
     cslopetot[cslopeinds] = True
-    
+
     return cslopetot
-    
+
 def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgfreq=100.0):
     """
     Function to automatically cut out outliers of the baselines of the inputted traces.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -341,17 +462,17 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
         Boolean flag on whether or not the trace is a dIdV curve
     sgfreq : float, optional
         If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
-            
+
     Returns
     -------
     cbaseline : ndarray
         Boolean array giving which indices to keep or throw out based on the outlier algorithm
-            
+
     """
-    
+
     nbin = len(traces[0])
     tracebegin = np.zeros(len(traces))
-    
+
     # number of periods and bins in period to determine where to calculate slopes and baselines
     nperiods = np.floor((nbin/fs)*sgfreq)
     binsinperiod = fs/sgfreq
@@ -365,9 +486,9 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
             sloperangebegin = range(int(binsinperiod/4), int(5*binsinperiod/16))
     else:
         sloperangebegin = range(0, int(nbin/10))
-        
+
     tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
-    
+
     # baseline cut
     if outlieralgo=="removeoutliers":
         cbaseline = removeoutliers(tracebegin)
@@ -375,13 +496,13 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
         cbaseline = iterstat(tracebegin, cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
-    
+
     return cbaseline
 
 def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     """
     Function to automatically cut out outliers of the baselines of the inputted traces.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -395,42 +516,42 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     nsig : float, optional
         If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
         to cut outliers from the data when using iterstat on the Chi2s. Default is 2.
-            
+
     Returns
     -------
     cchi2 : ndarray
         Boolean array giving which indices to keep or throw out based on the outlier algorithm
-            
+
     """
-    
+
     nbin = len(traces[0])
     ind_trigger = round(nbin/2)
     time = 1.0/fs*(np.arange(1, nbin+1)-ind_trigger)
     lgc_b0 = time < 0.0
-    
+
     # pulse shape
     tau_risepulse = 10.0e-6
     tau_fallpulse = 100.0e-6
     dummytemplate = (1.0-np.exp(-time/tau_risepulse))*np.exp(-time/tau_fallpulse)
     dummytemplate[lgc_b0]=0.0
     dummytemplate = dummytemplate/max(dummytemplate)
-    
+
     # assume we just have white noise
     dummypsd = np.ones(nbin)
-    
+
     chi2 = np.zeros(len(traces))
-    
+
     # First do optimum filter on all traces without mean subtracted
     for itrace in range(0,len(traces)):
         chi2[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[2]
-        
+
     if outlieralgo=="removeoutliers":
         cchi2 = removeoutliers(chi2)
     elif outlieralgo=="iterstat":
         cchi2 = iterstat(chi2, cut=nsig, precision=10000.0)[2]
     else:
         raise ValueErrror("Unknown outlier algorithm inputted.")
-        
+
     return cchi2
 
 def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False, outlieralgo="removeoutliers",
@@ -439,7 +560,7 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     """
     Function to automatically cut out bad traces based on the optimum filter amplitude, slope, baseline, and chi^2
     of the traces.
-    
+
     Parameters
     ----------
     traces : ndarray
@@ -486,21 +607,21 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
         This can be used to tune the number of standard deviations from the mean to cut outliers from the data
         when using iterstat on the chi^2 values. Default is 3. This is always used, as iterstat is always used
         for the chi^2 cut.
-            
+
     Returns
     -------
     ctot : ndarray
         Boolean array giving which indices to keep or throw out based on the autocuts algorithm
-            
+
     """
-    
+
     # pileup cut
     if lgcpileup1:
         cpileup1 = pileupcut(traces, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup1)
         cpileup1inds = np.where(cpileup1)[0]
     else:
         cpileup1inds = np.arange(len(traces))
-    
+
     #slope cut
     if lgcslope:
         cslope = slopecut(traces[cpileup1inds], fs=fs, outlieralgo=outlieralgo, nsig=nsigslope, is_didv=is_didv, 
@@ -535,36 +656,34 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     # convert total cut to logical array
     ctot = np.zeros(len(traces),dtype=bool)
     ctot[cchi2inds] = True
-        
+
     return ctot
-
-
 
 def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
     """
-    Function to help identify saturated muons from array of time series traces. 
-    
+    Function to help identify saturated muons from array of time series traces.
+
     ***Traces must have POSITIVE going pulses***
-    
-    Note, for best results, only large amplitude traces should based to this  
-    function. The user may need to play around with the thresh_pct and nsatbins 
+
+    Note, for best results, only large amplitude traces should based to this
+    function. The user may need to play around with the thresh_pct and nsatbins
     parameters to achive the desired result. 
-    
+
     Parameters
     ----------
     traces: array
         Array of time series traces of shape (#number of traces, #bins per trace).
     thresh_pct: float, optional
-        The percentage of the maximum amplitude that the pulse must remain above 
+        The percentage of the maximum amplitude that the pulse must remain above
         for nsatbins in order to be considered `saturated'.
     nsatbins: int, optional
         The minimum number of bins that a muon should be saturated for.
-        
+
     Returns
     -------
     muon_cut: array
         Boolean array corresponding to saturated muon events
-        
+
     """
 
     muons = []
