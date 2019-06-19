@@ -2,12 +2,12 @@ import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
 
-__all__ = ["IV"]
+__all__ = ["IV2"]
 
 
 
 
-class IV(object):
+class IV2(object):
     """
     Class for creating the IV curve and calculating various values, such as the normal resistance, 
     the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
@@ -27,13 +27,21 @@ class IV(object):
         The bias voltage (vb = qet bias * rshunt)
     vb_err : ndarray
         The corresponding error in the bias voltage
-    rload : scalar, ndarray
-        The load resistance, this can be scalar if using the same rload for all values. If 1-dimensional, 
-        then this should be the load resistance for each channel. If 2-dimensional, this should be the load
+    rp : scalar, ndarray
+        The parasitic resistance, this can be scalar if using the same rload for all values. If 1-dimensional, 
+        then this should be the parasitic resistance for each channel. If 2-dimensional, this should be the load
         resistance for each bath temperature and each bias point, where the shape is (ntemps, nch). If 
         3-dimensional, then this should be with shape (ntemps, nch, niters)
-    rload_err : scalar, ndarray
-        The corresponding error in the load resistance, should be the same type as rload
+    rp_err : scalar, ndarray
+        The corresponding error in the parasitic resistance, should be the same type as rload
+    rp_guess : scalar, ndarray
+        The value to use for parasitic resistance if it is already known and you don't wish to fit it.
+        This can be scalar if using the same rload for all values. If 1-dimensional, 
+        then this should be the parasitic resistance for each channel. If 2-dimensional, this should be the load
+        resistance for each bath temperature and each bias point, where the shape is (ntemps, nch). If 
+        3-dimensional, then this should be with shape (ntemps, nch, niters)
+    rp_guess_err : scalar, ndarray   
+        Corresponding error for rp if not doing fit.
     chan_names : array_like
         Array of strings corresponding to the names of each channel in the data. Should
         have the same length as the nch axis in dites
@@ -41,6 +49,18 @@ class IV(object):
         The current offset calculated from the fit, shape (ntemps, nch)
     ioff_err : ndarray
         The corresponding error in the current offset
+    ibias_off : ndarray
+        The current offset of the QET bias calculated from the fit, shape (ntemps, nch)
+    ioff_err : ndarray
+        The corresponding error in the QET bias offset
+    ibias : ndarray
+        The applied bias current
+    ibias_err : ndarray
+        The corresponding error in the QET bias
+    ibias_true : ndarray
+        The corrected QET bias current
+    ibias_ture_err : ndarray
+        The corresponding error corrected QET bias
     rfit : ndarray
         The total resistance (rnorm + rload) from the fit, shape (ntemps, nch)
     rfit_err : ndarray
@@ -61,6 +81,12 @@ class IV(object):
         The calculated power of the TES, shape (ntemps, nch, niters)
     ptes_err : ndarray
         The corresponding error in the power of the TES
+    normalinds : range object, or list
+        The range of datapoints to use for the normal fit
+    scinds : range object, or list
+        The range of datapoints to use for the SC fit
+    fitsc : bool
+        If True, the SC fit is done
     """
     
     def __init__(
@@ -105,29 +131,33 @@ class IV(object):
             The shunt resistance of the  TES circuit.
         rsh_err : ndarray, float
             The corresponding error in the shunt resistance.
-        rload : ndarray, float
-            The load resistance of the  TES circuit (equivalent to Rshunt + Rparasitic).
+        rp_guess : ndarray, float, optional
+            The parasitic parasitic of the  TES circuit. 
             If a scalar value, then the same rload is assumed for all channels, bias points, 
             and bath temperatures. If 1-dimensional, should be shape (nch,). 
             If 2-dimensional, should be shape (ntemps, nch). 
             If 3-dimensional, should be shape (ntemps, nch, niters).
-        rload_err : ndarray, float
-            The corresponding error in the load resistance, should be the same type/shape as rload.
+            NOTE: this is only needed if not doing the SC fit
+        rp_err : ndarray, float
+            The corresponding error in the parasitic resistance, should be the same type/shape as rload.
         chan_names : array_like
             Array of strings corresponding to the names of each channel in the data. Should
             have the same length as the nch axis in dites
+        fitsc : bool, optional
+            If True, the SC data are fit to find rp and get QETbias offset
         normalinds : iterable, array_like, or NoneType, optional
             The indices of the normal resistance points. If None (default value), then the normal
             points are guessed with a simple reduced chi-squared measurement cutoff. Can also be set 
             by either an array of integers or an iterable (e.g. range(0,3)).
-        
+        scinds : iterable, array_like, optional
+            The indeces of the SC points
         """
         if fitsc & (scinds is None):
             raise ValueError('Must provide scinds if you want to fit the sc data')
         self.fitsc = fitsc
         self.scinds = scinds
+        self.normalinds = normalinds
         
-
         if len(dites.shape)==3:
             ntemps, nch, niters = dites.shape
 
@@ -145,7 +175,6 @@ class IV(object):
         if len(chan_names) != nch:
             raise ValueError("dites has too many dimensions, should be 1, 2, or 3")
             
-
         # reshape arrays so the same code can be used 
         self.dites = np.reshape(dites, (ntemps, nch, niters))
         self.dites_err = np.reshape(dites_err, (ntemps, nch, niters))
@@ -167,8 +196,6 @@ class IV(object):
         elif rp_guess.shape!=(ntemps,nch,niters):
             raise ValueError("the shape of rp_guess doesn't match the data")
             
-
-        
         self.chan_names = chan_names
         self.rsh = rsh
         self.rsh_err = rsh_err
@@ -187,15 +214,12 @@ class IV(object):
         self.rnorm_err = None
         self.vb = None
         self.vb_err = None
-
         self.ites = None
         self.ites_err = None
         self.r0 = np.zeros_like(self.dites)
         self.r0_err = np.zeros_like(self.dites)
         self.ptes = np.zeros_like(self.dites)
         self.ptes_err = np.zeros_like(self.dites)
-
-        self.normalinds = normalinds
     
     @staticmethod
     def _fitfunc(x, b, m):
@@ -354,7 +378,6 @@ class IV(object):
         drp = -1*(dites-ioff)**2
         
         jac = np.zeros((6,6))
-        
         jac[0,0] = dibias
         jac[1,1] = dibias_off
         jac[2,2] = dimeas
@@ -363,7 +386,6 @@ class IV(object):
         jac[5,5] = drp
         
         covout = jac.dot(cov.dot(jac.transpose()))
-        
         ptes_err = np.sqrt(np.sum(covout))
         return ptes_err
         
@@ -382,34 +404,29 @@ class IV(object):
         rfit_err = np.zeros((ntemps,nch,niters))
         rnorm = np.zeros((ntemps,nch,niters))
         rnorm_err = np.zeros((ntemps,nch,niters))
-        
         ibias_off = np.zeros((ntemps,nch,niters))
         ibias_off_err = np.zeros((ntemps,nch,niters))
         rp = np.zeros((ntemps,nch,niters))
         rp_err = np.zeros((ntemps,nch,niters))
-
-        
+ 
         # Do normal Fit
         for t in range(ntemps):
             for ch in range(nch):
                 if self.normalinds is None:
-                    normalinds = IV._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
+                    normalinds = IV2._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
                 else:
                     normalinds = self.normalinds
                     
-                x, xcov = curve_fit(IV._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
+                x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
                                     sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
 
                 jac = np.zeros((2,2))
                 jac[0,0] = 1
                 jac[1,1] = -1/x[1]**2
-
                 xout = np.array([x[0],1/x[1]])
                 covout = jac.dot(xcov.dot(jac.transpose()))
-    
                 ioff[t,ch] = xout[0]
                 ioff_err[t,ch] = covout[0,0]**0.5
-
                 rfit[t,ch] = xout[1] * self.rsh
                 rfit_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + (xout[1]*self.rsh_err)**2)
                 
@@ -425,25 +442,22 @@ class IV(object):
             for t in range(ntemps):
                 for ch in range(nch):
                     scinds = self.scinds
-                    x, xcov = curve_fit(IV._fitfunc, self.ibias[t, ch, scinds], self.ites[t, ch, scinds],
+                    x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, scinds], self.ites[t, ch, scinds],
                                         sigma=self.ites_err[t, ch, scinds], absolute_sigma=True)
 
                     jac = np.zeros((2,2))
                     jac[0,0] = 1
                     jac[1,1] = -1/x[1]**2
-
                     xout = np.array([x[0],1/x[1]])
                     covout = jac.dot(xcov.dot(jac.transpose()))
-
                     rp[t,ch] = xout[1] * self.rsh - self.rsh
                     rp_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + ((xout[1]-1)*self.rsh_err)**2)
-
                     dfdb = -1/x[1] 
                     dfdm = x[0]/(x[1]**2)
                     jac1 = np.zeros((2,2))
                     jac1[0,0] = dfdb
                     jac1[1,1] = dfdm
-                    print(x)
+
                     ibias_off[t, ch] = -x[0]/x[1]
                     ibias_off_err[t, ch] = np.sqrt(np.sum(jac1.dot(xcov.dot(jac1.transpose()))))
         else:
@@ -454,7 +468,6 @@ class IV(object):
                 
         self.ibias_true = self.ibias - ibias_off
         self.ibias_true_err = (self.ibias_err**2.0 + ibias_off_err**2.0)**0.5
-        
         self.ibias_off = ibias_off[:,:,0]
         self.ibias_off_err = ibias_off_err[:,:,0]
         self.rp = rp[:,:,0]
@@ -471,20 +484,18 @@ class IV(object):
                     cov[3,3] = self.ioff_err[t,ch]**2
                     cov[4,4] = self.rsh_err**2
                     cov[5,5] = self.rp_err[t,ch]**2
-                    self.r0[t,ch,ii] = IV._rtes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.r0[t,ch,ii] = IV2._rtes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
-                    self.r0_err[t,ch,ii] = IV._rtes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.r0_err[t,ch,ii] = IV2._rtes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
-                    self.ptes[t,ch,ii] = IV._ptes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.ptes[t,ch,ii] = IV2._ptes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
-                    self.ptes_err[t,ch,ii] = IV._ptes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.ptes_err[t,ch,ii] = IV2._ptes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
         rnorm = rfit - self.rsh - self.rp[...,np.newaxis]
         rnorm_err = (rfit_err**2 + self.rp_err[...,np.newaxis]**2)**0.5
-        
         self.rnorm = rnorm[:,:,0]
         self.rnorm_err = rnorm_err[:,:,0]
-        
         self.vb = self.ibias_true*self.rsh
         self.vb_err = np.sqrt((self.ibias_true*self.rsh_err)**2 + (self.rsh*self.ibias_true_err)**2)
                 
