@@ -4,65 +4,7 @@ import qetpy.plotting as utils
 
 __all__ = ["IV"]
 
-def _fitfunc(x, b, m):
-    """
-    Function to use for fitting to a straight line
-    
-    Parameters
-    ----------
-    x : array_like
-        x-values of the data
-    b : float
-        y-intercept of line
-    m : float
-        slope of line
-    
-    Returns
-    -------
-    linfunc : array_like
-        Outputted line for x with slope m and intercept b
-    """
-    
-    linfunc = m*x + b
-    return linfunc
 
-def _findnormalinds(vb, dites, dites_err, tol=10):
-    """
-    Function to determine the indices of the normal data in an IV curve
-    
-    Parameters
-    ----------
-    vb : array_like
-        Bias voltage, should be a 1d array or list
-    dites : array_like
-        The current read out by the electronics with some offset from the true current
-    dites_err : array_like
-        The error in the current
-    tol : float, optional
-        The tolerance in the reduced chi-squared for the cutoff on which points to use
-            
-    Returns
-    -------
-    normalinds : iterable
-        The iterable which stores the range of the normal indices
-    """
-    
-    end_ind = 2
-    keepgoing = True
-    
-    while keepgoing and (end_ind < len(vb) and not np.isnan(vb[end_ind])):
-        end_ind+=1
-        inds = range(0,end_ind)
-        
-        x = curve_fit(_fitfunc, vb[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
-        red_chi2 = np.sum(((_fitfunc(vb[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
-        
-        if red_chi2>tol:
-            keepgoing = False
-    
-    normalinds = range(0,end_ind-1)
-    
-    return normalinds
 
 
 class IV(object):
@@ -121,7 +63,21 @@ class IV(object):
         The corresponding error in the power of the TES
     """
     
-    def __init__(self, dites, dites_err, ibias, ibias_err, rsh, rsh_err, rload, rload_err, chan_names, normalinds = None):
+    def __init__(
+        self, 
+        dites, 
+        dites_err, 
+        ibias, 
+        ibias_err, 
+        rsh, 
+        rsh_err, 
+        rp_guess=5e-3, 
+        rp_err_guess=0, 
+        chan_names='', 
+        fitsc=True, 
+        normalinds=None,
+        scinds=None,
+    ):
         """
         Initialization of the IV class object.
         
@@ -166,7 +122,11 @@ class IV(object):
             by either an array of integers or an iterable (e.g. range(0,3)).
         
         """
-
+        if fitsc & (scinds is None):
+            raise ValueError('Must provide scinds if you want to fit the sc data')
+        self.fitsc = fitsc
+        self.scinds = scinds
+        
 
         if len(dites.shape)==3:
             ntemps, nch, niters = dites.shape
@@ -192,20 +152,20 @@ class IV(object):
         self.ibias = np.reshape(ibias, (ntemps, nch, niters))
         self.ibias_err = np.reshape(ibias_err, (ntemps, nch, niters))
 
-        if np.isscalar(rload):
-            self.rload = np.ones_like(dites)*rload
-            self.rload_err = np.ones_like(dites)*rload_err
+        if np.isscalar(rp_guess):
+            self.rp_guess = np.ones_like(dites)*rp_guess
+            self.rp_err_guess = np.ones_like(dites)*rp_err_guess
 
-        elif rload.shape==(nch,):
-            self.rload = np.tile(np.tile(rload,(niters,1)).transpose(),(ntemps,1,1))
-            self.rload_err = np.tile(np.tile(rload_err,(niters,1)).transpose(),(ntemps,1,1))
+        elif rp_guess.shape==(nch,):
+            self.rp_guess = np.tile(np.tile(rp_guess,(niters,1)).transpose(),(ntemps,1,1))
+            self.rp_err_guess = np.tile(np.tile(rp_err_guess,(niters,1)).transpose(),(ntemps,1,1))
 
-        elif rload.shape==(ntemps,nch):
-            self.rload = np.swapaxes(np.tile(rload.transpose(),(niters,1,1)),0,-1)
-            self.rload_err = np.swapaxes(np.tile(rload_err.transpose(),(niters,1,1)),0,-1)
+        elif rp_guess.shape==(ntemps,nch):
+            self.rp_guess = np.swapaxes(np.tile(rp_guess.transpose(),(niters,1,1)),0,-1)
+            self.rp_err_guess = np.swapaxes(np.tile(rp_err_guess.transpose(),(niters,1,1)),0,-1)
 
-        elif rload.shape!=(ntemps,nch,niters):
-            raise ValueError("the shape of rload doesn't match the data")
+        elif rp_guess.shape!=(ntemps,nch,niters):
+            raise ValueError("the shape of rp_guess doesn't match the data")
             
 
         
@@ -215,12 +175,18 @@ class IV(object):
         
         self.ioff = None
         self.ioff_err = None
+        self.ibias_off = None
+        self.ibias_off_err = None
+        self.ibias_true = None
+        self.ibias_tree_err = None
         self.rfit = None
         self.rfit_err = None
+        self.rp = None
+        self.rp_err = None
         self.rnorm = None
         self.rnorm_err = None
-        self.vb = ibias*rsh
-        self.vb_err = np.sqrt((ibias*rsh_err)**2 + (rsh*ibias_err)**2)
+        self.vb = None
+        self.vb_err = None
 
         self.ites = None
         self.ites_err = None
@@ -232,7 +198,66 @@ class IV(object):
         self.normalinds = normalinds
     
     @staticmethod
-    def _rtes(ibias, rsh, dites, ioff, rload):
+    def _fitfunc(x, b, m):
+        """
+        Function to use for fitting to a straight line
+
+        Parameters
+        ----------
+        x : array_like
+            x-values of the data
+        b : float
+            y-intercept of line
+        m : float
+            slope of line
+
+        Returns
+        -------
+        linfunc : array_like
+            Outputted line for x with slope m and intercept b
+        """
+
+        linfunc = m*x + b
+        return linfunc
+    
+    @staticmethod
+    def _findnormalinds(ibias, dites, dites_err, tol=10):
+        """
+        Function to determine the indices of the normal data in an IV curve
+
+        Parameters
+        ----------
+        vb : array_like
+            Bias voltage, should be a 1d array or list
+        dites : array_like
+            The current read out by the electronics with some offset from the true current
+        dites_err : array_like
+            The error in the current
+        tol : float, optional
+            The tolerance in the reduced chi-squared for the cutoff on which points to use
+
+        Returns
+        -------
+        normalinds : iterable
+            The iterable which stores the range of the normal indices
+        """
+
+        end_ind = 2
+        keepgoing = True
+
+        while keepgoing and (end_ind < len(ibias) and not np.isnan(ibias[end_ind])):
+            end_ind+=1
+            inds = range(0,end_ind)
+            x = curve_fit(_fitfunc, ibias[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
+            red_chi2 = np.sum(((_fitfunc(vb[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
+            if red_chi2>tol:
+                keepgoing = False
+        normalinds = range(0,end_ind-1)
+
+        return normalinds
+    
+    @staticmethod
+    def _rtes(ibias, ibias_off, rsh, dites, ioff, rp):
         """
         Static method to calculate TES resistance
         
@@ -240,36 +265,46 @@ class IV(object):
         ----------
         ibias : float
             Applied bias current
+        ibias_off : float
+            The calculated offset in the applied bias
         rsh : float
             The value of the shunt resistor
         dites : array, float
             The measured relative TES current
         ioff : array, float
             The calculated squid offset
-        rload : 
+        rp : float
+            The parasitic resistance
+            
+        Returns
+        -------
+        rtes : float, array
+            The value of the TES resistance
         """
-        return ibias*rsh/(dites-ioff)-rload
+        return (ibias-ibias_off)*rsh/(dites-ioff)-(rsh + rp)
     
     @staticmethod
-    def _rtes_err(ibias, rsh, dites, ioff, rload,  cov):
+    def _rtes_err(ibias, ibias_off, rsh, dites, ioff, rload,  cov):
         """
         Static method to calculate error in TES resistance.
         The rows of the covariance matrix must be in the following 
-        order: ibias, dites, ioff, rsh, rload.
+        order: ibias, ibias_off, dites, ioff, rsh, rload.
         """
         dibias = rsh/(dites-ioff)
-        dimeas = -ibias*rsh/((dites-ioff)**2)
-        dioff = ibias*rsh/((dites-ioff)**2)
-        drsh = ibias/(dites-ioff)
-        drload = -1
+        dibias_off = -rsh/(dites-ioff)
+        dimeas = -(ibias-ibias_off)*rsh/((dites-ioff)**2)
+        dioff = (ibias-ibias_off)*rsh/((dites-ioff)**2)
+        drsh = (ibias-ibias_off)/(dites-ioff) - 1
+        drp = -1
         
-        jac = np.zeros((5,5))
+        jac = np.zeros((6,6))
         
         jac[0,0] = dibias
-        jac[1,1] = dimeas
-        jac[2,2] = dioff
-        jac[3,3] = drsh
-        jac[4,4] = drload
+        jac[1,1] = dibias_off
+        jac[2,2] = dimeas
+        jac[3,3] = dioff
+        jac[4,4] = drsh
+        jac[5,5] = drp
         
         covout = jac.dot(cov.dot(jac.transpose()))
         
@@ -277,33 +312,55 @@ class IV(object):
         return rtes_err
     
     @staticmethod 
-    def _ptes(ibias, rsh, dites, ioff, rload):
+    def _ptes(ibias, ibias_off, rsh, dites, ioff, rp):
         """
-        static method to calculate the power through the TES.
+        Static method to calculate TES power
+        
+        Parameters
+        ----------
+        ibias : float
+            Applied bias current
+        ibias_off : float
+            The calculated offset in the applied bias
+        rsh : float
+            The value of the shunt resistor
+        dites : array, float
+            The measured relative TES current
+        ioff : array, float
+            The calculated squid offset
+        rp : float
+            The parasitic resistance
+            
+        Returns
+        -------
+        ptes : float, array
+            The value of the TES power
         """
-        ptes = ibias*rsh*(dites-ioff)-rload*(dites-ioff)**2
+        ptes = (ibias - ibias_off)*rsh*(dites-ioff)-(rsh + rp)*(dites-ioff)**2
         return ptes
 
     @staticmethod
-    def _ptes_err(ibias, rsh, dites, ioff, rload,  cov):
+    def _ptes_err(ibias, ibias_off, rsh, dites, ioff, rp,  cov):
         """
         Static method to calculate error in TES power.
         The rows of the covariance matrix must be in the following 
-        order: ibias, dites, ioff, rsh, rload.
+        order: ibias, ibias_off, dites, ioff, rsh, rload.
         """
         dibias = rsh*(dites-ioff)
-        dimeas = ibias*rsh-2*rload*(dites-ioff)
-        dioff = -ibias*rsh+2*rload*(dites-ioff)
-        drsh = ibias*(dites-ioff)
-        drload = -1*(dites-ioff)**2
+        dibias_off = -rsh*(dites-ioff)
+        dimeas = (ibias-ibias_off)*rsh-2*(rsh+rp)*(dites-ioff)
+        dioff = -(ibias-ibias_off)*rsh+2*(rsh+rp)*(dites-ioff)
+        drsh = (ibias-ibias_off)*(dites-ioff) - (dites-ioff)**2
+        drp = -1*(dites-ioff)**2
         
-        jac = np.zeros((5,5))
+        jac = np.zeros((6,6))
         
         jac[0,0] = dibias
-        jac[1,1] = dimeas
-        jac[2,2] = dioff
-        jac[3,3] = drsh
-        jac[4,4] = drload
+        jac[1,1] = dibias_off
+        jac[2,2] = dimeas
+        jac[3,3] = dioff
+        jac[4,4] = drsh
+        jac[5,5] = drp
         
         covout = jac.dot(cov.dot(jac.transpose()))
         
@@ -326,15 +383,21 @@ class IV(object):
         rnorm = np.zeros((ntemps,nch,niters))
         rnorm_err = np.zeros((ntemps,nch,niters))
         
+        ibias_off = np.zeros((ntemps,nch,niters))
+        ibias_off_err = np.zeros((ntemps,nch,niters))
+        rp = np.zeros((ntemps,nch,niters))
+        rp_err = np.zeros((ntemps,nch,niters))
+
+        
         # Do normal Fit
         for t in range(ntemps):
             for ch in range(nch):
                 if self.normalinds is None:
-                    normalinds = _findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
+                    normalinds = IV._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
                 else:
                     normalinds = self.normalinds
                     
-                x, xcov = curve_fit(_fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
+                x, xcov = curve_fit(IV._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
                                     sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
 
                 jac = np.zeros((2,2))
@@ -350,36 +413,81 @@ class IV(object):
                 rfit[t,ch] = xout[1] * self.rsh
                 rfit_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + (xout[1]*self.rsh_err)**2)
                 
-                for ii in range(self.dites.shape[-1]):
-                    cov = np.zeros((5,5))
-                    cov[0,0] = self.ibias_err[t, ch, ii]**2
-                    cov[1,1] = self.dites_err[t,ch, ii]**2
-                    cov[2,2] = ioff_err[t,ch, ii]**2
-                    cov[3,3] = self.rsh_err**2
-                    cov[4,4] = self.rload_err[t,ch, ii]**2
-                   
-                    self.r0[t,ch,ii] = IV._rtes(self.ibias[t,ch,ii], self.rsh, 
-                                                self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
-                    self.r0_err[t,ch,ii] = IV._rtes_err(self.ibias[t,ch,ii], self.rsh, 
-                                                        self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
-                    self.ptes[t,ch,ii] = IV._ptes(self.ibias[t,ch,ii], self.rsh, 
-                                                  self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii])
-                    self.ptes_err[t,ch,ii] = IV._ptes_err(self.ibias[t,ch,ii], self.rsh, 
-                                                          self.dites[t,ch,ii], ioff[t,ch,ii], self.rload[t,ch,ii], cov)
-               
-        rnorm = rfit - self.rload
-        rnorm_err = (rfit_err**2 + self.rload_err**2)**0.5
-        
         self.ites = self.dites - ioff
         self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
-        
         self.ioff = ioff[:,:,0]
         self.ioff_err = ioff_err[:,:,0]
         self.rfit = rfit[:,:,0]
-        self.rfit_err = rfit[:,:,0]
+        self.rfit_err = rfit_err[:,:,0]
+
+        # Do SC fit
+        if self.fitsc:
+            for t in range(ntemps):
+                for ch in range(nch):
+                    scinds = self.scinds
+                    x, xcov = curve_fit(IV._fitfunc, self.ibias[t, ch, scinds], self.ites[t, ch, scinds],
+                                        sigma=self.ites_err[t, ch, scinds], absolute_sigma=True)
+
+                    jac = np.zeros((2,2))
+                    jac[0,0] = 1
+                    jac[1,1] = -1/x[1]**2
+
+                    xout = np.array([x[0],1/x[1]])
+                    covout = jac.dot(xcov.dot(jac.transpose()))
+
+                    rp[t,ch] = xout[1] * self.rsh - self.rsh
+                    rp_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + ((xout[1]-1)*self.rsh_err)**2)
+
+                    dfdb = -1/x[1] 
+                    dfdm = x[0]/(x[1]**2)
+                    jac1 = np.zeros((2,2))
+                    jac1[0,0] = dfdb
+                    jac1[1,1] = dfdm
+                    print(x)
+                    ibias_off[t, ch] = -x[0]/x[1]
+                    ibias_off_err[t, ch] = np.sqrt(np.sum(jac1.dot(xcov.dot(jac1.transpose()))))
+        else:
+            ibias_off = 0
+            ibias_off_err = 0
+            rp = self.rload_guess - self.rsh
+            rp_err = self.rload_err
+                
+        self.ibias_true = self.ibias - ibias_off
+        self.ibias_true_err = (self.ibias_err**2.0 + ibias_off_err**2.0)**0.5
+        
+        self.ibias_off = ibias_off[:,:,0]
+        self.ibias_off_err = ibias_off_err[:,:,0]
+        self.rp = rp[:,:,0]
+        self.rp_err = rp_err[:,:,0]
+        
+        # Propogate fit errors to paramters
+        for t in range(ntemps):
+            for ch in range(nch):
+                for ii in range(self.dites.shape[-1]):
+                    cov = np.zeros((6,6))
+                    cov[0,0] = self.ibias_err[t, ch, ii]**2
+                    cov[1,1] = self.ibias_off_err[t, ch]**2
+                    cov[2,2] = self.dites_err[t,ch, ii]**2
+                    cov[3,3] = self.ioff_err[t,ch]**2
+                    cov[4,4] = self.rsh_err**2
+                    cov[5,5] = self.rp_err[t,ch]**2
+                    self.r0[t,ch,ii] = IV._rtes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                                                self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
+                    self.r0_err[t,ch,ii] = IV._rtes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                                                self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
+                    self.ptes[t,ch,ii] = IV._ptes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                                                self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
+                    self.ptes_err[t,ch,ii] = IV._ptes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                                                self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
+        rnorm = rfit - self.rsh - self.rp[...,np.newaxis]
+        rnorm_err = (rfit_err**2 + self.rp_err[...,np.newaxis]**2)**0.5
+        
         self.rnorm = rnorm[:,:,0]
         self.rnorm_err = rnorm_err[:,:,0]
-
+        
+        self.vb = self.ibias_true*self.rsh
+        self.vb_err = np.sqrt((self.ibias_true*self.rsh_err)**2 + (self.rsh*self.ibias_true_err)**2)
+                
     def plot_iv(self, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
         """
         Function to plot the IV curves for the data in an IV object.

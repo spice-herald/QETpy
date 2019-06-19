@@ -832,7 +832,7 @@ class DIDV2(object):
         
         utils._plot_re_im_didv(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
         
-    def plot_re_vs_im_didv(self, lgcsave = False, savepath="", savename=""):
+    def plot_re_vs_im_didv(self, lgcsave=False, savepath="", savename=""):
         """
         Module to plot the real vs imaginary parts of the didv.
 

@@ -3,9 +3,15 @@ from math import ceil
 import matplotlib.pyplot as plt
 
 
-__all__ = ["_plot_full_trace", "_plot_single_period_of_trace",
-           "_plot_zoomed_in_trace", "_plot_didv_flipped", "_plot_re_im_didv", 
-           "_plot_re_vs_im_didv"]
+__all__ = [
+    "_plot_full_trace",
+    "_plot_single_period_of_trace",
+    "_plot_zoomed_in_trace",
+    "_plot_didv_flipped",
+    "_plot_re_im_didv",
+    "_plot_re_vs_im_didv",
+]
+
 
 
 

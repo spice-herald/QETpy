@@ -1513,13 +1513,10 @@ class DIDV(object):
         self.ntraces = len(self.traces)
         
         # divide by sqrt(N) for standard deviation of mean
-        didvstd_stat = stdcomplex(didvs)/np.sqrt(self.ntraces)
-        self.didvmean = np.mean(didvs, axis=0)
-        
-        didvstd_real = np.sqrt(didvstd_stat.real**2 + (self.didvmean.real/self.rshunt*self.rshunt_err)**2)
-        didvstd_imag = np.sqrt(didvstd_stat.imag**2 + (self.didvmean.imag/self.rshunt*self.rshunt_err)**2)
-        self.didvstd = didvstd_real + 1.0j*didvstd_imag
+        self.didvstd = stdcomplex(didvs)/np.sqrt(self.ntraces)
         self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
+        self.didvmean = np.mean(didvs, axis=0)
+
 
         self.offset = np.mean(means)
         self.offset_err = np.std(means)/np.sqrt(self.ntraces)
