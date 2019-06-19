@@ -87,9 +87,11 @@ def iterstat(data, cut=3, precision=1000.0):
     while keepgoing:
         mask = abs(data - meanlast) < cut*stdlast
         if sum(mask) <=1:
-            warnings.warn("The number of events passing iterative cut via iterstat is <= 1. "
-                          "Iteration not converging properly. Returning simple mean and std. "
-                          "No data will be cut.")
+            warnings.warn(
+                "The number of events passing iterative cut via iterstat is <= 1. "
+                "Iteration not converging properly. Returning simple mean and std. "
+                "No data will be cut."
+            )
             meanthis = np.mean(data)
             stdthis = np.std(data)
             mask = np.ones(len(data),dtype=bool)
@@ -118,8 +120,8 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
     Parameters
     ----------
     args : array_like
-        The data to be iteratively cut on. Can be inputted as a single N-by-M array or a
-        s M arguments that are 1D vectors of length N, where N is the number of data points and
+        The data to be iteratively cut on. Can be inputted as a single N-by-M array or as
+        M arguments that are 1D vectors of length N, where N is the number of data points and
         M is the number of dimensions.
     nsigma : float, optional
         The number of sigma that defines that maximum chi-squared each data point must be below.
@@ -196,9 +198,11 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
         nmask = np.sum(mask)
 
         if nmask <= 1:
-            warnings.warn("The number of events passing iterative cut via itercov is <= 1. "
-                          "Iteration not converging properly. Returning simple mean and cov. "
-                          "No data will be cut.")
+            warnings.warn(
+                "The number of events passing iterative cut via itercov is <= 1. "
+                "Iteration not converging properly. Returning simple mean and cov. "
+                "No data will be cut."
+            )
             mean_this = np.mean(data, axis=1)
             cov_this = np.atleast_1d(np.cov(data))
             mask = np.ones(nevts, dtype=bool)
@@ -208,7 +212,7 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
         mean_this = np.mean(data[:, mask], axis=1)
         cov_this = np.atleast_1d(np.cov(data[:, mask]))
 
-        if np.any(np.abs(mean_this - mean_last) < err_mean) or np.any(np.abs(cov_this - cov_last) < err_cov):
+        if np.any(np.abs(mean_this - mean_last) > err_mean) or np.any(np.abs(cov_this - cov_last) > err_cov):
             nstable = 0
         else:
             nstable += 1
