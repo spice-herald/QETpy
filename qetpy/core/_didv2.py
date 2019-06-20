@@ -167,7 +167,7 @@ class DIDV2(object):
         self.irwinparams = None
         self.irwincov = None
         
-    def _deconvolvedidv(self, x, trace, rshunt, sgamp, sgfreq, dutycycle):
+    def _deconvolvedidv(self, x, trace, sgamp, sgfreq, dutycycle):
         """
         Function for taking a trace with a known square wave jitter and 
         extracting the complex impedance via deconvolution of the square wave 
@@ -179,8 +179,6 @@ class DIDV2(object):
             Time values for the trace
         trace : ndarray
             The trace in time domain (in Amps)
-        rshunt : float
-            Shunt resistance for electronics (in Ohms)
         sgamp : float
             Peak to peak value of square wave jitter (in Amps,
             jitter in QET bias)
@@ -662,8 +660,9 @@ class DIDV2(object):
 
         for trace in self.traces:
             # deconvolve the trace from the square wave to get the dI/dV in frequency domain
-            didvi = self._deconvolvedidv(self.time, trace, self.rshunt, 
-                                   self.sgamp, self.sgfreq, self.dutycycle)[1]
+            didvi = self._deconvolvedidv(x=self.time, trace=trace, 
+                                   sgamp=self.sgamp, sgfreq=self.sgfreq, 
+                                         dutycycle=self.dutycycle)[1]
             didvs.append(didvi)
 
         #convert to numpy structure
@@ -680,21 +679,18 @@ class DIDV2(object):
 
         #store results
         self.tmean = np.mean(self.traces, axis=0)
-        self.freq,self.zeroinds = self._deconvolvedidv(self.time, self.tmean, self.rshunt, 
-                                                 self.sgamp, self.sgfreq,self.dutycycle)[::2]
+        
+        self.freq,self.zeroinds = self._deconvolvedidv(x=self.time, trace=self.tmean, 
+                                                 sgamp=self.sgamp, sgfreq=self.sgfreq,
+                                                       dutycycle=self.dutycycle)[::2]
         
         #get number of traces 
         self.ntraces = len(self.traces)
         
-        # divide by sqrt(N) for standard deviation of mean
-        didvstd_stat = stdcomplex(didvs)/np.sqrt(self.ntraces)
-        self.didvmean = np.mean(didvs, axis=0)
-        
-        didvstd_real = np.sqrt(didvstd_stat.real**2 + (self.didvmean.real/self.rshunt*self.rshunt_err)**2)
-        didvstd_imag = np.sqrt(didvstd_stat.imag**2 + (self.didvmean.imag/self.rshunt*self.rshunt_err)**2)
-        self.didvstd = didvstd_real + 1.0j*didvstd_imag
+       # divide by sqrt(N) for standard deviation of mean
+        self.didvstd = stdcomplex(didvs)/np.sqrt(self.ntraces)
         self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
-
+        self.didvmean = np.mean(didvs, axis=0)
         self.offset = np.mean(means)
         self.offset_err = np.std(means)/np.sqrt(self.ntraces)
     
