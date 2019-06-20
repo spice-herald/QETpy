@@ -4,18 +4,18 @@ import matplotlib.pyplot as plt
 
 
 __all__ = [
-    "_plot_full_trace",
-    "_plot_single_period_of_trace",
-    "_plot_zoomed_in_trace",
-    "_plot_didv_flipped",
-    "_plot_re_im_didv",
-    "_plot_re_vs_im_didv",
+    "plot_full_trace2",
+    "plot_single_period_of_trace2",
+    "plot_zoomed_in_trace2",
+    "plot_didv_flipped2",
+    "plot_re_im_didv2",
+    "plot_re_vs_im_didv2",
 ]
 
 
 
 
-def _plot_full_trace(didv, lgcsave=False, savepath="", savename=""):
+def plot_full_trace2(didv, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the entire trace in time domain
     
@@ -55,7 +55,7 @@ def _plot_full_trace(didv, lgcsave=False, savepath="", savename=""):
     else:
         plt.show()
 
-def _plot_single_period_of_trace(didv, lgcsave=False, savepath="", savename=""):
+def plot_single_period_of_trace2(didv, lgcsave=False, savepath="", savename=""):
     """
     Function to plot a single period of the trace in time domain
     
@@ -97,7 +97,7 @@ def _plot_single_period_of_trace(didv, lgcsave=False, savepath="", savename=""):
     else:
         plt.show()
 
-def _plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True, lgcsave=False, savepath="", savename=""):
+def plot_zoomed_in_trace2(didv, poles="all", zoomfactor=0.1, plotpriors=True, lgcsave=False, savepath="", savename=""):
     """
     Function to plot a zoomed in portion of the trace in time domain. This plot zooms in on the
     overshoot of the didv.
@@ -150,7 +150,7 @@ def _plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True, lg
     else:
         plt.show()
 
-def _plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False, savepath="", savename=""):
+def plot_didv_flipped2(didv, poles="all", plotpriors=True, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the flipped trace in time domain. This function should be used to 
     test if there are nonlinearities in the didv
@@ -206,7 +206,7 @@ def _plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False, savepa
     else:
         plt.show()
 
-def _plot_re_im_didv(didv, lgcsave=False, savepath="", savename=""):
+def plot_re_im_didv2(didv, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the real and imaginary parts of the didv in frequency space.
     Currently creates two different plots.
@@ -300,7 +300,7 @@ def _plot_re_im_didv(didv, lgcsave=False, savepath="", savename=""):
         plt.show()
         
     
-def _plot_re_vs_im_didv(didv, lgcsave=False, savepath="", savename=""):
+def plot_re_vs_im_didv2(didv, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the real vs imaginary parts of the didv.
     

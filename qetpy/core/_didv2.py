@@ -752,7 +752,7 @@ class DIDV2(object):
             by default.
         """
     
-        utils._plot_full_trace(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        utils.plot_full_trace2(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
     
     def plot_single_period_of_trace(self, lgcsave = False, savepath = "", savename = ""):
         """
@@ -770,7 +770,7 @@ class DIDV2(object):
             by default.
         """
     
-        utils._plot_single_period_of_trace(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        utils.plot_single_period_of_trace2(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
     
     def plot_zoomed_in_trace(self, zoomfactor = 0.1, lgcsave = False, savepath = "", savename = ""):
         """
@@ -791,7 +791,7 @@ class DIDV2(object):
             by default.
         """
         
-        utils._plot_zoomed_in_trace(self, zoomfactor = zoomfactor, 
+        utils.plot_zoomed_in_trace2(self, zoomfactor = zoomfactor, 
                                        lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_didv_flipped(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
@@ -811,7 +811,7 @@ class DIDV2(object):
             by default.
         """
     
-        utils._plot_didv_flipped(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        utils.plot_didv_flipped2(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_re_im_didv(self, lgcsave = False, savepath = "", savename = ""):
         """
@@ -830,7 +830,7 @@ class DIDV2(object):
             by default.
         """
         
-        utils._plot_re_im_didv(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        utils.plot_re_im_didv2(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
         
     def plot_re_vs_im_didv(self, lgcsave=False, savepath="", savename=""):
         """
@@ -848,5 +848,5 @@ class DIDV2(object):
             by default.
         """
         
-        utils._plot_re_vs_im_didv(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
+        utils.plot_re_vs_im_didv2(self, lgcsave = lgcsave, savepath = savepath, savename = savename)
         
