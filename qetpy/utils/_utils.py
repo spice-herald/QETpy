@@ -5,7 +5,7 @@ from scipy import ndimage
 
 __all__ = ["make_decreasing", "calc_offset", "lowpassfilter", "align_traces", "get_offset_from_muon",
            "powertrace_simple", "energy_absorbed", "stdcomplex", "slope",
-           "fill_negatives", "shift", "make_template"]
+           "fill_negatives", "shift", "make_template", "estimate_g"]
 
 
 def shift(arr, num, fill_value=0):
@@ -476,3 +476,55 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh,
         raise ValueError('Must provide either fs or time')
 
     return integrated_energy
+
+def estimate_g(p0, tc, tbath, p0_err=0, cov=None, n=5):
+    """
+    Function to estimate G given the measured 
+    bias power and know Tc and bath temperature.
+    
+    Parameters
+    ----------
+    p0 : float
+        The applied bias power
+    tc : float
+        The SC transition temperature
+        of the TES
+    tbath : float
+        The bath temperature
+    p0_err : float, optional
+        The error in the bias power
+    cov : ndarray, NoneType, optional
+        The covariance matrix for the
+        parameters in order:
+        p0, tc, tbath.
+        If None, the error is just
+        calculated from p0_err
+    n : int, optional
+        The exponent of the power 
+        law expression. Defaults to 5
+        
+    Returns
+    -------
+    g : float
+        The estimated thermal conductance
+    g_err : float
+        The error in the estimated thermal 
+        conductance
+    """
+    
+    g = n*p0*tc**(n-1)/(tc**n-tbath**n)
+    
+    if cov is not None:
+        dgdp = g/p0
+        dgdtc = (n-1)*g/tc - g*n*(tc**(n-1))/(tc**n-tbath**n)
+        dgdtbath = n*g*tbath**(n-1)/(tc**n-tbath**n)
+        jac = np.zeros((3,3))
+        jac[0,0] = dgdp
+        jac[1,1] = dgdtc
+        jac[2,2] = dgdtbath
+        covout = jac.dot(cov.dot(jac.transpose()))
+        g_err = np.sqrt(np.sum(covout))
+    else:
+        g_err = np.abs(p0_err*g/p0)
+    
+    return g, g_err
