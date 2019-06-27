@@ -205,7 +205,7 @@ class IV2(object):
         self.ibias_off = None
         self.ibias_off_err = None
         self.ibias_true = None
-        self.ibias_tree_err = None
+        self.ibias_true_err = None
         self.rfit = None
         self.rfit_err = None
         self.rp = None
