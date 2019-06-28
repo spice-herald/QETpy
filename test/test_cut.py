@@ -60,3 +60,30 @@ def test_UnbiasedEstimators():
     unb = _UnbiasedEstimators(x, lwrbnd, uprbnd)
 
     assert np.allclose((unb.mu, unb.std), (-0.008724932112491217, 0.9540689615563553))
+
+def test_iterstat():
+    """Testing function for `qetpy.cut.iterstat`."""
+
+    nsig = 3
+    x = stats.norm.rvs(size=100, random_state=1)
+    x[0] += 100
+    res = qp.cut.iterstat(x, cut=nsig)
+
+    expected_mask = np.ones(len(x), dtype=bool)
+    expected_mask[0] = False
+    expected_mu0 = x[expected_mask].mean()
+    expected_std0 = x[expected_mask].std()
+    expected_res = (expected_mu0, expected_std0, expected_mask)
+
+    assert np.all([np.all(expected_res[ii] == res[ii]) for ii in range(3)])
+
+    res_unb = qp.cut.iterstat(x, cut=nsig, return_unbiased_estimates=True)
+    unb = _UnbiasedEstimators(x, expected_mu0 - nsig * expected_std0, expected_mu0 + nsig * expected_std0)
+    expected_res_unb = (unb.mu, unb.std, expected_mask)
+
+    assert np.all([np.all(expected_res_unb[ii] == res_unb[ii]) for ii in range(3)])
+
+    expected_res_warn = (0, 0, np.array([True]))
+    res_warn = qp.cut.iterstat(np.array([0]))
+
+    assert np.all([np.all(expected_res_warn[ii] == res_warn[ii]) for ii in range(3)])
