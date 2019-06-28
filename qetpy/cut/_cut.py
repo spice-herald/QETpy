@@ -129,7 +129,7 @@ class _UnbiasedEstimators(object):
 
         mu_eqn = self._sumx - self._lenx * mu
         # term due to truncation
-        mu_eqn += 1 / (cdf_upr - cdf_lwr) * (pdf_upr - pdf_lwr)
+        mu_eqn += self._lenx / (cdf_upr - cdf_lwr) * (pdf_upr - pdf_lwr)
 
         std_eqn = self._sumx2 - 2 * mu * self._sumx + self._lenx * mu**2 - self._lenx * std**2
         # term due to truncation
