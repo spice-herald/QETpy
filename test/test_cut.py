@@ -1,5 +1,6 @@
 import qetpy as qp
 import numpy as np
+from scipy import stats
 import pytest
 from qetpy.cut._cut import _UnbiasedEstimators
 
