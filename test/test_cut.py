@@ -1,6 +1,7 @@
 import qetpy as qp
 import numpy as np
 import pytest
+from qetpy.cut._cut import _UnbiasedEstimators
 
 def test_itercov():
     """Testing function for `qetpy.cut.itercov`."""
@@ -47,3 +48,15 @@ def test_itercov():
 
     arr_in = np.array([[0, 1]])
     assert np.all(qp.cut.itercov(arr_in)[0] == arr_in[0])
+
+def test_UnbiasedEstimators():
+    """Testing function for `qetpy.cut._cut._UnbiasedEstimators`."""
+
+    x = stats.norm.rvs(size=100, random_state=1)
+
+    lwrbnd = -1
+    uprbnd = 1
+
+    unb = _UnbiasedEstimators(x, lwrbnd, uprbnd)
+
+    assert np.allclose((unb.mu, unb.std), (-0.008724932112491217, 0.9540689615563553))
