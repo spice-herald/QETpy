@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from qetpy import ofamp
-from scipy import stats
+from scipy import stats, optimize
 from scipy.stats import skew
 import warnings
 
@@ -49,7 +49,104 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
 
     return inds
 
-def iterstat(data, cut=3, precision=1000.0):
+class _UnbiasedEstimators(object):
+    """
+    Helper class for calculating the unbiased estimators of a 1D normal
+    distribution that has been truncated at specified bounds.
+
+    Attributes
+    ----------
+    mu0 : float
+        The biased estimator of the mean of the inputted and truncated data.
+    std0 : float
+        The biased estimator of the standard deviation of the inputted and
+        truncated data.
+    mu : float
+        The unbiased estimator of the mean of the inputted and truncated data.
+    std : float
+        The unbiased estimator of the standard deviation of the inputted and
+        truncated data.
+
+    """
+    
+    def __init__(self, x, lwrbnd, uprbnd):
+        """
+        Initialization of the `_UnbiasedEstimators` helper class
+
+        Parameters
+        ----------
+        x : ndarray
+            A 1D array of data that has been truncated, for which the unbiased
+            estimators will be calculated.
+        lwrbnd : float
+            The lower bound of the truncation of the distribution.
+        uprbnd : float
+            The upper bound of the truncation of the distribution.
+
+        """
+
+        inds = (np.asarray(x) >= lwrbnd) & (np.asarray(x) <=uprbnd)
+
+        self._lwrbnd = lwrbnd
+        self._uprbnd = uprbnd
+
+        self._x = x[inds] # make sure data is only between the specified bounds
+        self._sumx = np.sum(self._x)
+        self._sumx2 = np.sum(self._x**2)
+        self._lenx = len(self._x)
+
+        self.mu0 = np.mean(self._x)
+        self.std0 = np.std(self._x)
+
+        self._calc_unbiased_estimators()
+
+    def _equations(self, p):
+        """
+        Helper method for calculating the system of equations that will be
+        numerically solved for find the unbiased estimators.
+
+        Parameters
+        ----------
+        p : tuple
+            A tuple of length 2 containing the current estimated values of the
+            unbiased estimators: (mu, std).
+
+        Returns
+        -------
+        (mu_eqn, std_eqn) : tuple
+            A tuple containing the two equations that will be solved to give the
+            unbiased estimators of the mean and standard deviation of the data.
+
+        """
+
+        mu, std = p
+
+        pdf_lwr = stats.norm.pdf(self._lwrbnd, loc=mu, scale=std)
+        pdf_upr = stats.norm.pdf(self._uprbnd, loc=mu, scale=std)
+
+        cdf_lwr = stats.norm.cdf(self._lwrbnd, loc=mu, scale=std)
+        cdf_upr = stats.norm.cdf(self._uprbnd, loc=mu, scale=std)
+
+        mu_eqn = self._sumx - self._lenx * mu
+        # term due to truncation
+        mu_eqn += 1 / (cdf_upr - cdf_lwr) * (pdf_upr - pdf_lwr)
+
+        std_eqn = self._sumx2 - 2 * mu * self._sumx + self._lenx * mu**2 - self._lenx * std**2
+        # term due to truncation
+        std_eqn += self._lenx * std**2 / (cdf_upr - cdf_lwr) * ((self._uprbnd - mu) * pdf_upr - (self._lwrbnd - mu) * pdf_lwr)
+
+        return (mu_eqn, std_eqn)
+
+    def _calc_unbiased_estimators(self):
+        """
+        Method for calculating the unbiased estimators of the truncated distribution.
+
+        """
+
+        self.mu, self.std = optimize.fsolve(self._equations, (self.mu0, self.std0))
+
+
+def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
     """
     Function to iteratively remove outliers based on how many standard deviations they are from the mean,
     where the mean and standard deviation are recalculated after each cut.
@@ -64,6 +161,9 @@ def iterstat(data, cut=3, precision=1000.0):
         Threshold for change in mean or standard deviation such that we stop iterating. The threshold is
         determined by np.std(data)/precision. This means that a higher number for precision means a lower
         threshold (i.e. more iterations).
+    return_unbiased_estimates : bool, optional
+        Boolean flag for whether or not to return the biased or unbiased estimates of the mean and
+        standard deviation of the data. Default is False.
 
     Returns
     -------
@@ -109,6 +209,10 @@ def iterstat(data, cut=3, precision=1000.0):
 
         meanlast = meanthis
         stdlast = stdthis
+
+    if return_unbiased_estimates:
+        unb = _UnbiasedEstimators(data[mask], meanthis - cut * stdthis, meanthis + cut * stdthis)
+        return unb.mu, unb.std, mask
 
     return meanthis, stdthis, mask
 
