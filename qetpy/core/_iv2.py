@@ -389,7 +389,7 @@ class IV2(object):
         ptes_err = np.sqrt(np.sum(covout))
         return ptes_err
         
-    def calc_iv(self):
+    def calc_iv(self, yoff=None, yoff_err=None, xoff=None, xoff_err=None):
         """
         Method to calculate the IV curve for the intialized object. Calculates the power and resistance of
         each bias point, as well as saving the fit parameters from the fit to the normal points and the calculated
@@ -408,6 +408,16 @@ class IV2(object):
         ibias_off_err = np.zeros((ntemps,nch,niters))
         rp = np.zeros((ntemps,nch,niters))
         rp_err = np.zeros((ntemps,nch,niters))
+        
+        slope_n = np.zeros((ntemps,nch,niters))
+        int_n = np.zeros((ntemps,nch,niters))
+        slope_sc = np.zeros((ntemps,nch,niters))
+        int_sc = np.zeros((ntemps,nch,niters))
+        
+        slope_sc_err = np.zeros((ntemps,nch,niters))
+        int_sc_err = np.zeros((ntemps,nch,niters))
+        slope_n_err = np.zeros((ntemps,nch,niters))
+        int_n_err = np.zeros((ntemps,nch,niters))
  
         # Do normal Fit
         for t in range(ntemps):
@@ -420,30 +430,42 @@ class IV2(object):
                 x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
                                     sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
 
+                slope_n[t,ch] = x[1]
+                int_n[t,ch] = x[0]
+                slope_n_err[t,ch] = np.sqrt(np.diag(xcov))[1]
+                int_n_err[t,ch] = np.sqrt(np.diag(xcov))[0]
+                
                 jac = np.zeros((2,2))
                 jac[0,0] = 1
                 jac[1,1] = -1/x[1]**2
+                
+                
                 xout = np.array([x[0],1/x[1]])
                 covout = jac.dot(xcov.dot(jac.transpose()))
-                ioff[t,ch] = xout[0]
-                ioff_err[t,ch] = covout[0,0]**0.5
+                #ioff[t,ch] = xout[0]
+                #ioff_err[t,ch] = covout[0,0]**0.5
                 rfit[t,ch] = xout[1] * self.rsh
                 rfit_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + (xout[1]*self.rsh_err)**2)
                 
-        self.ites = self.dites - ioff
-        self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
-        self.ioff = ioff[:,:,0]
-        self.ioff_err = ioff_err[:,:,0]
-        self.rfit = rfit[:,:,0]
-        self.rfit_err = rfit_err[:,:,0]
+#         self.ites = self.dites - ioff
+#         self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
+#         self.ioff = ioff[:,:,0]
+#         self.ioff_err = ioff_err[:,:,0]
+#         self.rfit = rfit[:,:,0]
+#         self.rfit_err = rfit_err[:,:,0]
 
         # Do SC fit
         if self.fitsc:
             for t in range(ntemps):
                 for ch in range(nch):
                     scinds = self.scinds
-                    x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, scinds], self.ites[t, ch, scinds],
-                                        sigma=self.ites_err[t, ch, scinds], absolute_sigma=True)
+                    x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
+                                        sigma=self.dites_err[t, ch, scinds], absolute_sigma=True)
+                    
+                    slope_sc[t,ch] = x[1]
+                    int_sc[t,ch] = x[0]
+                    slope_sc_err[t,ch] = np.sqrt(np.diag(xcov))[1]
+                    int_sc_err[t,ch] = np.sqrt(np.diag(xcov))[0]
 
                     jac = np.zeros((2,2))
                     jac[0,0] = 1
@@ -458,13 +480,89 @@ class IV2(object):
                     jac1[0,0] = dfdb
                     jac1[1,1] = dfdm
 
-                    ibias_off[t, ch] = -x[0]/x[1]
-                    ibias_off_err[t, ch] = np.sqrt(np.sum(jac1.dot(xcov.dot(jac1.transpose()))))
+                    #ibias_off[t, ch] = -x[0]/x[1]
+                    #ibias_off_err[t, ch] = np.sqrt(np.sum(jac1.dot(xcov.dot(jac1.transpose()))))
         else:
             ibias_off = 0
             ibias_off_err = 0
             rp = self.rload_guess - self.rsh
             rp_err = self.rload_err
+            
+        int_point_x = (int_n - int_sc)/(slope_sc - slope_n)
+        int_point_y = slope_n*int_point_x + int_n
+        
+        
+       
+        
+        # error prop for x_int
+        for t in range(ntemps):
+            for ch in range(nch):
+                jac_int = np.zeros((4,4))
+                cov_int = np.zeros((4,4))
+                dint_n = 1/(slope_sc[t,ch,0] - slope_n[t,ch,0])
+                dint_sc = -1/(slope_sc[t,ch,0] - slope_n[t,ch,0])
+                dslope_n = (int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
+                dslope_sc = -(int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
+
+                jac_int[0,0] = dint_n
+                jac_int[1,1] = dslope_n
+                jac_int[2,2] = dint_sc
+                jac_int[3,3] = dslope_sc
+
+                cov_int[0,0] = int_n_err[t,ch,0]**2
+                cov_int[1,1] = slope_n_err[t,ch,0]**2
+                cov_int[2,2] = int_sc_err[t,ch,0]**2
+                cov_int[3,3] = slope_sc_err[t,ch,0]**2
+                covout = jac_int.dot(cov_int.dot(jac_int.transpose()))
+                ibias_off_err[t,ch] = np.sqrt(np.sum(covout))
+        # error prop for y_int
+        for t in range(ntemps):
+            for ch in range(nch):
+                jac_int = np.zeros((4,4))
+                cov_int = np.zeros((4,4))
+                dint_n = slope_n[t,ch,0]/(slope_sc[t,ch,0] - slope_n[t,ch,0]) + 1
+                dint_sc = -slope_n[t,ch,0]/(slope_sc[t,ch,0] - slope_n[t,ch,0])
+                dslope_n = (int_n[t,ch,0]-int_sc[t,ch,0])/(slope_sc[t,ch,0] - slope_n[t,ch,0])+(int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
+                dslope_sc = -slope_n[t,ch,0]*(int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
+
+                jac_int[0,0] = dint_n
+                jac_int[1,1] = dslope_n
+                jac_int[2,2] = dint_sc
+                jac_int[3,3] = dslope_sc
+
+                cov_int[0,0] = int_n_err[t,ch,0]**2
+                cov_int[1,1] = slope_n_err[t,ch,0]**2
+                cov_int[2,2] = int_sc_err[t,ch,0]**2
+                cov_int[3,3] = slope_sc_err[t,ch,0]**2
+                covout = jac_int.dot(cov_int.dot(jac_int.transpose()))
+                ioff_err[t,ch] = np.sqrt(np.sum(covout))
+        #self.ioff_err = ioff_err
+        
+        if yoff is None:
+            ioff = int_point_y
+        else:
+            ioff = yoff
+            ioff_err = yoff_err
+        if xoff is None:
+            ibias_off = int_point_x
+        else:
+            ibias_off = xoff
+            ibias_off_err = xoff_err
+        
+#         self.ibias_true = self.ibias - int_point_x
+        self.slope_n = slope_n
+        self.slope_sc = slope_sc
+        self.int_n = int_n
+        self.int_sc = int_sc
+
+    
+        self.ites = self.dites - ioff
+        self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
+        self.ioff = ioff[:,:,0]
+        self.ioff_err = ioff_err[:,:,0]
+        self.rfit = rfit[:,:,0]
+        self.rfit_err = rfit_err[:,:,0]
+        
                 
         self.ibias_true = self.ibias - ibias_off
         self.ibias_true_err = (self.ibias_err**2.0 + ibias_off_err**2.0)**0.5
