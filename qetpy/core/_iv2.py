@@ -308,11 +308,11 @@ class IV2(object):
         return (ibias-ibias_off)*rsh/(dites-ioff)-(rsh + rp)
     
     @staticmethod
-    def _rtes_err(ibias, ibias_off, rsh, dites, ioff, rload,  cov):
+    def _rtes_err(ibias, ibias_off, rsh, dites, ioff, rp,  cov):
         """
         Static method to calculate error in TES resistance.
         The rows of the covariance matrix must be in the following 
-        order: ibias, ibias_off, dites, ioff, rsh, rload.
+        order: ibias, ibias_off, dites, ioff, rsh, rp.
         """
         dibias = rsh/(dites-ioff)
         dibias_off = -rsh/(dites-ioff)
