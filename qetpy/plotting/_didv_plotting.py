@@ -405,23 +405,37 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     fitinds = didv.freq > 0
     plotinds = np.logical_and(fitinds, goodinds)
 
+    cost_vals = [didv.fitcost1, didv.fitcost2, didv.fitcost3, didv.fitcost2priors]
+    fit_vals = [didv.fitparams1, didv.fitparams2, didv.fitparams3, didv.fitparams2priors]
+
+    min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+
+    best_time_offset = fit_vals[min_cost_idx][-1]
+    time_phase = np.exp(2.0j * np.pi * best_time_offset * didv.freq)
+
+    phase_correction = lambda x: np.exp(2.0j * np.pi * x * didv.freq)
+
     ## plot the real part of the dIdV in frequency domain
     fig, ax = plt.subplots(figsize=(10, 6))
 
     ax.scatter(
-        didv.freq[plotinds], np.real(didv.didvmean)[plotinds], color='blue', label='Mean', s=5,
+        didv.freq[plotinds],
+        np.real(didv.didvmean * time_phase)[plotinds],
+        color='blue',
+        label='Mean',
+        s=5,
     )
     ## plot error in real part of dIdV
     ax.plot(
         didv.freq[plotinds],
-        np.real(didv.didvmean + didv.didvstd)[plotinds],
+        np.real((didv.didvmean + didv.didvstd) * time_phase)[plotinds],
         color='black',
         label='1-$\sigma$ Bounds',
         alpha=0.1,
     )
     ax.plot(
         didv.freq[plotinds],
-        np.real(didv.didvmean - didv.didvstd)[plotinds],
+        np.real((didv.didvmean - didv.didvstd) * time_phase)[plotinds],
         color='black',
         alpha=0.1,
     )
@@ -429,7 +443,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams1 is not None) and (1 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.real(didv.didvfit1_freqdomain)[fitinds],
+            np.real(didv.didvfit1_freqdomain * phase_correction(didv.fitparams1[-1]))[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
@@ -437,7 +451,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams2 is not None) and (2 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.real(didv.didvfit2_freqdomain)[fitinds],
+            np.real(didv.didvfit2_freqdomain * phase_correction(didv.fitparams2[-1]))[fitinds],
             color='green',
             label='2-Pole Fit',
         )
@@ -445,7 +459,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams3 is not None) and (3 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.real(didv.didvfit3_freqdomain)[fitinds],
+            np.real(didv.didvfit3_freqdomain * phase_correction(didv.fitparams3[-1]))[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
@@ -453,7 +467,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.irwinparams2priors is not None) and (plotpriors):
         ax.plot(
             didv.freq[fitinds],
-            np.real(didv.didvfit2priors_freqdomain)[fitinds],
+            np.real(didv.didvfit2priors_freqdomain * phase_correction(didv.fitparams2priors[-1]))[fitinds],
             color='cyan',
             label='2-Pole Fit With Priors',
         )
@@ -463,8 +477,8 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
     ax.set_xscale('log')
 
-    yhigh = max(np.real(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
-    ylow = min(np.real(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
+    yhigh = max(np.real(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
+    ylow = min(np.real(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
     ybnd = np.max([yhigh, -ylow])
 
     ax.set_ylim([-ybnd, ybnd])
@@ -486,7 +500,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
 
     ax.scatter(
         didv.freq[plotinds],
-        np.imag(didv.didvmean)[plotinds],
+        np.imag(didv.didvmean * time_phase)[plotinds],
         color='blue',
         label='Mean',
         s=5,
@@ -495,14 +509,14 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     ## plot error in imaginary part of dIdV
     ax.plot(
         didv.freq[plotinds],
-        np.imag(didv.didvmean + didv.didvstd)[plotinds],
+        np.imag((didv.didvmean + didv.didvstd) * time_phase)[plotinds],
         color='black',
         label='1-$\sigma$ Bounds',
         alpha=0.1,
     )
     ax.plot(
         didv.freq[plotinds],
-        np.imag(didv.didvmean - didv.didvstd)[plotinds],
+        np.imag((didv.didvmean - didv.didvstd) * time_phase)[plotinds],
         color='black',
         alpha=0.1,
     )
@@ -510,7 +524,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams1 is not None) and (1 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.imag(didv.didvfit1_freqdomain)[fitinds],
+            np.imag(didv.didvfit1_freqdomain * phase_correction(didv.fitparams1[-1]))[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
@@ -518,7 +532,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams2 is not None) and (2 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.imag(didv.didvfit2_freqdomain)[fitinds],
+            np.imag(didv.didvfit2_freqdomain * phase_correction(didv.fitparams2[-1]))[fitinds],
             color='green',
             label='2-Pole Fit',
         )
@@ -526,7 +540,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.fitparams3 is not None) and (3 in poleslist):
         ax.plot(
             didv.freq[fitinds],
-            np.imag(didv.didvfit3_freqdomain)[fitinds],
+            np.imag(didv.didvfit3_freqdomain * phase_correction(didv.fitparams3[-1]))[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
@@ -534,7 +548,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     if (didv.irwinparams2priors is not None) and (plotpriors):
         ax.plot(
             didv.freq[fitinds],
-            np.imag(didv.didvfit2priors_freqdomain)[fitinds],
+            np.imag(didv.didvfit2priors_freqdomain * phase_correction(didv.fitparams2priors[-1]))[fitinds],
             color='cyan',
             label='2-Pole Fit With Priors',
         )
@@ -543,8 +557,8 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
     ax.set_xscale('log')
 
-    yhigh = max(np.imag(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
-    ylow = min(np.imag(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
+    yhigh = max(np.imag(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
+    ylow = min(np.imag(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
     ybnd = np.max([yhigh, -ylow])
 
     ax.set_ylim([-ybnd, ybnd])
