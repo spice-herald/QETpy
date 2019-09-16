@@ -63,7 +63,8 @@ def test_didv():
     didvfit.plot_zoomed_in_trace(poles=2)
     didvfit.plot_didv_flipped()
     didvfit.plot_re_im_didv(poles=[2,3])
-    
+    didvfit.plot_abs_phase_didv()
+
     assert len(didvfit.fitparams2) > 0
     
 def test_iv():

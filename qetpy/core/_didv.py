@@ -1836,3 +1836,37 @@ class DIDV(object):
         
         utils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
+
+    def plot_abs_phase_didv(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot the absolute value and the phase of the dIdV in frequency space.
+        Currently creates two different plots.
+
+        Parameters
+        ----------
+        poles : int, string, array_like, optional
+            The pole fits that we want to plot. If set to "all", then plots
+            all of the fits. Can also be set to just one of the fits. Can be set
+            as an array of different fits, e.g. [1, 2]
+        plotpriors : boolean, optional
+            Boolean value on whether or not the priors fit should be plotted.
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+
+        """
+
+        utils.plot_abs_phase_didv(
+            self,
+            poles=poles,
+            plotpriors=plotpriors,
+            lgcsave=lgcsave,
+            savepath=savepath,
+            savename=savename,
+        )
+
