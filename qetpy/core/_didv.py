@@ -1411,7 +1411,7 @@ class DIDV(object):
         
         self.fitparams2priors = None
         self.fitcov2priors = None
-        self.fitcost2 = None
+        self.fitcost2priors = None
         self.irwinparams2priors = None
         self.irwincov2priors = None
         self.falltimes2priors = None
@@ -1621,7 +1621,7 @@ class DIDV(object):
             dt0 = self.irwinparams2[6]
 
         # 2 pole fitting
-        self.irwinparams2priors, self.irwincov2priors, self.irwincost2priors = fitdidvpriors(self.freq, self.didvmean, self.priors, self.invpriorscov, yerr=self.didvstd, r0=abs(self.r0), rload=abs(self.rload), beta=beta0, l=l0, L=L0, tau0=tau0, dt=dt0)
+        self.irwinparams2priors, self.irwincov2priors, self.fitcost2priors = fitdidvpriors(self.freq, self.didvmean, self.priors, self.invpriorscov, yerr=self.didvstd, r0=abs(self.r0), rload=abs(self.rload), beta=beta0, l=l0, L=L0, tau0=tau0, dt=dt0)
 
         # convert answer back to A, B, tauI, tauEL basis for plotting
         self.fitparams2priors, self.fitcov2priors = convertfromtesvalues(self.irwinparams2priors, self.irwincov2priors)
