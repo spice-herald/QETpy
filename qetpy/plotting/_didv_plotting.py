@@ -218,7 +218,14 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True, lgc
     else:
         poleslist = np.array(poles)
 
-    period = 1.0/didv.sgfreq
+    period = 1.0 / didv.sgfreq
+
+    cost_vals = [didv.fitcost1, didv.fitcost2, didv.fitcost3, didv.fitcost2priors]
+    fit_vals = [didv.fitparams1, didv.fitparams2, didv.fitparams3, didv.fitparams2priors]
+
+    min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+
+    best_time_offset = fit_vals[min_cost_idx][-1]
 
     ## plot zoomed in on the trace
     fig, ax = plt.subplots(figsize=(10,6))
@@ -265,7 +272,10 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True, lgc
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
 
-    ax.set_xlim([(0.5 - zoomfactor / 2) * period * 1e6, (0.5 + zoomfactor / 2) * period * 1e6])
+    ax.set_xlim(
+        (best_time_offset + didv.time[0] + (0.5 - zoomfactor / 2) * period) * 1e6,
+        (best_time_offset + didv.time[0] + (0.5 + zoomfactor / 2) * period) * 1e6,
+    )
 
     ax.legend(loc='upper left')
     ax.set_title("Zoomed In Portion of Trace")
