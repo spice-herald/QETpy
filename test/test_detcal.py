@@ -62,7 +62,7 @@ def test_didv():
 
     didvfit.processtraces()
     didvfit.doallfits()
-    didvfit.plot_full_trace(lgcsave=True, savename="test")
+    didvfit.plot_full_trace(poles=[2, 3], lgcsave=True, savename="test")
     didvfit.plot_full_trace(poles="all", plotpriors=True)
     didvfit.plot_single_period_of_trace(poles=[2, 3], lgcsave=True, savename="test")
     didvfit.plot_single_period_of_trace(poles="all", plotpriors=True)
