@@ -620,7 +620,7 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
         
     # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
     if not res['success'] :
-        print("Fit failed: "+str(res['status'])+", "+str(poles)+"-pole Fit")
+        print(f"{poles}-Pole Fit Failed: " + res['message'])
         
     # take matrix product of transpose of jac and jac, take the inverse to get the analytic covariance matrix
     pcovinv = np.dot(res["jac"].transpose(), res["jac"])
@@ -928,8 +928,8 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
     cost = res['cost']
     
     # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
-    if (not res['success']):
-        print('Fit failed: '+str(res['status']))
+    if not res['success']:
+        print("2-Pole Priors Fit Failed: " + res['message'])
 
     # analytically calculate the covariance matrix
     if (yerr is None):
