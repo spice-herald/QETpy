@@ -28,6 +28,8 @@ things I've added to it.
     import numpy as np
     import qetpy as qp
     import matplotlib.pyplot as plt
+    
+    from helpers import create_example_pulseplusmuontail, create_example_ttl_leakage_pulses
 
 Before getting into how this fit is performed, we motivate it with a few
 use cases:
@@ -49,7 +51,7 @@ component
 .. code:: ipython3
 
     # create noise + fake pulse + muon tail, also outputting template for pulse and psd for noise
-    signal, template, psd = qp.sim._sim_nsmb.create_example_pulseplusmuontail()
+    signal, template, psd = create_example_pulseplusmuontail()
     signal = (-1)*signal # flip polarity for positive going pulse
     
     plt.figure(figsize=(14,5));
@@ -77,12 +79,12 @@ component
     nbin = len(signal)
     
     # construct the background templates which are just a slope and a baseline
-    backgroundtemplates, backgroundtemplatesshifts = qp.core._of_nsmb.get_slope_dc_template_nsmb(nbin)
+    backgroundtemplates, backgroundtemplatesshifts = qp.get_slope_dc_template_nsmb(nbin)
     
     # setup the NSMB
     fs = 625e3 # example sample rate
     (psddnu,phi,Pfs, P, sbtemplatef,
-     sbtemplatet,iB,B,ns,nb,bitcomb,lfindex)  = qp.of_nsmb_setup(template,backgroundtemplates,psd, fs)
+     sbtemplatet,iB,B,ns,nb,bitcomb,lfindex) = qp.of_nsmb_setup(template, backgroundtemplates, psd, fs)
     
     # invert the P matrix -- see below if interested in this
     iP = qp.of_nsmb_getiP(P)    
@@ -96,13 +98,13 @@ component
     lgcplotnsmb = True
     (amps_nsmb, t0_s_nsmb, chi2_nsmb,
     chi2_nsmb_lf,resid) = qp.of_nsmb(signal,
-                                    phi, 
-                                    sbtemplatef.T, 
-                                    sbtemplatet, iP, 
-                                    psddnu.T, fs, 
-                                    indwindow_nsmb, ns, nb, 
-                                    bitcomb, lfindex, 
-                                    lgcplot=lgcplotnsmb,lgcsaveplots=False)
+                                     phi, 
+                                     sbtemplatef.T, 
+                                     sbtemplatet, iP, 
+                                     psddnu.T, fs, 
+                                     indwindow_nsmb, ns, nb, 
+                                     bitcomb, lfindex, 
+                                     lgcplot=lgcplotnsmb, lgcsaveplots=False)
     fig = plt.gcf()
     fig.set_size_inches(7,5)
     plt.xlim([10000, 18000]);
@@ -134,7 +136,7 @@ On to the next use case:
     
     # create noise + fake laser trigger pulses at certain start times + a background pulse at a random time
     # also outputting template for the pulse shapes and psd for noise
-    signal, template, psd = qp.sim._sim_nsmb.create_example_ttl_leakage_pulses(fs,ttlrate)
+    signal, template, psd = create_example_ttl_leakage_pulses(fs,ttlrate)
     signal = (-1)*signal # flip polarity for positive going pulse
     
     nbin = len(signal)
@@ -143,12 +145,12 @@ On to the next use case:
     (backgroundtemplates,
     backgroundtemplateshifts,
     backgroundpolarityconstraint,
-    indwindow_nsmb) = qp.core._of_nsmb.maketemplate_ttlfit_nsmb(template, 
-                                                                  fs, 
-                                                                  ttlrate, 
-                                                                  lgcconstrainpolarity=True,
-                                                                  lgcpositivepolarity=True,
-                                                                  notch_window_size=1)
+    indwindow_nsmb) = qp.maketemplate_ttlfit_nsmb(template, 
+                                                  fs, 
+                                                  ttlrate, 
+                                                  lgcconstrainpolarity=True,
+                                                  lgcpositivepolarity=True,
+                                                  notch_window_size=1)
     
     plt.figure(figsize=(14,5));
     plt.plot(signal, '-');
@@ -156,12 +158,10 @@ On to the next use case:
     plt.ylabel('Energy (arb)')
     plt.title('Example periodic train of laser pulses with 1 background pulse at a random time')
     plt.grid()
-    plt.axvline(x=backgroundtemplateshifts[0],linestyle='--', color='m',linewidth=1, label='laser firing times')
+    plt.axvline(x=backgroundtemplateshifts[0],linestyle='--', color='m', linewidth=1, label='laser firing times')
     for ii in range(1, len(backgroundtemplateshifts)):
-        plt.axvline(x=backgroundtemplateshifts[ii],linestyle='--', color='m',linewidth=1)
+        plt.axvline(x=backgroundtemplateshifts[ii],linestyle='--', color='m', linewidth=1)
     plt.legend();
-                                    
-
 
 
 
@@ -175,7 +175,7 @@ On to the next use case:
     
     (psddnu, phi, Pfs, P,
     sbtemplatef, sbtemplatet, iB,
-    B, ns, nb, bitcomb, lfindex)  = qp.of_nsmb_setup(template, backgroundtemplates, psd, fs)
+    B, ns, nb, bitcomb, lfindex) = qp.of_nsmb_setup(template, backgroundtemplates, psd, fs)
     
     sigpolarityconstraint = np.ones(1)
     
@@ -195,10 +195,10 @@ On to the next use case:
      t0_s_nsmb_cwindow_int) = qp.of_nsmb_con(signal, phi, Pfs,
                                              P, sbtemplatef.T, sbtemplatet,
                                              psddnu.T, fs, indwindow_nsmb, ns,nb, bitcomb, lfindex,
-                                             background_templates_shifts = backgroundtemplateshifts,
-                                             bkgpolarityconstraint = backgroundpolarityconstraint,
-                                             sigpolarityconstraint = sigpolarityconstraint,
-                                             lgcplot=lgcplotnsmb,lgcsaveplots=False)
+                                             background_templates_shifts=backgroundtemplateshifts,
+                                             bkgpolarityconstraint=backgroundpolarityconstraint,
+                                             sigpolarityconstraint=sigpolarityconstraint,
+                                             lgcplot=lgcplotnsmb, lgcsaveplots=False)
     
     fig = plt.gcf()
     fig.set_size_inches(14,5)
@@ -229,13 +229,13 @@ the :math:`\Delta \chi^2` between the two fits:
 
     (ampsbonly_nsmb, chi2bonly_nsmb,
      chi2bonly_nsmb_lf) = qp.of_mb(signal, phi, sbtemplatef.T, sbtemplatet,
-                                        iB, B, psddnu.T, fs, ns, nb, lfindex,
-                                        background_templates_shifts = backgroundtemplateshifts,
-                                        bkgpolarityconstraint = backgroundpolarityconstraint,
-                                        sigpolarityconstraint = sigpolarityconstraint,
-                                        lgcplot=True, lgcsaveplots=False)
+                                   iB, B, psddnu.T, fs, ns, nb, lfindex,
+                                   background_templates_shifts=backgroundtemplateshifts,
+                                   bkgpolarityconstraint=backgroundpolarityconstraint,
+                                   sigpolarityconstraint=sigpolarityconstraint,
+                                   lgcplot=True, lgcsaveplots=False)
     fig = plt.gcf()
-    fig.set_size_inches(14,5)
+    fig.set_size_inches(14, 5)
     plt.ylabel('Energy (arb)');
     plt.title('Background Only Fit');
 
@@ -504,3 +504,4 @@ below:
    \frac{\tilde{A}_{3,k}^{*}}{J_{k}} \\
    \end{array} \right) 
    \end{equation}
+

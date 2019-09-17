@@ -122,3 +122,4 @@ pulses, muon tails, etc. Please note that there may still be "bad"
 traces in the data, as the autocuts function is not perfect. There may
 be more cuts that one would like to do that are more specific to the
 dataset.
+
