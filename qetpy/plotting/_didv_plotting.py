@@ -178,7 +178,7 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors=True, lgcsave=Fals
     ax.legend(loc='upper left')
     ax.set_title("Single Period of Trace")
     ax.grid(linestyle='dotted')
-    ax.tick_params(which='both', direction='in',right=True, top=True)
+    ax.tick_params(which='both', direction='in', right=True, top=True)
 
     if lgcsave:
         fig.savefig(savepath + f"trace_one_period_{savename}.png")
@@ -496,7 +496,7 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
     ax.legend(loc='upper left')
     ax.set_title("Real Part of dIdV")
-    ax.tick_params(right=True, top=True)
+    ax.tick_params(which='both', direction='in', right=True, top=True)
     ax.grid(which='major')
     ax.grid(which='minor', linestyle='dotted', alpha=0.3)
 
@@ -701,7 +701,7 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False, savep
     ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
     ax.legend(loc='upper left')
     ax.set_title("|dIdV|")
-    ax.tick_params(right=True, top=True)
+    ax.tick_params(which='both', direction='in', right=True, top=True)
     ax.grid(which='major')
     ax.grid(which='minor', linestyle='dotted', alpha=0.3)
 
