@@ -253,7 +253,7 @@ def test_OFnonlin():
     res2a = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=True)
     res2 = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=False)
     res3 = nlin.fit_falltimes(signal, npolefit=3, lgcfullrtn=False, lgcplot=True)
-    res4 = nlin.fit_falltimes(signal, npolefit=4, lgcfullrtn=False, lgcplot=True)
+    res4 = nlin.fit_falltimes(signal, npolefit=4, lgcfullrtn=False, lgcplot=True, nbaseline=-1)
     
     assert isclose(res1a, [4.008696926367952e-06, 6.577134966380607e-05,
                           2.600003126086262e-02])
