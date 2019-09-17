@@ -39,66 +39,72 @@ Import the needed packages to run the test script.
     
     %matplotlib inline
 
-
-.. parsed-literal::
-
-    /galbascratch/samwatkins/anaconda3/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
-      from ._conv import register_converters as _register_converters
-
-
 Set all of the necessary parameters and load the traces from an HDF5
 file in the repository.
 
 .. code:: ipython3
 
     # Setting various parameters that are specific to the dataset
-    Rshunt = 5.0e-3
-    Rbias_SG = 20000.0
-    Rfb = 5000.0
+    rshunt = 5e-3
+    rbias_sg = 20000
+    rfb = 5000
     loopgain = 2.4
-    ADCperVolt = 65536.0/2.0
-    fs = 625.0e3
-    sgFreq = 100.0
-    sgAmp = 0.009381 /Rbias_SG
-    drivergain = 4.0
-    Rp = 0.0060367199999999998
-    Rload = Rshunt+Rp
-    dRload = 0.0001
-    R0 = 0.075570107054005367
-    dR0 = 8.96383052e-04
+    adcpervolt = 65536 / 2
+    fs = 625e3
+    sgfreq = 100
+    sgamp = 0.009381 / rbias_sg
+    drivergain = 4
+    rp = 0.0060367199999999998
+    rload = rshunt + rp
+    drload = 0.0001
+    r0 = 0.075570107054005367
+    dr0 = 8.96383052e-04
     
-    convToAmps = Rfb * loopgain * drivergain * ADCperVolt
-    
-    saveResults = False
+    convtoamps = rfb * loopgain * drivergain * adcpervolt
     
     # load the dataset
     with h5py.File('example_traces.h5','r') as f:
-        rawTraces = np.array(f["rawTraces"])
-    
-    fileSaveName = "example_traces_data"
+        rawtraces = np.array(f["rawTraces"])
     
     # set the priors information, for use the priors fitting
     priors = np.zeros(7)
-    invpriorsCov = np.zeros((7,7))
-    priors[0] = Rload
-    priors[1] = R0
-    invpriorsCov[0,0] = 1.0/dRload**2
-    invpriorsCov[1,1] = 1.0/dR0**2
-    dt0=-18.8e-6
+    invpriorscov = np.zeros((7,7))
+    priors[0] = rload
+    priors[1] = r0
+    invpriorscov[0, 0] = 1 / drload**2
+    invpriorscov[1, 1] = 1 / dr0**2
+    dt0 = -18.8e-6
 
 Run the processing package on the data.
 
 .. code:: ipython3
 
-    didvfit = DIDV(rawTraces, fs, sgFreq, sgAmp, Rshunt, tracegain=convToAmps) #note that there are many more attributes
+    didvfit = DIDV(
+        rawtraces,
+        fs,
+        sgfreq,
+        sgamp,
+        rshunt,
+        tracegain=convtoamps,
+        priors=priors,
+        invpriorscov=invpriorscov,
+    )
+    
+    # note that there are many more attributes for DIDV
+    
     didvfit.processtraces()
     didvfit.doallfits()
     # didvfit.dofit(2) # just do one fit
-    didvfit.plot_full_trace()
+    didvfit.plot_full_trace(poles=2, plotpriors=False)
+
+
+.. parsed-literal::
+
+    2-Pole Priors Fit Failed: The maximum number of function evaluations is exceeded.
 
 
 
-.. image:: test_didv_files/test_didv_7_0.png
+.. image:: test_didv_files/test_didv_7_1.png
 
 
 Let's look at the fit parameters for the 2-pole fit.
@@ -187,7 +193,7 @@ Let's first plot all of this fits on the full trace.
 
 .. code:: ipython3
 
-    didvfit.plot_full_trace(poles="all",plotpriors=True)
+    didvfit.plot_full_trace(poles="all", plotpriors=True)
 
 
 
@@ -200,14 +206,14 @@ variable.
 
 .. code:: ipython3
 
-    didvfit.plot_single_period_of_trace(poles=[2,3], lgcsave=True, savename="test")
+    didvfit.plot_single_period_of_trace(poles=[2, 3], lgcsave=True, savename="test", plotpriors=False)
 
 Let's plot a zoomed in trace of just the 2 pole fit. Note that by
 default, all fits are plotted.
 
 .. code:: ipython3
 
-    didvfit.plot_zoomed_in_trace(poles=2)
+    didvfit.plot_zoomed_in_trace(poles=2, plotpriors=False)
 
 
 
@@ -231,7 +237,7 @@ Now let's look at the real and imaginary parts of the dIdV.
 
 .. code:: ipython3
 
-    didvfit.plot_re_im_didv(poles=[2,3])
+    didvfit.plot_re_im_didv(poles=[2, 3], plotpriors=False)
 
 
 
@@ -240,4 +246,21 @@ Now let's look at the real and imaginary parts of the dIdV.
 
 
 .. image:: test_didv_files/test_didv_25_1.png
+
+
+Alternatively, we can look at the absolute value and the phase of the
+dIdV.
+
+.. code:: ipython3
+
+    didvfit.plot_abs_phase_didv(poles=[2, 3], plotpriors=False)
+
+
+
+.. image:: test_didv_files/test_didv_27_0.png
+
+
+
+.. image:: test_didv_files/test_didv_27_1.png
+
 

@@ -272,3 +272,4 @@ indicates that we have a good fit.
 For further documentation on the different fitting functions, please
 visit
 https://qetpy.readthedocs.io/en/latest/qetpy.core.html#module-qetpy.core.\_fitting.
+

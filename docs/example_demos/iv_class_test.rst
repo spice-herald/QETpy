@@ -35,10 +35,8 @@ Import the need packages to run the test script
     import numpy as np
     from qetpy import IV
 
-Let's load the example data. To see how this data was created, look at
-the ``run_31_chips_iv.ipynb`` file, which loads the data from Pickle
-files. This data was created from Run 31 at SLAC, using TES chips. There
-is no guarantee that that notebook will run.
+Let's load the example data provided, which is from a dataset taken at
+SLAC for multiple devices and multiple bath temperatures.
 
 .. code:: ipython3
 
@@ -117,4 +115,5 @@ the documentation for more information on the plotting options.
 
 
 .. image:: iv_class_test_files/iv_class_test_13_2.png
+
 
