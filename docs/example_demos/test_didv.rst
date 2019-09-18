@@ -221,7 +221,7 @@ default, all fits are plotted.
 
 
 Let's flip the trace and shift it by half a period of the signal
-generator in order to see if there are any nonlinearities. Spoilter
+generator in order to see if there are any nonlinearities. Spoiler
 alert: there aren't!
 
 .. code:: ipython3
