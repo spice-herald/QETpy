@@ -699,7 +699,7 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False, savep
     ax.set_xlim(min(didv.freq[fitinds]), max(didv.freq[fitinds]))
     ax.legend(loc='upper left')
     ax.set_title("|dIdV|")
-    ax.tick_params(right=True, top=True)
+    ax.tick_params(which='both', direction='in', right=True, top=True)
     ax.grid(which='major')
     ax.grid(which='minor', linestyle='dotted', alpha=0.3)
 
