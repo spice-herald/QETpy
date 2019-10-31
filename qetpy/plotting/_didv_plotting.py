@@ -694,11 +694,9 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False, savep
     ax.set_xscale('log')
 
     yhigh = max(np.abs(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
-    ylow = min(np.abs(didv.didvmean)[plotinds][didv.freq[plotinds] < 1e5])
-    ybnd = np.max([yhigh, -ylow])
 
-    ax.set_ylim([-ybnd, ybnd])
-    ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
+    ax.set_ylim(0, yhigh)
+    ax.set_xlim(min(didv.freq[fitinds]), max(didv.freq[fitinds]))
     ax.legend(loc='upper left')
     ax.set_title("|dIdV|")
     ax.tick_params(which='both', direction='in', right=True, top=True)
@@ -773,12 +771,9 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False, savep
     ax.set_ylabel('Arg($dI/dV$)')
     ax.set_xscale('log')
 
-    yhigh = max(np.angle(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
-    ylow = min(np.angle(didv.didvmean * time_phase)[plotinds][didv.freq[plotinds] < 1e5])
-    ybnd = np.max([yhigh, -ylow])
+    ax.set_ylim(-np.pi, np.pi)
+    ax.set_xlim(min(didv.freq[fitinds]), max(didv.freq[fitinds]))
 
-    ax.set_ylim([-ybnd, ybnd])
-    ax.set_xlim([min(didv.freq[fitinds]), max(didv.freq[fitinds])])
     ax.legend(loc='upper left')
     ax.set_title("Phase of dIdV")
     ax.tick_params(which='both', direction='in', right=True, top=True)
