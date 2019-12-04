@@ -21,9 +21,8 @@ install:
   # Install packages needed for testing QETpy
   - conda install numpy
   - conda install scipy
-  - conda install matplotlib
+  - conda install -c conda-forge matplotlib
   - conda install h5py
-  - conda install seaborn
   # Copy matplotlib configuration so it does not try and plot to 
   # screen, which can cause matplotlib tests to fail.
   - cp test/packages/matplotlibrc .
