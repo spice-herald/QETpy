@@ -9,30 +9,30 @@ If you are unsure where to start, click on the issues tab to see open issues.
     - Clone the project to your local computer:
     ```
     git clone https://github.com/your-username/QETpy.git
-    '''
+    ```
 * Develop your contribution:
     - Make sure you are up to date
     ```
     git checkout master
     git pull
-    '''
+    ```
     - Create development/feature branch to work on. 
     ```
     git checkout -b new-feature-name
-    '''
+    ```
     
     - Make sure to locally commit your progress regularly, 
     ```
     git add new-file-you-are-changing
     git commit -m 'short descriptive message about what you changed'
-    '''
+    ```
     
 * Submit your changes
     - Push to your fork on GitHub
     
     ```
     git push origin new-feature-name
-    '''
+    ```
     
     - Go to your GitHub project online and click on the "Pull Request" button. Provide a detailed description of the changes that you've made. If you are addressing an issue see [closing issues](https://help.github.com/en/github/managing-your-work-on-github/closing-issues-using-keywords). For example, if you write: resolves issue #2, when the pull request is merged, issue #2 will be automatically closed. 
     
