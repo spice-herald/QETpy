@@ -26,4 +26,4 @@ Examples of how to use the package can be found in the `demos/` directory. This 
 
 ### Contributing
 
-Collaboration is encouraged! Please see [contributing.md](https://github.com/ucbpylegroup/QETpy/blob/update_docs/contributing.md) for information on how to contribute. 
+Collaboration is encouraged! Please see [contributing.md](https://github.com/ucbpylegroup/QETpy/blob/update_docs/CONTRIBUTING.md) for information on how to contribute. 
