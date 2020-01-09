@@ -21,7 +21,12 @@ If you are unsure where to start, click on the issues tab to see open issues.
     git checkout -b new-feature-name
     '''
     
-    Commit locally as you progress ('git add' and 'git commit') using good commit messages
+    ** Make sure to locally commit your progress regularly, 
+    '''
+    git add new-file-you-are-changing
+    git commit -m 'short descriptive message about what you changed'
+    '''
+    
 * Submit your changes
     ** Push to your fork on GitHub
     '''
