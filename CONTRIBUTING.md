@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-If you are unsure where to start, click on the issues tab to see open issues. 
+If you are unsure where to start, click on the issues tab to see open [issues](https://github.com/ucbpylegroup/QETpy/issues). 
 
 ### Development Process
 
