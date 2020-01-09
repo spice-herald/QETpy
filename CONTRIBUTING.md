@@ -34,13 +34,13 @@ If you are unsure where to start, click on the issues tab to see open [issues](h
     git push origin new-feature-name
     ```
     
-    - Go to your GitHub project online and click on the "Pull Request" button. Provide a detailed description of the changes that you've made. If you are addressing an issue see [closing issues](https://help.github.com/en/github/managing-your-work-on-github/closing-issues-using-keywords). For example, if you write: resolves issue #2, when the pull request is merged, issue #2 will be automatically closed. 
+    - Go to your GitHub project online and click on the "Pull Request" button. Provide a detailed description of the changes that you've made. If you are addressing an issue, see [closing issues](https://help.github.com/en/github/managing-your-work-on-github/closing-issues-using-keywords). For example, if you write: "Resolves issue #2", when the pull request is merged, issue #2 will be automatically closed. 
     
-* Your pull request will then be reviewd by the core development team. The pull request will either be merged to the master, or changes may be requested. 
+* Your pull request will then be reviewed by the core development team. The pull request will either be merged to the master, or changes may be requested. 
     
-### Style Guidlines
+### Style Guidelines
 
-* All code should have tests (see test coverage below for more details).
+* All code should have tests.
 * All code should be documented.
 * The code style and naming conventions should match that of the existing code. We try to adhere to PEP 8 conventions (remove trailing white space, no tabs, etc.). 
 
