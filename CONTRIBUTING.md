@@ -42,7 +42,7 @@ If you are unsure where to start, click on the issues tab to see open [issues](h
 
 * All code should have tests.
 * All code should be documented.
-* The code style and naming conventions should match that of the existing code. We try to adhere to PEP 8 conventions (remove trailing white space, no tabs, etc.). 
+* The code style and naming conventions should match that of the existing code. We try to adhere to [PEP 8](https://www.python.org/dev/peps/pep-0008/) conventions (remove trailing white space, no tabs, etc.). 
 
 If the above criteria are not met, you will be asked to change your code. 
 
