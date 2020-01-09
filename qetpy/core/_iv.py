@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
+import warnings
 
 __all__ = ["IV"]
 
@@ -166,6 +167,12 @@ class IV(object):
             by either an array of integers or an iterable (e.g. range(0,3)).
         
         """
+        
+        warnings.warn(
+            "qetpy.IV class is deprecated, use qetpy.IBIS instead.\n"
+            "The error propagation in qetpy.IV does not correctly take into account the shunt resistance",
+            DeprecationWarning
+        )
 
 
         if len(dites.shape)==3:
