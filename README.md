@@ -23,3 +23,7 @@ To install the most recent development version of QETpy, clone this repo, then f
 This package requires python 3.6 or greater. A current version of Anaconda3 should be sufficient, however a conda environment file as well as a list of dependencies is provided (condaenv.yml and requirements.txt)
     
 Examples of how to use the package can be found in the `demos/` directory. This directory contains Jupyter notebooks with example code and testing data
+
+### Contributing
+
+Collaboration is encouraged! Please see http://localhost:8888/edit/contributing.md for information on how to contribute. 
