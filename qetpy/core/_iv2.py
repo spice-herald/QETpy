@@ -112,7 +112,7 @@ class IV2(object):
         dites : ndarray
             Array of the read out current from the electronics. If 1-dimensional, should be shape (niters).
             If 2-dimensional, should be shape (nch, niters). If 3-dimensional, should be shape (ntemps, nch, niters).
-            Should be the same shape as vb.
+            Should be the same shape as ibias.
             Note: If different bath temperatures have different numbers of bias points (iters), then the user
             should pad the arrays with NaN so that the data can be put into an ndarray
         dites_err : ndarray
@@ -251,8 +251,8 @@ class IV2(object):
 
         Parameters
         ----------
-        vb : array_like
-            Bias voltage, should be a 1d array or list
+        ibias : array_like
+            Bias current, should be a 1d array or list
         dites : array_like
             The current read out by the electronics with some offset from the true current
         dites_err : array_like
@@ -273,7 +273,7 @@ class IV2(object):
             end_ind+=1
             inds = range(0,end_ind)
             x = curve_fit(_fitfunc, ibias[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
-            red_chi2 = np.sum(((_fitfunc(vb[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
+            red_chi2 = np.sum(((_fitfunc(ibias[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
             if red_chi2>tol:
                 keepgoing = False
         normalinds = range(0,end_ind-1)
