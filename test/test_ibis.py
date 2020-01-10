@@ -5,13 +5,9 @@ from qetpy import IBIS
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
-pathtodata = os.path.join(THIS_DIR, "data/test_iv_data.npz")
-testdata = np.load(pathtodata)
-
-
 def test_ibis():
-    path = '/scratch/cwfink/repositories/QETpy/test/'
-    pathtodata = os.path.join(path, "data/test_iv_data.npz")
+    pathtodata = os.path.join(THIS_DIR, "data/test_iv_data.npz")
+    testdata = np.load(pathtodata)
     testdata = np.load(pathtodata)
     dites = testdata["dites"][0:1]
     dites_err = testdata["dites_err"][0:1]
