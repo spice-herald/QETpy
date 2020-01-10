@@ -31,7 +31,7 @@ def test_ibis():
     np.all(np.isclose(ivobj.rp_err,np.array([[0.00070389, 0.00057844, 0.0007222 ]]))),
     np.all(np.isclose(ivobj.rnorm_err,np.array([[0.03367567, 0.03316034, 0.03328893]])))])
     
-    ivobj = qp.IBIS(dites=dites, dites_err=dites_err,ibias=ib, 
+    ivobj = IBIS(dites=dites, dites_err=dites_err,ibias=ib, 
                         ibias_err=ib_err, rsh=5e-3, rsh_err=5e-4,
                         rp_guess=np.array([[0.00703892, 0.00578437, 0.00722202]]), 
                         rp_err_guess=np.array([[0.00070389, 0.00057844, 0.0007222 ]]), 
