@@ -423,11 +423,11 @@ class IBIS(object):
         for t in range(ntemps):
             for ch in range(nch):
                 if self.normalinds is None:
-                    normalinds = IV2._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
+                    normalinds = IBIS._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
                 else:
                     normalinds = self.normalinds
                     
-                x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
+                x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
                                     sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
 
                 slope_n[t,ch] = x[1]
@@ -459,7 +459,7 @@ class IBIS(object):
             for t in range(ntemps):
                 for ch in range(nch):
                     scinds = self.scinds
-                    x, xcov = curve_fit(IV2._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
+                    x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
                                         sigma=self.dites_err[t, ch, scinds], absolute_sigma=True)
                     
                     slope_sc[t,ch] = x[1]
@@ -582,13 +582,13 @@ class IBIS(object):
                     cov[3,3] = self.ioff_err[t,ch]**2
                     cov[4,4] = self.rsh_err**2
                     cov[5,5] = self.rp_err[t,ch]**2
-                    self.r0[t,ch,ii] = IV2._rtes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.r0[t,ch,ii] = IBIS._rtes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
-                    self.r0_err[t,ch,ii] = IV2._rtes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.r0_err[t,ch,ii] = IBIS._rtes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
-                    self.ptes[t,ch,ii] = IV2._ptes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.ptes[t,ch,ii] = IBIS._ptes(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch])
-                    self.ptes_err[t,ch,ii] = IV2._ptes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
+                    self.ptes_err[t,ch,ii] = IBIS._ptes_err(self.ibias[t,ch,ii], self.ibias_off[t,ch], self.rsh, 
                                                 self.dites[t,ch,ii], self.ioff[t,ch], self.rp[t,ch], cov)
         rnorm = rfit - self.rsh - self.rp[...,np.newaxis]
         rnorm_err = (rfit_err**2 + self.rp_err[...,np.newaxis]**2)**0.5
