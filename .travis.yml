@@ -16,7 +16,7 @@ install:
   - source activate test-environment
   # Install py.test explicitly else Travis CI will use the one in its
   # virtualenv which can't use the Miniconda environment.
-  - pip install pytest==4.0.2 pytest-cov
+  - pip install pytest pytest-cov
   - pip install codecov
   # Install packages needed for testing QETpy
   - conda install numpy
