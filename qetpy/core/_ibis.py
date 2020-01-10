@@ -2,14 +2,14 @@ import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
 
-__all__ = ["IV2"]
+__all__ = ["IBIS"]
 
 
 
 
-class IV2(object):
+class IBIS(object):
     """
-    Class for creating the IV curve and calculating various values, such as the normal resistance, 
+    Class for creating the IBIS (IV) curve and calculating various values, such as the normal resistance, 
     the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
     data for multple bath temperatures, multiple channels, and multiple bias points.
     
@@ -105,7 +105,7 @@ class IV2(object):
         scinds=None,
     ):
         """
-        Initialization of the IV class object.
+        Initialization of the IBIS class object.
         
         Parameters
         ----------
