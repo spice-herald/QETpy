@@ -620,7 +620,7 @@ def fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6, tau10=-1.0/(2*pi*5
         
     # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
     if not res['success'] :
-        print("Fit failed: "+str(res['status'])+", "+str(poles)+"-pole Fit")
+        print(f"{poles}-Pole Fit Failed: " + res['message'])
         
     # take matrix product of transpose of jac and jac, take the inverse to get the analytic covariance matrix
     pcovinv = np.dot(res["jac"].transpose(), res["jac"])
@@ -928,8 +928,8 @@ def fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None, rload=0.35, r0=0.
     cost = res['cost']
     
     # check if the fit failed (usually only happens when we reach maximum evaluations, likely when fitting assuming the wrong loop gain)
-    if (not res['success']):
-        print('Fit failed: '+str(res['status']))
+    if not res['success']:
+        print("2-Pole Priors Fit Failed: " + res['message'])
 
     # analytically calculate the covariance matrix
     if (yerr is None):
@@ -1430,7 +1430,7 @@ class DIDV(object):
         
         self.fitparams2priors = None
         self.fitcov2priors = None
-        self.fitcost2 = None
+        self.fitcost2priors = None
         self.irwinparams2priors = None
         self.irwincov2priors = None
         self.falltimes2priors = None
@@ -1641,7 +1641,7 @@ class DIDV(object):
             dt0 = self.irwinparams2[6]
 
         # 2 pole fitting
-        self.irwinparams2priors, self.irwincov2priors, self.irwincost2priors = fitdidvpriors(self.freq, self.didvmean, self.priors, self.invpriorscov, yerr=self.didvstd, r0=abs(self.r0), rload=abs(self.rload), beta=beta0, l=l0, L=L0, tau0=tau0, dt=dt0)
+        self.irwinparams2priors, self.irwincov2priors, self.fitcost2priors = fitdidvpriors(self.freq, self.didvmean, self.priors, self.invpriorscov, yerr=self.didvstd, r0=abs(self.r0), rload=abs(self.rload), beta=beta0, l=l0, L=L0, tau0=tau0, dt=dt0)
 
         # convert answer back to A, B, tauI, tauEL basis for plotting
         self.fitparams2priors, self.fitcov2priors = convertfromtesvalues(self.irwinparams2priors, self.irwincov2priors)
@@ -1856,3 +1856,37 @@ class DIDV(object):
         
         utils.plot_re_im_didv(self, poles = poles, plotpriors = plotpriors, 
                                   lgcsave = lgcsave, savepath = savepath, savename = savename)
+
+    def plot_abs_phase_didv(self, poles = "all", plotpriors = True, lgcsave = False, savepath = "", savename = ""):
+        """
+        Module to plot the absolute value and the phase of the dIdV in frequency space.
+        Currently creates two different plots.
+
+        Parameters
+        ----------
+        poles : int, string, array_like, optional
+            The pole fits that we want to plot. If set to "all", then plots
+            all of the fits. Can also be set to just one of the fits. Can be set
+            as an array of different fits, e.g. [1, 2]
+        plotpriors : boolean, optional
+            Boolean value on whether or not the priors fit should be plotted.
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current directory
+            by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving. Empty string
+            by default.
+
+        """
+
+        utils.plot_abs_phase_didv(
+            self,
+            poles=poles,
+            plotpriors=plotpriors,
+            lgcsave=lgcsave,
+            savepath=savepath,
+            savename=savename,
+        )
+

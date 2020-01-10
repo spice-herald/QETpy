@@ -7,15 +7,21 @@
 [![PyPI version](https://badge.fury.io/py/QETpy.svg)](https://badge.fury.io/py/QETpy)
 
 
-QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge sensors) provides tools for TES based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, non-linear optimum filter pulse fitting, and many other useful detector R&D analysis tools.
+QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge sensors) provides a general set of tools for TES based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, non-linear optimum filter pulse fitting, and many other useful detector R&D analysis tools. This package is _NOT_ intended to contain any tools specific to a particular analysis. It is also be DAQ independent, meaning it contains no IO functionality. It is assumed that the user is able to load their data as NumPy arrays separate from QETpy. 
 
-The full documentation can be found at https://qetpy.readthedocs.io/en/latest/
+* Documentation: [Docs](https://qetpy.readthedocs.io/en/latest/)
+* Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+* Demos: [Examples](https://qetpy.readthedocs.io/en/latest/examples.html)
+
+### Installation
 
 To install the current stable version of QETpy, from the command line type
 
 `pip install --upgrade qetpy`
 
-To install the most recent development version of QETpy, clone this repo, then from the top-level directory of the repo, type the following lines into your command line
+Be aware, the version hosted on PyPi will likely be an older version than the version on GitHub. 
+
+To install the most recent (stable) development version of QETpy, clone this repo, then from the top-level directory of the repo, type the following lines into your command line
 
 `python setup.py clean`  
 `python setup.py install --user`

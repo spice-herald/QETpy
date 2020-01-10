@@ -331,3 +331,4 @@ def plot_all_curves(IVobject, temps="all", chans="all", showfit=True, lgcsave=Fa
         savepath=savepath,
         savename=savename,
     )
+

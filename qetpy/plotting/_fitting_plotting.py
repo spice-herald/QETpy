@@ -219,3 +219,4 @@ def plotnonlin(OFnonlinOBJ, pulse, params, errors):
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
+

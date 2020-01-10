@@ -73,13 +73,6 @@ def test_calc_psd():
 
     assert len(res)>0
 
-def test_iterstat():
-    traces = np.random.randn(100, 32000)
-    offsets = traces.mean(axis=1)
-    res = iterstat(offsets)
-
-    assert len(res)>0
-
 def test_removeoutliers():
     traces = np.random.randn(100, 32000)
     offsets = traces.mean(axis=1)

@@ -224,18 +224,19 @@ demostration
 
 .. code:: ipython3
 
-    plot_noise_sim(g124_noise.freqs, g124_noise.psd[0,:], noise_sim, istype='power')
+    plot_noise_sim(g124_noise.freqs, g124_noise.psd[0,:], noise_sim, istype='power', qetbias=0)
 
 
 
 
 .. parsed-literal::
 
-    (<Figure size 864x576 with 1 Axes>,
-     <matplotlib.axes._subplots.AxesSubplot at 0x7f8e4b5a4908>)
+    (<Figure size 792x432 with 1 Axes>,
+     <matplotlib.axes._subplots.AxesSubplot at 0x7fee5405f358>)
 
 
 
 
 .. image:: noise_example_files/noise_example_36_1.png
+
 
