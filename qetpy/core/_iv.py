@@ -1,3 +1,10 @@
+##########################################
+# This function will soon be deprecated
+# as it does not correctly account for 
+# shunt resistor errors. use qetpy.IBIS
+# instead.
+##########################################
+
 import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
