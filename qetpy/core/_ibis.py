@@ -389,11 +389,28 @@ class IBIS(object):
         ptes_err = np.sqrt(np.sum(covout))
         return ptes_err
         
-    def calc_iv(self, yoff=None, yoff_err=None, xoff=None, xoff_err=None):
+    def analyze(self, yoff=None, yoff_err=None, xoff=None, xoff_err=None):
         """
-        Method to calculate the IV curve for the intialized object. Calculates the power and resistance of
+        Method to calculate the IBIS curve for the intialized object. Calculates the power and resistance of
         each bias point, as well as saving the fit parameters from the fit to the normal points and the calculated
         normal reistance from these points.
+        
+        Parameters
+        ----------
+        yoff: float, optional
+            If not none, yoff is used for the current offset in the measured sensor current, 
+            rather than the value calculated from the SC and N fits
+        yoff: float, optional
+            The associated error in yoff, must be provided if using yoff
+        xoff: float, optional
+            If not none, xoff is used for the current offset in the applied bias current, 
+            rather than the value calculated from the SC and N fits
+        xoff: float, optional
+            The associated error in xoff, must be provided if using xoff
+            
+        Returns
+        -------
+        None
         """
 
         ntemps, nch, niters = self.dites.shape
@@ -442,25 +459,19 @@ class IBIS(object):
                 
                 xout = np.array([x[0],1/x[1]])
                 covout = jac.dot(xcov.dot(jac.transpose()))
-                #ioff[t,ch] = xout[0]
-                #ioff_err[t,ch] = covout[0,0]**0.5
                 rfit[t,ch] = xout[1] * self.rsh
                 rfit_err[t,ch] = np.sqrt((self.rsh*covout[1,1])**2 + (xout[1]*self.rsh_err)**2)
                 
-#         self.ites = self.dites - ioff
-#         self.ites_err = (self.dites_err**2.0 + ioff_err**2.0)**0.5
-#         self.ioff = ioff[:,:,0]
-#         self.ioff_err = ioff_err[:,:,0]
-#         self.rfit = rfit[:,:,0]
-#         self.rfit_err = rfit_err[:,:,0]
-
         # Do SC fit
         if self.fitsc:
             for t in range(ntemps):
                 for ch in range(nch):
                     scinds = self.scinds
-                    x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
+                    try:
+                        x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
                                         sigma=self.dites_err[t, ch, scinds], absolute_sigma=True)
+                    except ValueError:
+                        print('SC fit failed, make sure scinds are correct, or that there are no NaNs in the data')
                     
                     slope_sc[t,ch] = x[1]
                     int_sc[t,ch] = x[0]
@@ -479,20 +490,23 @@ class IBIS(object):
                     jac1 = np.zeros((2,2))
                     jac1[0,0] = dfdb
                     jac1[1,1] = dfdm
+                    # Calculate the intersection point of the linear regions of 
+                    # the normal and SC regions
+                    int_point_x = (int_n - int_sc)/(slope_sc - slope_n)
+                    int_point_y = slope_n*int_point_x + int_n
 
-                    #ibias_off[t, ch] = -x[0]/x[1]
-                    #ibias_off_err[t, ch] = np.sqrt(np.sum(jac1.dot(xcov.dot(jac1.transpose()))))
         else:
-            ibias_off = 0
-            ibias_off_err = 0
-            rp = self.rload_guess - self.rsh
-            rp_err = self.rload_err
-            
-        int_point_x = (int_n - int_sc)/(slope_sc - slope_n)
-        int_point_y = slope_n*int_point_x + int_n
+            ibias_off = np.zeros_like(int_n)
+            ibias_off_err = np.zeros_like(int_n)
+            rp = self.rp_guess
+            rp_err = self.rp_err_guess
+            int_point_y = int_n
+            int_point_x = np.zeros_like(int_n)
         
-        
-       
+#         # Calculate the intersection point of the linear regions of 
+#         # the normal and SC regions
+#         int_point_x = (int_n - int_sc)/(slope_sc - slope_n)
+#         int_point_y = slope_n*int_point_x + int_n
         
         # error prop for x_int
         for t in range(ntemps):
@@ -515,6 +529,7 @@ class IBIS(object):
                 cov_int[3,3] = slope_sc_err[t,ch,0]**2
                 covout = jac_int.dot(cov_int.dot(jac_int.transpose()))
                 ibias_off_err[t,ch] = np.sqrt(np.sum(covout))
+                
         # error prop for y_int
         for t in range(ntemps):
             for ch in range(nch):
@@ -522,7 +537,9 @@ class IBIS(object):
                 cov_int = np.zeros((4,4))
                 dint_n = slope_n[t,ch,0]/(slope_sc[t,ch,0] - slope_n[t,ch,0]) + 1
                 dint_sc = -slope_n[t,ch,0]/(slope_sc[t,ch,0] - slope_n[t,ch,0])
-                dslope_n = (int_n[t,ch,0]-int_sc[t,ch,0])/(slope_sc[t,ch,0] - slope_n[t,ch,0])+(int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
+                dslope_n = (int_n[t,ch,0]-int_sc[t,ch,0])/\
+                           (slope_sc[t,ch,0] - slope_n[t,ch,0])+\
+                           (int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
                 dslope_sc = -slope_n[t,ch,0]*(int_n[t,ch,0]-int_sc[t,ch,0])/((slope_sc[t,ch,0] - slope_n[t,ch,0])**2)
 
                 jac_int[0,0] = dint_n
@@ -536,8 +553,9 @@ class IBIS(object):
                 cov_int[3,3] = slope_sc_err[t,ch,0]**2
                 covout = jac_int.dot(cov_int.dot(jac_int.transpose()))
                 ioff_err[t,ch] = np.sqrt(np.sum(covout))
-        #self.ioff_err = ioff_err
-        
+
+        # if yoff and xoff are specified, 
+        # use these instead of the the calculated values
         if yoff is None:
             ioff = int_point_y
         else:
@@ -549,7 +567,7 @@ class IBIS(object):
             ibias_off = xoff
             ibias_off_err = xoff_err
         
-#         self.ibias_true = self.ibias - int_point_x
+
         self.slope_n = slope_n
         self.slope_sc = slope_sc
         self.int_n = int_n
