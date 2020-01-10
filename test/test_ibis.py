@@ -18,7 +18,7 @@ def test_ibis():
     norminds = range(0,4)
     scinds = range(12,15)
 
-    ivobj = qp.IBIS(dites=dites, dites_err=dites_err,ibias=ib, 
+    ivobj = IBIS(dites=dites, dites_err=dites_err,ibias=ib, 
                         ibias_err=ib_err, rsh=5e-3, rsh_err=5e-4,
                         rp_guess=5e-3, rp_err_guess=0, 
                         chan_names=['a','b','c'], fitsc=True,
