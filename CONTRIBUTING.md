@@ -44,7 +44,24 @@ If you are unsure where to start, click on the issues tab to see open [issues](h
 * All code should be documented.
 * The code style and naming conventions should match that of the existing code. We try to adhere to [PEP 8](https://www.python.org/dev/peps/pep-0008/) conventions (remove trailing white space, no tabs, etc.). 
 
-If the above criteria are not met, you will be asked to change your code. 
+__If the above criteria are not met, you will be asked to change your code.__ 
+
+### Testing
+
+All code that you are commiting should have an associated test. Ideally your test should cover all the functionality of the code, but this is easier said than done. If you are usure about how to write a test, look at the tests in the test folder of this repository, and search online about how to write good unit tests for python. Once your code is written, you should test your tests locally to make sure that 1) they work, and 2) the code coverage of the package either increases or stays the same. To do this you will need to install the following:
+
+```
+pip install pytest
+pip install pytest-cov
+```
+
+Then to run the tests, from the base directory of the repository,
+
+```
+py.test --cov
+```
+
+
 
 
     
