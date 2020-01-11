@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-__all__ = ["plot_iv", "plot_rv", "plot_pv", "plot_all_curves"]
+__all__ = ["_plot_iv", "_plot_rv", "_plot_pv", "_plot_all_curves"]
 
 
-def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
+def _plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the IV curves for the data in an IV (IBIS) object.
     
@@ -88,7 +88,7 @@ def plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sav
         #plt.show()
         return fig, ax
 
-def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+def _plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", savename=""):
     """
     Function to plot the resistance curves for the data in an IV object.
     
@@ -160,7 +160,7 @@ def plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", save
         #plt.show()
         return fig, ax    
 
-def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+def _plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", savename=""):
     """
     Function to plot the power curves for the data in an IV object.
     
@@ -232,7 +232,7 @@ def plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sav
         #plt.show()
         return fig, ax
         
-def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
+def _plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """
     Function to plot the IV, resistance, and power curves for the data in an IV object.
     
@@ -257,9 +257,9 @@ def plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=F
 
     """
     
-    plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
-    plot_rv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
-    plot_pv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    _plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    _plot_rv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
+    _plot_pv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
 
 
   

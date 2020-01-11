@@ -637,7 +637,7 @@ class IBIS(object):
             Name to append to the plot file name, if saving
         """
         
-        fig, ax = utils.plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
+        fig, ax = utils._plot_iv(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return fig, ax
         
@@ -661,7 +661,7 @@ class IBIS(object):
             Name to append to the plot file name, if saving
         """
         
-        fig, ax = utils.plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        fig, ax = utils._plot_rv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return fig, ax
         
@@ -685,7 +685,7 @@ class IBIS(object):
             Name to append to the plot file name, if saving
         """
         
-        fig, ax = utils.plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
+        fig, ax = utils._plot_pv(self, temps=temps, chans=chans, lgcsave=lgcsave, 
                         savepath=savepath, savename=savename)
         return fig, ax
         
@@ -711,5 +711,5 @@ class IBIS(object):
             Name to append to the plot file name, if saving
         """
         
-        utils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
+        utils._plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                                 savepath=savepath, savename=savename)
