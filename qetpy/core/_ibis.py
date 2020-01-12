@@ -471,7 +471,8 @@ class IBIS(object):
                         x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
                                         sigma=self.dites_err[t, ch, scinds], absolute_sigma=True)
                     except ValueError:
-                        print('SC fit failed, make sure scinds are correct, or that there are no NaNs in the data')
+                        raise ValueError('SC fit failed, make sure scinds are correct, or that there are no NaNs in the data')
+
                     
                     slope_sc[t,ch] = x[1]
                     int_sc[t,ch] = x[0]

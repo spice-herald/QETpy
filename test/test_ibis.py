@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from qetpy import IBIS
+import pytest
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,9 +15,24 @@ def test_ibis():
     rshunt = 5e-3
     ib = testdata["vb"][0:1]/rshunt
     ib_err = testdata["vb_err"][0:1]*0
-
+    
     norminds = range(0,4)
     scinds = range(12,15)
+
+    dites_bad = testdata["dites"][2:3]
+    dites_err_bad = testdata["dites_err"][2:3]
+    ib_bad = testdata["vb"][2:3]/rshunt
+    ib_err_bad = testdata["vb_err"][2:3]*0
+
+    
+    
+    ivobj_bad = IBIS(dites=dites_bad, dites_err=dites_err_bad,ibias=ib_bad, 
+                        ibias_err=ib_err_bad, rsh=5e-3, rsh_err=5e-4,
+                        rp_guess=5e-3, rp_err_guess=0, 
+                        chan_names=['a','b','c'], fitsc=True,
+                        normalinds=norminds, scinds=scinds)
+    with pytest.raises(ValueError):
+        ivobj_bad.analyze()
 
     ivobj = IBIS(dites=dites, dites_err=dites_err,ibias=ib, 
                         ibias_err=ib_err, rsh=5e-3, rsh_err=5e-4,
