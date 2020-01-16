@@ -13,9 +13,11 @@ class IBIS(object):
     the resistance of the TES, the power, etc., as well as the corresponding errors. This class supports
     data for multple bath temperatures, multiple channels, and multiple bias points.
     
-    Note: If different bath temperatures have different numbers of bias points (iters), then the user
-    should pad the end of the arrays with NaN so that the data can be put into an ndarray and 
-    loaded into this class.
+    Note: The data must be ordered by increasing ibias. If different bath temperatures have different 
+    numbers of bias points (iters), then the user should pad the end of the arrays with NaN so that
+    the data can be put into an ndarray and loaded into this class.
+    
+    
     
     Attributes
     ----------
@@ -97,11 +99,11 @@ class IBIS(object):
         ibias_err, 
         rsh, 
         rsh_err, 
+        normalinds,
         rp_guess=5e-3, 
         rp_err_guess=0, 
         chan_names='', 
         fitsc=True, 
-        normalinds=None,
         scinds=None,
     ):
         """
@@ -131,6 +133,9 @@ class IBIS(object):
             The shunt resistance of the  TES circuit.
         rsh_err : ndarray, float
             The corresponding error in the shunt resistance.
+        normalinds : iterable, array_like
+            The indices of the normal resistance points. Can be set 
+            by either an array of integers or an iterable (e.g. range(0,3)).
         rp_guess : ndarray, float, optional
             The parasitic parasitic of the  TES circuit. 
             If a scalar value, then the same rload is assumed for all channels, bias points, 
@@ -145,10 +150,6 @@ class IBIS(object):
             have the same length as the nch axis in dites
         fitsc : bool, optional
             If True, the SC data are fit to find rp and get QETbias offset
-        normalinds : iterable, array_like, or NoneType, optional
-            The indices of the normal resistance points. If None (default value), then the normal
-            points are guessed with a simple reduced chi-squared measurement cutoff. Can also be set 
-            by either an array of integers or an iterable (e.g. range(0,3)).
         scinds : iterable, array_like, optional
             The indeces of the SC points
         """
@@ -244,41 +245,7 @@ class IBIS(object):
         linfunc = m*x + b
         return linfunc
     
-    @staticmethod
-    def _findnormalinds(ibias, dites, dites_err, tol=10):
-        """
-        Function to determine the indices of the normal data in an IV curve
-
-        Parameters
-        ----------
-        ibias : array_like
-            Bias current, should be a 1d array or list
-        dites : array_like
-            The current read out by the electronics with some offset from the true current
-        dites_err : array_like
-            The error in the current
-        tol : float, optional
-            The tolerance in the reduced chi-squared for the cutoff on which points to use
-
-        Returns
-        -------
-        normalinds : iterable
-            The iterable which stores the range of the normal indices
-        """
-
-        end_ind = 2
-        keepgoing = True
-
-        while keepgoing and (end_ind < len(ibias) and not np.isnan(ibias[end_ind])):
-            end_ind+=1
-            inds = range(0,end_ind)
-            x = curve_fit(_fitfunc, ibias[inds], dites[inds], sigma=dites_err[inds], absolute_sigma=True)[0]
-            red_chi2 = np.sum(((_fitfunc(ibias[inds],*x)-dites[inds])/dites_err[inds])**2)/(end_ind-len(x))
-            if red_chi2>tol:
-                keepgoing = False
-        normalinds = range(0,end_ind-1)
-
-        return normalinds
+    
     
     @staticmethod
     def _rtes(ibias, ibias_off, rsh, dites, ioff, rp):
@@ -439,13 +406,8 @@ class IBIS(object):
         # Do normal Fit
         for t in range(ntemps):
             for ch in range(nch):
-                if self.normalinds is None:
-                    normalinds = IBIS._findnormalinds(self.ibias[t,ch], self.dites[t,ch], self.dites_err[t,ch])
-                else:
-                    normalinds = self.normalinds
-                    
-                x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, normalinds], self.dites[t, ch, normalinds],
-                                    sigma=self.dites_err[t, ch, normalinds], absolute_sigma=True)
+                x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, self.normalinds], 
+                                    self.dites[t, ch, self.normalinds], sigma=self.dites_err[t, ch, self.normalinds], absolute_sigma=True)
 
                 slope_n[t,ch] = x[1]
                 int_n[t,ch] = x[0]
@@ -466,14 +428,12 @@ class IBIS(object):
         if self.fitsc:
             for t in range(ntemps):
                 for ch in range(nch):
-                    scinds = self.scinds
                     try:
-                        x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, scinds], self.dites[t, ch, scinds],
-                                        sigma=self.dites_err[t, ch, scinds], absolute_sigma=True)
+                        x, xcov = curve_fit(IBIS._fitfunc, self.ibias[t, ch, self.scinds], self.dites[t, ch, self.scinds],
+                                        sigma=self.dites_err[t, ch, self.scinds], absolute_sigma=True)
                     except ValueError:
                         raise ValueError('SC fit failed, make sure scinds are correct, or that there are no NaNs in the data')
 
-                    
                     slope_sc[t,ch] = x[1]
                     int_sc[t,ch] = x[0]
                     slope_sc_err[t,ch] = np.sqrt(np.diag(xcov))[1]
