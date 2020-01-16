@@ -6,7 +6,7 @@ from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
 from qetpy.utils import (stdcomplex, lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
-                         shift, make_template)
+                         shift, make_template, estimate_g)
 
 def test_shift():
     """
@@ -175,3 +175,34 @@ class TestEnergyAbsorbed:
                 **constant_energy_values,
                 **variable_energy_values,
             )
+
+def test_estimate_g():
+    """Testing function for `qetpy.utils.estimate_g`"""
+
+    p0 = 3e-12
+    tc = 40e-3
+    tbath = 0
+
+    p0_err = 1e-12
+
+    assert isclose(
+        estimate_g(p0, tc, tbath, p0_err=p0_err),
+        [3.75e-10, 1.25e-10],
+    )
+
+    sigp0 = 1e-12
+    sigtc = 1e-3
+    sigtbath = 1e-3
+
+    corr = 0.95
+
+    cov_test = np.array([
+        [sigp0**2, -corr * sigp0 * sigtc, -corr * sigp0 * sigtc],
+        [-corr * sigp0 * sigtc, sigtc**2, corr * sigtbath * sigtc],
+        [-corr * sigp0 * sigtc, corr * sigtbath * sigtc, sigtbath**2],
+    ])
+
+    assert isclose(
+        estimate_g(p0, tc, tbath, cov=cov_test),
+        [3.75e-10, 1.339382436983552e-10],
+    )
