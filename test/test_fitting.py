@@ -283,5 +283,8 @@ def test_MuonTailFit():
     mtail = qp.MuonTailFit(psd, fs)
     res = mtail.fitmuontail(signal, lgcfullrtn=False)
     
-    assert isclose(res, [4.5964397140760587e-07, 0.0201484585061281])
-    
+    assert isclose(
+        res,
+        [4.5964397140760587e-07, 0.0201484585061281],
+        rtol=1e-8,
+    )
