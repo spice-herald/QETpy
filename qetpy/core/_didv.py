@@ -1187,8 +1187,6 @@ class DIDV(object):
         Error in the load resistance, Ohms
     rshunt : float
         Shunt resistance in the circuit, Ohms
-    rshunt_err : float
-        Error in the shunt resistance in the circuit, Ohms
     tracegain : float
         The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
         already has units of Amps, then this should be set to 1.0
@@ -1303,22 +1301,10 @@ class DIDV(object):
             
     """
     
-    def __init__(self, 
-                 rawtraces, 
-                 fs, sgfreq, 
-                 sgamp, 
-                 rshunt, 
-                 rshunt_err=0, 
-                 tracegain=1.0, 
-                 r0=0.3, 
-                 r0_err=0.001, 
-                 rload=0.01, 
-                 rload_err=0.001,
-                 dutycycle=0.5, 
-                 add180phase=False, 
-                 priors=None, 
-                 invpriorscov=None, 
-                 dt0=10.0e-6):
+    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0,
+                 r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
+                 dutycycle=0.5, add180phase=False, priors=None,
+                 invpriorscov=None, dt0=10.0e-6):
         """
         Initialization of the DIDV class object
         
@@ -1336,8 +1322,6 @@ class DIDV(object):
             Amplitude of the signal generator, in Amps (equivalent to jitter in the QET bias)
         rshunt : float
             Shunt resistance in the circuit, Ohms
-        rshunt_err : float
-            Error in the shunt resistance in the circuit, Ohms
         tracegain : float, optional
             The factor that the rawtraces should be divided by to convert the units to Amps. If rawtraces
             already has units of Amps, then this should be set to 1.0
@@ -1381,7 +1365,6 @@ class DIDV(object):
         self.rload = rload
         self.rload_err = rload_err
         self.rshunt = rshunt
-        self.rshunt_err = rshunt_err
         self.tracegain = tracegain
         self.dutycycle = dutycycle
         self.add180phase = add180phase
