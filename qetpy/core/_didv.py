@@ -1301,8 +1301,10 @@ class DIDV(object):
             
     """
     
-    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0, r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 dutycycle=0.5, add180phase=False, priors=None, invpriorscov=None, dt0=10.0e-6):
+    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0,
+                 r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
+                 dutycycle=0.5, add180phase=False, priors=None,
+                 invpriorscov=None, dt0=10.0e-6):
         """
         Initialization of the DIDV class object
         
@@ -1497,6 +1499,7 @@ class DIDV(object):
         self.didvstd = stdcomplex(didvs)/np.sqrt(self.ntraces)
         self.didvstd[self.zeroinds] = (1.0+1.0j)*1.0e20
         self.didvmean = np.mean(didvs, axis=0)
+
 
         self.offset = np.mean(means)
         self.offset_err = np.std(means)/np.sqrt(self.ntraces)

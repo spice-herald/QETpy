@@ -1,6 +1,15 @@
+##########################################
+# This function will soon be deprecated
+# as it does not correctly account for 
+# shunt resistor errors. use qetpy.IBIS
+# instead.
+##########################################
+
 import numpy as np
 from scipy.optimize import curve_fit
 import qetpy.plotting as utils
+import warnings
+warnings.simplefilter('default')
 
 __all__ = ["IV"]
 
@@ -162,6 +171,13 @@ class IV(object):
             by either an array of integers or an iterable (e.g. range(0,3)).
         
         """
+        
+        warnings.warn(
+            "qetpy.IV class is deprecated, use qetpy.IBIS instead.\n"
+            "The error propagation in qetpy.IV does not correctly take into account the shunt resistance"
+            "qetpy.IV will be removed in futer versions of QETpy",
+            DeprecationWarning
+        )
 
 
         if len(dites.shape)==3:
@@ -383,3 +399,8 @@ class IV(object):
         
         utils.plot_all_curves(self, temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, 
                                 savepath=savepath, savename=savename)
+
+
+
+
+
