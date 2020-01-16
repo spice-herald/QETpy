@@ -9,48 +9,47 @@ from qetpy.utils import (stdcomplex, lowpassfilter, align_traces,
                          shift, make_template, estimate_g)
 
 def test_shift():
-    """
-    Testing function for `qetpy.utils.shift`.
-    
-    """
-    
+    """Testing function for `qetpy.utils.shift`."""
+
     arr = np.arange(10, dtype=float)
-    
+
     res1 = np.zeros(10)
     res1[3:] = np.arange(7)
 
     assert np.all(shift(arr, 3) == res1)
-    
+
     res2 = np.zeros(10)
     res2[:7] = np.arange(10)[-7:]
 
     assert np.all(shift(arr, -3) == res2)
-    
+
     res3 = np.arange(10)
-    
+
     assert np.all(shift(arr, 0) == res3)
-    
+
     res4 = np.ones(10)
     res4[:9] = np.linspace(0.5, 8.5, num=9)
-    
+
     assert np.all(shift(arr, -0.5, fill_value=1) == res4)
-    
+
 def test_make_template():
-    """
-    Testing function for `qetpy.utils.make_template`.
-    
-    """
-    
+    """Testing function for `qetpy.utils.make_template`."""
+
     fs = 625e3
     tau_r = 20e-6
     tau_f = 80e-6
     offset = -4
     time = np.arange(1000)/fs
     time_offset =  (len(time)//2)/fs + offset/fs
-    
-    # calculate the pulse in an equivalent way, such that the result should be the same
+
+    # calculate the pulse in an equivalent way, such that the result should
+    # be the same
     pulse = np.heaviside(time - time_offset, 0) 
-    pulse *= (np.exp(-(time - time_offset)/tau_f) - np.exp(-(time - time_offset)/tau_r))
+    pulse *= np.exp(
+        -(time - time_offset) / tau_f,
+    ) - np.exp(
+        -(time - time_offset) / tau_r,
+    )
     pulse /= pulse.max()
 
     assert isclose(make_template(time, tau_r, tau_f, offset), pulse)
