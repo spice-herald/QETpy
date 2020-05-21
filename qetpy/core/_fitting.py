@@ -258,6 +258,65 @@ class OptimumFilter(object):
         if self.freqs is None:
             self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
 
+    def _interpolate_parabola(self, vals, bestind, t_interp=None):
+        """
+        Pre-computed equation of a parabola given 3 equally spaced
+        points. Returns the coordinates of the extremum of the
+        parabola.
+
+        """
+
+        delta = 1 / self.fs
+        t0 = (bestind - self.nbins//2) / self.fs
+
+        sf = 1 / (2 * delta**2)
+
+        a = sf * (
+            vals[bestind - 1] - 2 * vals[bestind] + vals[bestind + 1]
+        )
+
+        b = sf * (
+            (
+                -(2 * t0 + delta) *  vals[bestind - 1]
+            ) + (
+                4 * t0 * vals[bestind]
+            ) + (
+                (delta - 2 * t0) * vals[bestind + 1]
+            )
+        )
+
+        c = sf * (
+            (
+                t0 * (t0 + delta) * vals[bestind - 1]
+            ) - (
+                2 * (t0 + delta) * (t0 - delta) * vals[bestind]
+            )  + (
+                t0 * (t0 - delta) * vals[bestind + 1]
+            )
+        )
+
+        if t_interp is None:
+            t_interp = - b / (2 * a)
+        vals_interp = a * t_interp**2 + b * t_interp + c
+
+        return t_interp, vals_interp
+
+    def _interpolate_of(self, amps, chi2, bestind):
+        """
+        Helper function for running `_interpolate_parabola` twice,
+        in the correct order.
+
+        """
+    
+        t_interp, chi2_interp = self._interpolate_parabola(
+            chi2, bestind,
+        )
+        _, amps_interp = self._interpolate_parabola(
+            amps, bestind, t_interp=t_interp,
+        )
+
+        return amps_interp, t_interp, chi2_interp
+
     def update_signal(self, signal):
         """
         Method to update `OptimumFilter` with a new signal if the PSD and template
@@ -409,7 +468,8 @@ class OptimumFilter(object):
         return amp, chi2
 
     def ofamp_withdelay(self, nconstrain=None, lgcoutsidewindow=False,
-                        pulse_direction_constraint=0, windowcenter=0):
+                        pulse_direction_constraint=0, windowcenter=0,
+                        interpolate_t0=False):
         """
         Function for calculating the optimum amplitude of a pulse in data with time delay.
 
@@ -436,6 +496,10 @@ class OptimumFilter(object):
             specified by `nconstrain` is centered. Default of 0 centers the delay window
             in the center of the trace. Equivalent to centering the `nconstrain` window
             on `self.nbins//2 + windowcenter`.
+        interpolate_t0 : bool, optional
+            If True, then a pre-computed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
 
         Returns
         -------
@@ -484,6 +548,10 @@ class OptimumFilter(object):
             amp = 0.0
             t0 = 0.0
             chi2 = self.chi0
+        elif interpolate_t0:
+            amp, t0, chi2 = self._interpolate_of(
+                self.amps_withdelay, self.chi_withdelay, bestind,
+            )
         else:
             amp = self.amps_withdelay[bestind]
             t0 = (bestind-self.nbins//2)/self.fs
@@ -491,8 +559,10 @@ class OptimumFilter(object):
 
         return amp, t0, chi2
 
-    def ofamp_pileup_iterative(self, a1, t1, nconstrain=None, lgcoutsidewindow=True,
-                               pulse_direction_constraint=0, windowcenter=0):
+    def ofamp_pileup_iterative(self, a1, t1, nconstrain=None,
+                               lgcoutsidewindow=True,
+                               pulse_direction_constraint=0, windowcenter=0,
+                               interpolate_t0=False):
         """
         Function for calculating the optimum amplitude of a pileup pulse in data given
         the location of the triggered pulse.
@@ -524,6 +594,10 @@ class OptimumFilter(object):
             specified by `nconstrain` is centered. Default of 0 centers the delay window
             in the center of the trace. Equivalent to centering the `nconstrain` window
             on `self.nbins//2 + windowcenter`.
+        interpolate_t0 : bool, optional
+            If True, then a pre-computed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
 
         Returns
         -------
@@ -583,6 +657,10 @@ class OptimumFilter(object):
             a2 = 0.0
             t2 = 0.0
             chi2 = self.chi0 + chit
+        elif interpolate_t0:
+            a2, t2, chi2 = self._interpolate_of(
+                a2s, chi, bestind,
+            )
         else:
             a2 = a2s[bestind]
             t2 = self.times[bestind]
@@ -590,7 +668,8 @@ class OptimumFilter(object):
 
         return a2, t2, chi2
 
-    def ofamp_pileup_stationary(self, nconstrain=None, lgcoutsidewindow=True, windowcenter=0):
+    def ofamp_pileup_stationary(self, nconstrain=None, lgcoutsidewindow=True,
+                                windowcenter=0):
         """
         Function for calculating the optimum amplitude of a pileup pulse in data, with the assumption
         that the triggered pulse is centered in the trace.
@@ -681,7 +760,8 @@ class OptimumFilter(object):
         return a1, a2, t2, chi2
 
     def ofamp_baseline(self, nconstrain=None, lgcoutsidewindow=False,
-                       pulse_direction_constraint=0, windowcenter=0):
+                       pulse_direction_constraint=0, windowcenter=0,
+                       interpolate_t0=False):
         """
         Function for calculating the optimum amplitude of a pulse while taking into account
         the best fit baseline. If the window is constrained, the fit uses the baseline taken
@@ -710,6 +790,10 @@ class OptimumFilter(object):
             specified by `nconstrain` is centered. Default of 0 centers the delay window
             in the center of the trace. Equivalent to centering the `nconstrain` window
             on `self.nbins//2 + windowcenter`.
+        interpolate_t0 : bool, optional
+            If True, then a pre-computed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
 
         Returns
         -------
@@ -784,6 +868,10 @@ class OptimumFilter(object):
             amp = 0
             t0 = 0
             chi2 = chi0
+        elif interpolate_t0:
+            amp, t0, chi2 = self._interpolate_of(
+                amps_out, chi2, bestind,
+            )
         else:
             amp = amps_out[bestind]
             t0 = (bestind-self.nbins//2)/self.fs
