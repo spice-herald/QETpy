@@ -283,7 +283,8 @@ class OptimumFilter(object):
         if self.freqs is None:
             self.freqs = fftfreq(self.nbins, d=1.0/self.fs)
 
-    def _interpolate_parabola(self, vals, bestind, t_interp=None):
+    @staticmethod
+    def _interpolate_parabola(vals, bestind, delta, t_interp=None):
         """
         Pre-computed equation of a parabola given 3 equally spaced
         points. Returns the coordinates of the extremum of the
@@ -291,34 +292,11 @@ class OptimumFilter(object):
 
         """
 
-        delta = 1 / self.fs
-        t0 = (bestind - self.nbins//2) / self.fs
-
         sf = 1 / (2 * delta**2)
 
-        a = sf * (
-            vals[bestind - 1] - 2 * vals[bestind] + vals[bestind + 1]
-        )
-
-        b = sf * (
-            (
-                -(2 * t0 + delta) *  vals[bestind - 1]
-            ) + (
-                4 * t0 * vals[bestind]
-            ) + (
-                (delta - 2 * t0) * vals[bestind + 1]
-            )
-        )
-
-        c = sf * (
-            (
-                t0 * (t0 + delta) * vals[bestind - 1]
-            ) - (
-                2 * (t0 + delta) * (t0 - delta) * vals[bestind]
-            )  + (
-                t0 * (t0 - delta) * vals[bestind + 1]
-            )
-        )
+        a = sf * (vals[bestind + 1] - 2 * vals[bestind] + vals[bestind - 1])
+        b = sf * delta * (vals[bestind + 1] - vals[bestind - 1])
+        c = sf * 2 * delta**2 * vals[bestind]
 
         if t_interp is None:
             t_interp = - b / (2 * a)
@@ -326,18 +304,19 @@ class OptimumFilter(object):
 
         return t_interp, vals_interp
 
-    def _interpolate_of(self, amps, chi2, bestind):
+    @staticmethod
+    def _interpolate_of(amps, chi2, bestind, delta):
         """
         Helper function for running `_interpolate_parabola` twice,
         in the correct order.
 
         """
     
-        t_interp, chi2_interp = self._interpolate_parabola(
-            chi2, bestind,
+        t_interp, chi2_interp = OptimumFilter._interpolate_parabola(
+            chi2, bestind, delta,
         )
-        _, amps_interp = self._interpolate_parabola(
-            amps, bestind, t_interp=t_interp,
+        _, amps_interp = OptimumFilter._interpolate_parabola(
+            amps, bestind, delta, t_interp=t_interp,
         )
 
         return amps_interp, t_interp, chi2_interp
@@ -609,9 +588,10 @@ class OptimumFilter(object):
             t0 = 0.0
             chi2 = self.chi0
         elif interpolate_t0:
-            amp, t0, chi2 = self._interpolate_of(
-                self.amps_withdelay, self.chi_withdelay, bestind,
+            amp, dt_interp, chi2 = self._interpolate_of(
+                self.amps_withdelay, self.chi_withdelay, bestind, 1 / self.fs,
             )
+            t0 = (bestind - self.nbins//2) / self.fs + dt_interp
         else:
             amp = self.amps_withdelay[bestind]
             t0 = (bestind - self.nbins//2) / self.fs
@@ -754,9 +734,10 @@ class OptimumFilter(object):
             t2 = 0.0
             chi2 = self.chi0 + chit
         elif interpolate_t0:
-            a2, t2, chi2 = self._interpolate_of(
-                a2s, chi, bestind,
+            a2, dt_interp, chi2 = self._interpolate_of(
+                a2s, chi, bestind, 1 / self.fs,
             )
+            t2 = self.times[bestind] + dt_interp
         else:
             a2 = a2s[bestind]
             t2 = self.times[bestind]
@@ -1015,9 +996,10 @@ class OptimumFilter(object):
             t0 = 0
             chi2 = chi0
         elif interpolate_t0:
-            amp, t0, chi2 = self._interpolate_of(
-                amps_out, chi2, bestind,
+            amp, dt_interp, chi2 = self._interpolate_of(
+                amps_out, chi2, bestind, 1 / self.fs,
             )
+            t0 = (bestind - self.nbins//2) / self.fs + dt_interp
         else:
             amp = amps_out[bestind]
             t0 = (bestind - self.nbins//2) / self.fs
