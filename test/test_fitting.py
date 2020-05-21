@@ -82,63 +82,63 @@ def test_OptimumFilter():
 
     OF = qp.OptimumFilter(signal, template, psd, fs)
     res = OF.ofamp_nodelay()
-    assert isclose(res, (-1.589803642041125e-07, 2871569.457990007))
+    assert isclose(res, (-1.589803642041125e-07, 2871569.457990007), rtol=1e-6)
     
     res = OF.energy_resolution()
-    assert isclose(res, 2.3725914280425287e-09)
+    assert isclose(res, 2.3725914280425287e-09, rtol=1e-6)
 
     res = OF.ofamp_withdelay()
-    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
+    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792), rtol=1e-6)
 
     res2 = OF.ofamp_nodelay(windowcenter=int(res[1] * fs))
-    assert isclose(res2, res[::2])
+    assert isclose(res2, res[::2], rtol=1e-6)
 
     res = OF.time_resolution(res[0])
-    assert isclose(res, 5.746611055379949e-09)
+    assert isclose(res, 5.746611055379949e-09, rtol=1e-6)
     
     res = OF.ofamp_withdelay(nconstrain=100)
-    assert isclose(res, (6.382904231454342e-07, 7.84e-05, 2803684.0424425197))
+    assert isclose(res, (6.382904231454342e-07, 7.84e-05, 2803684.0424425197), rtol=1e-6)
 
     res = OF.ofamp_withdelay(nconstrain=100, lgcoutsidewindow=True)
-    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792))
+    assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792), rtol=1e-6)
     
-    res = OF.ofamp_withdelay(nconstrain=3,windowcenter=-5)
-    assert isclose(res, (-1.748136068514983e-07, -9.6e-06, 2870630.5945196496))
+    res = OF.ofamp_withdelay(nconstrain=3 ,windowcenter=-5)
+    assert isclose(res, (-1.748136068514983e-07, -9.6e-06, 2870630.5945196496), rtol=1e-6)
     
     res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000)
-    assert isclose(res, 1052.9089578293142)
+    assert isclose(res, 1052.9089578293142, rtol=1e-6)
     
     res = OF.chi2_nopulse()
-    assert isclose(res, 2876059.4034037213)
+    assert isclose(res, 2876059.4034037213, rtol=1e-6)
     
     OF.update_signal(signal)
     res = OF.ofamp_pileup_stationary()
-    assert isclose(res, (2.884298804131357e-09, 4.001001614298674e-06, 0.00016, 32472.978956471197))
+    assert isclose(res, (2.884298804131357e-09, 4.001001614298674e-06, 0.00016, 32472.978956471197), rtol=1e-6)
     
     signal, template, psd = create_example_data(lgcpileup=True)
     
     OF.update_signal(signal)
     res1 = OF.ofamp_withdelay()
     res = OF.ofamp_pileup_iterative(res1[0], res1[1])
-    assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713))
+    assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713), rtol=1e-6)
 
     res = OF.ofamp_pileup_iterative(res1[0], res1[1], nconstrain=100, lgcoutsidewindow=False)
-    assert isclose(res, (6.382879106117655e-07, 7.84e-05, 2803684.142039136))
+    assert isclose(res, (6.382879106117655e-07, 7.84e-05, 2803684.142039136), rtol=1e-6)
     
     res = OF.ofamp_pileup_iterative(res1[0], res1[1], nconstrain=100, lgcoutsidewindow=True)
-    assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713))
+    assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713), rtol=1e-6)
     
     signal, template, psd = create_example_data(lgcbaseline=True)
     
     OF.update_signal(signal)
     res = OF.ofamp_baseline()
-    assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076))
+    assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076), rtol=1e-6)
     
     res = OF.ofamp_baseline(nconstrain=100)
-    assert isclose(res, (6.434754982839688e-07, 7.84e-05, 2806781.3450564747))
+    assert isclose(res, (6.434754982839688e-07, 7.84e-05, 2806781.3450564747), rtol=1e-6)
     
     res = OF.ofamp_baseline(nconstrain=100, lgcoutsidewindow=True)
-    assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076))
+    assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076), rtol=1e-6)
     
     
 def test_ofamp():
@@ -258,18 +258,18 @@ def test_OFnonlin():
     assert isclose(res1a, [4.008696926367952e-06, 6.577134966380607e-05,
                           2.600003126086262e-02])
     assert isclose(res1, [9.690520626128428e-06, 6.577262665978902e-05,
-                          2.600003114814408e-02])
+                          2.600003114814408e-02], rtol=1e-6)
     assert isclose(res2a, [4.010777893773002e-06, 1.952058681743050e-05,
-                           6.667391354400327e-05, 2.600012092917421e-02])
+                           6.667391354400327e-05, 2.600012092917421e-02], rtol=1e-6)
     assert isclose(res2, [9.501376001058713e-06, 1.962953013808533e-05,
-                          6.638332141659392e-05, 2.600010755026570e-02])
+                          6.638332141659392e-05, 2.600010755026570e-02], rtol=1e-6)
     assert isclose(res3, [9.308842323550344e-06, 1.332396374991919e-08,
                           1.930693061996180e-05, 6.697226655672301e-05,
-                          1.502288275853276e-04, 2.600016234389370e-02])
+                          1.502288275853276e-04, 2.600016234389370e-02], rtol=1e-6)
     assert isclose(res4, [9.491495350665769e-06, 3.023941433370170e-08,
                           5.523645346886680e-08, 1.976936973433418e-05,
                           6.566969025231684e-05, 9.213022382501221e-05,
-                          2.246779922836221e-04, 2.600006569525561e-02])
+                          2.246779922836221e-04, 2.600006569525561e-02], rtol=1e-6)
     
 def test_MuonTailFit():
     """
