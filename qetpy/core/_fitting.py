@@ -286,7 +286,7 @@ class OptimumFilter(object):
     @staticmethod
     def _interpolate_parabola(vals, bestind, delta, t_interp=None):
         """
-        Pre-computed equation of a parabola given 3 equally spaced
+        Precomputed equation of a parabola given 3 equally spaced
         points. Returns the coordinates of the extremum of the
         parabola.
 
@@ -530,7 +530,7 @@ class OptimumFilter(object):
             trace. Equivalent to centering the `nconstrain` window on
             `self.nbins//2 + windowcenter`.
         interpolate_t0 : bool, optional
-            If True, then a pre-computed solution to the parabolic
+            If True, then a precomputed solution to the parabolic
             equation is used to find the interpolated time-of-best-fit.
             Default is False.
 
@@ -643,7 +643,7 @@ class OptimumFilter(object):
             trace. Equivalent to centering the `nconstrain` window on
             `self.nbins//2 + windowcenter`.
         interpolate_t0 : bool, optional
-            If True, then a pre-computed solution to the parabolic
+            If True, then a precomputed solution to the parabolic
             equation is used to find the interpolated time-of-best-fit.
             Default is False.
 
@@ -909,7 +909,7 @@ class OptimumFilter(object):
             trace. Equivalent to centering the `nconstrain` window on
             `self.nbins//2 + windowcenter`.
         interpolate_t0 : bool, optional
-            If True, then a pre-computed solution to the parabolic
+            If True, then a precomputed solution to the parabolic
             equation is used to find the interpolated time-of-best-fit.
             Default is False.
 
