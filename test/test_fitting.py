@@ -105,11 +105,11 @@ def test_OptimumFilter():
     res = OF.ofamp_withdelay(nconstrain=3 ,windowcenter=-5)
     assert isclose(res, (-1.748136068514983e-07, -9.6e-06, 2870630.5945196496), rtol=1e-6)
     
-    res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000, rtol=1e-6)
-    assert isclose(res, 1052.9089578293142)
+    res = OF.chi2_lowfreq(amp=4.000884927004103e-06, t0=0.00016, fcutoff=10000)
+    assert isclose(res, 1052.9089578293142, rtol=1e-6)
     
     res = OF.chi2_nopulse()
-    assert isclose(res, 2876059.4034037213)
+    assert isclose(res, 2876059.4034037213, rtol=1e-6)
     
     OF.update_signal(signal)
     res = OF.ofamp_pileup_stationary()
