@@ -5,6 +5,31 @@ from helpers import isclose, create_example_data, create_example_muontail
 import qetpy as qp
 from qetpy.core._fitting import _argmin_chi2, _get_pulse_direction_constraint_mask
 
+def test_interpolation():
+    """
+    Testing function for the precomputed parabolic interpolation in the
+    `OptimumFilter` class.
+
+    """
+
+    vals = [2, 0, 1]
+    bestind = 1
+    delta = 1
+
+    output1 = qp.OptimumFilter._interpolate_parabola(vals, bestind, delta)
+
+    assert np.all(np.asarray(output1)==np.array([1 / 6, -1 / 24]))
+
+    output2 = qp.OptimumFilter._interpolate_parabola(
+        vals, bestind, delta, t_interp=output1[0],
+    )
+
+    assert np.all(np.asarray(output1)==np.array([1 / 6, -1 / 24]))
+
+    output3 = qp.OptimumFilter._interpolate_of(vals, vals, bestind, delta)
+
+    output_comp = np.array([output2[1], output1[0], output1[1]])
+    assert np.all(output_comp==np.asarray(output3))
 
 def test_get_pulse_direction_constraint_mask():
     """
