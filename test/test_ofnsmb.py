@@ -94,7 +94,7 @@ def test_ofnsmb_muonsubtraction():
     
     
     rtol = 1e-7
-    assert isclose(amps_nsmb, savedVals, rtol=rtol, atol=0)
+    assert isclose(amps_nsmb, savedVals, rtol=rtol)
 
 
 def test_ofnsmb_ttlfitting():
