@@ -93,7 +93,7 @@ def test_ofnsmb_muonsubtraction():
     savedVals = (priorPulseAmp, priorMuonAmp, priorDC)
     
     
-    rtol = 1e-7
+    rtol = 1e-6
     assert isclose(amps_nsmb, savedVals, rtol=rtol)
 
 
