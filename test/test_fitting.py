@@ -114,9 +114,12 @@ def test_OptimumFilter():
 
     res = OF.ofamp_withdelay()
     assert isclose(res, (4.000884927004103e-06, 0.00016, 32474.45440205792), rtol=1e-6)
-
+    
     res2 = OF.ofamp_nodelay(windowcenter=int(res[1] * fs))
     assert isclose(res2, res[::2], rtol=1e-6)
+
+    res = OF.ofamp_withdelay(interpolate_t0=True)
+    assert isclose(res, (4.000884983533612e-06, 0.00016000193750599913, 32474.375405751092), rtol=1e-6)
 
     res = OF.time_resolution(res[0])
     assert isclose(res, 5.746611055379949e-09, rtol=1e-6)
@@ -147,25 +150,31 @@ def test_OptimumFilter():
     res = OF.ofamp_pileup_iterative(res1[0], res1[1])
     assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713), rtol=1e-6)
 
+    res = OF.ofamp_pileup_iterative(res1[0], res1[1], interpolate_t0=True)
+    assert isclose(res, (4.000882471002715e-06, 0.00016000193750598994, 32477.47671986579), rtol=1e-6)
+
     res = OF.ofamp_pileup_iterative(res1[0], res1[1], nconstrain=100, lgcoutsidewindow=False)
     assert isclose(res, (6.382879106117655e-07, 7.84e-05, 2803684.142039136), rtol=1e-6)
-    
+
     res = OF.ofamp_pileup_iterative(res1[0], res1[1], nconstrain=100, lgcoutsidewindow=True)
     assert isclose(res, (4.000882414471985e-06, 0.00016, 32477.55571848713), rtol=1e-6)
-    
+
     signal, template, psd = create_example_data(lgcbaseline=True)
-    
+
     OF.update_signal(signal)
     res = OF.ofamp_baseline()
     assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076), rtol=1e-6)
-    
+
+    res = OF.ofamp_baseline(interpolate_t0=True)
+    assert isclose(res, (4.000884983446686e-06, 0.00016000193752042192, 32474.37540399214), rtol=1e-6)
+
     res = OF.ofamp_baseline(nconstrain=100)
     assert isclose(res, (6.434754982839688e-07, 7.84e-05, 2806781.3450564747), rtol=1e-6)
-    
+
     res = OF.ofamp_baseline(nconstrain=100, lgcoutsidewindow=True)
     assert isclose(res, (4.000884927004102e-06, 0.00016, 32474.454402058076), rtol=1e-6)
-    
-    
+
+
 def test_ofamp():
     """
     Testing function for `qetpy.ofamp`.
