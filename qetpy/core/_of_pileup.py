@@ -2,9 +2,11 @@ import numpy as np
 import qetpy as qp
 import itertools
 
+
 __all__ = [
     'PileupOF',
 ]
+
 
 class PileupOF(object):
     """
@@ -12,10 +14,25 @@ class PileupOF(object):
 
     Attributes
     ----------
+    pileup_res : ndarray, NoneType
+        Calculated by the `run` class method, this contains the
+        amplitudes, time-shift values, and chi-square from the
+        pileup optimum filter within the range of time values
+        where two pulses would have a large amount of interference,
+        nonnegligibly reducing the sensitivity of the iterative pileup
+        optimum filter. Set to None when initialized or when the signal
+        is updated via the `update_signal` class method.
     iter_res : ndarray
         The amplitudes, time-shift values, and chi-square from the
         iterative pileup optimum filter,
         `qetpy.OptimumFilter.ofamp_pileup_iterative`.
+
+    Notes
+    -----
+    The parameters in both `pileup_res` and `iter_res` are:
+
+        (amplitude 1, time offset 1,
+         amplitude 2, time offset 2, chi-square)
 
     """
 
@@ -99,7 +116,8 @@ class PileupOF(object):
         signal.
 
         """
-                
+
+        self.pileup_res = None
         self._v = np.fft.fft(signal, axis=-1) / self._nbins / self._df
         self._qn = np.real(
             np.fft.ifft(self._v * self._phi) / self._norm * self._fs
@@ -223,7 +241,13 @@ class PileupOF(object):
         Returns
         -------
         res : ndarray
-            The results of the pileup optimum filter algorithm. The parameters returned are (amplitude 1, time offset 1, amplitude 2, time offset 2, chi-square). The fit from the pileup OF within the neighborhood of the first pulse is compared to the iterative pileup OF throughout the entire trace. The resulst of the pileup OF with the lowest chi-square are returned.
+            The results of the pileup optimum filter algorithm. The
+            parameters returned are (amplitude 1, time offset 1,
+            amplitude 2, time offset 2, chi-square). The fit from the
+            pileup OF within the neighborhood of the first pulse is
+            compared to the iterative pileup OF throughout the entire
+            trace. The resulst of the pileup OF with the lowest
+            chi-square are returned.
 
         """
 
@@ -242,8 +266,8 @@ class PileupOF(object):
             results.append(chi2)
             pileup_results[ii] = np.array(results)
 
-        pileup_res = pileup_results[np.argmin(pileup_results[:, -1])]
+        self.pileup_res = pileup_results[np.argmin(pileup_results[:, -1])]
 
-        if pileup_res[-1] < self.iter_res[-1]:
-            return pileup_res
+        if self.pileup_res[-1] < self.iter_res[-1]:
+            return self.pileup_res
         return self.iter_res
