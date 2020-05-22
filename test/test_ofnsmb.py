@@ -93,8 +93,8 @@ def test_ofnsmb_muonsubtraction():
     savedVals = (priorPulseAmp, priorMuonAmp, priorDC)
     
     
-    rtol = 1e-7
-    assert isclose(amps_nsmb, savedVals, rtol=rtol, atol=0)
+    rtol = 1e-6
+    assert isclose(amps_nsmb, savedVals, rtol=rtol)
 
 
 def test_ofnsmb_ttlfitting():
@@ -185,5 +185,5 @@ def test_ofnsmb_ttlfitting():
                 amps_sig_nsmb_cwindow[0,0], amps_sig_nsmb_cwindow_int[0,0])
 
 
-    rtol = 1e-7
-    assert isclose(newVals, savedVals, rtol=rtol, atol=0)
+    rtol = 1e-6
+    assert isclose(newVals, savedVals, rtol=rtol)
