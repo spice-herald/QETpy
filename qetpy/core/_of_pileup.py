@@ -91,7 +91,6 @@ class PileupOF(object):
             np.fft.ifft(self._s * self._phi) / self._norm * self._fs
         )[:self._nbins//2]
 
-        self._deltat = np.arange(self._nbins//2) / fs
         self._freqs = np.fft.fftfreq(self._nbins, d=1 / self._fs)
 
         self._tcutoff = self._determine_tcutoff()
