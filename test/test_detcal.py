@@ -61,6 +61,10 @@ def test_didv():
     )
 
     didvfit.processtraces()
+
+    didvfit.plot_re_im_didv()
+    didvfit.plot_abs_phase_didv()
+
     didvfit.doallfits()
     didvfit.plot_full_trace(poles=[2, 3], lgcsave=True, savename="test")
     didvfit.plot_full_trace(poles="all", plotpriors=True)
