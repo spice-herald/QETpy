@@ -419,9 +419,12 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False, savepath=
     cost_vals = [didv.fitcost1, didv.fitcost2, didv.fitcost3, didv.fitcost2priors]
     fit_vals = [didv.fitparams1, didv.fitparams2, didv.fitparams3, didv.fitparams2priors]
 
-    min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+    if all(fv is None for fv in fit_vals):
+        best_time_offset = 0
+    else:
+        min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+        best_time_offset = fit_vals[min_cost_idx][-1]
 
-    best_time_offset = fit_vals[min_cost_idx][-1]
     time_phase = np.exp(2.0j * np.pi * best_time_offset * didv.freq)
 
     phase_correction = lambda x: np.exp(2.0j * np.pi * x * didv.freq)
@@ -624,9 +627,12 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False, savep
     cost_vals = [didv.fitcost1, didv.fitcost2, didv.fitcost3, didv.fitcost2priors]
     fit_vals = [didv.fitparams1, didv.fitparams2, didv.fitparams3, didv.fitparams2priors]
 
-    min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+    if all(fv is None for fv in fit_vals):
+        best_time_offset = 0
+    else:
+        min_cost_idx = min((val, ii) for ii, val in enumerate(cost_vals) if val is not None)[1]
+        best_time_offset = fit_vals[min_cost_idx][-1]
 
-    best_time_offset = fit_vals[min_cost_idx][-1]
     time_phase = np.exp(2.0j * np.pi * best_time_offset * didv.freq)
 
     phase_correction = lambda x: np.exp(2.0j * np.pi * x * didv.freq)
