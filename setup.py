@@ -46,6 +46,11 @@ setup(
     packages=find_packages(), 
     zip_safe=False,
     cmdclass={
-            'clean': CleanCommand,
-            }
-    )
+        'clean': CleanCommand,
+    },
+    install_requires=[
+        'numpy',
+        'scipy',
+        'matplotlib',
+    ]
+)
