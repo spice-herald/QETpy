@@ -345,7 +345,11 @@ def twopoleimpedancepriors(freq, rload, r0, beta, l, L, tau0):
 
     """
 
-    dvdi = rload + r0*(1.0+beta) + 2.0j*pi*freq*L + r0 * l * (2.0+beta)/(1.0-l) * 1.0/(1.0+2.0j*freq*pi*tau0/(1.0-l))
+    dvdi = (
+        rload + r0*(1.0+beta) + 2.0j*pi*freq*L
+    ) + (
+        r0 * l * (2.0+beta)/(1.0-l) * 1.0/(1.0+2.0j*freq*pi*tau0/(1.0-l))
+    )
     return dvdi
 
 def twopoleadmittancepriors(freq, rload, r0, beta, l, L, tau0):
