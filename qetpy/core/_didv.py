@@ -280,8 +280,7 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
                      sgamp, rshunt, r0=0.3, r0_err=0.001, rload=0.01,
-                     rload_err=0.001, priors=None, invpriorscov=None,
-                     add180phase=False, dt0=10.0e-6):
+                     rload_err=0.001, add180phase=False, dt0=10.0e-6):
     """
     Function to initialize and process a dIdV dataset without having
     all of the traces, but just the parameters that are required for
@@ -319,13 +318,6 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         in units of Ohms.
     rload_err : float, optional
         Error in the load resistance, Ohms
-    priors : ndarray, optional
-        Prior known values of Irwin's TES parameters for the trace.
-        Should be in the order of (rload,r0,beta,l,L,tau0,dt)
-    invpriorscov : ndarray, optional
-        Inverse of the covariance matrix of the prior known values of
-        Irwin's TES parameters for the trace (any values that are set
-        to zero mean that we have no knowledge of that parameter)
     add180phase : boolean, optional
         If the signal generator is out of phase (i.e. if it looks like
         --__ instead of __--), then this should be set to True. Adds
@@ -358,8 +350,6 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         rload=rload,
         rload_err=rload_err,
         add180phase=add180phase,
-        priors=priors,
-        invpriorscov=invpriorscov,
         dt0=dt0,
     )
 
@@ -410,8 +400,7 @@ class DIDV(object):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0,
                  r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 dutycycle=0.5, add180phase=False, priors=None,
-                 invpriorscov=None, dt0=10.0e-6):
+                 dutycycle=0.5, add180phase=False, dt0=10.0e-6):
         """
         Initialization of the DIDV class object
 
@@ -456,15 +445,6 @@ class DIDV(object):
             like --__ instead of __--), then this should be set to
             True. Adds half a period of the signal generator to the
              `dt0` attribute
-        priors : ndarray, optional
-            Prior known values of Irwin's TES parameters for the
-            trace. Should be in the order of
-            (rload,r0,beta,l,L,tau0,dt)
-        invpriorscov : ndarray, optional
-            Inverse of the covariance matrix of the prior known values
-            of Irwin's TES parameters for the trace (any values that
-            are set to zero mean that we have no knowledge of that
-            parameter)
         dt0 : float, optional
             The value of the starting guess for the time offset of the
             didv when fitting. The best way to use this value if it
@@ -489,8 +469,6 @@ class DIDV(object):
         self._tracegain = tracegain
         self._dutycycle = dutycycle
         self._add180phase = add180phase
-        self._priors = priors
-        self._invpriorscov = invpriorscov
         self._dt0 = dt0
 
         self._freq = None
@@ -505,41 +483,17 @@ class DIDV(object):
         self._offset = None
         self._offset_err = None
 
-        self._fitparams1 = None
-        self._fitcov1 = None
-        self._fitcost1 = None
-        self._irwinparams1 = None
-        self._irwincov1 = None
-        self._falltimes1 = None
-        self._didvfit1_timedomain = None
-        self._didvfit1_freqdomain = None
+        self._1poleresult = None
+        self._1poleresultpriors = None
 
-        self._fitparams2 = None
-        self._fitcov2 = None
-        self._fitcost2 = None
-        self._irwinparams2 = None
-        self._irwincov2 = None
-        self._falltimes2 = None
-        self._didvfit2_timedomain = None
-        self._didvfit2_freqdomain = None
+        self._2poleresult = None
+        self._2poleresultpriors = None
 
-        self._fitparams3 = None
-        self._fitcov3 = None
-        self._fitcost3 = None
-        self._irwinparams3 = None
-        self._irwincov3 = None
-        self._falltimes3 = None
-        self._didvfit3_timedomain = None
-        self._didvfit3_freqdomain = None
+        self._3poleresult = None
+        self._3poleresultpriors = None
 
-        self._fitparams2priors = None
-        self._fitcov2priors = None
-        self._fitcost2priors = None
-        self._irwinparams2priors = None
-        self._irwincov2priors = None
-        self._falltimes2priors = None
-        self._didvfit2priors_timedomain = None
-        self._didvfit2priors_freqdomain = None
+        self._irwinresultpriors = None
+
 
     @staticmethod
     def _onepoleimpedance(freq, A, tau2):
@@ -1360,7 +1314,7 @@ class DIDV(object):
         weightvals[0:weightvals.size:2] = weights.real**2
         weightvals[1:weightvals.size:2] = weights.imag**2
 
-        jac = jaca(popt)
+        jac = _jaca(popt)
         jact = np.transpose(jac)
         wjac = np.zeros_like(jac)
 
@@ -1465,7 +1419,7 @@ class DIDV(object):
 
         #store results
         self._tmean = np.mean(self._traces, axis=0)
-        self._freq,self._zeroinds = DIDV._deconvolvedidv(
+        self._freq, self._zeroinds = DIDV._deconvolvedidv(
             self._time,
             self._tmean,
             self._rshunt,
@@ -1492,7 +1446,7 @@ class DIDV(object):
         poles. If the `processtraces` module has not been run yet, then
         this module will run that first. This module does not do the
         priors fit.
-        
+
         Parameters
         ----------
         poles : int
@@ -1503,7 +1457,7 @@ class DIDV(object):
             is equivalent to no cutoff frequency.
 
         """
-        
+
         if self._tmean is None:
             self.processtraces()
 
@@ -1518,7 +1472,7 @@ class DIDV(object):
             )
 
             # 1 pole fitting
-            self._fitparams1, self._fitcov1, self._fitcost1 = DIDV._fitdidv(
+            fitparams1, fitcov1, fitcost1 = DIDV._fitdidv(
                 self._freq[fit_freqs],
                 self._didvmean[fit_freqs],
                 yerr=self._didvstd[fit_freqs],
@@ -1529,43 +1483,14 @@ class DIDV(object):
                 isloopgainsub1=False,
             )
 
-            # Convert parameters from 1-pole fit to the Irwin parameters
-            self._irwinparams1, self._irwincov1 = DIDV._converttotesvalues(
-                self._fitparams1,
-                self._fitcov1,
-                self._r0,
-                self._rload,
-                r0_err=self._r0_err,
-                rload_err=self._rload_err,
+            # Convert to didv falltimes
+            falltimes1 = DIDV._findpolefalltimes(fitparams1)
+
+            self._1poleresult = DIDV._fitresult(
+                1, fitparams1, fitcov1, falltimes1, fitcost1,
             )
 
-            # Convert to didv falltimes
-            self._falltimes1 = DIDV._findpolefalltimes(self._fitparams1)
-
-            self._didvfit1_timedomain = DIDV._convolvedidv(
-                self._time,
-                self._fitparams1[0],
-                0.0,
-                0.0,
-                0.0,
-                self._fitparams1[1],
-                0.0,
-                self._sgamp,
-                self._rshunt,
-                self._sgfreq,
-                self._dutycycle,
-            ) + self._offset
-
-            ## save the fits in frequency domain as variables for
-            # saving/plotting
-            self._didvfit1_freqdomain = DIDV._onepoleadmittance(
-                self._freq,
-                self._fitparams1[0],
-                self._fitparams1[1],
-            ) * np.exp(-2.0j * pi * self._freq * self._fitparams1[2])
-
         elif poles==2:
-
             # Guess the starting parameters for 2 pole fitting
             A0, B0, tau10, tau20, isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
@@ -1576,7 +1501,7 @@ class DIDV(object):
             )
 
             # 2 pole fitting
-            self._fitparams2, self._fitcov2, self._fitcost2 = DIDV._fitdidv(
+            fitparams2, fitcov2, fitcost2 = DIDV._fitdidv(
                 self._freq[fit_freqs],
                 self._didvmean[fit_freqs],
                 yerr=self._didvstd[fit_freqs],
@@ -1589,47 +1514,15 @@ class DIDV(object):
                 isloopgainsub1=isloopgainsub1,
             )
 
-            # Convert parameters from 2-pole fit to the Irwin
-            # parameters
-            self._irwinparams2, self._irwincov2 = DIDV._converttotesvalues(
-                self._fitparams2,
-                self._fitcov2,
-                self._r0,
-                self._rload,
-                r0_err=self._r0_err,
-                rload_err=self._rload_err,
+            # Convert to didv falltimes
+            falltimes2 = DIDV._findpolefalltimes(fitparams2)
+
+            self._2poleresult = DIDV._fitresult(
+                2, fitparams2, fitcov2, falltimes2, fitcost2,
             )
 
-            # Convert to didv falltimes
-            self._falltimes2 = DIDV._findpolefalltimes(self._fitparams2)
-
-            self._didvfit2_timedomain = DIDV._convolvedidv(
-                self._time,
-                self._fitparams2[0],
-                self._fitparams2[1],
-                0.0,
-                self._fitparams2[2],
-                self._fitparams2[3],
-                0.0,
-                self._sgamp,
-                self._rshunt,
-                self._sgfreq,
-                self._dutycycle,
-            ) + self._offset
-
-            ## save the fits in frequency domain as variables for
-            # saving/plotting
-            self._didvfit2_freqdomain = DIDV._twopoleadmittance(
-                self._freq,
-                self._fitparams2[0],
-                self._fitparams2[1],
-                self._fitparams2[2],
-                self._fitparams2[3],
-            ) * np.exp(-2.0j * pi * self._freq * self._fitparams2[4])
-
         elif poles==3:
-
-            if self._fitparams2 is None:
+            if self._2poleresult is None:
                 # Guess the 3-pole fit starting parameters from
                 # 2-pole fit guess
                 A0, B0, tau10, tau20 = DIDV._guessdidvparams(
@@ -1640,18 +1533,18 @@ class DIDV(object):
                     L0=1.0e-7,
                 )[:-1]
                 B0 = -abs(B0)
-                C0 = -0.05 
+                C0 = -0.05
                 tau10 = -abs(tau10)
-                tau30 = 1.0e-3 
+                tau30 = 1.0e-3
                 dt0 = self._dt0
             else:
-                A0 = self._fitparams2[0] 
-                B0 = -abs(self._fitparams2[1]) 
-                C0 = -0.05 
-                tau10 = -abs(self._fitparams2[2]) 
-                tau20 = self._fitparams2[3] 
-                tau30 = 1.0e-3 
-                dt0 = self._fitparams2[4]
+                A0 = self._2poleresult['params']['A']
+                B0 = -abs(self._2poleresult['params']['B'])
+                C0 = -0.05
+                tau10 = -abs(self._2poleresult['params']['tau1']) 
+                tau20 = self._2poleresult['params']['tau2']
+                tau30 = 1.0e-3
+                dt0 = self._2poleresult['params']['dt']
 
             isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
@@ -1662,7 +1555,7 @@ class DIDV(object):
             )[-1]
 
             # 3 pole fitting
-            self._fitparams3, self._fitcov3, self._fitcost3 = DIDV._fitdidv(
+            fitparams3, fitcov3, fitcost3 = DIDV._fitdidv(
                 self._freq[fit_freqs],
                 self._didvmean[fit_freqs],
                 yerr=self._didvstd[fit_freqs],
@@ -1678,45 +1571,32 @@ class DIDV(object):
             )
 
             # Convert to didv falltimes
-            self._falltimes3 = DIDV._findpolefalltimes(self._fitparams3)
+            falltimes3 = DIDV._findpolefalltimes(fitparams3)
 
-            self._didvfit3_timedomain = DIDV._convolvedidv(
-                self._time,
-                self._fitparams3[0],
-                self._fitparams3[1],
-                self._fitparams3[2],
-                self._fitparams3[3],
-                self._fitparams3[4],
-                self._fitparams3[5],
-                self._sgamp,
-                self._rshunt,
-                self._sgfreq,
-                self._dutycycle,
-            ) + self._offset
-
-            ## save the fits in frequency domain as variables for
-            # saving/plotting
-            self._didvfit3_freqdomain = DIDV._threepoleadmittance(
-                self._freq,
-                self._fitparams3[0],
-                self._fitparams3[1],
-                self._fitparams3[2],
-                self._fitparams3[3],
-                self._fitparams3[4],
-                self._fitparams3[5],
-            ) * np.exp(-2.0j * pi * self._freq * self._fitparams3[6])
+            self._3poleresult = DIDV._fitresult(
+                3, fitparams3, fitcov3, falltimes3, fitcost3,
+            )
 
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
 
-    def dopriorsfit(self, fcutoff=np.inf):
+    def dopriorsfit(self, priors, invpriorscov, fcutoff=np.inf):
         """
-        This module runs the priors fit, assuming that the `priors` and
-        `invpriorscov` attributes have been set to the proper values.
+        This module runs the priors fit using the small signal model
+        parameterization.
 
         Parameters
         ----------
+        priors : ndarray
+            Prior known values of Irwin's TES parameters for the
+            trace. Should be in the order of
+            (rload,r0,beta,l,L,tau0,dt)
+        invpriorscov : ndarray
+            Inverse of the covariance matrix of the prior known values
+            of Irwin's TES parameters for the trace (any values that
+            are set to zero mean that we have no knowledge of that
+            parameter)
         fcutoff : float, optional
             The cutoff frequency in Hz, above which data is ignored in
             the specified fitting routine. Default is `np.inf`, which
@@ -1724,18 +1604,12 @@ class DIDV(object):
 
         """
 
-        if (self._priors is None) or (self._invpriorscov is None):
-            raise ValueError(
-                "Cannot do priors fit, priors values or "
-                "inverse covariance matrix were not set."
-            )
-
         if self._tmean is None:
             self.processtraces()
 
         fit_freqs = np.abs(self._freq) < fcutoff
 
-        if self._irwinparams2 is None:
+        if self._2poleresult is None:
             # Guess the starting parameters for 2 pole fitting
             A0, B0, tau10, tau20, isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
@@ -1760,24 +1634,42 @@ class DIDV(object):
             tau0 = abs(priorsguess[5])
             dt0 = self._dt0
         else:
+            fitparams2 = np.array(
+                [
+                    self._2poleresult['params']['A'],
+                    self._2poleresult['params']['B'],
+                    self._2poleresult['params']['tau1'],
+                    self._2poleresult['params']['tau2'],
+                    self._2poleresult['params']['dt'],
+                ],
+            )
+
+            irwinparams2, _ = DIDV._converttotesvalues(
+                fitparams2,
+                self._2poleresult['cov'],
+                self._r0,
+                self._rload,
+                r0_err=self._r0_err,
+                rload_err=self._rload_err,
+            )
             # guesses for the 2 pole priors fit (these guesses must be
             # positive), using the values from the non-priors 2-pole fit
-            beta0 = abs(self._irwinparams2[2])
-            l0 = abs(self._irwinparams2[3])
-            L0 = abs(self._irwinparams2[4])
-            tau0 = abs(self._irwinparams2[5])
-            dt0 = self._irwinparams2[6]
+            beta0 = abs(irwinparams2[2])
+            l0 = abs(irwinparams2[3])
+            L0 = abs(irwinparams2[4])
+            tau0 = abs(irwinparams2[5])
+            dt0 = irwinparams2[6]
 
         # 2 pole fitting
         (
-            self._irwinparams2priors,
-            self._irwincov2priors,
-            self._fitcost2priors,
+            irwinparams2priors,
+            irwincov2priors,
+            fitcost2priors,
         ) = DIDV._fitdidvpriors(
             self._freq[fit_freqs],
             self._didvmean[fit_freqs],
-            self._priors,
-            self._invpriorscov,
+            priors,
+            invpriorscov,
             yerr=self._didvstd[fit_freqs],
             r0=abs(self._r0),
             rload=abs(self._rload),
@@ -1789,65 +1681,126 @@ class DIDV(object):
         )
 
         # convert answer back to A, B, tauI, tauEL basis for plotting
-        (
-            self._fitparams2priors,
-            self._fitcov2priors,
-        ) = DIDV._convertfromtesvalues(
-            self._irwinparams2priors, self._irwincov2priors,
+        fitparams2priors, fitcov2priors = DIDV._convertfromtesvalues(
+            irwinparams2priors, irwincov2priors,
         )
 
         # Find the didv falltimes
-        self._falltimes2priors = DIDV._findpolefalltimes(
-            self._fitparams2priors,
+        falltimes2priors = DIDV._findpolefalltimes(
+            fitparams2priors,
         )
 
-        # save the fits with priors in time and frequency domain
-        self._didvfit2priors_timedomain = DIDV._convolvedidv(
-            self._time,
-            self._fitparams2priors[0],
-            self._fitparams2priors[1],
-            0.0,
-            self._fitparams2priors[2],
-            self._fitparams2priors[3],
-            0.0,
-            self._sgamp,
-            self._rshunt,
-            self._sgfreq,
-            self._dutycycle,
-        ) + self._offset
-
-        self._didvfit2priors_freqdomain = DIDV._twopoleadmittancepriors(
-            self._freq,
-            self._irwinparams2priors[0],
-            self._irwinparams2priors[1],
-            self._irwinparams2priors[2],
-            self._irwinparams2priors[3],
-            self._irwinparams2priors[4],
-            self._irwinparams2priors[5],
-        ) * np.exp(-2.0j * pi * self._freq * self._irwinparams2priors[6])
+        self._irwinresultpriors = DIDV._fitresult(
+            2,
+            irwinparams2priors,
+            irwincov2priors,
+            falltimes2priors,
+            fitcost2priors,
+            irwin=True,
+        )
 
 
-    def doallfits(self, fcutoff=np.inf):
+    @staticmethod
+    def _fitresult(poles, params, cov, falltimes, cost, irwin=False):
         """
-        This module does all of the fits consecutively. The priors fit
-        is not done if the attributes priors and invpriorscov have not
-        yet been set.
-
-        Parameters
-        ----------
-        fcutoff : float, optional
-            The cutoff frequency in Hz, above which data is ignored in
-            the specified fitting routine. Default is `np.inf`, which
-            is equivalent to no cutoff frequency.
+        Function for converting data from different fit results to a
+        results dictionary.
 
         """
 
-        self.dofit(1, fcutoff=fcutoff)
-        self.dofit(2, fcutoff=fcutoff)
-        self.dofit(3, fcutoff=fcutoff)
+        result = dict()
 
-        if (self._priors is not None) and (self._invpriorscov is not None):
-            self.dopriorsfit(fcutoff=fcutoff)
+        if poles == 1:
+            result['params'] = {
+                'A': params[0],
+                'tau2': params[1],
+                'dt': params[2],
+            }
+            result['cov'] = cov
+            errors = np.diag(cov)**0.5
+            result['errors'] = {
+                'A': errors[0],
+                'tau2': errors[1],
+                'dt': errors[2],
+            }
+            result['falltimes'] = falltimes
+            result['cost'] = cost
+
+            return result
+
+        if poles == 2 and not irwin:
+            result['params'] = {
+                'A': params[0],
+                'B': params[1],
+                'tau1': params[2],
+                'tau2': params[3],
+                'dt': params[4],
+            }
+            result['cov'] = cov
+            errors = np.diag(cov)**0.5
+            result['errors'] = {
+                'A': errors[0],
+                'B': errors[1],
+                'tau1': errors[2],
+                'tau2': errors[3],
+                'dt': errors[4],
+            }
+            result['falltimes'] = falltimes
+            result['cost'] = cost
+
+            return result
+
+        if poles == 3:
+            result['params'] = {
+                'A': params[0],
+                'B': params[1],
+                'C': params[2],
+                'tau1': params[3],
+                'tau2': params[4],
+                'tau3': params[5],
+                'dt': params[6],
+            }
+            result['cov'] = cov
+            errors = np.diag(cov)**0.5
+            result['errors'] = {
+                'A': errors[0],
+                'B': errors[1],
+                'C': errors[2],
+                'tau1': errors[3],
+                'tau2': errors[4],
+                'tau3': errors[5],
+                'dt': errors[6],
+            }
+            result['falltimes'] = falltimes
+            result['cost'] = cost
+
+            return result
+
+        if poles == 2 and irwin:
+            result['params'] = {
+                'rl': params[0],
+                'r0': params[1],
+                'beta': params[2],
+                'l': params[3],
+                'L': params[4],
+                'tau0': params[5],
+                'dt': params[6],
+            }
+            result['cov'] = cov
+            errors = np.diag(cov)**0.5
+            result['errors'] = {
+                'rl': errors[0],
+                'r0': errors[1],
+                'beta': errors[2],
+                'l': errors[3],
+                'L': errors[4],
+                'tau0': errors[5],
+                'dt': errors[6],
+            }
+            result['falltimes'] = falltimes
+            result['cost'] = cost
+
+            return result
 
 
     def fitresult(self, poles):
@@ -1871,159 +1824,41 @@ class DIDV(object):
 
         """
 
-        result = {
-            'params': dict(),
-            'errors' : dict(),
-            'cov': dict(),
-            'falltimes': dict(),
-            'cost': dict(),
-        }
-
         if poles == 1:
-            if self._fitparams1 is None:
+            if self._1poleresult is None:
                 warnings.warn(
                     "The 1-pole fit has not been run, "
                     "returning an empty dict."
                 )
-                return result
+                return dict()
 
-            result['params'] = {
-                'A': self._fitparams1[0],
-                'tau2': self._fitparams1[1],
-                'dt': self._fitparams1[2],
-            }
-            result['cov'] = self._fitcov1
-            errors = np.diag(self._fitcov1)**0.5
-            result['errors'] = {
-                'A': errors[0],
-                'tau2': errors[1],
-                'dt': errors[2],
-            }
-            result['falltimes'] = self._falltimes1
-            result['cost'] = self._fitcost1
-            return result
+            return self._1poleresult
 
         if poles == 2:
-            if self._fitparams2 is None:
+            if self._2poleresult is None:
                 warnings.warn(
                     "The 2-pole fit has not been run, "
                     "returning an empty dict."
                 )
-                return result
+                return dict()
 
-            result['params'] = {
-                'A': self._fitparams2[0],
-                'B': self._fitparams2[1],
-                'tau1': self._fitparams2[2],
-                'tau2': self._fitparams2[3],
-                'dt': self._fitparams2[4],
-            }
-            result['cov'] = self._fitcov2
-            errors = np.diag(self._fitcov2)**0.5
-            result['errors'] = {
-                'A': errors[0],
-                'B': errors[1],
-                'tau1': errors[2],
-                'tau2': errors[3],
-                'dt': errors[4],
-            }
-            result['falltimes'] = self._falltimes2
-            result['cost'] = self._fitcost1
-            return result
+            return self._2poleresult
 
         if poles == 3:
-            if self._fitparams2 is None:
+            if self._3poleresult is None:
                 warnings.warn(
                     "The 3-pole fit has not been run, "
                     "returning an empty dict."
                 )
-                return result
+                return dict()
 
-            result['params'] = {
-                'A': self._fitparams3[0],
-                'B': self._fitparams3[1],
-                'C': self._fitparams3[2],
-                'tau1': self._fitparams3[3],
-                'tau2': self._fitparams3[4],
-                'tau3': self._fitparams3[5],
-                'dt': self._fitparams3[6],
-            }
-            result['cov'] = self._fitcov3
-            errors = np.diag(self._fitcov3)**0.5
-            result['errors'] = {
-                'A': errors[0],
-                'B': errors[1],
-                'C': errors[2],
-                'tau1': errors[3],
-                'tau2': errors[4],
-                'tau3': errors[5],
-                'dt': errors[6],
-            }
-            result['falltimes'] = self._falltimes3
-            result['cost'] = self._fitcost3
-            return result
+            return self._3poleresult
 
-    def get_irwinparams_dict(self, poles, lgcpriors=False):
-        """
-        Returns a dictionary with the irwin fit parameters for a given
-        number of poles
 
-        Parameters
-        ----------
-        poles: int
-            The number of poles used for the fit
-        lgcpriors: bool, optional
-            If true, the values from the priors fit are returned
+    def irwinresult(self):
+        """Get the Irwin parameters dictionary."""
 
-        Returns
-        -------
-        return_dict: dictionary
-            The Irwin parameters stored in a dictionary
-
-        """
-
-        return_dict = {}
-
-        if (poles == 1 and self._irwinparams1 is not None):
-            if not lgcpriors:
-                return_dict['rtot'] = self._irwinparams1[0]
-                return_dict['L'] = self._irwinparams1[1]
-                return_dict['r0'] = self._irwinparams1[2]
-                return_dict['rload'] = self._irwinparams1[3]
-                return_dict['dt'] = self._irwinparams1[4]   
-            else:
-                print('Priors fit does not apply for single pole fit')
-                return
-            return return_dict
-        if poles == 2 :
-            if (not lgcpriors and self._irwinparams2 is not None):
-                return_dict['rload'] = self._irwinparams2[0]
-                return_dict['r0'] = self._irwinparams2[1]
-                return_dict['beta'] = self._irwinparams2[2]
-                return_dict['l'] = self._irwinparams2[3]
-                return_dict['L'] = self._irwinparams2[4]
-                return_dict['tau0'] = self._irwinparams2[5]
-                return_dict['dt'] = self._irwinparams2[6]
-                return_dict['tau_eff'] = self._falltimes2[-1]
-                return return_dict
-            elif (lgcpriors & (self._irwinparams2priors is not None)):
-                return_dict['rload'] = self._irwinparams2priors[0]
-                return_dict['r0'] = self._irwinparams2priors[1]
-                return_dict['beta'] = self._irwinparams2priors[2]
-                return_dict['l'] = self._irwinparams2priors[3]
-                return_dict['L'] = self._irwinparams2priors[4]
-                return_dict['tau0'] = self._irwinparams2priors[5]
-                return_dict['dt'] = self._irwinparams2priors[6]
-                return_dict['tau_eff'] = self._falltimes2priors[-1]
-                return return_dict
-            else:
-                print('Priors fit has not been done yet')
-                return
-        if poles == 3:
-            print('No Irwin Parameters for 3 pole fit')
-            return 
-        else:
-            raise ValueError('poles must be 1,2, or 3')
+        return self._irwinresultpriors
 
 
     def plot_full_trace(self, poles="all", plotpriors=True, lgcsave=False,
