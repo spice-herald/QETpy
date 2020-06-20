@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import qetpy as qp
 
 
 __all__ = [
@@ -11,6 +12,92 @@ __all__ = [
     "plot_abs_phase_didv",
 ]
 
+
+def _plot_time_domain(didv, poles, plotpriors):
+    """Helper function for plotting the fits in time domain."""
+
+    if poles == "all":
+        poleslist = np.array([1, 2, 3])
+    else:
+        poleslist = np.array(poles)
+
+    ## plot the entire trace with fits
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.plot(
+        didv._time * 1e6,
+        (didv._tmean - didv._offset) * 1e6,
+        color='k',
+        label='Mean',
+    )
+
+    if (didv._1poleresult is not None) and (1 in poleslist):
+        didvfit1_timedomain = qp.squarewaveresponse(
+            didv._time,
+            didv._rshunt,
+            didv._sgamp,
+            didv._sgfreq,
+            didv._dutycycle,
+            **didv._1poleresult['params'],
+        )
+        ax.plot(
+            (didv._time + didv._1poleresult['params']['dt']) * 1e6,
+            didvfit1_timedomain * 1e6,
+            color='magenta',
+            alpha=0.9,
+            label='1-Pole Fit',
+        )
+
+    if (didv._2poleresult is not None) and (2 in poleslist):
+        didvfit2_timedomain = qp.squarewaveresponse(
+            didv._time,
+            didv._rshunt,
+            didv._sgamp,
+            didv._sgfreq,
+            didv._dutycycle,
+            **didv._2poleresult['params'],
+        )
+        ax.plot(
+            (didv._time + didv._2poleresult['params']['dt']) * 1e6,
+            didvfit2_timedomain * 1e6,
+            color='green',
+            alpha=0.9,
+            label='2-Pole Fit',
+        )
+
+    if (didv._3poleresult is not None) and (3 in poleslist):
+        didvfit3_timedomain = qp.squarewaveresponse(
+            didv._time,
+            didv._rshunt,
+            didv._sgamp,
+            didv._sgfreq,
+            didv._dutycycle,
+            **didv._3poleresult['params'],
+        )
+        ax.plot(
+            (didv._time + didv._3poleresult['params']['dt']) * 1e6,
+            didvfit3_timedomain * 1e6,
+            color='orange',
+            alpha=0.9,
+            label='3-Pole Fit',
+        )
+
+#     if (didv._irwinresultpriors is not None) and (plotpriors):
+#         ax.plot(
+#             (didv._time + didv._irwinparams2priors[6]) * 1e6,
+#             (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
+#             color='cyan',
+#             alpha=0.9,
+#             label='2-Pole Fit With Priors',
+#         )
+
+    ax.set_xlabel('Time ($\mu$s)')
+    ax.set_ylabel('Amplitude ($\mu$A)')
+    ax.legend(loc='upper left')
+    ax.grid(linestyle='dotted')
+    ax.tick_params(which='both', direction='in', right=True, top=True)
+
+    return fig, ax
 
 def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
                     savepath="", savename=""):
@@ -39,63 +126,10 @@ def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
 
     """
 
-    if poles == "all":
-        poleslist = np.array([1, 2, 3])
-    else:
-        poleslist = np.array(poles)
+    fig, ax = _plot_time_domain(didv, poles, plotpriors)
 
-    ## plot the entire trace with fits
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(
-        didv._time * 1e6,
-        (didv._tmean - didv._offset) * 1e6,
-        color='k',
-        label='Mean',
-    )
-
-    if (didv._fitparams1 is not None) and (1 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams1[2]) * 1e6,
-            (didv._didvfit1_timedomain - didv._offset) * 1e6,
-            color='magenta',
-            alpha=0.9,
-            label='1-Pole Fit',
-        )
-
-    if (didv._fitparams2 is not None) and (2 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams2[4]) * 1e6,
-            (didv._didvfit2_timedomain - didv._offset) * 1e6,
-            color='green',
-            alpha=0.9,
-            label='2-Pole Fit',
-        )
-
-    if (didv._fitparams3 is not None) and (3 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams3[6]) * 1e6,
-            (didv._didvfit3_timedomain - didv._offset) * 1e6,
-            color='orange',
-            alpha=0.9,
-            label='3-Pole Fit',
-        )
-
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            (didv._time + didv._irwinparams2priors[6]) * 1e6,
-            (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
-            color='cyan',
-            alpha=0.9,
-            label='2-Pole Fit With Priors',
-        )
-
-    ax.set_xlabel('Time ($\mu$s)')
-    ax.set_ylabel('Amplitude ($\mu$A)')
     ax.set_xlim([didv._time[0] * 1e6, didv._time[-1] * 1e6])
-    ax.legend(loc='upper left')
     ax.set_title("Full Trace of dIdV")
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both', direction='in', right=True, top=True)
 
     if lgcsave:
         fig.savefig(savepath + f"full_trace_{savename}.png")
@@ -130,65 +164,12 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors=True,
 
     """
 
-    if poles == "all":
-        poleslist = np.array([1,2,3])
-    else:
-        poleslist = np.array(poles)
+    fig, ax = _plot_time_domain(didv, poles, plotpriors)
 
     period = 1.0/didv._sgfreq
 
-    ## plot a single period of the trace
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(
-        didv._time * 1e6,
-        (didv._tmean - didv._offset) * 1e6,
-        color='k',
-        label='Mean',
-    )
-
-    if (didv._fitparams1 is not None) and (1 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams1[2]) * 1e6,
-            (didv._didvfit1_timedomain - didv._offset) * 1e6,
-            color='magenta',
-            alpha=0.9,
-            label='1-Pole Fit',
-        )
-
-    if (didv._fitparams2 is not None) and (2 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams2[4]) * 1e6,
-            (didv._didvfit2_timedomain - didv._offset) * 1e6,
-            color='green',
-            alpha=0.9,
-            label='2-Pole Fit',
-        )
-
-    if (didv._fitparams3 is not None) and (3 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams3[6]) * 1e6,
-            (didv._didvfit3_timedomain - didv._offset) * 1e6,
-            color='orange',
-            alpha=0.9,
-            label='3-Pole Fit',
-        )
-
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            (didv._time + didv._irwinparams2priors[6]) * 1e6,
-            (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
-            color='cyan',
-            alpha=0.9,
-            label='2-Pole Fit With Priors',
-        )
-
-    ax.set_xlabel('Time ($\mu$s)')
-    ax.set_ylabel('Amplitude ($\mu$A)')
     ax.set_xlim([didv._time[0] * 1e6, didv._time[0] * 1e6 + period * 1e6])
-    ax.legend(loc='upper left')
     ax.set_title("Single Period of Trace")
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both', direction='in', right=True, top=True)
 
     if lgcsave:
         fig.savefig(savepath + f"trace_one_period_{savename}.png")
@@ -227,79 +208,32 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
 
     """
 
-    if poles == "all":
-        poleslist = np.array([1,2,3])
-    else:
-        poleslist = np.array(poles)
-
     period = 1.0 / didv._sgfreq
 
+    cost_lambda = lambda x: x['cost'] if x is not None else None
+    dt_lambda = lambda x: x['params']['dt'] if x is not None else None
+
     cost_vals = [
-        didv._fitcost1,
-        didv._fitcost2,
-        didv._fitcost3,
-        didv._fitcost2priors,
+        cost_lambda(didv._1poleresult),
+        cost_lambda(didv._2poleresult),
+        cost_lambda(didv._3poleresult),
+        cost_lambda(didv._irwinresultpriors),
     ]
-    fit_vals = [
-        didv._fitparams1,
-        didv._fitparams2,
-        didv._fitparams3,
-        didv._fitparams2priors,
+    dt_vals = [
+        dt_lambda(didv._1poleresult),
+        dt_lambda(didv._2poleresult),
+        dt_lambda(didv._3poleresult),
+        dt_lambda(didv._irwinresultpriors),
     ]
+    if all(fv is None for fv in cost_vals):
+        best_time_offset = 0
+    else:
+        min_cost_idx = min(
+            (val, ii) for ii, val in enumerate(cost_vals) if val is not None
+        )[1]
+        best_time_offset = dt_vals[min_cost_idx]
 
-    min_cost_idx = min(
-        (val, ii) for ii, val in enumerate(cost_vals) if val is not None
-    )[1]
-
-    best_time_offset = fit_vals[min_cost_idx][-1]
-
-    ## plot zoomed in on the trace
-    fig, ax = plt.subplots(figsize=(10,6))
-    ax.plot(
-        didv._time * 1e6,
-        (didv._tmean - didv._offset) * 1e6,
-        color='k',
-        label='Mean',
-    )
-
-    if (didv._fitparams1 is not None) and (1 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams1[2]) * 1e6,
-            (didv._didvfit1_timedomain - didv._offset) * 1e6,
-            color='magenta',
-            alpha=0.9,
-            label='1-Pole Fit',
-        )
-
-    if (didv._fitparams2 is not None) and (2 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams2[4]) * 1e6,
-            (didv._didvfit2_timedomain - didv._offset) * 1e6,
-            color='green',
-            alpha=0.9,
-            label='2-Pole Fit',
-        )
-
-    if (didv._fitparams3 is not None) and (3 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams3[6]) * 1e6,
-            (didv._didvfit3_timedomain - didv._offset) * 1e6,
-            color='orange',
-            alpha=0.9,
-            label='3-Pole Fit',
-        )
-
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            (didv._time + didv._irwinparams2priors[6]) * 1e6,
-            (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
-            color='cyan',
-            alpha=0.9,
-            label='2-Pole Fit With Priors',
-        )
-
-    ax.set_xlabel('Time ($\mu$s)')
-    ax.set_ylabel('Amplitude ($\mu$A)')
+    fig, ax = _plot_time_domain(didv, poles, plotpriors)
 
     ax.set_xlim(
         (best_time_offset + didv._time[0] + (
@@ -310,10 +244,8 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
         ) * 1e6,
     )
 
-    ax.legend(loc='upper left')
     ax.set_title("Zoomed In Portion of Trace")
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both', direction='in', right=True, top=True)
+
     if lgcsave:
         fig.savefig(savepath + f"zoomed_in_trace_{savename}.png")
         plt.close(fig)
@@ -348,24 +280,12 @@ def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
 
     """
 
-    if poles == "all":
-        poleslist = np.array([1,2,3])
-    else:
-        poleslist = np.array(poles)
-
-    ## plot the traces as well as the traces flipped in order to
-    # check asymmetry
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(
-        didv._time * 1e6,
-        (didv._tmean - didv._offset) * 1e6,
-        color='k',
-        label='Data',
-    )
+    fig, ax = _plot_time_domain(didv, poles, plotpriors)
 
     period = 1.0 / didv._sgfreq
     time_flipped = didv._time - period / 2.0
-    tmean_flipped =- (didv._tmean - didv._offset)
+    tmean_flipped = -(didv._tmean - didv._offset)
+
     ax.plot(
         time_flipped * 1e6,
         tmean_flipped * 1e6,
@@ -373,48 +293,8 @@ def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
         label='Flipped Data',
     )
 
-    if (didv._fitparams1 is not None) and (1 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams1[2]) * 1e6,
-            (didv._didvfit1_timedomain - didv._offset) * 1e6,
-            color='magenta',
-            alpha=0.9,
-            label='1-Pole Fit',
-        )
-
-    if (didv._fitparams2 is not None) and (2 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams2[4]) * 1e6,
-            (didv._didvfit2_timedomain - didv._offset) * 1e6,
-            color='green',
-            alpha=0.9,
-            label='2-Pole Fit',
-        )
-
-    if (didv._fitparams3 is not None) and (3 in poleslist):
-        ax.plot(
-            (didv._time + didv._fitparams3[6]) * 1e6,
-            (didv._didvfit3_timedomain - didv._offset) * 1e6,
-            color='orange',
-            alpha=0.9,
-            label='3-Pole Fit',
-        )
-
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            (didv._time + didv._irwinparams2priors[6]) * 1e6,
-            (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
-            color='cyan',
-            alpha=0.9,
-            label='2-Pole Fit With Priors',
-        )
-
-    ax.set_xlabel('Time ($\mu$s)')
-    ax.set_ylabel('Amplitude ($\mu$A)')
-    ax.legend(loc='upper left')
     ax.set_title("Flipped Traces to Check Asymmetry")
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both', direction='in', right=True, top=True)
+
     if lgcsave:
         fig.savefig(savepath + f"flipped_trace_{savename}.png")
         plt.close(fig)
@@ -459,30 +339,30 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
     fitinds = didv._freq > 0
     plotinds = np.logical_and(fitinds, goodinds)
 
-    cost_vals = [
-        didv._fitcost1,
-        didv._fitcost2,
-        didv._fitcost3,
-        didv._fitcost2priors,
-    ]
-    fit_vals = [
-        didv._fitparams1,
-        didv._fitparams2,
-        didv._fitparams3,
-        didv._fitparams2priors,
-    ]
+    cost_lambda = lambda x: x['cost'] if x is not None else None
+    dt_lambda = lambda x: x['params']['dt'] if x is not None else None
 
-    if all(fv is None for fv in fit_vals):
+    cost_vals = [
+        cost_lambda(didv._1poleresult),
+        cost_lambda(didv._2poleresult),
+        cost_lambda(didv._3poleresult),
+        cost_lambda(didv._irwinresultpriors),
+    ]
+    dt_vals = [
+        dt_lambda(didv._1poleresult),
+        dt_lambda(didv._2poleresult),
+        dt_lambda(didv._3poleresult),
+        dt_lambda(didv._irwinresultpriors),
+    ]
+    if all(fv is None for fv in cost_vals):
         best_time_offset = 0
     else:
         min_cost_idx = min(
             (val, ii) for ii, val in enumerate(cost_vals) if val is not None
         )[1]
-        best_time_offset = fit_vals[min_cost_idx][-1]
+        best_time_offset = dt_vals[min_cost_idx]
 
     time_phase = np.exp(2.0j * np.pi * best_time_offset * didv._freq)
-
-    phase_correction = lambda x: np.exp(2.0j * np.pi * x * didv._freq)
 
     ## plot the real part of the dIdV in frequency domain
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -509,45 +389,48 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         alpha=0.1,
     )
 
-    if (didv._fitparams1 is not None) and (1 in poleslist):
+    if (didv._1poleresult is not None) and (1 in poleslist):
+        didvfit1_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(1)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.real(didv._didvfit1_freqdomain * phase_correction(
-                didv._fitparams1[-1]
-            ))[fitinds],
+            np.real(didvfit1_freqdomain)[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
 
-    if (didv._fitparams2 is not None) and (2 in poleslist):
+    if (didv._2poleresult is not None) and (2 in poleslist):
+        didvfit2_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(2)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.real(didv._didvfit2_freqdomain * phase_correction(
-                didv._fitparams2[-1]
-            ))[fitinds],
+            np.real(didvfit2_freqdomain)[fitinds],
             color='green',
             label='2-Pole Fit',
         )
 
-    if (didv._fitparams3 is not None) and (3 in poleslist):
+    if (didv._3poleresult is not None) and (3 in poleslist):
+        didvfit3_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(3)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.real(didv._didvfit3_freqdomain * phase_correction(
-                didv._fitparams3[-1]
-            ))[fitinds],
+            np.real(didvfit3_freqdomain)[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
 
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            didv._freq[fitinds],
-            np.real(didv._didvfit2priors_freqdomain * phase_correction(
-                didv._fitparams2priors[-1]
-            ))[fitinds],
-            color='cyan',
-            label='2-Pole Fit With Priors',
-        )
+#     if (didv._irwinparams2priors is not None) and (plotpriors):
+#         ax.plot(
+#             didv._freq[fitinds],
+#             np.real(didv._didvfit2priors_freqdomain * phase_correction(
+#                 didv._fitparams2priors[-1]
+#             ))[fitinds],
+#             color='cyan',
+#             label='2-Pole Fit With Priors',
+#         )
 
 
     ax.set_xlabel('Frequency (Hz)')
@@ -603,45 +486,48 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         alpha=0.1,
     )
 
-    if (didv._fitparams1 is not None) and (1 in poleslist):
+    if (didv._1poleresult is not None) and (1 in poleslist):
+        didvfit1_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(1)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.imag(didv._didvfit1_freqdomain * phase_correction(
-                didv._fitparams1[-1]
-            ))[fitinds],
+            np.imag(didvfit1_freqdomain)[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
 
-    if (didv._fitparams2 is not None) and (2 in poleslist):
+    if (didv._2poleresult is not None) and (2 in poleslist):
+        didvfit2_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(2)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.imag(didv._didvfit2_freqdomain * phase_correction(
-                didv._fitparams2[-1]
-            ))[fitinds],
+            np.imag(didvfit2_freqdomain)[fitinds],
             color='green',
             label='2-Pole Fit',
         )
 
-    if (didv._fitparams3 is not None) and (3 in poleslist):
+    if (didv._3poleresult is not None) and (3 in poleslist):
+        didvfit3_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(3)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.imag(didv._didvfit3_freqdomain * phase_correction(
-                didv._fitparams3[-1]
-            ))[fitinds],
+            np.imag(didvfit3_freqdomain)[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
 
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            didv._freq[fitinds],
-            np.imag(didv._didvfit2priors_freqdomain * phase_correction(
-                didv._fitparams2priors[-1]
-            ))[fitinds],
-            color='cyan',
-            label='2-Pole Fit With Priors',
-        )
+#     if (didv._irwinparams2priors is not None) and (plotpriors):
+#         ax.plot(
+#             didv._freq[fitinds],
+#             np.imag(didv._didvfit2priors_freqdomain * phase_correction(
+#                 didv._fitparams2priors[-1]
+#             ))[fitinds],
+#             color='cyan',
+#             label='2-Pole Fit With Priors',
+#         )
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
@@ -707,30 +593,30 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
     fitinds = didv._freq > 0
     plotinds = np.logical_and(fitinds, goodinds)
 
-    cost_vals = [
-        didv._fitcost1,
-        didv._fitcost2,
-        didv._fitcost3,
-        didv._fitcost2priors,
-    ]
-    fit_vals = [
-        didv._fitparams1,
-        didv._fitparams2,
-        didv._fitparams3,
-        didv._fitparams2priors,
-    ]
+    cost_lambda = lambda x: x['cost'] if x is not None else None
+    dt_lambda = lambda x: x['params']['dt'] if x is not None else None
 
-    if all(fv is None for fv in fit_vals):
+    cost_vals = [
+        cost_lambda(didv._1poleresult),
+        cost_lambda(didv._2poleresult),
+        cost_lambda(didv._3poleresult),
+        cost_lambda(didv._irwinresultpriors),
+    ]
+    dt_vals = [
+        dt_lambda(didv._1poleresult),
+        dt_lambda(didv._2poleresult),
+        dt_lambda(didv._3poleresult),
+        dt_lambda(didv._irwinresultpriors),
+    ]
+    if all(fv is None for fv in cost_vals):
         best_time_offset = 0
     else:
         min_cost_idx = min(
             (val, ii) for ii, val in enumerate(cost_vals) if val is not None
         )[1]
-        best_time_offset = fit_vals[min_cost_idx][-1]
+        best_time_offset = dt_vals[min_cost_idx]
 
     time_phase = np.exp(2.0j * np.pi * best_time_offset * didv._freq)
-
-    phase_correction = lambda x: np.exp(2.0j * np.pi * x * didv._freq)
 
     ## plot the absolute value of the dIdV in frequency domain
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -757,37 +643,46 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         alpha=0.1,
     )
 
-    if (didv._fitparams1 is not None) and (1 in poleslist):
+    if (didv._1poleresult is not None) and (1 in poleslist):
+        didvfit1_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(1)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.abs(didv._didvfit1_freqdomain)[fitinds],
+            np.abs(didvfit1_freqdomain)[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
 
-    if (didv._fitparams2 is not None) and (2 in poleslist):
+    if (didv._2poleresult is not None) and (2 in poleslist):
+        didvfit2_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(2)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.abs(didv._didvfit2_freqdomain)[fitinds],
+            np.abs(didvfit2_freqdomain)[fitinds],
             color='green',
             label='2-Pole Fit',
         )
 
-    if (didv._fitparams3 is not None) and (3 in poleslist):
+    if (didv._3poleresult is not None) and (3 in poleslist):
+        didvfit3_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(3)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.abs(didv._didvfit3_freqdomain)[fitinds],
+            np.abs(didvfit3_freqdomain)[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
 
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            didv._freq[fitinds],
-            np.abs(didv._didvfit2priors_freqdomain)[fitinds],
-            color='cyan',
-            label='2-Pole Fit With Priors',
-        )
+#     if (didv._irwinparams2priors is not None) and (plotpriors):
+#         ax.plot(
+#             didv._freq[fitinds],
+#             np.abs(didv._didvfit2priors_freqdomain)[fitinds],
+#             color='cyan',
+#             label='2-Pole Fit With Priors',
+#         )
 
 
     ax.set_xlabel('Frequency (Hz)')
@@ -836,45 +731,48 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         alpha=0.1,
     )
 
-    if (didv._fitparams1 is not None) and (1 in poleslist):
+    if (didv._1poleresult is not None) and (1 in poleslist):
+        didvfit1_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(1)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.angle(didv._didvfit1_freqdomain * phase_correction(
-                didv._fitparams1[-1]
-            ))[fitinds],
+            np.angle(didvfit1_freqdomain)[fitinds],
             color='magenta',
             label='1-Pole Fit',
         )
 
-    if (didv._fitparams2 is not None) and (2 in poleslist):
+    if (didv._2poleresult is not None) and (2 in poleslist):
+        didvfit2_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(2)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.angle(didv._didvfit2_freqdomain * phase_correction(
-                didv._fitparams2[-1]
-            ))[fitinds],
+            np.angle(didvfit2_freqdomain)[fitinds],
             color='green',
             label='2-Pole Fit',
         )
 
-    if (didv._fitparams3 is not None) and (3 in poleslist):
+    if (didv._3poleresult is not None) and (3 in poleslist):
+        didvfit3_freqdomain = qp.complexadmittance(
+            didv._freq, **didv.fitresult(3)['params'],
+        )
         ax.plot(
             didv._freq[fitinds],
-            np.angle(didv._didvfit3_freqdomain * phase_correction(
-                didv._fitparams3[-1]
-            ))[fitinds],
+            np.angle(didvfit3_freqdomain)[fitinds],
             color='orange',
             label='3-Pole Fit',
         )
 
-    if (didv._irwinparams2priors is not None) and (plotpriors):
-        ax.plot(
-            didv._freq[fitinds],
-            np.angle(didv._didvfit2priors_freqdomain * phase_correction(
-                didv._fitparams2priors[-1]
-            ))[fitinds],
-            color='cyan',
-            label='2-Pole Fit With Priors',
-        )
+#     if (didv._irwinparams2priors is not None) and (plotpriors):
+#         ax.plot(
+#             didv._freq[fitinds],
+#             np.angle(didv._didvfit2priors_freqdomain * phase_correction(
+#                 didv._fitparams2priors[-1]
+#             ))[fitinds],
+#             color='cyan',
+#             label='2-Pole Fit With Priors',
+#         )
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Arg($dI/dV$)')
