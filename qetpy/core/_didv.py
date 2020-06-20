@@ -702,7 +702,8 @@ class DIDV(object):
 
         tracelength = len(x)
 
-        # get the frequencies for a DFT, based on the sample rate of the data
+        # get the frequencies for a DFT,
+        # based on the sample rate of the data
         dx = x[1]-x[0]
         freq = fftfreq(len(x), d=dx)
 
@@ -717,7 +718,9 @@ class DIDV(object):
             # due to float precision, np.mod will have errors on the order of
             # 1e-10 for large numbers, thus we set a bound on the error (1e-8)
             oddinds = ((np.abs(np.mod(np.absolute(freq/sgfreq), 2)-1))<1e-8)
-            sf[oddinds] = 1.0j/(pi*freq[oddinds]/sgfreq)*sgamp*rshunt*tracelength
+            sf[oddinds] = 1.0j/(
+                pi*freq[oddinds]/sgfreq
+            )*sgamp*rshunt*tracelength
         else:
             oddinds = ((np.abs(np.mod(np.abs(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = -1.0j/(
@@ -734,18 +737,19 @@ class DIDV(object):
             )
 
         # the tracelength/2 value from the FFT is purely real, which can cause
-        # errors when taking the standard deviation (get stddev = 0 for real part
-        # of didv at this frequency, leading to a divide by zero when calculating
-        # the residual when fitting)
+        # errors when taking the standard deviation (get stddev = 0 for real
+        # part of didv at this frequency, leading to a divide by zero when
+        # calculating the residual when fitting)
         sf[tracelength//2] = 0.0j
 
-        # deconvolve the trace from the square wave to get the didv in frequency
-        # space
+        # deconvolve the trace from the square wave to get the didv in
+        # frequency space
         dvdi = (sf/st)
 
-        # set values that are within floating point error of zero to 1.0 + 1.0j
-        # (we will give these values virtually infinite error, so the value
-        # doesn't matter. Setting to 1.0+1.0j avoids divide by zero if we invert)
+        # set values that are within floating point error of zero to
+        # 1.0 + 1.0j (we will give these values virtually infinite error, so
+        # the value doesn't matter. Setting to 1.0+1.0j avoids divide by zero
+        # if we invert)
         zeroinds = np.abs(dvdi) < 1e-16
         dvdi[zeroinds] = (1.0+1.0j)
 
@@ -1176,7 +1180,8 @@ class DIDV(object):
         if not res['success'] :
             print(f"{poles}-Pole Fit Failed: " + res['message'])
 
-        # take matrix product of transpose of jac and jac, take the inverse to get the analytic covariance matrix
+        # take matrix product of transpose of jac and jac, take the inverse
+        # to get the analytic covariance matrix
         pcovinv = np.dot(res["jac"].transpose(), res["jac"])
         pcov = np.linalg.inv(pcovinv)
 
@@ -1208,8 +1213,6 @@ class DIDV(object):
             Define priors part of residual for nonlinear least squares.
 
             """
-            # priors = prior known values of rload, r0, beta, l, L, tau0
-            # invpriorscov = inverse of the covariance matrix of the priors
 
             z1dpriors = np.sqrt(
                 (priors-params).dot(invpriorscov).dot(priors-params)
@@ -1339,8 +1342,9 @@ class DIDV(object):
         popt = res['x']
         cost = res['cost']
 
-        # check if the fit failed (usually only happens when we reach maximum
-        # evaluations, likely when fitting assuming the wrong loop gain)
+        # check if the fit failed (usually only happens when we reach
+        # maximum evaluations, likely when fitting assuming the wrong
+        # loop gain)
         if not res['success']:
             print("2-Pole Priors Fit Failed: " + res['message'])
 
@@ -1394,7 +1398,7 @@ class DIDV(object):
 
         self._time = bins*dt - self._dt0
 
-        #figure out how many didv periods are in the trace, including
+        # figure out how many didv periods are in the trace, including
         # the time offset
         period = 1.0/self._sgfreq
         nperiods = np.floor(nbinsraw*dt/period)
@@ -1785,12 +1789,17 @@ class DIDV(object):
         )
 
         # convert answer back to A, B, tauI, tauEL basis for plotting
-        self._fitparams2priors, self._fitcov2priors = DIDV._convertfromtesvalues(
+        (
+            self._fitparams2priors,
+            self._fitcov2priors,
+        ) = DIDV._convertfromtesvalues(
             self._irwinparams2priors, self._irwincov2priors,
         )
 
         # Find the didv falltimes
-        self._falltimes2priors = DIDV._findpolefalltimes(self._fitparams2priors)
+        self._falltimes2priors = DIDV._findpolefalltimes(
+            self._fitparams2priors,
+        )
 
         # save the fits with priors in time and frequency domain
         self._didvfit2priors_timedomain = DIDV._convolvedidv(
