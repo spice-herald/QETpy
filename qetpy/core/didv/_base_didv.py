@@ -103,11 +103,11 @@ def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     poles = _pole_extractor(passed_args)
 
     if poles == 1:
-        return DIDV._onepoleimpedance(f, A, tau2)
+        return _BaseDIDV._onepoleimpedance(f, A, tau2)
     if poles == 2:
-        return DIDV._twopoleimpedance(f, A, B, tau1, tau2)
+        return _BaseDIDV._twopoleimpedance(f, A, B, tau1, tau2)
     if poles == 3:
-        return DIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
+        return _BaseDIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
 
 
 def complexadmittance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
@@ -116,7 +116,7 @@ def complexadmittance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     Method for calculating the complex admittance for a given
     model, depending on the parameters inputted (see Notes for more
     information). This is simply the reciprocal of
-    `qetpy.DIDV.compleximpedance`.
+    `qetpy.compleximpedance`.
 
     Parameters
     ----------
@@ -263,15 +263,15 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
     poles = _pole_extractor(passed_args)
 
     if poles == 1:
-        return DIDV._convolvedidv(
+        return _BaseDIDV._convolvedidv(
             t, A, 0, 0, 0, tau2, 0, sgamp, rshunt, sgfreq, dutycycle,
         )
     if poles == 2:
-        return DIDV._convolvedidv(
+        return _BaseDIDV._convolvedidv(
             t, A, B, 0, tau1, tau2, 0, sgamp, rshunt, sgfreq, dutycycle,
         )
     if poles == 3:
-        return DIDV._convolvedidv(
+        return _BaseDIDV._convolvedidv(
             t, A, B, C, tau1, tau2, tau3, sgamp, rshunt, sgfreq, dutycycle,
         )
 
@@ -392,7 +392,7 @@ class _BaseDIDV(object):
 
         """
 
-        dvdi = DIDV._onepoleimpedance(freq, A, tau2)
+        dvdi = _BaseDIDV._onepoleimpedance(freq, A, tau2)
         return (1.0/dvdi)
 
 
@@ -416,7 +416,7 @@ class _BaseDIDV(object):
 
         """
 
-        dvdi = DIDV._twopoleimpedance(freq, A, B, tau1, tau2)
+        dvdi = _BaseDIDV._twopoleimpedance(freq, A, B, tau1, tau2)
         return (1.0/dvdi)
 
 
@@ -444,7 +444,7 @@ class _BaseDIDV(object):
 
         """
 
-        dvdi = DIDV._threepoleimpedance(freq, A, B, C, tau1, tau2, tau3)
+        dvdi = _BaseDIDV._threepoleimpedance(freq, A, B, C, tau1, tau2, tau3)
         return (1.0/dvdi)
 
 
@@ -465,7 +465,7 @@ class _BaseDIDV(object):
         freq = fftfreq(len(x), d=dx)
 
         # didv of fit in frequency space
-        ci = DIDV._threepoleadmittance(freq, A, B, C, tau1, tau2, tau3)
+        ci = _BaseDIDV._threepoleadmittance(freq, A, B, C, tau1, tau2, tau3)
 
         # analytic DFT of a duty cycled square wave
         sf = np.zeros_like(freq)*0.0j
@@ -913,7 +913,7 @@ class _BaseDIDV(object):
         for trace in self._traces:
             # deconvolve the trace from the square wave to get the
             # dI/dV in frequency domain
-            didvi = DIDV._deconvolvedidv(
+            didvi = _BaseDIDV._deconvolvedidv(
                 self._time,
                 trace,
                 self._rshunt,
@@ -936,7 +936,7 @@ class _BaseDIDV(object):
 
         #store results
         self._tmean = np.mean(self._traces, axis=0)
-        self._freq, self._zeroinds = DIDV._deconvolvedidv(
+        self._freq, self._zeroinds = _BaseDIDV._deconvolvedidv(
             self._time,
             self._tmean,
             self._rshunt,
