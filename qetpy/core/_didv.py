@@ -392,9 +392,8 @@ class DIDV(object):
     """
     Class for fitting a didv curve for different types of models of the
     didv. Also gives various other useful values pertaining to the
-    didv. This class supports doing 1, 2, and 3 pole fits, as well as a
-    2 pole priors fit. This is supported in a way that does one dataset
-    at a time.
+    didv. This class supports doing 1, 2, and 3 pole fits. This is
+    supported in a way that does one dataset at a time.
 
     """
 
@@ -492,8 +491,6 @@ class DIDV(object):
         self._3poleresult = None
         self._3poleresultpriors = None
 
-        self._irwinresultpriors = None
-
 
     @staticmethod
     def _onepoleimpedance(freq, A, tau2):
@@ -506,6 +503,7 @@ class DIDV(object):
         dvdi = (A*(1.0+2.0j*pi*freq*tau2))
         return dvdi
 
+
     @staticmethod
     def _onepoleadmittance(freq, A, tau2):
         """
@@ -516,6 +514,7 @@ class DIDV(object):
 
         dvdi = DIDV._onepoleimpedance(freq, A, tau2)
         return (1.0/dvdi)
+
 
     @staticmethod
     def _twopoleimpedance(freq, A, B, tau1, tau2):
@@ -528,6 +527,7 @@ class DIDV(object):
         dvdi = (A*(1.0+2.0j*pi*freq*tau2))+(B/(1.0+2.0j*pi*freq*tau1))
         return dvdi
 
+
     @staticmethod
     def _twopoleadmittance(freq, A, B, tau1, tau2):
         """
@@ -538,6 +538,7 @@ class DIDV(object):
 
         dvdi = DIDV._twopoleimpedance(freq, A, B, tau1, tau2)
         return (1.0/dvdi)
+
 
     @staticmethod
     def _threepoleimpedance(freq, A, B, C, tau1, tau2, tau3):
@@ -554,6 +555,7 @@ class DIDV(object):
         )
         return dvdi
 
+
     @staticmethod
     def _threepoleadmittance(freq, A, B, C, tau1, tau2, tau3):
         """
@@ -565,31 +567,6 @@ class DIDV(object):
         dvdi = DIDV._threepoleimpedance(freq, A, B, C, tau1, tau2, tau3)
         return (1.0/dvdi)
 
-    @staticmethod
-    def _twopoleimpedancepriors(freq, rload, r0, beta, l, L, tau0):
-        """
-        Function to calculate the impedance (dvdi) of a TES with the
-        2-pole fit from Irwin's TES parameters.
-
-        """
-
-        dvdi = (
-            rload + r0*(1.0+beta) + 2.0j*pi*freq*L
-        ) + (
-            r0 * l * (2.0+beta)/(1.0-l) * 1.0/(1.0+2.0j*freq*pi*tau0/(1.0-l))
-        )
-        return dvdi
-
-    @staticmethod
-    def _twopoleadmittancepriors(freq, rload, r0, beta, l, L, tau0):
-        """
-        Function to calculate the admittance (didv) of a TES with the
-        2-pole fit from Irwin's TES parameters
-
-        """
-
-        dvdi = DIDV._twopoleimpedancepriors(freq, rload, r0, beta, l, L, tau0)
-        return (1.0/dvdi)
 
     @staticmethod
     def _convolvedidv(x, A, B, C, tau1, tau2, tau3, sgamp, rshunt, sgfreq,
@@ -644,6 +621,7 @@ class DIDV(object):
         st = ifft(sftes)
 
         return np.real(st)
+
 
     @staticmethod
     def _deconvolvedidv(x, trace, rshunt, sgamp, sgfreq, dutycycle):
@@ -712,6 +690,7 @@ class DIDV(object):
 
         return freq, didv, zeroinds
 
+
     @staticmethod
     def _squarewaveguessparams(trace, sgamp, rshunt):
         """Function to guess the fit parameters for the 1-pole fit."""
@@ -720,6 +699,7 @@ class DIDV(object):
         A0 = sgamp*rshunt/di0
         tau20 = 1.0e-6
         return A0, tau20
+
 
     @staticmethod
     def _guessdidvparams(trace, flatpts, sgamp, rshunt, L0=1.0e-7):
@@ -932,6 +912,7 @@ class DIDV(object):
 
         return popt_out, pcov_out
 
+
     @staticmethod
     def _findpolefalltimes(params):
         """
@@ -1142,195 +1123,6 @@ class DIDV(object):
         return popt, pcov, cost
 
 
-    @staticmethod
-    def _fitdidvpriors(freq, didv, priors, invpriorscov, yerr=None,
-                       rload=0.35, r0=0.130, beta=0.5, l=10.0, L=500.0e-9,
-                       tau0=500.0e-6,  dt=-10.0e-6):
-        """
-        Function to directly fit Irwin's TES parameters (rload, r0,
-        beta, l, L, tau0, dt) with the knowledge of prior known values
-        any number of the parameters. In order for the degeneracy of
-        the parameters to be broken, at least 2 fit parameters should
-        have priors knowledge. This is usually rload and r0, as these
-        can be known from IV data.
-
-        """
-
-        p0 = (rload, r0, beta, l, L, tau0, dt)
-        bounds=(
-            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),
-            (np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf),
-        )
-
-        def _residualpriors(params, priors, invpriorscov):
-            """
-            Define priors part of residual for nonlinear least squares.
-
-            """
-
-            z1dpriors = np.sqrt(
-                (priors-params).dot(invpriorscov).dot(priors-params)
-            )
-            return z1dpriors
-
-        def _residual(params):
-            """
-            Define a residual for the nonlinear least squares algorithm
-            for the priors fit.
-
-            """
-
-            rload, r0, beta, l, L, tau0, dt=params
-            ci = DIDV._twopoleadmittancepriors(
-                freq, rload, r0, beta, l, L, tau0,
-            ) * np.exp(-2.0j*pi*freq*dt)
-
-            # the difference between the data and the fit
-            diff = didv-ci
-            # get the weights from yerr, these should be
-            # 1/(standard deviation) for real and imaginary parts
-            if(yerr is None):
-                weights = 1.0+1.0j
-            else:
-                weights = 1.0/yerr.real+1.0j/yerr.imag
-
-            # create the residual vector, splitting up real and imaginary
-            # parts of the residual separately
-            z1d = np.zeros(freq.size*2+1, dtype = np.float64)
-            z1d[0:z1d.size-1:2] = diff.real*weights.real
-            z1d[1:z1d.size-1:2] = diff.imag*weights.imag
-            z1d[-1] = _residualpriors(params,priors,invpriorscov)
-            return z1d
-
-        def _jaca(params):
-            """
-            Create the analytic Jacobian matrix for calculating the
-            errors in the priors parameters.
-
-            """
-
-            # analytically calculate the Jacobian for 2 pole
-            # and three pole cases
-            popt = params
-
-            # popt = rload,r0,beta,l,L,tau0,dt
-            rload = popt[0]
-            r0 = popt[1]
-            beta = popt[2]
-            l = popt[3]
-            L = popt[4]
-            tau0 = popt[5]
-            dt = popt[6]
-
-            # derivative of 1/x = -1/x**2 (without doing chain rule)
-            deriv1 = -1.0/(
-                (
-                    2.0j*pi*freq*L + rload + r0*(1.0+beta)
-                ) + r0*l*(2.0+beta)/(1.0-l)*1.0/(
-                    1.0+2.0j*pi*freq*tau0/(1-l)
-                )
-            )**2
-
-            dYdrload = np.zeros(freq.size*2, dtype = np.float64)
-            dYdrloadcomplex = deriv1 * np.exp(-2.0j*pi*freq*dt)
-            dYdrload[0:dYdrload.size:2] = np.real(dYdrloadcomplex)
-            dYdrload[1:dYdrload.size:2] = np.imag(dYdrloadcomplex)
-
-            dYdr0 = np.zeros(freq.size*2, dtype = np.float64)
-            dYdr0complex = deriv1 * (1.0+beta + l * (2.0+beta)/(
-                1.0 - l +2.0j*pi*freq*tau0
-            ))  * np.exp(-2.0j*pi*freq*dt)
-            dYdr0[0:dYdr0.size:2] = np.real(dYdr0complex)
-            dYdr0[1:dYdr0.size:2] = np.imag(dYdr0complex)
-
-            dYdbeta = np.zeros(freq.size*2, dtype = np.float64)
-            dYdbetacomplex = deriv1 * (r0+2.0j*pi*freq*r0*tau0)/(
-                1.0-l + 2.0j*pi*freq*tau0
-            ) * np.exp(-2.0j*pi*freq*dt)
-            dYdbeta[0:dYdbeta.size:2] = np.real(dYdbetacomplex)
-            dYdbeta[1:dYdbeta.size:2] = np.imag(dYdbetacomplex)
-
-            dYdl = np.zeros(freq.size*2, dtype = np.float64)
-            dYdlcomplex = deriv1 * r0*(2.0+beta)*(1.0+2.0j*pi*freq*tau0)/(
-                1.0-l+2.0j*pi*freq*tau0
-            )**2 * np.exp(-2.0j*pi*freq*dt)
-            dYdl[0:dYdl.size:2] = np.real(dYdlcomplex)
-            dYdl[1:dYdl.size:2] = np.imag(dYdlcomplex)
-
-            dYdL = np.zeros(freq.size*2, dtype = np.float64)
-            dYdLcomplex = deriv1 * 2.0j*pi*freq * np.exp(-2.0j*pi*freq*dt)
-            dYdL[0:dYdL.size:2] = np.real(dYdLcomplex)
-            dYdL[1:dYdL.size:2] = np.imag(dYdLcomplex)
-
-            dYdtau0 = np.zeros(freq.size*2, dtype = np.float64)
-            dYdtau0complex = deriv1 * -2.0j*pi*freq*l*r0*(2.0+beta)/(
-                1.0-l+2.0j*pi*freq*tau0
-            )**2 * np.exp(-2.0j*pi*freq*dt)
-            dYdtau0[0:dYdtau0.size:2] = np.real(dYdtau0complex)
-            dYdtau0[1:dYdtau0.size:2] = np.imag(dYdtau0complex)
-
-            dYddt = np.zeros(freq.size*2, dtype = np.float64)
-            dYddtcomplex = -2.0j*pi*freq/(
-                (
-                    2.0j*pi*freq*L + rload + r0*(1.0+beta)
-                ) + r0*l*(2.0+beta)/(1.0-l)*1.0/(1.0+2.0j*pi*freq*tau0/(1-l))
-            ) * np.exp(-2.0j*pi*freq*dt)
-            dYddt[0:dYddt.size:2] = np.real(dYddtcomplex)
-            dYddt[1:dYddt.size:2] = np.imag(dYddtcomplex)
-
-            jac = np.column_stack(
-                (dYdrload, dYdr0, dYdbeta, dYdl, dYdL, dYdtau0, dYddt)
-            )
-            return jac
-
-        res = least_squares(
-            _residual,
-            p0,
-            bounds=bounds,
-            loss='linear',
-            max_nfev=1000,
-            verbose=0,
-            x_scale=np.abs(p0),
-        )
-
-        popt = res['x']
-        cost = res['cost']
-
-        # check if the fit failed (usually only happens when we reach
-        # maximum evaluations, likely when fitting assuming the wrong
-        # loop gain)
-        if not res['success']:
-            print("2-Pole Priors Fit Failed: " + res['message'])
-
-        # analytically calculate the covariance matrix
-        if (yerr is None):
-            weights = 1.0+1.0j
-        else:
-            weights = 1.0/yerr.real+1.0j/yerr.imag
-
-        #convert weights to variances (want 1/var, as we are creating the
-        # inverse of the covariance matrix)
-        weightvals = np.zeros(freq.size*2, dtype = np.float64)
-        weightvals[0:weightvals.size:2] = weights.real**2
-        weightvals[1:weightvals.size:2] = weights.imag**2
-
-        jac = _jaca(popt)
-        jact = np.transpose(jac)
-        wjac = np.zeros_like(jac)
-
-        # right multiply inverse of covariance matrix by the jacobian (we do
-        # this element by element, to avoid creating a huge covariance matrix)
-        for ii in range(0, len(popt)):
-            wjac[:,ii] = np.multiply(weightvals, jac[:,ii])
-
-        # left multiply by the jacobian and take the inverse to get the
-        # analytic covariance matrix
-        pcovinv = np.dot(jact, wjac) + invpriorscov
-        pcov = np.linalg.inv(pcovinv)
-
-        return popt, pcov, cost
-
-
     def processtraces(self):
         """
         This method processes the traces loaded to the DIDV class
@@ -1444,8 +1236,7 @@ class DIDV(object):
         """
         This method does the fit that is specified by the variable
         poles. If the `processtraces` module has not been run yet, then
-        this module will run that first. This module does not do the
-        priors fit.
+        this module will run that first.
 
         Parameters
         ----------
@@ -1581,127 +1372,8 @@ class DIDV(object):
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
 
-    def dopriorsfit(self, priors, invpriorscov, fcutoff=np.inf):
-        """
-        This module runs the priors fit using the small signal model
-        parameterization.
-
-        Parameters
-        ----------
-        priors : ndarray
-            Prior known values of Irwin's TES parameters for the
-            trace. Should be in the order of
-            (rload,r0,beta,l,L,tau0,dt)
-        invpriorscov : ndarray
-            Inverse of the covariance matrix of the prior known values
-            of Irwin's TES parameters for the trace (any values that
-            are set to zero mean that we have no knowledge of that
-            parameter)
-        fcutoff : float, optional
-            The cutoff frequency in Hz, above which data is ignored in
-            the specified fitting routine. Default is `np.inf`, which
-            is equivalent to no cutoff frequency.
-
-        """
-
-        if self._tmean is None:
-            self.processtraces()
-
-        fit_freqs = np.abs(self._freq) < fcutoff
-
-        if self._2poleresult is None:
-            # Guess the starting parameters for 2 pole fitting
-            A0, B0, tau10, tau20, isloopgainsub1 = DIDV._guessdidvparams(
-                self._tmean,
-                self._tmean[self._flatinds],
-                self._sgamp,
-                self._rshunt,
-                L0=1.0e-7,
-            )
-            v2guess = np.array([A0, B0, tau10, tau20, self._dt0])
-            priorsguess = DIDV._converttotesvalues(
-                v2guess,
-                np.eye(5),
-                self._r0,
-                self._rload,
-            )[0] # 2 pole params (beta, l, L, tau0, r0, rload, dt)
-            
-            # guesses for the 2 pole priors fit (these guesses must be
-            # positive)
-            beta0 = abs(priorsguess[2])
-            l0 = abs(priorsguess[3])
-            L0 = abs(priorsguess[4])
-            tau0 = abs(priorsguess[5])
-            dt0 = self._dt0
-        else:
-            fitparams2 = np.array(
-                [
-                    self._2poleresult['params']['A'],
-                    self._2poleresult['params']['B'],
-                    self._2poleresult['params']['tau1'],
-                    self._2poleresult['params']['tau2'],
-                    self._2poleresult['params']['dt'],
-                ],
-            )
-
-            irwinparams2, _ = DIDV._converttotesvalues(
-                fitparams2,
-                self._2poleresult['cov'],
-                self._r0,
-                self._rload,
-                r0_err=self._r0_err,
-                rload_err=self._rload_err,
-            )
-            # guesses for the 2 pole priors fit (these guesses must be
-            # positive), using the values from the non-priors 2-pole fit
-            beta0 = abs(irwinparams2[2])
-            l0 = abs(irwinparams2[3])
-            L0 = abs(irwinparams2[4])
-            tau0 = abs(irwinparams2[5])
-            dt0 = irwinparams2[6]
-
-        # 2 pole fitting
-        (
-            irwinparams2priors,
-            irwincov2priors,
-            fitcost2priors,
-        ) = DIDV._fitdidvpriors(
-            self._freq[fit_freqs],
-            self._didvmean[fit_freqs],
-            priors,
-            invpriorscov,
-            yerr=self._didvstd[fit_freqs],
-            r0=abs(self._r0),
-            rload=abs(self._rload),
-            beta=beta0,
-            l=l0,
-            L=L0,
-            tau0=tau0,
-            dt=dt0,
-        )
-
-        # convert answer back to A, B, tauI, tauEL basis for plotting
-        fitparams2priors, fitcov2priors = DIDV._convertfromtesvalues(
-            irwinparams2priors, irwincov2priors,
-        )
-
-        # Find the didv falltimes
-        falltimes2priors = DIDV._findpolefalltimes(
-            fitparams2priors,
-        )
-
-        self._irwinresultpriors = DIDV._fitresult(
-            2,
-            irwinparams2priors,
-            irwincov2priors,
-            falltimes2priors,
-            fitcost2priors,
-            irwin=True,
-        )
-
-
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost, irwin=False):
+    def _fitresult(poles, params, cov, falltimes, cost):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -1728,7 +1400,7 @@ class DIDV(object):
 
             return result
 
-        if poles == 2 and not irwin:
+        if poles == 2:
             result['params'] = {
                 'A': params[0],
                 'B': params[1],
@@ -1769,32 +1441,6 @@ class DIDV(object):
                 'tau1': errors[3],
                 'tau2': errors[4],
                 'tau3': errors[5],
-                'dt': errors[6],
-            }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
-
-            return result
-
-        if poles == 2 and irwin:
-            result['params'] = {
-                'rl': params[0],
-                'r0': params[1],
-                'beta': params[2],
-                'l': params[3],
-                'L': params[4],
-                'tau0': params[5],
-                'dt': params[6],
-            }
-            result['cov'] = cov
-            errors = np.diag(cov)**0.5
-            result['errors'] = {
-                'rl': errors[0],
-                'r0': errors[1],
-                'beta': errors[2],
-                'l': errors[3],
-                'L': errors[4],
-                'tau0': errors[5],
                 'dt': errors[6],
             }
             result['falltimes'] = falltimes
@@ -1855,14 +1501,8 @@ class DIDV(object):
             return self._3poleresult
 
 
-    def irwinresult(self):
-        """Get the Irwin parameters dictionary."""
-
-        return self._irwinresultpriors
-
-
-    def plot_full_trace(self, poles="all", plotpriors=True, lgcsave=False,
-                        savepath="", savename=""):
+    def plot_full_trace(self, poles="all", lgcsave=False, savepath="",
+                        savename=""):
         """
         Module to plot the entire trace in time domain
 
@@ -1872,9 +1512,6 @@ class DIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -1893,14 +1530,14 @@ class DIDV(object):
         utils.plot_full_trace(
             self,
             poles=poles,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,
         )
+
     
-    def plot_single_period_of_trace(self, poles="all", plotpriors=True,
-                                    lgcsave=False, savepath="", savename=""):
+    def plot_single_period_of_trace(self, poles="all", lgcsave=False,
+                                    savepath="", savename=""):
         """
         Module to plot a single period of the trace in time domain.
 
@@ -1910,9 +1547,6 @@ class DIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -1931,15 +1565,14 @@ class DIDV(object):
         utils.plot_single_period_of_trace(
             self,
             poles=poles,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,
         )
 
-    def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
-                             plotpriors=True, lgcsave=False, savepath="",
-                             savename=""):
+
+    def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1, lgcsave=False,
+                             savepath="", savename=""):
         """
         Module to plot a zoomed in portion of the trace in time domain.
         This plot zooms in on the overshoot of the didv.
@@ -1953,9 +1586,6 @@ class DIDV(object):
         zoomfactor : float, optional, optional
             Number between zero and 1 to show different amounts of the
             zoomed in trace.
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -1975,14 +1605,14 @@ class DIDV(object):
             self,
             poles=poles,
             zoomfactor=zoomfactor,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,
         )
+
         
-    def plot_didv_flipped(self, poles="all", plotpriors=True, lgcsave=False,
-                          savepath="", savename=""):
+    def plot_didv_flipped(self, poles="all", lgcsave=False, savepath="",
+                          savename=""):
         """
         Module to plot the flipped trace in time domain. This function
         should be used to test if there are nonlinearities in the didv
@@ -1993,9 +1623,6 @@ class DIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -2014,14 +1641,14 @@ class DIDV(object):
         utils.plot_didv_flipped(
             self,
             poles=poles,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,
         )
-        
-    def plot_re_im_didv(self, poles="all", plotpriors=True, lgcsave=False,
-                        savepath="", savename=""):
+
+
+    def plot_re_im_didv(self, poles="all", lgcsave=False, savepath="",
+                        savename=""):
         """
         Module to plot the real and imaginary parts of the didv in
         frequency space. Currently creates two different plots.
@@ -2032,9 +1659,6 @@ class DIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -2053,14 +1677,14 @@ class DIDV(object):
         utils.plot_re_im_didv(
             self,
             poles=poles,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,
         )
 
-    def plot_abs_phase_didv(self, poles="all", plotpriors=True, lgcsave=False,
-                            savepath="", savename=""):
+
+    def plot_abs_phase_didv(self, poles="all", lgcsave=False, savepath="",
+                            savename=""):
         """
         Module to plot the absolute value and the phase of the dIdV in
         frequency space. Currently creates two different plots.
@@ -2071,9 +1695,6 @@ class DIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        plotpriors : boolean, optional
-            Boolean value on whether or not the priors fit should be
-            plotted.
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
@@ -2092,7 +1713,6 @@ class DIDV(object):
         utils.plot_abs_phase_didv(
             self,
             poles=poles,
-            plotpriors=plotpriors,
             lgcsave=lgcsave,
             savepath=savepath,
             savename=savename,

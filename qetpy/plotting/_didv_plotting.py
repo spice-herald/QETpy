@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def _plot_time_domain(didv, poles, plotpriors):
+def _plot_time_domain(didv, poles):
     """Helper function for plotting the fits in time domain."""
 
     if poles == "all":
@@ -82,15 +82,6 @@ def _plot_time_domain(didv, poles, plotpriors):
             label='3-Pole Fit',
         )
 
-#     if (didv._irwinresultpriors is not None) and (plotpriors):
-#         ax.plot(
-#             (didv._time + didv._irwinparams2priors[6]) * 1e6,
-#             (didv._didvfit2priors_timedomain - didv._offset) * 1e6,
-#             color='cyan',
-#             alpha=0.9,
-#             label='2-Pole Fit With Priors',
-#         )
-
     ax.set_xlabel('Time ($\mu$s)')
     ax.set_ylabel('Amplitude ($\mu$A)')
     ax.legend(loc='upper left')
@@ -99,8 +90,9 @@ def _plot_time_domain(didv, poles, plotpriors):
 
     return fig, ax
 
-def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
-                    savepath="", savename=""):
+
+def plot_full_trace(didv, poles="all", lgcsave=False, savepath="",
+                    savename=""):
     """
     Function to plot the entire trace in time domain
 
@@ -112,9 +104,6 @@ def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
         The pole fits that we want to plot. If set to "all", then plots
         all of the fits. Can also be set to just one of the fits. Can
         be set as an array of different fits, e.g. [1, 2]
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -126,7 +115,7 @@ def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
 
     """
 
-    fig, ax = _plot_time_domain(didv, poles, plotpriors)
+    fig, ax = _plot_time_domain(didv, poles)
 
     ax.set_xlim([didv._time[0] * 1e6, didv._time[-1] * 1e6])
     ax.set_title("Full Trace of dIdV")
@@ -137,8 +126,9 @@ def plot_full_trace(didv, poles="all", plotpriors=True, lgcsave=False,
     else:
         plt.show()
 
-def plot_single_period_of_trace(didv, poles="all", plotpriors=True,
-                                lgcsave=False, savepath="", savename=""):
+
+def plot_single_period_of_trace(didv, poles="all", lgcsave=False, savepath="",
+                                savename=""):
     """
     Function to plot a single period of the trace in time domain
 
@@ -150,9 +140,6 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors=True,
         The pole fits that we want to plot. If set to "all", then plots
         all of the fits. Can also be set to just one of the fits. Can
         be set as an array of different fits, e.g. [1, 2]
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -164,7 +151,7 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors=True,
 
     """
 
-    fig, ax = _plot_time_domain(didv, poles, plotpriors)
+    fig, ax = _plot_time_domain(didv, poles)
 
     period = 1.0/didv._sgfreq
 
@@ -177,8 +164,9 @@ def plot_single_period_of_trace(didv, poles="all", plotpriors=True,
     else:
         plt.show()
 
-def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
-                         lgcsave=False, savepath="", savename=""):
+
+def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, lgcsave=False,
+                         savepath="", savename=""):
     """
     Function to plot a zoomed in portion of the trace in time domain.
     This plot zooms in on the overshoot of the didv._
@@ -194,9 +182,6 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
     zoomfactor : float, optional, optional
         Number between zero and 1 to show different amounts of the
         zoomed in trace.
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -217,13 +202,11 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
         cost_lambda(didv._1poleresult),
         cost_lambda(didv._2poleresult),
         cost_lambda(didv._3poleresult),
-        cost_lambda(didv._irwinresultpriors),
     ]
     dt_vals = [
         dt_lambda(didv._1poleresult),
         dt_lambda(didv._2poleresult),
         dt_lambda(didv._3poleresult),
-        dt_lambda(didv._irwinresultpriors),
     ]
     if all(fv is None for fv in cost_vals):
         best_time_offset = 0
@@ -233,7 +216,7 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
         )[1]
         best_time_offset = dt_vals[min_cost_idx]
 
-    fig, ax = _plot_time_domain(didv, poles, plotpriors)
+    fig, ax = _plot_time_domain(didv, poles)
 
     ax.set_xlim(
         (best_time_offset + didv._time[0] + (
@@ -252,8 +235,9 @@ def plot_zoomed_in_trace(didv, poles="all", zoomfactor=0.1, plotpriors=True,
     else:
         plt.show()
 
-def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
-                      savepath="", savename=""):
+
+def plot_didv_flipped(didv, poles="all", lgcsave=False, savepath="",
+                      savename=""):
     """
     Function to plot the flipped trace in time domain. This function
     should be used to test if there are nonlinearities in the didv
@@ -266,9 +250,6 @@ def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
         The pole fits that we want to plot. If set to "all", then plots
         all of the fits. Can also be set to just one of the fits. Can
         be set as an array of different fits, e.g. [1, 2]
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -280,7 +261,7 @@ def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
 
     """
 
-    fig, ax = _plot_time_domain(didv, poles, plotpriors)
+    fig, ax = _plot_time_domain(didv, poles)
 
     period = 1.0 / didv._sgfreq
     time_flipped = didv._time - period / 2.0
@@ -301,8 +282,9 @@ def plot_didv_flipped(didv, poles="all", plotpriors=True, lgcsave=False,
     else:
         plt.show()
 
-def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
-                    savepath="", savename=""):
+
+def plot_re_im_didv(didv, poles="all", lgcsave=False, savepath="",
+                    savename=""):
     """
     Function to plot the real and imaginary parts of the didv in
     frequency space. Currently creates two different plots.
@@ -315,9 +297,6 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         The pole fits that we want to plot. If set to "all", then plots
         all of the fits. Can also be set to just one of the fits. Can
         be set as an array of different fits, e.g. [1, 2]
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -346,13 +325,11 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         cost_lambda(didv._1poleresult),
         cost_lambda(didv._2poleresult),
         cost_lambda(didv._3poleresult),
-        cost_lambda(didv._irwinresultpriors),
     ]
     dt_vals = [
         dt_lambda(didv._1poleresult),
         dt_lambda(didv._2poleresult),
         dt_lambda(didv._3poleresult),
-        dt_lambda(didv._irwinresultpriors),
     ]
     if all(fv is None for fv in cost_vals):
         best_time_offset = 0
@@ -421,17 +398,6 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
             color='orange',
             label='3-Pole Fit',
         )
-
-#     if (didv._irwinparams2priors is not None) and (plotpriors):
-#         ax.plot(
-#             didv._freq[fitinds],
-#             np.real(didv._didvfit2priors_freqdomain * phase_correction(
-#                 didv._fitparams2priors[-1]
-#             ))[fitinds],
-#             color='cyan',
-#             label='2-Pole Fit With Priors',
-#         )
-
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
@@ -519,16 +485,6 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
             label='3-Pole Fit',
         )
 
-#     if (didv._irwinparams2priors is not None) and (plotpriors):
-#         ax.plot(
-#             didv._freq[fitinds],
-#             np.imag(didv._didvfit2priors_freqdomain * phase_correction(
-#                 didv._fitparams2priors[-1]
-#             ))[fitinds],
-#             color='cyan',
-#             label='2-Pole Fit With Priors',
-#         )
-
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
     ax.set_xscale('log')
@@ -555,8 +511,9 @@ def plot_re_im_didv(didv, poles="all", plotpriors=True, lgcsave=False,
     else:
         plt.show()
 
-def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
-                        savepath="", savename=""):
+
+def plot_abs_phase_didv(didv, poles="all", lgcsave=False, savepath="",
+                        savename=""):
     """
     Function to plot the absolute value and the phase of the dIdV in
     frequency space. Currently creates two different plots.
@@ -569,9 +526,6 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         The pole fits that we want to plot. If set to "all", then plots
         all of the fits. Can also be set to just one of the fits. Can
         be set as an array of different fits, e.g. [1, 2]
-    plotpriors : boolean, optional
-        Boolean value on whether or not the priors fit should be
-        plotted.
     lgcsave : boolean, optional
         Boolean value on whether or not the figure should be saved
     savepath : string, optional
@@ -600,13 +554,11 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
         cost_lambda(didv._1poleresult),
         cost_lambda(didv._2poleresult),
         cost_lambda(didv._3poleresult),
-        cost_lambda(didv._irwinresultpriors),
     ]
     dt_vals = [
         dt_lambda(didv._1poleresult),
         dt_lambda(didv._2poleresult),
         dt_lambda(didv._3poleresult),
-        dt_lambda(didv._irwinresultpriors),
     ]
     if all(fv is None for fv in cost_vals):
         best_time_offset = 0
@@ -675,15 +627,6 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
             color='orange',
             label='3-Pole Fit',
         )
-
-#     if (didv._irwinparams2priors is not None) and (plotpriors):
-#         ax.plot(
-#             didv._freq[fitinds],
-#             np.abs(didv._didvfit2priors_freqdomain)[fitinds],
-#             color='cyan',
-#             label='2-Pole Fit With Priors',
-#         )
-
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
@@ -763,16 +706,6 @@ def plot_abs_phase_didv(didv, poles="all", plotpriors=True, lgcsave=False,
             color='orange',
             label='3-Pole Fit',
         )
-
-#     if (didv._irwinparams2priors is not None) and (plotpriors):
-#         ax.plot(
-#             didv._freq[fitinds],
-#             np.angle(didv._didvfit2priors_freqdomain * phase_correction(
-#                 didv._fitparams2priors[-1]
-#             ))[fitinds],
-#             color='cyan',
-#             label='2-Pole Fit With Priors',
-#         )
 
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Arg($dI/dV$)')
