@@ -8,22 +8,7 @@ Table of Contents
 .. raw:: html
 
    </h1>
-
-.. raw:: html
-
-   <div class="toc">
-
-.. raw:: html
-
-   <ul class="toc-item">
-
-.. raw:: html
-
-   </ul>
-
-.. raw:: html
-
-   </div>
+   <div class="toc"><ul class="toc-item"></ul></div>
 
 Example Code for using the DIDV class
 =====================================
@@ -85,9 +70,14 @@ Run the processing package on the data.
         sgfreq,
         sgamp,
         rshunt,
+        r0=r0,
+        r0_err=dr0,
+        rload=rload,
+        rload_err=drload,
         tracegain=convtoamps,
-        priors=priors,
-        invpriorscov=invpriorscov,
+    #     priors=priors, # uncomment this and the below line to be able to run the priors fit
+    #     invpriorscov=invpriorscov,
+        dt0=dt0, # use dt0 to set the expected time shift, should be set if it is expected to be far from zero.
     )
     
     # note that there are many more attributes for DIDV
@@ -98,13 +88,8 @@ Run the processing package on the data.
     didvfit.plot_full_trace(poles=2, plotpriors=False)
 
 
-.. parsed-literal::
 
-    2-Pole Priors Fit Failed: The maximum number of function evaluations is exceeded.
-
-
-
-.. image:: test_didv_files/test_didv_7_1.png
+.. image:: test_didv_files/test_didv_7_0.png
 
 
 Let's look at the fit parameters for the 2-pole fit.
@@ -118,8 +103,8 @@ Let's look at the fit parameters for the 2-pole fit.
 
 .. parsed-literal::
 
-    array([ 2.91338904e-01,  1.96261960e+00,  1.87363027e-03,  9.97908425e-07,
-           -1.88710545e-05])
+    array([ 2.91338754e-01,  1.96261181e+00,  1.87362036e-03,  9.97944582e-07,
+           -1.88710800e-05])
 
 
 
@@ -132,8 +117,8 @@ Let's look at the fit parameters for the 2-pole fit.
 
 .. parsed-literal::
 
-    array([ 1.00000000e-02,  3.00000000e-01, -6.22036528e-02,  7.71482552e-01,
-            2.90729547e-07,  4.28157207e-04, -1.88710545e-05])
+    array([ 1.10367200e-02,  7.55701071e-02,  2.70916550e+00,  8.46506532e-01,
+            2.90739931e-07,  2.87588485e-04, -1.88710800e-05])
 
 
 
@@ -146,14 +131,14 @@ Let's look at the fit parameters for the 2-pole fit.
 
 .. parsed-literal::
 
-    {'rload': 0.01,
-     'r0': 0.3,
-     'beta': -0.062203652825646105,
-     'l': 0.771482552122021,
-     'L': 2.907295469988362e-07,
-     'tau0': 0.00042815720654307293,
-     'dt': -1.887105448791047e-05,
-     'tau_eff': 0.0002413064572931682}
+    {'rload': 0.01103672,
+     'r0': 0.07557010705400537,
+     'beta': 2.709165495861126,
+     'l': 0.8465065323458877,
+     'L': 2.907399307646422e-07,
+     'tau0': 0.00028758848545007545,
+     'dt': -1.8871080032829034e-05,
+     'tau_eff': 0.00024130587314179404}
 
 
 
@@ -168,7 +153,7 @@ Let's see what dIdV(0) is.
 
 .. parsed-literal::
 
-    0.44366389157720754
+    0.4436654547653433
 
 
 
@@ -183,7 +168,7 @@ What are the fall times?
 
 .. parsed-literal::
 
-    array([1.00151672e-06, 2.41306457e-04])
+    array([1.00155315e-06, 2.41305873e-04])
 
 
 
@@ -193,7 +178,7 @@ Let's first plot all of this fits on the full trace.
 
 .. code:: ipython3
 
-    didvfit.plot_full_trace(poles="all", plotpriors=True)
+    didvfit.plot_full_trace(poles="all", plotpriors=False)
 
 
 
