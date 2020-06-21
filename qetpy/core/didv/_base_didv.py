@@ -658,116 +658,60 @@ class _BaseDIDV(object):
         return A0, B0, tau10, tau20, isloopgainsub1
 
     @staticmethod
-    def _converttotesvalues(popt, pcov, r0, rload, r0_err=0.001,
-                            rload_err=0.001):
+    def _converttotesvalues(popt, r0, rload):
         """
         Function to convert the fit parameters for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
         (A, B, C, tau1, tau2, tau3, dt) fit to the corresponding TES
-        parameters: 1-pole (rtot, L, r0, rload, dt), 2-pole (rload, r0,
-        beta, l, L, tau0, dt), and 3-pole (no conversion done).
+        parameters: 
+
+            1-pole: (rload, r0, L)
+            2-pole: (rload, r0, beta, l, L, tau0)
+            3-pole: (TODO)
 
         """
 
         if len(popt)==3:
-            ## one pole
-            # extract fit parameters
+            # one pole
             A = popt[0]
             tau2 = popt[1]
-            dt = popt[2]
 
-            # convert fit parameters to rtot=r0+rload and L
-            rtot = A
-            L = A*tau2
-
-            popt_out = np.array([rtot, L, r0, rload, dt])
-
-            # create new covariance matrix (needs to be the correct size)
-            pcov_orig = pcov
-            pcov_in = np.zeros((5,5))
-            row, col = np.indices((2,2))
-
-            # populate the new covariance matrix with the uncertainties
-            # in r0, rload, and dt
-            pcov_in[row, col] = pcov_orig[row, col]
-            vardt = pcov_orig[2,2]
-            pcov_in[2,2] = r0_err**2
-            pcov_in[3,3] = rload_err**2
-            pcov_in[4,4] = vardt
-
-            # calculate the Jacobian
-            jac = np.zeros((5,5))
-            jac[0,0] = 1             # drtotdA
-            jac[1,0] = tau2          # dLdA
-            jac[1,1] = A             # dLdtau2
-            jac[2,2] = 1             # dr0dr0
-            jac[3,3] = 1             # drloaddrload
-            jac[4,4] = 1             # ddtddt
-
-            # use the Jacobian to populate the rest of the covariance matrix
-            jact = np.transpose(jac)
-            pcov_out = np.dot(jac, np.dot(pcov_in, jact))
+            popt_out = np.array([rload, A - rload, A * tau2])
 
         elif len(popt)==5:
-            ## two poles
-            # extract fit parameters
+            # two poles
             A = popt[0]
             B = popt[1]
             tau1 = popt[2]
             tau2 = popt[3]
-            dt = popt[4]
-
-            # get covariance matrix for beta, l, L, tau, r0, rload, dt
-            # create new covariance matrix (needs to be the correct size)
-            pcov_orig = np.copy(pcov)
-            pcov_in = np.zeros((7,7))
-            row,col = np.indices((4,4))
-
-            # populate the new covariance matrix with the uncertainties
-            # in r0, rload, and dt
-            pcov_in[row, col] = np.copy(pcov_orig[row, col])
-            vardt = pcov_orig[4,4]
-            pcov_in[4,4] = rload_err**2
-            pcov_in[5,5] = r0_err**2
-            pcov_in[6,6] = vardt
 
             # convert A, B tau1, tau2 to beta, l, L, tau
-            beta  = (A-rload)/r0 - 1.0
-            l = B/(A+B+r0-rload)
-            L = A*tau2
-            tau = tau1 * (A+r0-rload)/(A+B+r0-rload)
-            popt_out = np.array([rload,r0,beta,l,L,tau,dt])
+            beta  = (A - rload) / r0 - 1.0
+            l = B / (A + B + r0 - rload)
+            L = A * tau2
+            tau = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
 
-            # calculate the Jacobian
-            jac = np.zeros((7,7))
-            jac[0,4] = 1.0 #drloaddrload
-            jac[1,5] = 1.0 #dr0dr0
-            jac[2,0] = 1.0/r0 #dbetadA
-            jac[2,4] = -1.0/r0 #dbetadrload
-            jac[2,5] = -(A-rload)/r0**2.0 #dbetadr0
-            jac[3,0] = -B/(A+B+r0-rload)**2.0 #dldA (l = Irwin's loop gain)
-            jac[3,1] = (A+r0-rload)/(A+B+r0-rload)**2.0 #dldB
-            jac[3,4] = B/(A+B+r0-rload)**2.0 #dldrload
-            jac[3,5] = -B/(A+B+r0-rload)**2.0 #dldr0
-            jac[4,0] = tau2 #dLdA
-            jac[4,3] = A #dLdtau2
-            jac[5,0] = (tau1*B)/(A+B+r0-rload)**2.0 #dtaudA
-            jac[5,1] = -tau1*(A+r0-rload)/(A+B+r0-rload)**2.0 #dtaudB
-            jac[5,2] = (A+r0-rload)/(A+B+r0-rload) #dtaudtau1
-            jac[5,4] = -B*tau1/(A+B+r0-rload)**2.0 #dtaudrload
-            jac[5,5] = B*tau1/(A+B+r0-rload)**2.0 #dtaudr0
-            jac[6,6] = 1.0 #ddtddt
-
-            # use the Jacobian to populate the rest of the covariance matrix
-            jact = np.transpose(jac)
-            pcov_out = np.dot(jac, np.dot(pcov_in, jact))
+            popt_out = np.array([rload, r0, beta, l, L, tau])
 
         elif len(popt)==7:
-            ##three poles (no conversion, since this is just a toy model)
-            popt_out = popt
-            pcov_out = pcov
+            # three poles
+            A = popt[0]
+            B = popt[1]
+            C = popt[2]
+            tau1 = popt[3]
+            tau2 = popt[4]
+            tau3 = popt[5]
 
-        return popt_out, pcov_out
+            # convert A, B tau1, tau2 to beta, l, L, tau
+            beta  = (A - rload) / r0 - 1.0
+            l = B / (A + B + r0 - rload)
+            L = A * tau2
+            tau0 = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
+            gratio = C * (A + r0 - rload) / (A + B + r0 - rload)
+
+            popt_out = np.array([rload, r0, beta, l, L, tau0, gratio, tau3])
+
+        return popt_out
 
 
     @staticmethod

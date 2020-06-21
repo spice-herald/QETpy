@@ -381,6 +381,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             the specified fitting routine. Default is `np.inf`, which
             is equivalent to no cutoff frequency.
 
+        Raises
+        ------
+        ValueError
+            If the inputted `poles` is not 1, 2, or 3.
+
         """
 
         if self._tmean is None:
@@ -412,7 +417,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             falltimes1 = DIDV._findpolefalltimes(fitparams1)
 
             self._1poleresult = DIDV._fitresult(
-                1, fitparams1, fitcov1, falltimes1, fitcost1,
+                poles,
+                fitparams1,
+                fitcov1,
+                falltimes1,
+                fitcost1,
+                self._rload,
+                self._r0,
             )
 
         elif poles==2:
@@ -443,7 +454,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             falltimes2 = DIDV._findpolefalltimes(fitparams2)
 
             self._2poleresult = DIDV._fitresult(
-                2, fitparams2, fitcov2, falltimes2, fitcost2,
+                poles,
+                fitparams2,
+                fitcov2,
+                falltimes2,
+                fitcost2,
+                self._rload,
+                self._r0,
             )
 
         elif poles==3:
@@ -491,7 +508,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 tau20=tau20,
                 tau30=tau30,
                 dt=dt0,
-                poles=3,
+                poles=poles,
                 isloopgainsub1=isloopgainsub1,
             )
 
@@ -499,7 +516,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             falltimes3 = DIDV._findpolefalltimes(fitparams3)
 
             self._3poleresult = DIDV._fitresult(
-                3, fitparams3, fitcov3, falltimes3, fitcost3,
+                poles,
+                fitparams3,
+                fitcov3,
+                falltimes3,
+                fitcost3,
+                self._rload,
+                self._r0,
             )
 
         else:
@@ -507,7 +530,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost):
+    def _fitresult(poles, params, cov, falltimes, cost, rl, r0):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -532,6 +555,14 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
+            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+
+            result['smallsignalparams'] = {
+                'rload': smallsignalparams[0],
+                'r0': smallsignalparams[1],
+                'L': smallsignalparams[2],
+            }
+
             return result
 
         if poles == 2:
@@ -553,6 +584,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             }
             result['falltimes'] = falltimes
             result['cost'] = cost
+
+            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+
+            result['smallsignalparams'] = {
+                'rload': smallsignalparams[0],
+                'r0': smallsignalparams[1],
+                'beta': smallsignalparams[2],
+                'l': smallsignalparams[3],
+                'L': smallsignalparams[4],
+                'tau0': smallsignalparams[5],
+            }
 
             return result
 
@@ -579,6 +621,19 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             }
             result['falltimes'] = falltimes
             result['cost'] = cost
+
+            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+
+            result['smallsignalparams'] = {
+                'rload': smallsignalparams[0],
+                'r0': smallsignalparams[1],
+                'beta': smallsignalparams[2],
+                'l': smallsignalparams[3],
+                'L': smallsignalparams[4],
+                'tau0': smallsignalparams[5],
+                'gratio': smallsignalparams[6],
+                'tau3': smallsignalparams[7],
+            }
 
             return result
 
