@@ -3,9 +3,9 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
-import qetpy.plotting as utils
 from qetpy.utils import stdcomplex
 from ._base_didv import _BaseDIDV
+from ._didv_plotting import _PlotDIDV
 
 
 __all__ = [
@@ -124,7 +124,7 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
     return didvobj
 
 
-class DIDV(_BaseDIDV):
+class DIDV(_BaseDIDV, _PlotDIDV):
     """
     Class for fitting a didv curve for different types of models of the
     didv. Also gives various other useful values pertaining to the
@@ -371,7 +371,6 @@ class DIDV(_BaseDIDV):
         pcov = np.linalg.inv(pcovinv)
 
         return popt, pcov, cost
-
 
 
     def dofit(self, poles, fcutoff=np.inf):
@@ -641,221 +640,3 @@ class DIDV(_BaseDIDV):
                 return dict()
 
             return self._3poleresult
-
-
-    def plot_full_trace(self, poles="all", lgcsave=False, savepath="",
-                        savename=""):
-        """
-        Module to plot the entire trace in time domain
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string  by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_full_trace(
-            self,
-            poles=poles,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
-
-    
-    def plot_single_period_of_trace(self, poles="all", lgcsave=False,
-                                    savepath="", savename=""):
-        """
-        Module to plot a single period of the trace in time domain.
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_single_period_of_trace(
-            self,
-            poles=poles,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
-
-
-    def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1, lgcsave=False,
-                             savepath="", savename=""):
-        """
-        Module to plot a zoomed in portion of the trace in time domain.
-        This plot zooms in on the overshoot of the didv.
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        zoomfactor : float, optional, optional
-            Number between zero and 1 to show different amounts of the
-            zoomed in trace.
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_zoomed_in_trace(
-            self,
-            poles=poles,
-            zoomfactor=zoomfactor,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
-
-        
-    def plot_didv_flipped(self, poles="all", lgcsave=False, savepath="",
-                          savename=""):
-        """
-        Module to plot the flipped trace in time domain. This function
-        should be used to test if there are nonlinearities in the didv
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_didv_flipped(
-            self,
-            poles=poles,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
-
-
-    def plot_re_im_didv(self, poles="all", lgcsave=False, savepath="",
-                        savename=""):
-        """
-        Module to plot the real and imaginary parts of the didv in
-        frequency space. Currently creates two different plots.
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_re_im_didv(
-            self,
-            poles=poles,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
-
-
-    def plot_abs_phase_didv(self, poles="all", lgcsave=False, savepath="",
-                            savename=""):
-        """
-        Module to plot the absolute value and the phase of the dIdV in
-        frequency space. Currently creates two different plots.
-
-        Parameters
-        ----------
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then
-            plots all of the fits. Can also be set to just one of the
-            fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving.
-            Empty string by default.
-
-        Returns
-        -------
-        None
-
-        """
-
-        utils.plot_abs_phase_didv(
-            self,
-            poles=poles,
-            lgcsave=lgcsave,
-            savepath=savepath,
-            savename=savename,
-        )
