@@ -3,7 +3,7 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 import qetpy.plotting as utils
-from qetpy.utils import stdcomplex
+from ._base_didv import stdcomplex
 
 
 __all__ = [
