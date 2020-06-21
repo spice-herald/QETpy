@@ -667,7 +667,7 @@ class _BaseDIDV(object):
 
             1-pole: (rload, r0, L)
             2-pole: (rload, r0, beta, l, L, tau0)
-            3-pole: (TODO)
+            3-pole: (rload, r0, beta, l, L, tau0, gratio, tau3)
 
         """
 
