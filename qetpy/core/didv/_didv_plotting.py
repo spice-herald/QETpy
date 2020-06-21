@@ -6,6 +6,39 @@ from ._base_didv import squarewaveresponse, complexadmittance
 class _PlotDIDV(object):
     """Class that contains all plotting functions for DIDV."""
 
+    def _get_best_time_offset(self):
+        """
+        Helper method for returning the time offset value that
+        corresponds to the fit with the lowest chi-square.
+
+        """
+
+        cost_lambda = lambda x: x['cost'] if x is not None else None
+        dt_lambda = lambda x: x['params']['dt'] if x is not None else None
+
+        cost_vals = [
+            cost_lambda(self._1poleresult),
+            cost_lambda(self._2poleresult),
+            cost_lambda(self._3poleresult),
+        ]
+        dt_vals = [
+            dt_lambda(self._1poleresult),
+            dt_lambda(self._2poleresult),
+            dt_lambda(self._3poleresult),
+        ]
+        if all(fv is None for fv in cost_vals):
+            best_time_offset = 0
+        else:
+            min_cost_idx = min(
+                (val, ii) for ii, val in enumerate(
+                    cost_vals
+                ) if val is not None
+            )[1]
+            best_time_offset = dt_vals[min_cost_idx]
+
+        return best_time_offset
+
+
     def _plot_time_domain(self, poles):
         """Helper function for plotting the fits in time domain."""
 
@@ -91,20 +124,18 @@ class _PlotDIDV(object):
 
         Parameters
         ----------
-        didv : class
-            The DIDV class object that the data is stored in
         poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
             directory by default.
         savename : string, optional
-            A string to append to the end of the file name if saving. Empty
-            string by default.
+            A string to append to the end of the file name if saving.
+            Empty string by default.
 
         """
 
@@ -120,27 +151,25 @@ class _PlotDIDV(object):
             plt.show()
 
 
-    def plot_single_period_of_trace(self, poles="all", lgcsave=False, savepath="",
-                                    savename=""):
+    def plot_single_period_of_trace(self, poles="all", lgcsave=False,
+                                    savepath="", savename=""):
         """
         Function to plot a single period of the trace in time domain
 
         Parameters
         ----------
-        didv : class
-            The DIDV class object that the data is stored in
         poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
             directory by default.
         savename : string, optional
-            A string to append to the end of the file name if saving. Empty
-            string by default.
+            A string to append to the end of the file name if saving.
+            Empty string by default.
 
         """
 
@@ -161,17 +190,15 @@ class _PlotDIDV(object):
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1, lgcsave=False,
                              savepath="", savename=""):
         """
-        Function to plot a zoomed in portion of the trace in time domain.
-        This plot zooms in on the overshoot of the self._
+        Function to plot a zoomed in portion of the trace in time
+        domain. This plot zooms in on the overshoot of the DIDV.
 
         Parameters
         ----------
-        didv : class
-            The DIDV class object that the data is stored in
         poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
         zoomfactor : float, optional, optional
             Number between zero and 1 to show different amounts of the
             zoomed in trace.
@@ -188,26 +215,7 @@ class _PlotDIDV(object):
 
         period = 1.0 / self._sgfreq
 
-        cost_lambda = lambda x: x['cost'] if x is not None else None
-        dt_lambda = lambda x: x['params']['dt'] if x is not None else None
-
-        cost_vals = [
-            cost_lambda(self._1poleresult),
-            cost_lambda(self._2poleresult),
-            cost_lambda(self._3poleresult),
-        ]
-        dt_vals = [
-            dt_lambda(self._1poleresult),
-            dt_lambda(self._2poleresult),
-            dt_lambda(self._3poleresult),
-        ]
-        if all(fv is None for fv in cost_vals):
-            best_time_offset = 0
-        else:
-            min_cost_idx = min(
-                (val, ii) for ii, val in enumerate(cost_vals) if val is not None
-            )[1]
-            best_time_offset = dt_vals[min_cost_idx]
+        best_time_offset = self._get_best_time_offset()
 
         fig, ax = self._plot_time_domain(poles)
 
@@ -232,25 +240,24 @@ class _PlotDIDV(object):
     def plot_didv_flipped(self, poles="all", lgcsave=False, savepath="",
                           savename=""):
         """
-        Function to plot the flipped trace in time domain. This function
-        should be used to test if there are nonlinearities in the didv
+        Function to plot the flipped trace in time domain. This
+        function should be used to test if there are nonlinearities in
+        the didv.
 
         Parameters
         ----------
-        didv : class
-            The DIDV class object that the data is stored in
         poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
             directory by default.
         savename : string, optional
-            A string to append to the end of the file name if saving. Empty
-            string by default.
+            A string to append to the end of the file name if saving.
+            Empty string by default.
 
         """
 
@@ -276,33 +283,11 @@ class _PlotDIDV(object):
             plt.show()
 
 
-    def plot_re_im_didv(self, poles="all", lgcsave=False, savepath="",
-                        savename=""):
-        """
-        Function to plot the real and imaginary parts of the didv in
-        frequency space. Currently creates two different plots.
-
-        Parameters
-        ----------
-        didv : class
-            The DIDV class object that the data is stored in
-        poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
-            Boolean value on whether or not the figure should be saved
-        savepath : string, optional
-            Where the figure should be saved. Saved in the current
-            directory by default.
-        savename : string, optional
-            A string to append to the end of the file name if saving. Empty
-            string by default.
-
-        """
-
+    def _plot_freq_domain(self, function, poles):
+        """Helper method for plotting data in frequency domain."""
+        
         if poles == "all":
-            poleslist = np.array([1,2,3])
+            poleslist = np.array([1, 2, 3])
         else:
             poleslist = np.array(poles)
 
@@ -311,26 +296,7 @@ class _PlotDIDV(object):
         fitinds = self._freq > 0
         plotinds = np.logical_and(fitinds, goodinds)
 
-        cost_lambda = lambda x: x['cost'] if x is not None else None
-        dt_lambda = lambda x: x['params']['dt'] if x is not None else None
-
-        cost_vals = [
-            cost_lambda(self._1poleresult),
-            cost_lambda(self._2poleresult),
-            cost_lambda(self._3poleresult),
-        ]
-        dt_vals = [
-            dt_lambda(self._1poleresult),
-            dt_lambda(self._2poleresult),
-            dt_lambda(self._3poleresult),
-        ]
-        if all(fv is None for fv in cost_vals):
-            best_time_offset = 0
-        else:
-            min_cost_idx = min(
-                (val, ii) for ii, val in enumerate(cost_vals) if val is not None
-            )[1]
-            best_time_offset = dt_vals[min_cost_idx]
+        best_time_offset = self._get_best_time_offset()
 
         time_phase = np.exp(2.0j * np.pi * best_time_offset * self._freq)
 
@@ -339,7 +305,7 @@ class _PlotDIDV(object):
 
         ax.scatter(
             self._freq[plotinds],
-            np.real(self._didvmean * time_phase)[plotinds],
+            function(self._didvmean * time_phase)[plotinds],
             color='blue',
             label='Mean',
             s=5,
@@ -347,14 +313,14 @@ class _PlotDIDV(object):
         ## plot error in real part of dIdV
         ax.plot(
             self._freq[plotinds],
-            np.real((self._didvmean + self._didvstd) * time_phase)[plotinds],
+            function((self._didvmean + self._didvstd) * time_phase)[plotinds],
             color='black',
             label='1-$\sigma$ Bounds',
             alpha=0.1,
         )
         ax.plot(
             self._freq[plotinds],
-            np.real((self._didvmean - self._didvstd) * time_phase)[plotinds],
+            function((self._didvmean - self._didvstd) * time_phase)[plotinds],
             color='black',
             alpha=0.1,
         )
@@ -365,7 +331,7 @@ class _PlotDIDV(object):
             )
             ax.plot(
                 self._freq[fitinds],
-                np.real(didvfit1_freqdomain)[fitinds],
+                function(didvfit1_freqdomain)[fitinds],
                 color='magenta',
                 label='1-Pole Fit',
             )
@@ -376,7 +342,7 @@ class _PlotDIDV(object):
             )
             ax.plot(
                 self._freq[fitinds],
-                np.real(didvfit2_freqdomain)[fitinds],
+                function(didvfit2_freqdomain)[fitinds],
                 color='green',
                 label='2-Pole Fit',
             )
@@ -387,7 +353,7 @@ class _PlotDIDV(object):
             )
             ax.plot(
                 self._freq[fitinds],
-                np.real(didvfit3_freqdomain)[fitinds],
+                function(didvfit3_freqdomain)[fitinds],
                 color='orange',
                 label='3-Pole Fit',
             )
@@ -396,10 +362,10 @@ class _PlotDIDV(object):
         ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
         ax.set_xscale('log')
 
-        yhigh = max(np.real(
+        yhigh = max(function(
             self._didvmean * time_phase
         )[plotinds][self._freq[plotinds] < 1e5])
-        ylow = min(np.real(
+        ylow = min(function(
             self._didvmean * time_phase
         )[plotinds][self._freq[plotinds] < 1e5])
 
@@ -408,10 +374,40 @@ class _PlotDIDV(object):
         ax.set_ylim([-ybnd, ybnd])
         ax.set_xlim([min(self._freq[fitinds]), max(self._freq[fitinds])])
         ax.legend(loc='upper left')
-        ax.set_title("Real Part of dIdV")
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(which='major')
         ax.grid(which='minor', linestyle='dotted', alpha=0.3)
+
+        return fig, ax
+
+
+    def plot_re_im_didv(self, poles="all", lgcsave=False, savepath="",
+                        savename=""):
+        """
+        Function to plot the real and imaginary parts of the didv in
+        frequency space. Currently creates two different plots.
+
+        Parameters
+        ----------
+        poles : int, string, array_like, optional
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
+        lgcsave : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current
+            directory by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving.
+            Empty string by default.
+
+        """
+
+        fig, ax = self._plot_freq_domain(np.real, poles)
+
+        ax.set_title("Real Part of dIdV")
+        ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
 
         if lgcsave:
             fig.savefig(savepath + f"didv_real_{savename}.png")
@@ -419,84 +415,11 @@ class _PlotDIDV(object):
         else:
             plt.show()
 
-        ## plot the imaginary part of the dIdV in frequency domain
-        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        fig, ax = self._plot_freq_domain(np.imag, poles)
 
-        ax.scatter(
-            self._freq[plotinds],
-            np.imag(self._didvmean * time_phase)[plotinds],
-            color='blue',
-            label='Mean',
-            s=5,
-        )
-
-        ## plot error in imaginary part of dIdV
-        ax.plot(
-            self._freq[plotinds],
-            np.imag((self._didvmean + self._didvstd) * time_phase)[plotinds],
-            color='black',
-            label='1-$\sigma$ Bounds',
-            alpha=0.1,
-        )
-        ax.plot(
-            self._freq[plotinds],
-            np.imag((self._didvmean - self._didvstd) * time_phase)[plotinds],
-            color='black',
-            alpha=0.1,
-        )
-
-        if (self._1poleresult is not None) and (1 in poleslist):
-            didvfit1_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(1)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.imag(didvfit1_freqdomain)[fitinds],
-                color='magenta',
-                label='1-Pole Fit',
-            )
-
-        if (self._2poleresult is not None) and (2 in poleslist):
-            didvfit2_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(2)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.imag(didvfit2_freqdomain)[fitinds],
-                color='green',
-                label='2-Pole Fit',
-            )
-
-        if (self._3poleresult is not None) and (3 in poleslist):
-            didvfit3_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(3)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.imag(didvfit3_freqdomain)[fitinds],
-                color='orange',
-                label='3-Pole Fit',
-            )
-
-        ax.set_xlabel('Frequency (Hz)')
-        ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
-        ax.set_xscale('log')
-
-        yhigh = max(np.imag(
-            self._didvmean * time_phase
-        )[plotinds][self._freq[plotinds] < 1e5])
-        ylow = min(np.imag(
-            self._didvmean * time_phase
-        )[plotinds][self._freq[plotinds] < 1e5])
-        ybnd = np.max([yhigh, -ylow])
-
-        ax.set_ylim([-ybnd, ybnd])
-        ax.set_xlim([min(self._freq[fitinds]), max(self._freq[fitinds])])
-        ax.legend(loc='upper left')
         ax.set_title("Imaginary Part of dIdV")
-        ax.tick_params(which='both', direction='in', right=True, top=True)
-        ax.grid(which='major')
-        ax.grid(which='minor', linestyle='dotted', alpha=0.3)
+        ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
 
         if lgcsave:
             fig.savefig(savepath + f"didv_imag_{savename}.png")
@@ -508,132 +431,31 @@ class _PlotDIDV(object):
     def plot_abs_phase_didv(self, poles="all", lgcsave=False, savepath="",
                             savename=""):
         """
-        Function to plot the absolute value and the phase of the dIdV in
-        frequency space. Currently creates two different plots.
+        Function to plot the absolute value and the phase of the dIdV
+        in frequency space. Currently creates two different plots.
 
         Parameters
         ----------
-        didv : class
-            The DIDV class object that the data is stored in
         poles : int, string, array_like, optional
-            The pole fits that we want to plot. If set to "all", then plots
-            all of the fits. Can also be set to just one of the fits. Can
-            be set as an array of different fits, e.g. [1, 2]
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
         lgcsave : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
             directory by default.
         savename : string, optional
-            A string to append to the end of the file name if saving. Empty
-            string by default.
+            A string to append to the end of the file name if saving.
+            Empty string by default.
 
         """
 
-        if poles == "all":
-            poleslist = np.array([1,2,3])
-        else:
-            poleslist = np.array(poles)
+        fig, ax = self._plot_freq_domain(np.abs, poles)
 
-        ## don't plot points with huge errors
-        goodinds = np.abs(self._didvmean / self._didvstd) > 2.0
-        fitinds = self._freq > 0
-        plotinds = np.logical_and(fitinds, goodinds)
-
-        cost_lambda = lambda x: x['cost'] if x is not None else None
-        dt_lambda = lambda x: x['params']['dt'] if x is not None else None
-
-        cost_vals = [
-            cost_lambda(self._1poleresult),
-            cost_lambda(self._2poleresult),
-            cost_lambda(self._3poleresult),
-        ]
-        dt_vals = [
-            dt_lambda(self._1poleresult),
-            dt_lambda(self._2poleresult),
-            dt_lambda(self._3poleresult),
-        ]
-        if all(fv is None for fv in cost_vals):
-            best_time_offset = 0
-        else:
-            min_cost_idx = min(
-                (val, ii) for ii, val in enumerate(cost_vals) if val is not None
-            )[1]
-            best_time_offset = dt_vals[min_cost_idx]
-
-        time_phase = np.exp(2.0j * np.pi * best_time_offset * self._freq)
-
-        ## plot the absolute value of the dIdV in frequency domain
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        ax.scatter(
-            self._freq[plotinds],
-            np.abs(self._didvmean)[plotinds],
-            color='blue',
-            label='Mean',
-            s=5,
-        )
-        ## plot error in absolute value of dIdV
-        ax.plot(
-            self._freq[plotinds],
-            np.abs((self._didvmean + self._didvstd))[plotinds],
-            color='black',
-            label='1-$\sigma$ Bounds',
-            alpha=0.1,
-        )
-        ax.plot(
-            self._freq[plotinds],
-            np.abs((self._didvmean - self._didvstd))[plotinds],
-            color='black',
-            alpha=0.1,
-        )
-
-        if (self._1poleresult is not None) and (1 in poleslist):
-            didvfit1_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(1)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.abs(didvfit1_freqdomain)[fitinds],
-                color='magenta',
-                label='1-Pole Fit',
-            )
-
-        if (self._2poleresult is not None) and (2 in poleslist):
-            didvfit2_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(2)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.abs(didvfit2_freqdomain)[fitinds],
-                color='green',
-                label='2-Pole Fit',
-            )
-
-        if (self._3poleresult is not None) and (3 in poleslist):
-            didvfit3_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(3)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.abs(didvfit3_freqdomain)[fitinds],
-                color='orange',
-                label='3-Pole Fit',
-            )
-
-        ax.set_xlabel('Frequency (Hz)')
-        ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
-        ax.set_xscale('log')
-
-        yhigh = max(np.abs(self._didvmean)[plotinds][self._freq[plotinds] < 1e5])
-
-        ax.set_ylim(0, yhigh)
-        ax.set_xlim(min(self._freq[fitinds]), max(self._freq[fitinds]))
-        ax.legend(loc='upper left')
         ax.set_title("|dIdV|")
-        ax.tick_params(which='both', direction='in', right=True, top=True)
-        ax.grid(which='major')
-        ax.grid(which='minor', linestyle='dotted', alpha=0.3)
+        ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_ylim(0)
 
         if lgcsave:
             fig.savefig(savepath + f"didv_abs_{savename}.png")
@@ -641,77 +463,12 @@ class _PlotDIDV(object):
         else:
             plt.show()
 
-        ## plot the phase of the dIdV in frequency domain
-        fig, ax = plt.subplots(figsize=(10, 6))
 
-        ax.scatter(
-            self._freq[plotinds],
-            np.angle(self._didvmean * time_phase)[plotinds],
-            color='blue',
-            label='Mean',
-            s=5,
-        )
+        fig, ax = self._plot_freq_domain(np.angle, poles)
 
-        ## plot error in phase of dIdV
-        ax.plot(
-            self._freq[plotinds],
-            np.angle((self._didvmean + self._didvstd) * time_phase)[plotinds],
-            color='black',
-            label='1-$\sigma$ Bounds',
-            alpha=0.1,
-        )
-        ax.plot(
-            self._freq[plotinds],
-            np.angle((self._didvmean - self._didvstd) * time_phase)[plotinds],
-            color='black',
-            alpha=0.1,
-        )
-
-        if (self._1poleresult is not None) and (1 in poleslist):
-            didvfit1_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(1)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.angle(didvfit1_freqdomain)[fitinds],
-                color='magenta',
-                label='1-Pole Fit',
-            )
-
-        if (self._2poleresult is not None) and (2 in poleslist):
-            didvfit2_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(2)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.angle(didvfit2_freqdomain)[fitinds],
-                color='green',
-                label='2-Pole Fit',
-            )
-
-        if (self._3poleresult is not None) and (3 in poleslist):
-            didvfit3_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(3)['params'],
-            )
-            ax.plot(
-                self._freq[fitinds],
-                np.angle(didvfit3_freqdomain)[fitinds],
-                color='orange',
-                label='3-Pole Fit',
-            )
-
-        ax.set_xlabel('Frequency (Hz)')
-        ax.set_ylabel('Arg($dI/dV$)')
-        ax.set_xscale('log')
-
-        ax.set_ylim(-np.pi, np.pi)
-        ax.set_xlim(min(self._freq[fitinds]), max(self._freq[fitinds]))
-
-        ax.legend(loc='upper left')
         ax.set_title("Phase of dIdV")
-        ax.tick_params(which='both', direction='in', right=True, top=True)
-        ax.grid(which='major')
-        ax.grid(which='minor', linestyle='dotted', alpha=0.3)
+        ax.set_ylabel('Arg($dI/dV$)')
+        ax.set_ylim(-np.pi, np.pi)
 
         if lgcsave:
             fig.savefig(savepath + f"didv_phase_{savename}.png")
