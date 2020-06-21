@@ -207,13 +207,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         )
 
         self._1poleresult = None
-        self._1poleresultpriors = None
-
         self._2poleresult = None
-        self._2poleresultpriors = None
-
         self._3poleresult = None
-        self._3poleresultpriors = None
 
 
     @staticmethod
@@ -374,8 +369,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def dofit(self, poles, fcutoff=np.inf):
         """
         This method does the fit that is specified by the variable
-        poles. If the `processtraces` module has not been run yet, then
-        this module will run that first.
+        poles. If the `processtraces` method has not been run yet, then
+        this method will run that first.
 
         Parameters
         ----------
