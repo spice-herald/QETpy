@@ -1,4 +1,5 @@
 from ._didv import *
+from ._didv2 import *
 from ._iv import *
 from ._ibis import *
 from ._noise import *
