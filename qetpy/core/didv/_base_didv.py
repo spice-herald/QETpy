@@ -2,11 +2,10 @@ import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
-import qetpy.plotting as utils
-from qetpy.utils import stdcomplex
 
 
 __all__ = [
+    "stdcomplex",
     "compleximpedance",
     "complexadmittance",
     "squarewaveresponse",
@@ -32,6 +31,36 @@ def _pole_extractor(arg_dict):
         return 1
 
     raise ValueError("The passed parameters do not match a valid model")
+
+
+def stdcomplex(x, axis=0):
+    """
+    Function to return complex standard deviation (individually
+    computed for real and imaginary components) for an array of complex
+    values.
+
+    Parameters
+    ----------
+    x : array_like
+        An array of complex values from which we want the complex
+        standard deviation.
+    axis : int, optional
+        Which axis to take the standard deviation of (should be used if
+        the dimension of the array is greater than 1).
+
+    Returns
+    -------
+    std_complex : ndarray
+        The complex standard deviation of the inputted array, along the
+        specified axis.
+
+    """
+
+    rstd = np.std(np.real(x), axis=axis)
+    istd = np.std(np.imag(x), axis=axis)
+    std_complex = rstd + 1.0j * istd
+
+    return std_complex
 
 
 def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,

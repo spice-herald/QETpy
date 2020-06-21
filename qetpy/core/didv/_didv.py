@@ -1,9 +1,7 @@
 import numpy as np
-from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
-from qetpy.utils import stdcomplex
 from ._base_didv import _BaseDIDV
 from ._didv_plotting import _PlotDIDV
 
@@ -220,7 +218,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     @staticmethod
     def _fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6,
-                 tau10=-1.0/(2*pi*5e2), tau20=1.0/(2*pi*1e5), tau30=0.0,
+                 tau10=-1.0/(2*np.pi*5e2), tau20=1.0/(2*np.pi*1e5), tau30=0.0,
                  dt=-10.0e-6, poles=2, isloopgainsub1=None):
         """
         Function to find the fit parameters for either the 1-pole
@@ -281,17 +279,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 A, tau2, dt = params
                 ci = DIDV._onepoleadmittance(
                     freq, A, tau2,
-                ) * np.exp(-2.0j*pi*freq*dt)
+                ) * np.exp(-2.0j*np.pi*freq*dt)
             elif(poles==2):
                 A, B, tau1, tau2, dt = params
                 ci = DIDV._twopoleadmittance(
                     freq, A, B, tau1, tau2,
-                ) * np.exp(-2.0j*pi*freq*dt)
+                ) * np.exp(-2.0j*np.pi*freq*dt)
             elif(poles==3):
                 A, B, C, tau1, tau2, tau3, dt = params
                 ci = DIDV._threepoleadmittance(
                     freq, A, B, C, tau1, tau2, tau3,
-                ) * np.exp(-2.0j*pi*freq*dt)
+                ) * np.exp(-2.0j*np.pi*freq*dt)
 
             # the difference between the data and the fit
             diff = didv - ci
