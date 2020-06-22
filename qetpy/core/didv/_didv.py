@@ -203,7 +203,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             rload_err=rload_err,
             dutycycle=dutycycle,
             add180phase=add180phase,
-            dt0=10.0e-6,
+            dt0=dt0,
         )
 
         self._1poleresult = None
