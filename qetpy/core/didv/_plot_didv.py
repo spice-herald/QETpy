@@ -603,6 +603,3 @@ class _PlotDIDV(object):
             plt.close(fig)
         else:
             plt.show()
-
-
-        return fig, ax
