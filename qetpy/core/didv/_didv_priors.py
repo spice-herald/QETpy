@@ -6,7 +6,7 @@ from scipy.fftpack import fft, ifft, fftfreq
 from iminuit import Minuit
 from ._base_didv import stdcomplex, compleximpedance, _BaseDIDV
 from ._didv import didvinitfromdata
-from ._didv_plotting import _PlotDIDV
+from ._plot_didv import _PlotDIDV
 
 
 __all__ = [

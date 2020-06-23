@@ -3,7 +3,7 @@ from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
 from ._base_didv import _BaseDIDV
-from ._didv_plotting import _PlotDIDV
+from ._plot_didv import _PlotDIDV
 
 
 __all__ = [
