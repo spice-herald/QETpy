@@ -59,13 +59,16 @@ class _PlotDIDV(object):
         )
 
         if (self._1poleresult is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._1poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit1_timedomain = squarewaveresponse(
                 self._time,
-                self._rshunt,
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._1poleresult['params'],
+                **self._1poleresult[key],
             )
             ax.plot(
                 (self._time + self._1poleresult['params']['dt']) * 1e6,
@@ -76,13 +79,16 @@ class _PlotDIDV(object):
             )
 
         if (self._2poleresult is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._2poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit2_timedomain = squarewaveresponse(
                 self._time,
-                self._rshunt,
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._2poleresult['params'],
+                **self._2poleresult[key],
             )
             ax.plot(
                 (self._time + self._2poleresult['params']['dt']) * 1e6,
@@ -93,13 +99,16 @@ class _PlotDIDV(object):
             )
 
         if (self._3poleresult is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._3poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit3_timedomain = squarewaveresponse(
                 self._time,
-                self._rshunt,
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._3poleresult['params'],
+                **self._3poleresult[key],
             )
             ax.plot(
                 (self._time + self._3poleresult['params']['dt']) * 1e6,
@@ -327,8 +336,12 @@ class _PlotDIDV(object):
         )
 
         if (self._1poleresult is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._1poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit1_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(1)['params'],
+                self._freq, **self._1poleresult[key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -338,8 +351,12 @@ class _PlotDIDV(object):
             )
 
         if (self._2poleresult is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._2poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit2_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(2)['params'],
+                self._freq, **self._2poleresult[key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -349,8 +366,12 @@ class _PlotDIDV(object):
             )
 
         if (self._3poleresult is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._3poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
             didvfit3_freqdomain = complexadmittance(
-                self._freq, **self.fitresult(3)['params'],
+                self._freq, **self._3poleresult[key],
             )
             ax.plot(
                 self._freq[fitinds],

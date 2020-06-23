@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
@@ -19,9 +20,15 @@ def _pole_extractor(arg_dict):
 
     """
 
-    one_pole = ['A', 'tau2']
-    two_pole = ['A', 'B', 'tau1', 'tau2']
-    three_pole = ['A', 'B', 'C', 'tau1', 'tau2', 'tau3']
+    one_pole = [
+        'rsh', 'rp', 'L',
+    ]
+    two_pole = [
+        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0',
+    ]
+    three_pole = [
+        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0', 'gratio', 'tau3',
+    ]
 
     if all(arg_dict[p3] is not None for p3 in three_pole):
         return 3
@@ -63,8 +70,8 @@ def stdcomplex(x, axis=0):
     return std_complex
 
 
-def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
-                     tau3=None, **kwargs):
+def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
+                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
     """
     Method for calculating the complex impedance for a given model,
     depending on the parameters inputted (see Notes for more
@@ -75,21 +82,34 @@ def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     f : ndarray, float
         The frequencies at which the complex impedance will be
         calculated.
-    A : float, optional
-        The fit parameter which is used by the 1-, 2-, and 3-pole fits.
-    B : float, optional
-        The fit parameter which is used by the 2- and 3-pole fits.
-    C : float, optional
-        The fit parameter which is only used by the 3-pole fit.
-    tau1 : float, optional
-        The time-constant parameter which is used by the 2- and 3-pole
-        fits.
-    tau2 : float, optional
-        The time-constant parameter which is used by the 1-, 2-, and
-        3-pole fits.
+    rsh : float, optional
+        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
+        2-, and 3-pole models.
+    rp : float, optional
+        Parasitic resistance on the shunt side of the TES circuit,
+        units of Ohms. Used by 1-, 2-, and 3-pole models.
+    r0 : float, optional
+        The operating resistance of the TES, units of Ohms. Used by 2-
+        and 3-pole models.
+    beta : float, optional
+        The current sensitivity of the TES, defined as
+        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
+    l : float, optional
+        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
+        by the 2- and 3-pole models.
+    L : float, optional
+        The inductance in the TES circuit, units of Henrys. Used by 1-,
+        2-, and 3-pole models.
+    tau0 : float, optional
+        The thermal time constant of the TES (in sseconds), defined as
+        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
+    gratio : float, optional
+        The ratio of thermal conductances in the 3 thermal block models
+        that are used as the basis of the 3-pole model. Used in 3-pole
+        model only.
     tau3 : float, optional
-        The time-constant parameter which is only used by the 3-pole
-        fit.
+        The extra pole  associated with the 3 thermal block model,
+        units of seconds. Used in 3-pole model only.
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -105,26 +125,25 @@ def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     used:
 
     1-pole model
-        - used if `A` and `tau2` are passed
+        - used if `rsh`,  `rp`, and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L
 
-    2-pole model
-        - used if `A`, `B`, `tau1`, and `tau2` are passed
+    2-pole model (see https://doi.org/10.1007/10933596_3)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l` and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + (r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)))
 
-    3-pole model
-        - used if `A`, `B`, `C`, `tau1`, `tau2`, and `tau3` are
-          passed
-        - note the placement of the parentheses in the last term of
-          this model, such that pole related to `C` is in the
-          denominator of the `B` term
-        - has the form: 
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1
-                  - C / (1.0 + 2.0j * pi * freq * tau3))
+    3-pole model (see https://doi.org/10.1063/1.4759111)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l`, `L`, `gratio` and
+          `tau3` are passed
+        - has the form:
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)
+                  - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
 
     """
 
@@ -132,15 +151,24 @@ def compleximpedance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     poles = _pole_extractor(passed_args)
 
     if poles == 1:
+        A, tau2, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, L, 0),
+        )
         return _BaseDIDV._onepoleimpedance(f, A, tau2)
     if poles == 2:
+        A, B, tau1, tau2, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, r0, beta, l, L, tau0, 0),
+        )
         return _BaseDIDV._twopoleimpedance(f, A, B, tau1, tau2)
     if poles == 3:
+        A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
+        )
         return _BaseDIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
 
 
-def complexadmittance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
-                      tau3=None, **kwargs):
+def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
+                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
     """
     Method for calculating the complex admittance for a given
     model, depending on the parameters inputted (see Notes for more
@@ -150,23 +178,36 @@ def complexadmittance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     Parameters
     ----------
     f : ndarray, float
-        The frequencies at which the complex admittance will be
+        The frequencies at which the complex impedance will be
         calculated.
-    A : float, optional
-        The fit parameter which is used by the 1-, 2-, and 3-pole fits.
-    B : float, optional
-        The fit parameter which is used by the 2- and 3-pole fits.
-    C : float, optional
-        The fit parameter which is only used by the 3-pole fit.
-    tau1 : float, optional
-        The time-constant parameter which is used by the 2- and 3-pole
-        fits.
-    tau2 : float, optional
-        The time-constant parameter which is used by the 1-, 2-, and
-        3-pole fits.
+    rsh : float, optional
+        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
+        2-, and 3-pole models.
+    rp : float, optional
+        Parasitic resistance on the shunt side of the TES circuit,
+        units of Ohms. Used by 1-, 2-, and 3-pole models.
+    r0 : float, optional
+        The operating resistance of the TES, units of Ohms. Used by 2-
+        and 3-pole models.
+    beta : float, optional
+        The current sensitivity of the TES, defined as
+        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
+    l : float, optional
+        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
+        by the 2- and 3-pole models.
+    L : float, optional
+        The inductance in the TES circuit, units of Henrys. Used by 1-,
+        2-, and 3-pole models.
+    tau0 : float, optional
+        The thermal time constant of the TES (in sseconds), defined as
+        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
+    gratio : float, optional
+        The ratio of thermal conductances in the 3 thermal block models
+        that are used as the basis of the 3-pole model. Used in 3-pole
+        model only.
     tau3 : float, optional
-        The time-constant parameter which is only used by the 3-pole
-        fit.
+        The extra pole  associated with the 3 thermal block model,
+        units of seconds. Used in 3-pole model only.
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -182,39 +223,47 @@ def complexadmittance(f, *, A=None, B=None, C=None, tau1=None, tau2=None,
     used:
 
     1-pole model
-        - used if `A` and `tau2` are passed
+        - used if `rsh`,  `rp`, and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L
 
-    2-pole model
-        - used if `A`, `B`, `tau1`, and `tau2` are passed
+    2-pole model (see https://doi.org/10.1007/10933596_3)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l` and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + (r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)))
 
-    3-pole model
-        - used if `A`, `B`, `C`, `tau1`, `tau2`, and `tau3` are
-          passed
-        - note the placement of the parentheses in the last term of
-          this model, such that pole related to `C` is in the
-          denominator of the `B` term
+    3-pole model (see https://doi.org/10.1063/1.4759111)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l`, `L`, `gratio` and
+          `tau3` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1
-                  - C / (1.0 + 2.0j * pi * freq * tau3))
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)
+                  - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
 
     """
 
     impedance = compleximpedance(
-        f, A=A, B=B, C=C, tau1=tau1, tau2=tau2, tau3=tau3,
+        f,
+        rsh=rsh,
+        rp=rp,
+        r0=r0,
+        beta=beta,
+        l=l,
+        L=L,
+        tau0=tau0,
+        gratio=gratio,
+        tau3=tau3,
     )
 
     return 1 / impedance
 
 
-def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
-                       B=None, C=None, tau1=None, tau2=None, tau3=None,
-                       **kwargs):
+def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
+                       r0=None, beta=None, l=None, L=None, tau0=None,
+                       gratio=None, tau3=None, **kwargs):
     """
     Method for calculating the TES response to a square wave for a
     given model, depending on the parameters inputted (see Notes
@@ -225,8 +274,6 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
     t : ndarray, float
         The times at which the square wave response will be
         calculated.
-    rshunt : float
-        The shunt resistance of the TES electronics (in Ohms)
     sgamp : float
         The peak-to-peak size of the square wave jitter (in Amps)
     sgfreq : float
@@ -234,22 +281,34 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
     dutycycle : float, optional
         The duty cycle of the square wave jitter (between 0 and 1).
         Default is 0.5.
-    A : float, optional
-        The fit parameter which is used by the 1-, 2-, and 3-pole
-        fits.
-    B : float, optional
-        The fit parameter which is used by the 2- and 3-pole fits.
-    C : float, optional
-        The fit parameter which is only used by the 3-pole fit.
-    tau1 : float, optional
-        The time-constant parameter which is used by the 2- and
-        3-pole fits.
-    tau2 : float, optional
-        The time-constant parameter which is used by the 1-, 2-,
-        and 3-pole fits.
+    rsh : float, optional
+        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
+        2-, and 3-pole models.
+    rp : float, optional
+        Parasitic resistance on the shunt side of the TES circuit,
+        units of Ohms. Used by 1-, 2-, and 3-pole models.
+    r0 : float, optional
+        The operating resistance of the TES, units of Ohms. Used by 2-
+        and 3-pole models.
+    beta : float, optional
+        The current sensitivity of the TES, defined as
+        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
+    l : float, optional
+        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
+        by the 2- and 3-pole models.
+    L : float, optional
+        The inductance in the TES circuit, units of Henrys. Used by 1-,
+        2-, and 3-pole models.
+    tau0 : float, optional
+        The thermal time constant of the TES (in sseconds), defined as
+        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
+    gratio : float, optional
+        The ratio of thermal conductances in the 3 thermal block models
+        that are used as the basis of the 3-pole model. Used in 3-pole
+        model only.
     tau3 : float, optional
-        The time-constant parameter which is only used by the
-        3-pole fit.
+        The extra pole  associated with the 3 thermal block model,
+        units of seconds. Used in 3-pole model only.
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -265,26 +324,25 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
     used:
 
     1-pole model
-        - used if `A` and `tau2` are passed
+        - used if `rsh`,  `rp`, and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L
 
-    2-pole model
-        - used if `A`, `B`, `tau1`, and `tau2` are passed
+    2-pole model (see https://doi.org/10.1007/10933596_3)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l` and `L` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1)
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + (r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)))
 
-    3-pole model
-        - used if `A`, `B`, `C`, `tau1`, `tau2`, and `tau3` are
-            passed
-        - note the placement of the parentheses in the last term of
-            this model, such that pole related to `C` is in the
-            denominator of the `B` term
+    3-pole model (see https://doi.org/10.1063/1.4759111)
+        - used if `rsh`,  `rp`, `r0`, `beta`, `l`, `L`, `gratio` and
+          `tau3` are passed
         - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1
-                  - C / (1.0 + 2.0j * pi * freq * tau3))
+            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
+                  + r0 * (2 + beta) * l / (1 - l)
+                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)
+                  - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
 
     """
 
@@ -292,16 +350,25 @@ def squarewaveresponse(t, rshunt, sgamp, sgfreq, dutycycle=0.5, *, A=None,
     poles = _pole_extractor(passed_args)
 
     if poles == 1:
+        A, tau2, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, L, 0),
+        )
         return _BaseDIDV._convolvedidv(
-            t, A, 0, 0, 0, tau2, 0, sgamp, rshunt, sgfreq, dutycycle,
+            t, A, 0, 0, 0, tau2, 0, sgamp, rsh, sgfreq, dutycycle,
         )
     if poles == 2:
+        A, B, tau1, tau2, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, r0, beta, l, L, tau0, 0),
+        )
         return _BaseDIDV._convolvedidv(
-            t, A, B, 0, tau1, tau2, 0, sgamp, rshunt, sgfreq, dutycycle,
+            t, A, B, 0, tau1, tau2, 0, sgamp, rsh, sgfreq, dutycycle,
         )
     if poles == 3:
+        A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
+            (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
+        )
         return _BaseDIDV._convolvedidv(
-            t, A, B, C, tau1, tau2, tau3, sgamp, rshunt, sgfreq, dutycycle,
+            t, A, B, C, tau1, tau2, tau3, sgamp, rsh, sgfreq, dutycycle,
         )
 
 
@@ -315,7 +382,7 @@ class _BaseDIDV(object):
 
     """
 
-    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0,
+    def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
                  dutycycle=0.5, add180phase=False, dt0=10.0e-6):
         """
@@ -335,7 +402,7 @@ class _BaseDIDV(object):
         sgamp : float
             Amplitude of the signal generator, in Amps (equivalent to
             jitter in the QET bias)
-        rshunt : float
+        rsh : float
             Shunt resistance in the circuit, Ohms
         tracegain : float, optional
             The factor that the rawtraces should be divided by to
@@ -348,7 +415,7 @@ class _BaseDIDV(object):
             Error in the resistance of the TES (Ohms). Should be set
             if the Irwin parameters are desired.
         rload : float, optional
-            Load resistance of the circuit (rload = rshunt +
+            Load resistance of the circuit (rload = rsh +
             rparasitic), Ohms. Should be set if the Irwin parameters
             are desired.
         rload_err : float,optional
@@ -382,7 +449,7 @@ class _BaseDIDV(object):
         self._r0_err = r0_err
         self._rload = rload
         self._rload_err = rload_err
-        self._rshunt = rshunt
+        self._rsh = rsh
         self._tracegain = tracegain
         self._dutycycle = dutycycle
         self._add180phase = add180phase
@@ -399,6 +466,10 @@ class _BaseDIDV(object):
         self._didvmean = None
         self._offset = None
         self._offset_err = None
+
+        self._1poleresult = None
+        self._2poleresult = None
+        self._3poleresult = None
 
 
     @staticmethod
@@ -478,7 +549,7 @@ class _BaseDIDV(object):
 
 
     @staticmethod
-    def _convolvedidv(x, A, B, C, tau1, tau2, tau3, sgamp, rshunt, sgfreq,
+    def _convolvedidv(x, A, B, C, tau1, tau2, tau3, sgamp, rsh, sgfreq,
                      dutycycle):
         """
         Function to convert the fitted TES parameters for the complex
@@ -507,19 +578,19 @@ class _BaseDIDV(object):
             oddinds = ((np.abs(np.mod(np.absolute(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = 1.0j/(
                 pi*freq[oddinds]/sgfreq
-            )*sgamp*rshunt*tracelength
+            )*sgamp*rsh*tracelength
         else:
             oddinds = ((np.abs(np.mod(np.abs(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = -1.0j/(
                 2.0*pi*freq[oddinds]/sgfreq
-            )*sgamp*rshunt*tracelength*(
+            )*sgamp*rsh*tracelength*(
                 np.exp(-2.0j*pi*freq[oddinds]/sgfreq*dutycycle)-1
             )
             eveninds = ((np.abs(np.mod(np.abs(freq/sgfreq)+1,2)-1))<1e-8)
             eveninds[0] = False
             sf[eveninds] = -1.0j/(
                 2.0*pi*freq[eveninds]/sgfreq
-            )*sgamp*rshunt*tracelength*(
+            )*sgamp*rsh*tracelength*(
                 np.exp(-2.0j*pi*freq[eveninds]/sgfreq*dutycycle)-1
             )
 
@@ -533,7 +604,7 @@ class _BaseDIDV(object):
 
 
     @staticmethod
-    def _deconvolvedidv(x, trace, rshunt, sgamp, sgfreq, dutycycle):
+    def _deconvolvedidv(x, trace, rsh, sgamp, sgfreq, dutycycle):
         """
         Function for taking a trace with a known square wave jitter and
         extracting the complex impedance via deconvolution of the
@@ -561,19 +632,19 @@ class _BaseDIDV(object):
             oddinds = ((np.abs(np.mod(np.absolute(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = 1.0j/(
                 pi*freq[oddinds]/sgfreq
-            )*sgamp*rshunt*tracelength
+            )*sgamp*rsh*tracelength
         else:
             oddinds = ((np.abs(np.mod(np.abs(freq/sgfreq), 2)-1))<1e-8)
             sf[oddinds] = -1.0j/(
                 2.0*pi*freq[oddinds]/sgfreq
-            )*sgamp*rshunt*tracelength*(
+            )*sgamp*rsh*tracelength*(
                 np.exp(-2.0j*pi*freq[oddinds]/sgfreq*dutycycle)-1
             )
             eveninds = ((np.abs(np.mod(np.abs(freq/sgfreq)+1,2)-1))<1e-8)
             eveninds[0] = False
             sf[eveninds] = -1.0j/(
                 2.0*pi*freq[eveninds]/sgfreq
-            )*sgamp*rshunt*tracelength*(
+            )*sgamp*rsh*tracelength*(
                 np.exp(-2.0j*pi*freq[eveninds]/sgfreq*dutycycle)-1
             )
 
@@ -601,17 +672,17 @@ class _BaseDIDV(object):
 
 
     @staticmethod
-    def _squarewaveguessparams(trace, sgamp, rshunt):
+    def _squarewaveguessparams(trace, sgamp, rsh):
         """Function to guess the fit parameters for the 1-pole fit."""
 
         di0 = max(trace) - min(trace)
-        A0 = sgamp*rshunt/di0
+        A0 = sgamp*rsh/di0
         tau20 = 1.0e-6
         return A0, tau20
 
 
     @staticmethod
-    def _guessdidvparams(trace, flatpts, sgamp, rshunt, L0=1.0e-7):
+    def _guessdidvparams(trace, flatpts, sgamp, rsh, L0=1.0e-7):
         """
         Function to find the fit parameters for either the 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
@@ -630,13 +701,13 @@ class _BaseDIDV(object):
         # the didv(0) can be estimated as twice the difference
         # of the top slope points and the mean of the trace
         dis0 = 2 * np.abs(flatpts_mean-dis_mean)
-        didv0 = dis0/(sgamp*rshunt)
+        didv0 = dis0/(sgamp*rsh)
 
         # beta can be estimated from the size of the overshoot
         # estimate size of overshoot as maximum of trace minus
         # the flatpts_mean
         dis_flat = np.max(trace)-flatpts_mean
-        didvflat = dis_flat/(sgamp*rshunt)
+        didvflat = dis_flat/(sgamp*rsh)
         A0 = 1.0/didvflat
         tau20 = L0/A0
 
@@ -658,16 +729,16 @@ class _BaseDIDV(object):
         return A0, B0, tau10, tau20, isloopgainsub1
 
     @staticmethod
-    def _converttotesvalues(popt, r0, rload):
+    def _converttotesvalues(popt, rsh, r0, rload):
         """
         Function to convert the fit parameters for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
         (A, B, C, tau1, tau2, tau3, dt) fit to the corresponding TES
         parameters: 
 
-            1-pole: (rload, r0, L)
-            2-pole: (rload, r0, beta, l, L, tau0)
-            3-pole: (rload, r0, beta, l, L, tau0, gratio, tau3)
+            1-pole: (rsh, rp, L)
+            2-pole: (rsh, rp, r0, beta, l, L, tau0)
+            3-pole: (rsh, rp, r0, beta, l, L, tau0, gratio, tau3)
 
         """
 
@@ -675,8 +746,9 @@ class _BaseDIDV(object):
             # one pole
             A = popt[0]
             tau2 = popt[1]
+            dt = popt[2]
 
-            popt_out = np.array([rload, A - rload, A * tau2])
+            popt_out = np.array([rsh, A - rsh, A * tau2, dt])
 
         elif len(popt)==5:
             # two poles
@@ -684,6 +756,7 @@ class _BaseDIDV(object):
             B = popt[1]
             tau1 = popt[2]
             tau2 = popt[3]
+            dt = popt[4]
 
             # convert A, B tau1, tau2 to beta, l, L, tau
             beta  = (A - rload) / r0 - 1.0
@@ -691,7 +764,7 @@ class _BaseDIDV(object):
             L = A * tau2
             tau = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
 
-            popt_out = np.array([rload, r0, beta, l, L, tau])
+            popt_out = np.array([rsh, rload - rsh, r0, beta, l, L, tau, dt])
 
         elif len(popt)==7:
             # three poles
@@ -701,6 +774,7 @@ class _BaseDIDV(object):
             tau1 = popt[3]
             tau2 = popt[4]
             tau3 = popt[5]
+            dt = popt[6]
 
             # convert A, B tau1, tau2 to beta, l, L, tau
             beta  = (A - rload) / r0 - 1.0
@@ -709,61 +783,77 @@ class _BaseDIDV(object):
             tau0 = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
             gratio = C * (A + r0 - rload) / (A + B + r0 - rload)
 
-            popt_out = np.array([rload, r0, beta, l, L, tau0, gratio, tau3])
+            popt_out = np.array(
+                [rsh, rload - rsh, r0, beta, l, L, tau0, gratio, tau3, dt]
+            )
 
         return popt_out
 
 
     @staticmethod
-    def _convertfromtesvalues(popt, pcov):
+    def _convertfromtesvalues(popt):
         """
         Function to convert from Irwin's TES parameters
-        (rload, r0, beta, l, L, tau0, dt) to the fit parameters
+        (rsh, rp, r0, beta, l, L, tau0, dt) to the fit parameters
         (A, B, tau1, tau2, dt)
 
         """
 
-        ## two poles
-        # extract fit parameters
-        rload = popt[0]
-        r0 = popt[1]
-        beta = popt[2]
-        l = popt[3]
-        L = popt[4]
-        tau0 = popt[5]
-        dt = popt[6]
+        if len(popt) == 4:
+            ## two poles
+            rsh = popt[0]
+            rp = popt[1]
+            L = popt[2]
+            dt = popt[3]
 
-        # convert A, B tau1, tau2 to beta, l, L, tau
-        A = rload + r0 * (1.0+beta)
-        B = r0 * l/(1.0-l) * (2.0+beta)
-        tau1 = tau0/(1.0-l)
-        tau2 = L/(rload+r0*(1.0+beta))
+            # convert A, B tau1, tau2 to beta, l, L, tau
+            A = rsh + rp
+            tau2 = L / (rsh + rp)
 
-        popt_out = np.array([A, B, tau1, tau2, dt])
+            popt_out = np.array([A, tau2, dt])
 
-        # calculate the Jacobian
-        jac = np.zeros((5,7))
-        jac[0,0] = 1.0        #dAdrload
-        jac[0,1] = 1.0 + beta #dAdr0
-        jac[0,2] = r0         #dAdbeta
-        jac[1,1] = l/(1.0-l) * (2.0+beta) #dBdr0
-        jac[1,2] = l/(1.0-l) * r0 #dBdbeta
-        jac[1,3] = (
-            r0 * (2.0+beta)/(1.0-l)
-        )  + l/(1.0-l)**2.0 * r0 * (2.0+beta) #dBdl
-        jac[2,3] = tau0/(1.0-l)**2.0  #dtau1dl
-        jac[2,5] = 1.0/(1.0-l) #dtau1dtau0
-        jac[3,0] = -L/(rload+r0*(1.0+beta))**2.0 #dtau2drload
-        jac[3,1] = -L * (1.0+beta)/(rload+r0*(1.0+beta))**2 #dtau2dr0
-        jac[3,2] = -L*r0/(rload+r0*(1.0+beta))**2.0 #dtau2dbeta
-        jac[3,4] = 1.0/(rload+r0*(1.0+beta))#dtau2dL
-        jac[4,6] = 1.0 #ddtddt
+        elif len(popt) == 8:
+            ## two poles
+            rsh = popt[0]
+            rp = popt[1]
+            r0 = popt[2]
+            beta = popt[3]
+            l = popt[4]
+            L = popt[5]
+            tau0 = popt[6]
+            dt = popt[7]
 
-        # use the Jacobian to populate the rest of the covariance matrix
-        jact = np.transpose(jac)
-        pcov_out = np.dot(jac, np.dot(pcov, jact))
+            # convert A, B tau1, tau2 to beta, l, L, tau
+            A = rsh + rp + r0 * (1 + beta)
+            B = r0 * l / (1 - l) * (2 + beta)
+            tau1 = tau0 / (1 - l)
+            tau2 = L / (rsh + rp + r0 * (1 + beta))
 
-        return popt_out, pcov_out
+            popt_out = np.array([A, B, tau1, tau2, dt])
+
+        elif len(popt) == 10:
+            ## two poles
+            rsh = popt[0]
+            rp = popt[1]
+            r0 = popt[2]
+            beta = popt[3]
+            l = popt[4]
+            L = popt[5]
+            tau0 = popt[6]
+            gratio = popt[7]
+            tau3 = popt[8]
+            dt = popt[9]
+
+            # convert A, B tau1, tau2 to beta, l, L, tau
+            A = rsh + rp + r0 * (1 + beta)
+            B = r0 * l / (1 - l) * (2 + beta)
+            C = gratio / (1 - l)
+            tau1 = tau0 / (1 - l)
+            tau2 = L / (rsh + rp + r0 * (1 + beta))
+
+            popt_out = np.array([A, B, C, tau1, tau2, tau3, dt])
+            
+        return popt_out
 
 
     @staticmethod
@@ -889,7 +979,7 @@ class _BaseDIDV(object):
             didvi = _BaseDIDV._deconvolvedidv(
                 self._time,
                 trace,
-                self._rshunt,
+                self._rsh,
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
@@ -912,7 +1002,7 @@ class _BaseDIDV(object):
         self._freq, self._zeroinds = _BaseDIDV._deconvolvedidv(
             self._time,
             self._tmean,
-            self._rshunt,
+            self._rsh,
             self._sgamp,
             self._sgfreq,
             self._dutycycle,
@@ -928,3 +1018,55 @@ class _BaseDIDV(object):
 
         self._offset = np.mean(means)
         self._offset_err = np.std(means)/np.sqrt(self._ntraces)
+
+
+    def fitresult(self, poles):
+        """
+        Function for returning a dictionary containing the relevant
+        results from the specified fit.
+
+        Parameters
+        ----------
+        poles : int
+            The number of poles (fall times) in the fit, from which the
+            results will be returned. Should be 1, 2, or 3.
+
+        Returns
+        -------
+        result : dict
+            A dictionary containing the fitted parameters, the error of
+            each parameter (from the diagonal of the covariance
+            matrix), the full covariance matrix, the physical fall
+            times, and the cost (i.e. chi-square) of the fit.
+
+        """
+
+        if poles == 1:
+            if self._1poleresult is None:
+                warnings.warn(
+                    "The 1-pole fit has not been run, "
+                    "returning an empty dict."
+                )
+                return dict()
+
+            return self._1poleresult
+
+        if poles == 2:
+            if self._2poleresult is None:
+                warnings.warn(
+                    "The 2-pole fit has not been run, "
+                    "returning an empty dict."
+                )
+                return dict()
+
+            return self._2poleresult
+
+        if poles == 3:
+            if self._3poleresult is None:
+                warnings.warn(
+                    "The 3-pole fit has not been run, "
+                    "returning an empty dict."
+                )
+                return dict()
+
+            return self._3poleresult

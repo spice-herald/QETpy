@@ -13,7 +13,7 @@ __all__ = [
 
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
-                     sgamp, rshunt, r0=0.3, r0_err=0.001, rload=0.01,
+                     sgamp, rsh, r0=0.3, r0_err=0.001, rload=0.01,
                      rload_err=0.001, add180phase=False, dt0=10.0e-6):
     """
     Function to initialize and process a dIdV dataset without having
@@ -41,14 +41,14 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
     sgamp : float
         Amplitude of the signal generator, in Amps (equivalent to
         jitter in the QET bias)
-    rshunt : float
+    rsh : float
         Shunt resistance in the circuit, Ohms
     r0 : float, optional
         Resistance of the TES in Ohms
     r0_err : float, optional
         Error in the resistance of the TES (Ohms)
     rload : float, optional
-        Load resistance of the circuit (rload = rshunt + rparasitic),
+        Load resistance of the circuit (rload = rsh + rparasitic),
         in units of Ohms.
     rload_err : float, optional
         Error in the load resistance, Ohms
@@ -78,7 +78,7 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         fs,
         sgfreq,
         sgamp,
-        rshunt,
+        rsh,
         r0=r0,
         r0_err=r0_err,
         rload=rload,
@@ -131,7 +131,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     """
 
-    def __init__(self, rawtraces, fs, sgfreq, sgamp, rshunt, tracegain=1.0,
+    def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
                  dutycycle=0.5, add180phase=False, dt0=10.0e-6):
         """
@@ -151,7 +151,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         sgamp : float
             Amplitude of the signal generator, in Amps (equivalent to
             jitter in the QET bias)
-        rshunt : float
+        rsh : float
             Shunt resistance in the circuit, Ohms
         tracegain : float, optional
             The factor that the rawtraces should be divided by to
@@ -164,7 +164,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             Error in the resistance of the TES (Ohms). Should be set
             if the Irwin parameters are desired.
         rload : float, optional
-            Load resistance of the circuit (rload = rshunt +
+            Load resistance of the circuit (rload = rsh +
             rparasitic), Ohms. Should be set if the Irwin parameters
             are desired.
         rload_err : float,optional
@@ -195,7 +195,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             fs,
             sgfreq,
             sgamp,
-            rshunt,
+            rsh,
             tracegain=tracegain,
             r0=r0,
             r0_err=r0_err,
@@ -205,10 +205,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             add180phase=add180phase,
             dt0=dt0,
         )
-
-        self._1poleresult = None
-        self._2poleresult = None
-        self._3poleresult = None
 
 
     @staticmethod
@@ -398,7 +394,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             A0_1pole, tau20_1pole = DIDV._squarewaveguessparams(
                 self._tmean,
                 self._sgamp,
-                self._rshunt,
+                self._rsh,
             )
 
             # 1 pole fitting
@@ -422,6 +418,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 fitcov1,
                 falltimes1,
                 fitcost1,
+                self._rsh,
                 self._rload,
                 self._r0,
             )
@@ -432,7 +429,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._tmean,
                 self._tmean[self._flatinds],
                 self._sgamp,
-                self._rshunt,
+                self._rsh,
                 L0=1.0e-7,
             )
 
@@ -459,6 +456,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 fitcov2,
                 falltimes2,
                 fitcost2,
+                self._rsh,
                 self._rload,
                 self._r0,
             )
@@ -471,7 +469,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     self._tmean,
                     self._tmean[self._flatinds],
                     self._sgamp,
-                    self._rshunt,
+                    self._rsh,
                     L0=1.0e-7,
                 )[:-1]
                 B0 = -abs(B0)
@@ -492,7 +490,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._tmean,
                 self._tmean[self._flatinds],
                 self._sgamp,
-                self._rshunt,
+                self._rsh,
                 L0=1.0e-7,
             )[-1]
 
@@ -521,6 +519,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 fitcov3,
                 falltimes3,
                 fitcost3,
+                self._rsh,
                 self._rload,
                 self._r0,
             )
@@ -530,7 +529,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost, rl, r0):
+    def _fitresult(poles, params, cov, falltimes, cost, rsh, rl, r0):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -555,12 +554,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
 
             result['smallsignalparams'] = {
-                'rload': smallsignalparams[0],
-                'r0': smallsignalparams[1],
+                'rsh': smallsignalparams[0],
+                'rp': smallsignalparams[1],
                 'L': smallsignalparams[2],
+                'dt': smallsignalparams[3],
             }
 
             return result
@@ -585,15 +585,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
 
             result['smallsignalparams'] = {
-                'rload': smallsignalparams[0],
-                'r0': smallsignalparams[1],
-                'beta': smallsignalparams[2],
-                'l': smallsignalparams[3],
-                'L': smallsignalparams[4],
-                'tau0': smallsignalparams[5],
+                'rsh': smallsignalparams[0],
+                'rp': smallsignalparams[1],
+                'r0': smallsignalparams[2],
+                'beta': smallsignalparams[3],
+                'l': smallsignalparams[4],
+                'L': smallsignalparams[5],
+                'tau0': smallsignalparams[6],
+                'dt': smallsignalparams[7],
             }
 
             return result
@@ -622,69 +624,19 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
 
             result['smallsignalparams'] = {
-                'rload': smallsignalparams[0],
-                'r0': smallsignalparams[1],
-                'beta': smallsignalparams[2],
-                'l': smallsignalparams[3],
-                'L': smallsignalparams[4],
-                'tau0': smallsignalparams[5],
-                'gratio': smallsignalparams[6],
-                'tau3': smallsignalparams[7],
+                'rsh': smallsignalparams[0],
+                'rp': smallsignalparams[1],
+                'r0': smallsignalparams[2],
+                'beta': smallsignalparams[3],
+                'l': smallsignalparams[4],
+                'L': smallsignalparams[5],
+                'tau0': smallsignalparams[6],
+                'gratio': smallsignalparams[7],
+                'tau3': smallsignalparams[8],
+                'dt': smallsignalparams[9],
             }
 
             return result
-
-
-    def fitresult(self, poles):
-        """
-        Function for returning a dictionary containing the relevant
-        results from the specified fit.
-
-        Parameters
-        ----------
-        poles : int
-            The number of poles (fall times) in the fit, from which the
-            results will be returned. Should be 1, 2, or 3.
-
-        Returns
-        -------
-        result : dict
-            A dictionary containing the fitted parameters, the error of
-            each parameter (from the diagonal of the covariance
-            matrix), the full covariance matrix, the physical fall
-            times, and the cost of the fit.
-
-        """
-
-        if poles == 1:
-            if self._1poleresult is None:
-                warnings.warn(
-                    "The 1-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._1poleresult
-
-        if poles == 2:
-            if self._2poleresult is None:
-                warnings.warn(
-                    "The 2-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._2poleresult
-
-        if poles == 3:
-            if self._3poleresult is None:
-                warnings.warn(
-                    "The 3-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._3poleresult
