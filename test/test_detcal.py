@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from qetpy import autocuts, IV, Noise, calc_psd
 from qetpy.sim import TESnoise
 from qetpy.plotting import compare_noise, plot_noise_sim
-import h5py
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
