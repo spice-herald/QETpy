@@ -127,7 +127,7 @@ class _PlotDIDV(object):
         return fig, ax
 
 
-    def plot_full_trace(self, poles="all", lgcsave=False, savepath="",
+    def plot_full_trace(self, poles="all", saveplot=False, savepath="",
                         savename=""):
         """
         Function to plot the entire trace in time domain
@@ -138,7 +138,7 @@ class _PlotDIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -154,14 +154,14 @@ class _PlotDIDV(object):
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
         ax.set_title("Full Trace of dIdV")
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"full_trace_{savename}.png")
             plt.close(fig)
         else:
             plt.show()
 
 
-    def plot_single_period_of_trace(self, poles="all", lgcsave=False,
+    def plot_single_period_of_trace(self, poles="all", saveplot=False,
                                     savepath="", savename=""):
         """
         Function to plot a single period of the trace in time domain
@@ -172,7 +172,7 @@ class _PlotDIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -190,15 +190,15 @@ class _PlotDIDV(object):
         ax.set_xlim([self._time[0] * 1e6, self._time[0] * 1e6 + period * 1e6])
         ax.set_title("Single Period of Trace")
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"trace_one_period_{savename}.png")
             plt.close(fig)
         else:
             plt.show()
 
 
-    def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1, lgcsave=False,
-                             savepath="", savename=""):
+    def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
+                             saveplot=False, savepath="", savename=""):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -212,7 +212,7 @@ class _PlotDIDV(object):
         zoomfactor : float, optional, optional
             Number between zero and 1 to show different amounts of the
             zoomed in trace.
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -240,14 +240,14 @@ class _PlotDIDV(object):
 
         ax.set_title("Zoomed In Portion of Trace")
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"zoomed_in_trace_{savename}.png")
             plt.close(fig)
         else:
             plt.show()
 
 
-    def plot_didv_flipped(self, poles="all", lgcsave=False, savepath="",
+    def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
                           savename=""):
         """
         Function to plot the flipped trace in time domain. This
@@ -260,7 +260,7 @@ class _PlotDIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -286,7 +286,7 @@ class _PlotDIDV(object):
 
         ax.set_title("Flipped Traces to Check Asymmetry")
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"flipped_trace_{savename}.png")
             plt.close(fig)
         else:
@@ -381,7 +381,6 @@ class _PlotDIDV(object):
             )
 
         ax.set_xlabel('Frequency (Hz)')
-        ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
         ax.set_xscale('log')
 
         yhigh = max(function(
@@ -403,7 +402,7 @@ class _PlotDIDV(object):
         return fig, ax
 
 
-    def plot_re_im_didv(self, poles="all", lgcsave=False, savepath="",
+    def plot_re_im_didv(self, poles="all", saveplot=False, savepath="",
                         savename=""):
         """
         Function to plot the real and imaginary parts of the didv in
@@ -415,7 +414,7 @@ class _PlotDIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -431,7 +430,7 @@ class _PlotDIDV(object):
         ax.set_title("Real Part of dIdV")
         ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"didv_real_{savename}.png")
             plt.close(fig)
         else:
@@ -443,14 +442,14 @@ class _PlotDIDV(object):
         ax.set_title("Imaginary Part of dIdV")
         ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"didv_imag_{savename}.png")
             plt.close(fig)
         else:
             plt.show()
 
 
-    def plot_abs_phase_didv(self, poles="all", lgcsave=False, savepath="",
+    def plot_abs_phase_didv(self, poles="all", saveplot=False, savepath="",
                             savename=""):
         """
         Function to plot the absolute value and the phase of the dIdV
@@ -462,7 +461,7 @@ class _PlotDIDV(object):
             The pole fits that we want to plot. If set to "all", then
             plots all of the fits. Can also be set to just one of the
             fits. Can be set as an array of different fits, e.g. [1, 2]
-        lgcsave : boolean, optional
+        saveplot : boolean, optional
             Boolean value on whether or not the figure should be saved
         savepath : string, optional
             Where the figure should be saved. Saved in the current
@@ -479,7 +478,7 @@ class _PlotDIDV(object):
         ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
         ax.set_ylim(0)
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"didv_abs_{savename}.png")
             plt.close(fig)
         else:
@@ -492,8 +491,118 @@ class _PlotDIDV(object):
         ax.set_ylabel('Arg($dI/dV$)')
         ax.set_ylim(-np.pi, np.pi)
 
-        if lgcsave:
+        if saveplot:
             fig.savefig(savepath + f"didv_phase_{savename}.png")
             plt.close(fig)
         else:
             plt.show()
+
+
+    def plot_re_vs_im_didv(self, poles='all', saveplot=False, savepath="",
+                           savename=""):
+        """
+        Function to plot the real vs imaginary parts of the didv.
+
+        Parameters
+        ----------
+        poles : int, string, array_like, optional
+            The pole fits that we want to plot. If set to "all", then
+            plots all of the fits. Can also be set to just one of the
+            fits. Can be set as an array of different fits, e.g. [1, 2]
+        saveplot : boolean, optional
+            Boolean value on whether or not the figure should be saved
+        savepath : string, optional
+            Where the figure should be saved. Saved in the current
+            directory by default.
+        savename : string, optional
+            A string to append to the end of the file name if saving.
+            Empty string by default.
+
+        """
+        
+        if poles == "all":
+            poleslist = np.array([1, 2, 3])
+        else:
+            poleslist = np.array(poles)
+
+        ## don't plot points with huge errors
+        goodinds = np.abs(self._didvmean / self._didvstd) > 2.0
+        fitinds = self._freq > 0
+        plotinds = np.logical_and(fitinds, goodinds)
+
+        best_time_offset = self._get_best_time_offset()
+
+        time_phase = np.exp(2.0j * np.pi * best_time_offset * self._freq)
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        ax.scatter(
+            np.real(self._didvmean * time_phase)[plotinds],
+            np.imag(self._didvmean * time_phase)[plotinds],
+            color='blue',
+            label='Mean',
+            s=5,
+        )
+
+        if (self._1poleresult is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._1poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
+            didvfit1_freqdomain = complexadmittance(
+                self._freq, **self._1poleresult[key],
+            )
+            ax.plot(
+                np.real(didvfit1_freqdomain)[fitinds],
+                np.imag(didvfit1_freqdomain)[fitinds],
+                color='magenta',
+                label='1-Pole Fit',
+            )
+
+        if (self._2poleresult is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._2poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
+            didvfit2_freqdomain = complexadmittance(
+                self._freq, **self._2poleresult[key],
+            )
+            ax.plot(
+                np.real(didvfit2_freqdomain)[fitinds],
+                np.imag(didvfit2_freqdomain)[fitinds],
+                color='green',
+                label='2-Pole Fit',
+            )
+
+        if (self._3poleresult is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._3poleresult:
+                key = 'smallsignalparams'
+            else:
+                key = 'params'
+            didvfit3_freqdomain = complexadmittance(
+                self._freq, **self._3poleresult[key],
+            )
+            ax.plot(
+                np.real(didvfit3_freqdomain)[fitinds],
+                np.imag(didvfit3_freqdomain)[fitinds],
+                color='orange',
+                label='3-Pole Fit',
+            )
+
+        ax.set_xlabel('Re($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_title('Re($dI/dV$) vs. Im($dI/dV$)')
+
+        ax.legend(loc='upper left')
+        ax.tick_params(which='both', direction='in', right=True, top=True)
+        ax.grid(which='major')
+        ax.grid(which='minor', linestyle='dotted', alpha=0.3)
+
+        if saveplot:
+            fig.savefig(savepath+f"didv_real_vs_imag_{savename}.png")
+            plt.close(fig)
+        else:
+            plt.show()
+
+
+        return fig, ax
