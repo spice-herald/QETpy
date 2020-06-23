@@ -86,7 +86,7 @@ def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
         Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
         2-, and 3-pole models.
     rp : float, optional
-        Parasitic resistance on the shunt side of the TES circuit,
+        Parasitic resistance on the non-shunt side of the TES circuit,
         units of Ohms. Used by 1-, 2-, and 3-pole models.
     r0 : float, optional
         The operating resistance of the TES, units of Ohms. Used by 2-
@@ -184,7 +184,7 @@ def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
         Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
         2-, and 3-pole models.
     rp : float, optional
-        Parasitic resistance on the shunt side of the TES circuit,
+        Parasitic resistance on the non-shunt side of the TES circuit,
         units of Ohms. Used by 1-, 2-, and 3-pole models.
     r0 : float, optional
         The operating resistance of the TES, units of Ohms. Used by 2-
@@ -285,7 +285,7 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
         Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
         2-, and 3-pole models.
     rp : float, optional
-        Parasitic resistance on the shunt side of the TES circuit,
+        Parasitic resistance on the non-shunt side of the TES circuit,
         units of Ohms. Used by 1-, 2-, and 3-pole models.
     r0 : float, optional
         The operating resistance of the TES, units of Ohms. Used by 2-
@@ -383,10 +383,10 @@ class _BaseDIDV(object):
     """
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
-                 r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 dutycycle=0.5, add180phase=False, dt0=10.0e-6):
+                 r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
+                 dt0=10.0e-6):
         """
-        Initialization of the DIDV class object
+        Initialization of the _BaseDIDV class object
 
         Parameters
         ----------
@@ -409,18 +409,12 @@ class _BaseDIDV(object):
             convert the units to Amps. If rawtraces already has units
             of Amps, then this should be set to 1.0
         r0 : float, optional
-            Resistance of the TES in Ohms. Should be set if the Irwin
-            parameters are desired.
-        r0_err : float, optional
-            Error in the resistance of the TES (Ohms). Should be set
-            if the Irwin parameters are desired.
-        rload : float, optional
-            Load resistance of the circuit (rload = rsh +
-            rparasitic), Ohms. Should be set if the Irwin parameters
-            are desired.
-        rload_err : float,optional
-            Error in the load resistance, Ohms. Should be set if the
-            Irwin parameters are desired.
+            The estimated resistance of the TES in Ohms. Should be set
+            if accurate small signal parameters are desired.
+        rp : float, optional
+            The estimated parasitic resistance of the non-shunt side of
+            the TES circuit in Ohms. Should be set if accurate small
+            signal parameters are desired.
         dutycycle : float, optional
             The duty cycle of the signal generator, should be a float
             between 0 and 1. Set to 0.5 by default
@@ -446,9 +440,7 @@ class _BaseDIDV(object):
         self._sgfreq = sgfreq
         self._sgamp = sgamp
         self._r0 = r0
-        self._r0_err = r0_err
-        self._rload = rload
-        self._rload_err = rload_err
+        self._rp = rp
         self._rsh = rsh
         self._tracegain = tracegain
         self._dutycycle = dutycycle
@@ -729,7 +721,7 @@ class _BaseDIDV(object):
         return A0, B0, tau10, tau20, isloopgainsub1
 
     @staticmethod
-    def _converttotesvalues(popt, rsh, r0, rload):
+    def _converttotesvalues(popt, rsh, r0, rp):
         """
         Function to convert the fit parameters for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
@@ -758,13 +750,14 @@ class _BaseDIDV(object):
             tau2 = popt[3]
             dt = popt[4]
 
+            rload = rsh + rp
             # convert A, B tau1, tau2 to beta, l, L, tau
             beta  = (A - rload) / r0 - 1.0
             l = B / (A + B + r0 - rload)
             L = A * tau2
             tau = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
 
-            popt_out = np.array([rsh, rload - rsh, r0, beta, l, L, tau, dt])
+            popt_out = np.array([rsh, rp, r0, beta, l, L, tau, dt])
 
         elif len(popt)==7:
             # three poles
@@ -776,6 +769,7 @@ class _BaseDIDV(object):
             tau3 = popt[5]
             dt = popt[6]
 
+            rload = rsh + rp
             # convert A, B tau1, tau2 to beta, l, L, tau
             beta  = (A - rload) / r0 - 1.0
             l = B / (A + B + r0 - rload)
@@ -784,7 +778,7 @@ class _BaseDIDV(object):
             gratio = C * (A + r0 - rload) / (A + B + r0 - rload)
 
             popt_out = np.array(
-                [rsh, rload - rsh, r0, beta, l, L, tau0, gratio, tau3, dt]
+                [rsh, rp, r0, beta, l, L, tau0, gratio, tau3, dt]
             )
 
         return popt_out

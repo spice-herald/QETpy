@@ -13,8 +13,8 @@ __all__ = [
 
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
-                     sgamp, rsh, r0=0.3, r0_err=0.001, rload=0.01,
-                     rload_err=0.001, add180phase=False, dt0=10.0e-6):
+                     sgamp, rsh, r0=0.3, rp=0.005, add180phase=False,
+                     dt0=10.0e-6):
     """
     Function to initialize and process a dIdV dataset without having
     all of the traces, but just the parameters that are required for
@@ -44,14 +44,12 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
     rsh : float
         Shunt resistance in the circuit, Ohms
     r0 : float, optional
-        Resistance of the TES in Ohms
-    r0_err : float, optional
-        Error in the resistance of the TES (Ohms)
-    rload : float, optional
-        Load resistance of the circuit (rload = rsh + rparasitic),
-        in units of Ohms.
-    rload_err : float, optional
-        Error in the load resistance, Ohms
+        The estimated resistance of the TES in Ohms. Should be set if
+        accurate small signal parameters are desired.
+    rp : float, optional
+        The estimated parasitic resistance of the non-shunt side of the
+        TES circuit in Ohms. Should be set if accurate small signal
+        parameters are desired.
     add180phase : boolean, optional
         If the signal generator is out of phase (i.e. if it looks like
         --__ instead of __--), then this should be set to True. Adds
@@ -80,9 +78,7 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         sgamp,
         rsh,
         r0=r0,
-        r0_err=r0_err,
-        rload=rload,
-        rload_err=rload_err,
+        rp=rp,
         add180phase=add180phase,
         dt0=dt0,
     )
@@ -132,8 +128,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     """
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
-                 r0=0.3, r0_err=0.001, rload=0.01, rload_err=0.001,
-                 dutycycle=0.5, add180phase=False, dt0=10.0e-6):
+                 r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
+                 dt0=10.0e-6):
         """
         Initialization of the DIDV class object
 
@@ -158,18 +154,12 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             convert the units to Amps. If rawtraces already has units
             of Amps, then this should be set to 1.0
         r0 : float, optional
-            Resistance of the TES in Ohms. Should be set if the Irwin
-            parameters are desired.
-        r0_err : float, optional
-            Error in the resistance of the TES (Ohms). Should be set
-            if the Irwin parameters are desired.
-        rload : float, optional
-            Load resistance of the circuit (rload = rsh +
-            rparasitic), Ohms. Should be set if the Irwin parameters
-            are desired.
-        rload_err : float,optional
-            Error in the load resistance, Ohms. Should be set if the
-            Irwin parameters are desired.
+            The estimated resistance of the TES in Ohms. Should be set
+            if accurate small signal parameters are desired.
+        rp : float, optional
+            The estimated parasitic resistance of the non-shunt side of
+            the TES circuit in Ohms. Should be set if accurate small
+            signal parameters are desired.
         dutycycle : float, optional
             The duty cycle of the signal generator, should be a float
             between 0 and 1. Set to 0.5 by default
@@ -198,9 +188,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             rsh,
             tracegain=tracegain,
             r0=r0,
-            r0_err=r0_err,
-            rload=rload,
-            rload_err=rload_err,
+            rp=rp,
             dutycycle=dutycycle,
             add180phase=add180phase,
             dt0=dt0,
@@ -382,6 +370,29 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         ValueError
             If the inputted `poles` is not 1, 2, or 3.
 
+        Notes
+        -----
+        Depending on the fit, there are three possible models to be
+        used with different parameterizations:
+
+        1-pole model
+            - has the form:
+                dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+
+        2-pole model
+            - has the form:
+                dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+                      + B / (1.0 + 2.0j * pi * freq * tau1)
+
+        3-pole model
+            - note the placement of the parentheses in the last term of
+              this model, such that pole related to `C` is in the
+              denominator of the `B` term
+            - has the form: 
+                dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+                      + B / (1.0 + 2.0j * pi * freq * tau1
+                      - C / (1.0 + 2.0j * pi * freq * tau3))
+
         """
 
         if self._tmean is None:
@@ -419,7 +430,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 falltimes1,
                 fitcost1,
                 self._rsh,
-                self._rload,
+                self._rp,
                 self._r0,
             )
 
@@ -457,7 +468,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 falltimes2,
                 fitcost2,
                 self._rsh,
-                self._rload,
+                self._rp,
                 self._r0,
             )
 
@@ -520,7 +531,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 falltimes3,
                 fitcost3,
                 self._rsh,
-                self._rload,
+                self._rp,
                 self._r0,
             )
 
@@ -529,7 +540,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost, rsh, rl, r0):
+    def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -554,7 +565,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
             result['smallsignalparams'] = {
                 'rsh': smallsignalparams[0],
@@ -585,7 +596,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
             result['smallsignalparams'] = {
                 'rsh': smallsignalparams[0],
@@ -624,7 +635,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             result['falltimes'] = falltimes
             result['cost'] = cost
 
-            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rl)
+            smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
             result['smallsignalparams'] = {
                 'rsh': smallsignalparams[0],

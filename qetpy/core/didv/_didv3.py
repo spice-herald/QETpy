@@ -26,7 +26,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  dutycycle=0.5, add180phase=False, dt0=10.0e-6):
         """
-        Initialization of the DIDV class object
+        Initialization of the DIDVPriors class object
 
         Parameters
         ----------
@@ -143,18 +143,19 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
     @staticmethod
     def _fitdidv(freq, didv, poles, priors, invpriorscov, p0, yerr=None):
         """
-        Function to directly fit Irwin's TES parameters (rload, r0, beta, l, L, tau0, dt)
-        with the knowledge of prior known values any number of the parameters. 
-        In order for the degeneracy of the parameters to be broken, at least 2 
-        fit parameters should have priors knowledge. This is usually rload and r0, as 
-        these can be known from IV data.
+        Function to directly fit the small signal TES parameters with
+        the knowledge of prior known values any number of the
+        parameters. In order for the degeneracy of the parameters to be
+        broken, at least 2 fit parameters should have priors knowledge.
+        This is usually rsh, rp, and r0, as these can be known from IV
+        data.
 
         """
 
         def _residual(params):
             """
-            Define a residual for the nonlinear least squares algorithm for
-            the priors fit.
+            Define a residual for the nonlinear least squares algorithm
+            for the priors fit.
 
             """
 
@@ -229,7 +230,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
         return popt, pcov, cost
 
 
-    def _guessparams(self, poles, fcutoff):
+    def _guessparams(self, poles, fcutoff, priors):
         """
         Hidden method for using the non-priors fitting to guess the
         starting parameters.
@@ -248,6 +249,8 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             self._rsh,
             add180phase=self._add180phase,
             dt0=self._dt0,
+            rp=priors[1] if priors[1] != 0 else 0.01,
+            r0=priors[2] if priors[2] != 0 else 0.1,
         )
 
         DIDVGuess.dofit(poles, fcutoff=fcutoff)
@@ -341,10 +344,10 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         fit_freqs = np.abs(self._freq) < fcutoff
 
-        guess = self._guessparams(poles, fcutoff)
+        guess = self._guessparams(poles, fcutoff, priors)
 
         guess_new = [g if p == 0 else p for g, p in zip(guess, priors)]
-        print(guess_new)
+
         params, cov, cost = DIDVPriors._fitdidv(
             self._freq[fit_freqs],
             self._didvmean[fit_freqs] * self._rsh,
@@ -363,14 +366,20 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             self._1poleresult = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
+            self._1poleresult['priors'] = priors
+            self._1poleresult['priorscov'] = priorscov
         elif poles == 2:
             self._2poleresult = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
+            self._2poleresult['priors'] = priors
+            self._2poleresult['priorscov'] = priorscov
         elif poles == 3:
             self._3poleresult = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
+            self._3poleresult['priors'] = priors
+            self._3poleresult['priorscov'] = priorscov
 
 
     @staticmethod
