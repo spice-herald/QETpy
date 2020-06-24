@@ -66,7 +66,9 @@ def _initialize_didv(poles, priors):
             tracegain=1.0,
             dt0=-1e-6,
         )
-        didvfit.plot_full_trace()
+        if poles == 1:
+            didvfit.processtraces()
+            didvfit.plot_full_trace()
         assert didvfit.fitresult(poles) == dict()
         didvfit.dofit(poles, priors, priorscov)
     else:
