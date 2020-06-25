@@ -642,6 +642,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         result['falltimes'] = falltimes
         result['cost'] = cost
-        result['didv0'] = complexadmittance(0, **result['smallsignalparams'])
+        result['didv0'] = complexadmittance(0, **result['smallsignalparams']).real
 
         return result

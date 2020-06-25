@@ -462,6 +462,6 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         result['falltimes'] = falltimes
         result['cost'] = cost
-        result['didv0'] = complexadmittance(0, **result['params'])
+        result['didv0'] = complexadmittance(0, **result['params']).real
 
         return result
