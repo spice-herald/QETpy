@@ -163,7 +163,7 @@ keys.
 
 .. parsed-literal::
 
-    dict_keys(['params', 'cov', 'errors', 'falltimes', 'cost', 'smallsignalparams'])
+    dict_keys(['params', 'cov', 'errors', 'smallsignalparams', 'falltimes', 'cost', 'didv0'])
 
 
 
@@ -173,14 +173,16 @@ keys.
 -  ``'cov'`` contains the corresponding covariance matrix
 -  ``'errors'`` is simply the square root of the diagonal of the
    covariance matrix
--  ``'falltimes'`` contains the physical fall times of the specified
-   model
--  ``'cost'`` is the value of the chi-square at the fitted values
 -  ``'smallsignalparams'`` contains the corresponding parameters in the
    small-signal parameterization of the complex impedance, as shown by
    `Irwin and Hilton <https://doi.org/10.1007/10933596_3>`__ for the
    two-pole model and `Maasilta <https://doi.org/10.1063/1.4759111>`__
    for the three-pole model.
+-  ``'falltimes'`` contains the physical fall times of the specified
+   model
+-  ``'cost'`` is the value of the chi-square at the fitted values
+-  ``'didv0'`` is the zero frequency component of the
+   :math:`\partial I / \partial V` fitted model.
 
 We can also use ``qetpy.complexadmittance`` along with the
 ``'smallsignalparams'`` dictionary to quickly calculate the
@@ -188,8 +190,8 @@ zero-frequency component of the :math:`\partial I / \partial V`.
 
 .. code:: ipython3
 
-    print(f"The 2-pole dI/dV(0) is: {qp.complexadmittance(0, **result2['smallsignalparams']).real:.2f}")
-    print(f"The 3-pole dI/dV(0) is: {qp.complexadmittance(0, **result3['smallsignalparams']).real:.2f}")
+    print(f"The 2-pole dI/dV(0) is: {result2['didv0']:.2f}")
+    print(f"The 3-pole dI/dV(0) is: {result3['didv0']:.2f}")
 
 
 .. parsed-literal::
@@ -209,9 +211,8 @@ results, where we use two of them below.
     # didvfit.plot_re_vs_im_didv()
     # didvfit.plot_re_im_didv()
     
-    fig, ax = didvfit.plot_zoomed_in_trace(zoomfactor=0.1)
-    ax.legend(loc='upper right')
-    # fig, ax = didvfit.plot_abs_phase_didv()
+    didvfit.plot_zoomed_in_trace(zoomfactor=0.1)
+    didvfit.plot_abs_phase_didv()
 
 
 
@@ -219,11 +220,11 @@ results, where we use two of them below.
 
 
 
+.. image:: test_didv_files/test_didv_19_1.png
 
-.. parsed-literal::
 
-    <matplotlib.legend.Legend at 0x7fe5fe695198>
 
+.. image:: test_didv_files/test_didv_19_2.png
 
 
 Advanced Usage: Using ``DIDVPriors``
@@ -313,7 +314,7 @@ returned, which has slightly different form than ``DIDV``.
 
 .. parsed-literal::
 
-    dict_keys(['params', 'cov', 'errors', 'falltimes', 'cost', 'priors', 'priorscov'])
+    dict_keys(['params', 'cov', 'errors', 'falltimes', 'cost', 'didv0', 'priors', 'priorscov'])
 
 
 
@@ -328,6 +329,8 @@ returned, which has slightly different form than ``DIDV``.
 -  ``'falltimes'`` contains the physical fall times of the specified
    model
 -  ``'cost'`` is the value of the chi-square at the fitted values
+-  ``'didv0'`` is the zero frequency component of the
+   :math:`\partial I / \partial V` fitted model.
 -  ``'priors'`` simply contains the inputted priors
 -  ``'priorscov'`` simply contains the inputted priors covariance matrix
 
@@ -341,7 +344,7 @@ time using the ``'params'`` key in the results dictionary.
 
 .. code:: ipython3
 
-    print(f"The 3-pole dI/dV(0) is: {qp.complexadmittance(0, **result3_priors['params']).real:.2f}")
+    print(f"The 3-pole dI/dV(0) is: {result3_priors['didv0']:.2f}")
 
 
 .. parsed-literal::
