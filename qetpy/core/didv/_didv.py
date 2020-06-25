@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
-from ._base_didv import _BaseDIDV
+from ._base_didv import _BaseDIDV, complexadmittance
 from ._plot_didv import _PlotDIDV
 
 
@@ -562,8 +562,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau2': errors[1],
                 'dt': errors[2],
             }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
 
             smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
@@ -573,8 +571,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'L': smallsignalparams[2],
                 'dt': smallsignalparams[3],
             }
-
-            return result
 
         if poles == 2:
             result['params'] = {
@@ -593,8 +589,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau2': errors[3],
                 'dt': errors[4],
             }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
 
             smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
@@ -608,8 +602,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau0': smallsignalparams[6],
                 'dt': smallsignalparams[7],
             }
-
-            return result
 
         if poles == 3:
             result['params'] = {
@@ -632,8 +624,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': errors[5],
                 'dt': errors[6],
             }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
 
             smallsignalparams = DIDV._converttotesvalues(params, rsh, r0, rp)
 
@@ -650,4 +640,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': smallsignalparams[9],
             }
 
-            return result
+        result['falltimes'] = falltimes
+        result['cost'] = cost
+        result['didv0'] = complexadmittance(0, **result['smallsignalparams'])
+
+        return result

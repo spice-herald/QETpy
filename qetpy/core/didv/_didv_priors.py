@@ -4,7 +4,7 @@ from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
 from iminuit import Minuit
-from ._base_didv import stdcomplex, compleximpedance, _BaseDIDV
+from ._base_didv import stdcomplex, complexadmittance, _BaseDIDV
 from ._didv import didvinitfromdata
 from ._plot_didv import _PlotDIDV
 
@@ -93,9 +93,9 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
-        dvdi = compleximpedance(freq, rsh=rsh, rp=rp, L=L)
+        didv = complexadmittance(freq, rsh=rsh, rp=rp, L=L)
 
-        return rsh / dvdi
+        return rsh * didv
 
 
     @staticmethod
@@ -107,11 +107,11 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
-        dvdi = compleximpedance(
+        didv = complexadmittance(
             freq, rsh=rsh, rp=rp, r0=r0, beta=beta, l=l, L=L, tau0=tau0,
         )
 
-        return rsh / dvdi
+        return rsh * didv
 
 
     @staticmethod
@@ -124,7 +124,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
-        dvdi = compleximpedance(
+        didv = complexadmittance(
             freq,
             rsh=rsh,
             rp=rp,
@@ -137,7 +137,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             tau3=tau3,
         )
 
-        return rsh / dvdi
+        return rsh * didv
 
         
     @staticmethod
@@ -408,11 +408,6 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
                 'dt': errors[3],
             }
 
-            result['falltimes'] = falltimes
-            result['cost'] = cost
-
-            return result
-
         if poles == 2:
             result['params'] = {
                 'rsh': params[0],
@@ -436,10 +431,6 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
                 'tau0': errors[6],
                 'dt': errors[7],
             }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
-
-            return result
 
         if poles == 3:
             result['params'] = {
@@ -468,7 +459,9 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
                 'tau3': errors[8],
                 'dt': errors[9],
             }
-            result['falltimes'] = falltimes
-            result['cost'] = cost
 
-            return result
+        result['falltimes'] = falltimes
+        result['cost'] = cost
+        result['didv0'] = complexadmittance(0, **result['params'])
+
+        return result
