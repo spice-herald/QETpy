@@ -66,8 +66,8 @@ class TESnoise2:
     """
 
     def __init__(self, freqs=None, rload=0.012, r0=0.150, rshunt=0.005, beta=1.0, loopgain=10.0, 
-                 inductance=400.0e-9, tau0=500.0e-6, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, 
-                 tbath=0.020, n=5.0, lgcb=True, squiddc=2.5e-12, squidpole=0.0, squidn=1.0, gtes_b=None,
+                 inductance=400.0e-9, tau0=500.0e-6, tau3=None, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, 
+                 tbath=0.020, n=5.0, lgcb=True, squiddc=2.5e-12, squidpole=0.0, squidn=1.0, gratio=None, gtes_b=None,
                  gtes_1=None, g1_b=None, gtes_2=None, g2_b=None, thermal_model='hanging'):
         """
         Initialization of the TES noise class.
@@ -149,7 +149,7 @@ class TESnoise2:
         #self.gratio = gratio
         
         
-        
+        self.gratio = gratio
         self.gtes_b = gtes_b
         self.gtes_1 = gtes_1
         self.g1_b = g1_b
@@ -157,6 +157,7 @@ class TESnoise2:
         self.g2_b = g2_b
         
         self.tau0 = tau0
+        self.tau3 = tau3
 
         self.tauI = self.tau0/(1-self.loopgain)
         
@@ -233,7 +234,7 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self._Ztes(freqs) + rload + 1.0j*omega*self.inductance
+        return self._Ztes(freqs) + self.rload + 1.0j*omega*self.inductance
     
     def responsivity(self, freqs=None):
         """
@@ -253,7 +254,7 @@ class TESnoise2:
             The responsivity of the the TES and Bias circuit in units of [A/W]
         """
         
-        return -1/(self.Zcirc(freqs)*self.i0)*(self._Ztes(freqs) - self.r0*(1+self.beta))/(r0*(2+beta))
+        return -1/(self.Zcirc(freqs)*self.i0)*(self._Ztes(freqs) - self.r0*(1+self.beta))/(self.r0*(2+self.beta))
     
     
     
@@ -276,9 +277,95 @@ class TESnoise2:
         """
         
         return 4.0*constants.k*self.tc**2.0 * g * self.f_tfn
+    
+    ### load noise
+    
+    def si_load(self, freqs=None):
+        """
+        Calculation of the effective johnson noise PSD due
+        to shunt and parasitic resistances, referenced to 
+        current at the TES. 
         
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+            
+        Returns
+        -------
+        si_load: array
+            The johnson noise PSD of the load resistance
+        """
+        
+        vload = 4*constants.k*self.tload*self.rload
+        
+        return vload/np.abs(self.Zcirc(freqs))**2
+    
+    def sp_load(self, freqs=None):
+        """
+        Calculation of the effective johnson noise PSD due
+        to shunt and parasitic resistances, referenced to 
+        power at the TES. 
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+            
+        Returns
+        -------
+        sp_load: array
+            The johnson noise PSD of the load resistance
+        """
+        
+        return self.si_load(freqs)/np.abs(self.responsivity(freqs))**2
+    
+    def si_tes(self, freqs=None):
+        """
+        TES Johnson noise, referenced to current at the TES
+        for the 2 body models
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tes: array
+            TES Johnson noise at specified frequcies
+        """
+        
+        vtes = 4*constants.k*self.tc*self.r0*(1+2*self.beta)
+        
+        return vtes/(self.r0**2*(2+self.beta)**2) * np.abs((self._Ztes(freqs)+self.r0)/self.Zcirc(freqs))**2
+    
+    def sp_tes(self, freqs=None):
+        """
+        TES Johnson noise, referenced to power at the TES
+        for the 2 body models
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tes: array
+            TES Johnson noise at specified frequcies
+        """
+    
+        return self.si_tes_h(freqs)/np.abs(self.responsivity(freqs))**2
+   
+    ###############    
     # hanging model
-    def sp_tfn_tes_b_h(self):
+    ###############
+    def sp_tfn_tes_b_h(self, freqs=None):
         """
         Thermal fluctuation  noise between TES and Bath in the hanging model,
         referenced to power, at the TES
@@ -292,8 +379,9 @@ class TESnoise2:
         tfn: float
             thermal fluctuation  noise
         """
+        omega = self._freqs(freqs)
         
-        return self._tfn(g=self.gtes_b)
+        return self._tfn(g=self.gtes_b)*np.ones_like(omega)
     
     def sp_tfn_tes_1_h(self, freqs=None):
         """
@@ -316,13 +404,259 @@ class TESnoise2:
         return self._tfn(g=self.gtes_1)*omega**2*self.tau3**2/(1+omega**2*self.tau3**2)
     
 
+    def si_tfn_tes_b_h(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and Bath in the hanging model,
+        referenced to current, at the TES
         
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        tfn: float
+            thermal fluctuation  noise
+        """
+        
+        return self.sp_tfn_tes_b_h(freqs) * np.abs(self.responsivity(freqs))**2
     
-    
-    
+    def si_tfn_tes_1_h(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and extra heat capacity
+        in the hanging model, referenced to current , at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+       
+        return self.sp_tfn_tes_1_h(freqs)  * np.abs(self.responsivity(freqs))**2   
     
     
     
     
     
 
+    #####################
+    #  Intermediate model
+    #####################
+    
+    def sp_tfn_1_b_im(self, freqs=None):
+        """
+        Thermal fluctuation  noise between intermediate heat capacity
+        and the bath in the intermediate model, referenced to power at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        omega = self._freqs(freqs)
+        
+        return self._tfn(g=self.g1_b)*self.gratio**2/(1+omega**2*self.tau3**2)
+        
+    def sp_tfn_tes_1_im(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and the intermediate heat 
+        capacity in the intermediate model, referenced to power at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        omega = self._freqs(freqs)
+        
+        return self._tfn(g=self.gtes_1)*(self.gratio**2*self.g1_b**2/self.gtes_1**2+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2)
+    
+    def si_tfn_1_b_im(self, freqs=None):
+        """
+        Thermal fluctuation  noise between intermediate heat capacity
+        and the bath in the intermediate model, referenced to current at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        
+        
+        return self.sp_tfn_1_b_im(freqs) * np.abs(self.responsivity(freqs))**2
+        
+    def si_tfn_tes_1_im(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and the intermediate heat 
+        capacity in the intermediate model, referenced to current at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        return self.sp_tfn_tes_1_im(freqs) * np.abs(self.responsivity(freqs))**2
+    
+    
+    #####################
+    #  Parallel model
+    #####################
+    
+    def sp_tfn_1_b_p(self, freqs=None):
+        """
+        Thermal fluctuation  noise between intermediate heat capacity
+        and the bath in the parallel model, referenced to power at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        omega = self._freqs(freqs)
+        
+        return self._tfn(g=self.g1_b)*self.gtes_1**2/((self.gtes_1+self.g1_b)**2)/(1+omega**2*self.tau3**2)
+        
+    def sp_tfn_tes_1_p(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and the intermediate heat 
+        capacity in the parallel model, referenced to power at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        omega = self._freqs(freqs)
+        
+        return self._tfn(g=self.gtes_1)*(self.g1_b**2/((self.gtes_1+self.g1_b)**2)+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2)
+    
+    def sp_tfn_tes_b_p(self, freqs=None):
+        """
+        Thermal fluctuation noise between TES and the bath
+        in the parallel model, referenced to power at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        omega = self._freqs(freqs)
+        
+        return self._tfn(g=self.gtes_b)
+    
+    def si_tfn_1_b_p(self, freqs=None):
+        """
+        Thermal fluctuation  noise between intermediate heat capacity
+        and the bath in the parallel model, referenced to current at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        
+        
+        return self.sp_tfn_1_b_p(freqs) * np.abs(self.responsivity(freqs))**2
+        
+    def si_tfn_tes_1_p(self, freqs=None):
+        """
+        Thermal fluctuation  noise between TES and the intermediate heat 
+        capacity in the parallel model, referenced to current at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        return self.sp_tfn_tes_1_p(freqs) * np.abs(self.responsivity(freqs))**2
+    
+    def si_tfn_tes_b_p(self, freqs=None):
+        """
+        Thermal fluctuation noise between TES and the bath
+        in the parallel model, referenced to current at the TES
+        
+        Parameters
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        
+        Returns
+        -------
+        tfn: array
+            thermal fluctuation  noise at specified frequcies
+        """
+        
+        return self.sp_tfn_tes_b_p(freqs) * np.abs(self.responsivity(freqs))**2
+    
+     
