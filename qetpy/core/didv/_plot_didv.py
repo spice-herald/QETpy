@@ -498,10 +498,11 @@ class _PlotDIDV(object):
             plt.show()
 
 
-    def plot_re_vs_im_didv(self, poles='all', saveplot=False, savepath="",
+    def plot_re_vs_im_dvdi(self, poles='all', saveplot=False, savepath="",
                            savename=""):
         """
-        Function to plot the real vs imaginary parts of the didv.
+        Function to plot the real vs imaginary parts of the complex
+        impedance.
 
         Parameters
         ----------
@@ -537,8 +538,8 @@ class _PlotDIDV(object):
         fig, ax = plt.subplots(figsize=(10, 6))
 
         ax.scatter(
-            np.real(self._didvmean * time_phase)[plotinds],
-            np.imag(self._didvmean * time_phase)[plotinds],
+            np.real(1 / (self._didvmean * time_phase))[plotinds],
+            np.imag(1 / (self._didvmean * time_phase))[plotinds],
             color='blue',
             label='Mean',
             s=5,
@@ -553,8 +554,8 @@ class _PlotDIDV(object):
                 self._freq, **self._1poleresult[key],
             )
             ax.plot(
-                np.real(didvfit1_freqdomain)[fitinds],
-                np.imag(didvfit1_freqdomain)[fitinds],
+                np.real(1 / didvfit1_freqdomain)[fitinds],
+                np.imag(1 / didvfit1_freqdomain)[fitinds],
                 color='magenta',
                 label='1-Pole Fit',
             )
@@ -568,8 +569,8 @@ class _PlotDIDV(object):
                 self._freq, **self._2poleresult[key],
             )
             ax.plot(
-                np.real(didvfit2_freqdomain)[fitinds],
-                np.imag(didvfit2_freqdomain)[fitinds],
+                np.real(1 / didvfit2_freqdomain)[fitinds],
+                np.imag(1 / didvfit2_freqdomain)[fitinds],
                 color='green',
                 label='2-Pole Fit',
             )
@@ -583,15 +584,15 @@ class _PlotDIDV(object):
                 self._freq, **self._3poleresult[key],
             )
             ax.plot(
-                np.real(didvfit3_freqdomain)[fitinds],
-                np.imag(didvfit3_freqdomain)[fitinds],
+                np.real(1 / didvfit3_freqdomain)[fitinds],
+                np.imag(1 / didvfit3_freqdomain)[fitinds],
                 color='orange',
                 label='3-Pole Fit',
             )
 
-        ax.set_xlabel('Re($dI/dV$) ($\Omega^{-1}$)')
-        ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
-        ax.set_title('Re($dI/dV$) vs. Im($dI/dV$)')
+        ax.set_xlabel('Re($dV/dI$) ($\Omega$)')
+        ax.set_ylabel('Im($dV/dI$) ($\Omega$)')
+        ax.set_title('Re($dV/dI$) vs. Im($dV/dI$)')
 
         ax.legend(loc='upper left')
         ax.tick_params(which='both', direction='in', right=True, top=True)
@@ -599,7 +600,7 @@ class _PlotDIDV(object):
         ax.grid(which='minor', linestyle='dotted', alpha=0.3)
 
         if saveplot:
-            fig.savefig(savepath+f"didv_real_vs_imag_{savename}.png")
+            fig.savefig(savepath+f"dvdi_real_vs_imag_{savename}.png")
             plt.close(fig)
         else:
             plt.show()

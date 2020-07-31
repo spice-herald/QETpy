@@ -105,8 +105,8 @@ def _run_plotting_suite(didvfit, poles):
     didvfit.plot_zoomed_in_trace(saveplot=True, savename='test')
     didvfit.plot_abs_phase_didv()
     didvfit.plot_abs_phase_didv(saveplot=True, savename='test')
-    didvfit.plot_re_vs_im_didv(poles=poles)
-    didvfit.plot_re_vs_im_didv(saveplot=True, savename='test')
+    didvfit.plot_re_vs_im_dvdi(poles=poles)
+    didvfit.plot_re_vs_im_dvdi(saveplot=True, savename='test')
     didvfit.plot_re_im_didv()
     didvfit.plot_re_im_didv(saveplot=True, savename='test')
 
