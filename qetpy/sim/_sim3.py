@@ -67,9 +67,9 @@ class TESnoise2:
 
     def __init__(self, freqs=None, rload=0.012, r0=0.150, rshunt=0.005, beta=1.0, loopgain=10.0, 
                  inductance=400.0e-9, tau0=500.0e-6, tau3=None,  qetbias=160e-6, t0=0.040, tload=0.9, 
-                 tbath=0.020, n=5.0, lgcb=True, squiddc=2.5e-12, squidpole=0.0, squidn=1.0, gratio=0, g={},
+                 tbath=0.020, n=5.0, lgcb=True, squid_parms={'dc':2.5e-12, 'pole':0.0, 'n':1.0}, gratio=0, g={},
                  m=0,
-                 model='hanging'):
+                 model='hanging', state='transition'):
         """
         Initialization of the TES noise class.
 
@@ -211,7 +211,14 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self.r0*(1+self.beta)+self.loopgain/(1-self.loopgain)*self.r0*(2+self.beta) *1/(1+1.0j*omega*self.tauI - self.gratio/(1-self.loopgain)/(1+1.0j*omega*self.tau3))
+        if state == 'sc':
+            return 0
+        elif state == 'n':
+            return self.r0
+        elif state == 'transition':
+        
+            return self.r0*(1+self.beta)+self.loopgain/(1-self.loopgain)*self.r0*(2+self.beta) \
+                    *1/(1+1.0j*omega*self.tauI - self.gratio/(1-self.loopgain)/(1+1.0j*omega*self.tau3))
     
     def zcirc(self, freqs=None):
         """
@@ -259,6 +266,39 @@ class TESnoise2:
     
     
     ### noise terms
+    
+    # electronics
+    def _squid(self, freqs=None, **params=None):
+        """
+        function to approximate the SQUID and downstream electronics noise, 
+        referenced to TES current. 
+        
+        Parameters 
+        ----------
+        freqs : float, ndarray, optional
+            The frequencies for which we will calculate the noise simulation. If left as None, the 
+            function will use the values from the initialization.
+        params : dict, optional
+            dictionary containing new SQUID parameters that will overide the 
+            parameters given when creating the TESnoise object. must have 
+            keys: 'dc', 'pole', 'n'
+            
+        Returns
+        -------
+        squid : array,
+            The electronics noise 
+        
+        """
+        if params is None:
+            dc = self.squid_params['dc']
+            pole = self.squid_params['pole']
+            n = self.squid_params['n']
+        else:
+            dc = params['dc']
+            pole = params['pole']
+            n = params['n']
+        return (dc*((pole/freqs)**n + 1))**2
+    
     
     def _tfn(self, g):
         """
@@ -512,9 +552,11 @@ class TESnoise2:
             Returns
             -------
             nosie: dict
-                dictionary containing the noise ter at specified frequcies 
+                dictionary containing the noise terms at specified frequcies 
             """
             nosie = {}
+            
+            noise['squid'] = _squid(freqs=freqs)/np.abs(self.responsivity(freqs))**2
             
             noise['tes'] = self._tes(freqs=freqs)
             noise['laod'] = self._load(freqs=freqs)
