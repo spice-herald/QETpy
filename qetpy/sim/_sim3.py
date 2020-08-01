@@ -65,10 +65,9 @@ class TESnoise2:
         
     """
 
-    def __init__(self, freqs=None, rload=0.012, r0=0.150, rshunt=0.005, beta=1.0, loopgain=10.0, 
-                 inductance=400.0e-9, tau0=500.0e-6, tau3=None,  qetbias=160e-6, t0=0.040, tload=0.9, 
-                 tbath=0.020, n=5.0, lgcb=True, squid_parms={'dc':2.5e-12, 'pole':0.0, 'n':1.0}, gratio=0, g={},
-                 m=0,
+    def __init__(self, freqs=None, rp=0.012, r0=0.150, rshunt=0.005,qetbias=160e-6, beta=1.0, loopgain=10.0, 
+                 inductance=400.0e-9, tau0=500.0e-6, tau3=None, gratio=0, t0=0.040, tload=0.9, tbath=0.020, 
+                 n=5.0, squid_parms={'dc':2.5e-12, 'pole':0.0, 'n':1.0}, g={}, m=0, lgcb=True,
                  model='hanging', state='transition'):
         """
         Initialization of the TES noise class.
@@ -132,7 +131,7 @@ class TESnoise2:
             
         self._thermal_model = thermal_model
             
-        self.rload = rload
+        self.rload = self.rp + self.rshunt
         self.r0 = r0
         self.rshunt = rshunt
         self.beta = beta
@@ -300,30 +299,11 @@ class TESnoise2:
         return (dc*((pole/freqs)**n + 1))**2
     
     
-    def _tfn(self, g):
-        """
-        Hidden function to calculate the general form of the thermal fluctuation noise.
-        
-        Parameters
-        ----------
-        g: the relavent thermal conductance.
-        
-        Returns
-        -------
-        _tfn : float,
-            Scalar value of the thermal fluctuation noise.
-                
-        """
-        
-        return 4.0*constants.k*self.t0**2.0 * g * self.f_tfn
-    
-    ### load noise
-    
     def _load(self, freqs=None):
         """
         Calculation of the effective johnson noise PSD due
         to shunt and parasitic resistances, referenced to 
-        power at the TES. 
+        current at the TES. 
         
         Parameters
         ----------
@@ -333,15 +313,15 @@ class TESnoise2:
             
         Returns
         -------
-        sp_load: array
+        si_load: array
             The johnson noise PSD of the load resistance
         """
         
         vload = 4*constants.k*self.tload*self.rload
         
         si_load = vload/np.abs(self.zcirc(freqs))**2
-        sp_load = si_load/np.abs(self.responsivity(freqs))**2
-        return sp_load
+        #sp_load = si_load/np.abs(self.responsivity(freqs))**2
+        return si_load
     
    
     
@@ -365,14 +345,28 @@ class TESnoise2:
         vtes = 4*constants.k*self.t0*self.r0*(1+2*self.beta)(1+self.m**2)
         
         si_tes = vtes/(self.r0**2*(2+self.beta)**2) * np.abs((self._ztes(freqs)+self.r0)/self.zcirc(freqs))**2
-        sp_tes = /np.abs(self.responsivity(freqs))**2
-        return sp_tes
+        #sp_tes = si_tes/np.abs(self.responsivity(freqs))**2
+        return si_tes
     
+     def _tfn(self, g):
+        """
+        Hidden function to calculate the general form of the thermal fluctuation noise.
+        
+        Parameters
+        ----------
+        g: the relavent thermal conductance.
+        
+        Returns
+        -------
+        _tfn : float,
+            Scalar value of the thermal fluctuation noise.
+                
+        """
+        
+        return 4.0*constants.k*self.t0**2.0 * g * self.f_tfn
     
    
-    ###############    
-    # hanging model
-    ###############
+
     def _tfn_tes_b(self, freqs=None):
         """
         Thermal fluctuation  noise between TES and Bath in the hanging model,
@@ -389,7 +383,7 @@ class TESnoise2:
         """
         omega = self._freqs(freqs)
         
-        return self._tfn(g=self.gtes_b)*np.ones_like(omega)
+        return self._tfn(g=self.gtes_b)*np.ones_like(omega)* np.abs(self.responsivity(freqs))**2
     
     def _tfn_tes_1_h(self, freqs=None):
         """
@@ -409,19 +403,12 @@ class TESnoise2:
         """
         
         omega = self._freqs(freqs)
-        return self._tfn(g=self.gtes_1)*omega**2*self.tau3**2/(1+omega**2*self.tau3**2)
+        return self._tfn(g=self.gtes_1)*omega**2*self.tau3**2/(1+omega**2*self.tau3**2) \
+               * np.abs(self.responsivity(freqs))**2
     
 
     
     
-    
-    
-    
-    
-
-    #####################
-    #  Intermediate model
-    #####################
     
     def _tfn_1_b_im(self, freqs=None):
         """
@@ -442,7 +429,8 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self._tfn(g=self.g1_b)*self.gratio**2/(1+omega**2*self.tau3**2)
+        return self._tfn(g=self.g1_b)*self.gratio**2/(1+omega**2*self.tau3**2) \
+               * np.abs(self.responsivity(freqs))**2
         
     def _tfn_tes_1_im(self, freqs=None):
         """
@@ -463,14 +451,11 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self._tfn(g=self.gtes_1)*(self.gratio**2*self.g1_b**2/self.gtes_1**2+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2)
+        return self._tfn(g=self.gtes_1)* \ 
+               (self.gratio**2*self.g1_b**2/self.gtes_1**2+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2) \
+               * np.abs(self.responsivity(freqs))**2
     
     
-    
-    
-    #####################
-    #  Parallel model
-    #####################
     
     def _tfn_1_b_p(self, freqs=None):
         """
@@ -491,7 +476,8 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self._tfn(g=self.g1_b)*self.gtes_1**2/((self.gtes_1+self.g1_b)**2)/(1+omega**2*self.tau3**2)
+        return self._tfn(g=self.g1_b)*self.gtes_1**2/((self.gtes_1+self.g1_b)**2)/(1+omega**2*self.tau3**2) \
+               * np.abs(self.responsivity(freqs))**2
         
     def _tfn_tes_1_p(self, freqs=None):
         """
@@ -512,7 +498,9 @@ class TESnoise2:
         
         omega = self._freqs(freqs)
         
-        return self._tfn(g=self.gtes_1)*(self.g1_b**2/((self.gtes_1+self.g1_b)**2)+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2)
+        return self._tfn(g=self.gtes_1) \ 
+               *(self.g1_b**2/((self.gtes_1+self.g1_b)**2)+omega**2*self.tau3**3)/(1+omega**2*self.tau3**2) \
+               * np.abs(self.responsivity(freqs))**2
     
     def _tfn_tes_b_p(self, freqs=None):
         """
@@ -556,11 +544,11 @@ class TESnoise2:
             """
             nosie = {}
             
-            noise['squid'] = _squid(freqs=freqs)/np.abs(self.responsivity(freqs))**2
+            
+            noise['squid'] = self._squid(freqs=freqs)
             
             noise['tes'] = self._tes(freqs=freqs)
             noise['laod'] = self._load(freqs=freqs)
-            
             
             if self.model == 'simple':
                 noise['tes_b'] = self._tfn(g=self.g['tes_b'], freqs=freqs)
@@ -578,9 +566,11 @@ class TESnoise2:
                 raise KeyError('The model specified is either not supported or spelled incorrectly.')
                 
             
-            if not lgcpower:
+            if lgcpower:
                 for key in tfn.keys():
-                    noise[key] = noise[key] * np.abs(self.responsivity(freqs))**2
+                    noise[key] = noise[key] / np.abs(self.responsivity(freqs))**2
+                    
+            
                     
             return noise
                     
