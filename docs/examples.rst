@@ -15,5 +15,6 @@ be downloaded from: https://github.com/ucbpylegroup/QETpy/tree/master/demos
    /example_demos/iv_class_test.rst
    /example_demos/noise_example.rst
    /example_demos/fitting_demo.rst
+   /example_demos/of_nsmb_demo.rst
 
 

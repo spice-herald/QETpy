@@ -52,5 +52,6 @@ setup(
         'numpy',
         'scipy',
         'matplotlib',
+        'iminuit',
     ]
 )

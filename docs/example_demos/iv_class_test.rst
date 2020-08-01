@@ -8,22 +8,7 @@ Table of Contents
 .. raw:: html
 
    </h1>
-
-.. raw:: html
-
-   <div class="toc">
-
-.. raw:: html
-
-   <ul class="toc-item">
-
-.. raw:: html
-
-   </ul>
-
-.. raw:: html
-
-   </div>
+   <div class="toc"><ul class="toc-item"></ul></div>
 
 Example Code for using the IV class
 ===================================

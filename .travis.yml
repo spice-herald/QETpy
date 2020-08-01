@@ -26,7 +26,6 @@ install:
   - conda install numpy
   - conda install scipy
   - conda install -c conda-forge matplotlib
-  - conda install h5py
   # Copy matplotlib configuration so it does not try and plot to 
   # screen, which can cause matplotlib tests to fail.
   - cp test/packages/matplotlibrc .

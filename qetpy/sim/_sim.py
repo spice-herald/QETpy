@@ -1,16 +1,19 @@
 import numpy as np
 import scipy.constants as constants
 
-__all__ = ["loadfromdidv", "TESnoise", "energy_res_estimate"]
 
-
+__all__ = [
+    "energy_res_estimate",
+    "loadfromdidv",
+    "TESnoise",
+]
 
 
 def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
     """
-    Function to estimate the energy resolution based on
-    given noise and ideal pulse shape
-    
+    Function to estimate the energy resolution based on given noise and
+    ideal pulse shape
+
     Parameters
     ----------
     freqs : array,
@@ -18,35 +21,37 @@ def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
     tau_collect : float
         The collection time of the sensor
     Sp : array 
-        Power spectral density (either one sided or two,
-        but make sure to include negative freqs if using
-        two sided psd)
+        Power spectral density (either one sided or two, but make sure
+        to include negative freqs if using two sided psd)
     collection_eff : float
         The collection efficiency of the detector
-        
+
     Returns
     -------
     energy_res : float
         The estimated energy resolution in eV
-     
+
     """
+
     omega = 2*np.pi*freqs
     single_pole = collection_eff/(1.+ omega*tau_collect*1j)
     integrand = 2*np.abs(single_pole)**2/(np.pi*Sp)
     energy_res = np.sqrt(1/np.trapz(integrand, x = omega))/constants.e
-    
+
     return energy_res
 
-def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=0.020, 
-                 squiddc=2.5e-12, squidpole=0.0, squidn=1.0, noisetype="transition", lgcpriors = False):
+
+def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
+                 tbath=0.020, squiddc=2.5e-12, squidpole=0.0, squidn=1.0,
+                 rnormal=None, noisetype="transition"):
     """
     Function for loading the parameters from a DIDV class object.
-    
+
     Parameters
     ----------
     DIDVobj : Object
-        A DIDV class object after a fit has been run, such that there are Irwin parameters that
-        can be used to model the noise.
+        A DIDV class object after a fit has been run, such that there
+        are Irwin parameters that can be used to model the noise.
     G : float, optional
         The thermal conductance of the TES in W/K
     qetbias : float, optional
@@ -58,81 +63,108 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, tbath=
     tbath : float
         The bath temperature in K
     squiddc : float, optional
-        The DC value of the SQUID and downstream electronics noise, in Amps/rtHz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
+        The DC value of the SQUID and downstream electronics noise, in
+        Amps/rtHz. The SQUID/electronics noise should have been fit
+        beforehand, using the following model:
             (squiddc*(1.0+(squidpole/f)**squidn))**2.0
     squidpole : float, optional
-        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
+        The frequency pole for the SQUID and downstream electronics
+        noise, in Hz. The SQUID/electronics oise should have been fit
+        beforehand, using the following model:
             (squiddc*(1.0+(squidpole/f)**squidn))**2.0
     squidn : float, optional
-        The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
+        The power of the SQUID and downstream electronics noise, in Hz.
+        The SQUID/electronics noise should have been fit beforehand,
+        using the following model:
             (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+    rnormal : float, optional
+        The normal resistance of the TES in Ohms, only used if
+        `noisetype` is 'normal'. Must be passed explicitly, as the dIdV
+        fitting code does not fit it.
     noisetype : str, optional
         The type of the noise that is to be loaded. The options are
-        transition : Use the Irwin parameters from the two pole fit as the transition noise model
-        superconducting : Use the Irwin parameters from the one pole fit as the superconducting noise model
-        normal : Use the Irwin parameters from the one pole fit as the normal noise model
-    lgcpriors : bool, optional
-        If True, the priors fit values are loaded from the didv object, if False, the regular fit values are 
-        loaded
-            
-                
+        transition : Use the Irwin parameters from the two pole fit as
+            the transition noise model
+        superconducting : Use the Irwin parameters from the one pole
+            fit as the superconducting noise model
+        normal : Use the Irwin parameters from the one pole fit as the
+            normal noise model
+
     Returns
     -------
     TESobj : Object
         A TESnoise class object with all of the fit parameters loaded.
+
     """
 
     if noisetype is "superconducting":
-        didv_dict = DIDVobj.get_irwinparams_dict(1)
-        rshunt = DIDVobj.rshunt
-        rload = didv_dict['rtot']
+        fitresult = DIDVobj.fitresult(1)
+        if 'smallsignalparams' in fitresult:
+            key = 'smallsignalparams'
+        else:
+            key = 'params'
+        didv_dict = fitresult[key]
+        rshunt = didv_dict['rsh']
+        rload = didv_dict['rsh'] + didv_dict['rp']
         inductance = didv_dict['L']
         r0 = 0
         beta = 0
         loopgain = 0
         tau0 = 0
         G = 0
-        TESobj = TESnoise(rload=rload, r0=r0, rshunt=rshunt, inductance=inductance, 
-                          beta=beta, loopgain=loopgain, tau0=tau0, G=G,
-                          qetbias=qetbias, tc=tc, tload=tload, tbath=tbath, 
-                          squiddc=squiddc, squidpole=squidpole, squidn=squidn)
-        
     elif noisetype is "normal":
-        didv_dict = DIDVobj.get_irwinparams_dict(1)
-        rshunt = DIDVobj.rshunt
-        rload = didv_dict['rload']
+        raise ValueError('Please specify rnormal.')
+        fitresult = DIDVobj.fitresult(1)
+        if 'smallsignalparams' in fitresult:
+            key = 'smallsignalparams'
+        else:
+            key = 'params'
+        didv_dict = fitresult[key]
+        rshunt = didv_dict['rsh']
+        rload = didv_dict['rsh'] + didv_dict['rp'] - rnormal
         inductance = didv_dict['L']
-        r0 = didv_dict['r0']
+        r0 = rnormal
         beta = 0
         loopgain = 0
         tau0 = 0
         G = 0
-        TESobj = TESnoise(rload=rload, r0=r0, rshunt=rshunt, inductance=inductance, 
-                          beta=beta, loopgain=loopgain, tau0=tau0, G=G,
-                          qetbias=qetbias, tc=tc, tload=tload, tbath=tbath, 
-                          squiddc=squiddc, squidpole=squidpole, squidn=squidn)
-        
     elif noisetype is "transition":
-        didv_dict = DIDVobj.get_irwinparams_dict(2, lgcpriors)
-        rshunt = DIDVobj.rshunt
-        rload = didv_dict['rload']
+        fitresult = DIDVobj.fitresult(2)
+        if 'smallsignalparams' in fitresult:
+            key = 'smallsignalparams'
+        else:
+            key = 'params'
+        didv_dict = fitresult[key]
+        rshunt = didv_dict['rsh']
+        rload = didv_dict['rsh'] + didv_dict['rp']
         inductance = didv_dict['L']
         r0 = didv_dict['r0']
         beta = didv_dict['beta']
         loopgain = didv_dict['l']
         tau0 = didv_dict['tau0']
-        TESobj = TESnoise(rload=rload, r0=r0, rshunt=rshunt, inductance=inductance, 
-                          beta=beta, loopgain=loopgain, tau0=tau0, G=G,
-                          qetbias=qetbias, tc=tc, tload=tload, tbath=tbath, 
-                          squiddc=squiddc, squidpole=squidpole, squidn=squidn)
-        
     else:
         raise ValueError("Unrecognized noisetype")
-        
+
+    TESobj = TESnoise(
+        rload=rload,
+        r0=r0,
+        rshunt=rshunt,
+        inductance=inductance,
+        beta=beta,
+        loopgain=loopgain,
+        tau0=tau0,
+        G=G,
+        qetbias=qetbias,
+        tc=tc,
+        tload=tload,
+        tbath=tbath,
+        squiddc=squiddc,
+        squidpole=squidpole,
+        squidn=squidn,
+    )
+
     return TESobj
+
 
 class TESnoise:
     """

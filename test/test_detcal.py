@@ -1,10 +1,9 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from qetpy import autocuts, DIDV, IV, Noise, calc_psd
+from qetpy import autocuts, IV, Noise, calc_psd
 from qetpy.sim import TESnoise
 from qetpy.plotting import compare_noise, plot_noise_sim
-import h5py
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,72 +13,6 @@ def test_autocuts():
     fs = 625e3
     cut = autocuts(traces, fs=fs)
     assert len(cut)>0
-
-def test_didv():
-    # Setting various parameters that are specific to the dataset
-    Rshunt = 5.0e-3
-    Rbias_SG = 20000.0
-    Rfb = 5000.0
-    loopgain = 2.4
-    ADCperVolt = 65536.0/2.0
-    fs = 625.0e3
-    sgFreq = 100.0
-    sgAmp = 0.009381 /Rbias_SG
-    drivergain = 4.0
-    Rp = 0.0060367199999999998
-    Rload = Rshunt+Rp
-    dRload = 0.0001
-    R0 = 0.075570107054005367
-    dR0 = 8.96383052e-04
-
-    convToAmps = Rfb * loopgain * drivergain * ADCperVolt
-
-    pathtodata = os.path.join(THIS_DIR, 'data/example_traces.h5')
-
-    # load the dataset
-    with h5py.File(pathtodata,'r') as f:
-        rawTraces = np.array(f["rawTraces"])
-
-    # set the priors information, for use the priors fitting
-    priors = np.zeros(7)
-    invpriorsCov = np.zeros((7,7))
-    priors[0] = Rload
-    priors[1] = R0
-    invpriorsCov[0,0] = 1.0/dRload**2
-    invpriorsCov[1,1] = 1.0/dR0**2
-    dt0=-18.8e-6
-    
-    didvfit = DIDV(
-        rawTraces,
-        fs,
-        sgFreq,
-        sgAmp,
-        Rshunt,
-        tracegain=convToAmps,
-        priors=priors,
-        invpriorscov=invpriorsCov,
-    )
-
-    didvfit.processtraces()
-
-    didvfit.plot_re_im_didv()
-    didvfit.plot_abs_phase_didv()
-
-    didvfit.doallfits()
-    didvfit.plot_full_trace(poles=[2, 3], lgcsave=True, savename="test")
-    didvfit.plot_full_trace(poles="all", plotpriors=True)
-    didvfit.plot_single_period_of_trace(poles=[2, 3], lgcsave=True, savename="test")
-    didvfit.plot_single_period_of_trace(poles="all", plotpriors=True)
-    didvfit.plot_zoomed_in_trace(poles=2, plotpriors=True)
-    didvfit.plot_zoomed_in_trace(poles="all", lgcsave=True, savename="test")
-    didvfit.plot_didv_flipped(plotpriors=True)
-    didvfit.plot_didv_flipped(poles=[2, 3], lgcsave=True, savename="test")
-    didvfit.plot_re_im_didv(poles=[2, 3], lgcsave=True, savename="test")
-    didvfit.plot_re_im_didv(poles="all", plotpriors=True)
-    didvfit.plot_abs_phase_didv(poles=[2, 3], lgcsave=True, savename="test")
-    didvfit.plot_abs_phase_didv(poles="all", plotpriors=True)
-
-    assert len(didvfit.fitparams2) > 0
 
 def test_iv():
     pathtodata = os.path.join(THIS_DIR, "data/test_iv_data.npz")
