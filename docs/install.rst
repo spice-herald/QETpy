@@ -10,7 +10,7 @@ at the command line:
 
 
 
-Or, if you want to work with the lastest development version. Clone the repository from: https://github.com/berkeleycdms/qetpy.git.
+Or, if you want to work with the lastest development version. Clone the repository from: https://github.com/ucbpylegroup/qetpy.git.
 Then within the repository, from the command line:
 
 ::

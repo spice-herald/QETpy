@@ -4,7 +4,8 @@ import numpy as np
 from helpers import isclose
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
-from qetpy.utils import (stdcomplex, lowpassfilter, align_traces,
+from qetpy.core.didv._base_didv import stdcomplex
+from qetpy.utils import (lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
                          shift, make_template, estimate_g)
 

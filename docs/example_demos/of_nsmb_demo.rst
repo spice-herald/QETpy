@@ -357,7 +357,7 @@ The location in the parameter space where there is an absolute miniumum
 of the :math:`\chi^2`, given by Equation 1, can be non-physical. What is
 an example of a non-physical best fit result? Here you go:
 
-.. figure:: files/timedomainproblem.png
+.. figure:: ./of_nsmb_demo_files/timedomainproblem.png
    :alt: 
 
 What is going on above? \* If there is not a background pileup pulse,
@@ -393,7 +393,7 @@ The below plot shows the :math:`\chi^2` gradient, determined with the
 covariance matrix between signal and background amplitudes, for the fit
 above, with the absolute minimum in red:
 
-.. figure:: files/gradientproblem.png
+.. figure:: ./of_nsmb_demo_files/gradientproblem.png
    :alt: 
 
 We can calculate the gradient at different points in the parameter space

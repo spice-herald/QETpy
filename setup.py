@@ -36,7 +36,7 @@ class CleanCommand(Command):
 
 setup(
     name="QETpy", 
-    version="1.3.0.dev0", 
+    version="1.3.0", 
     description="TES Detector Calibration and Analysis Python Tools", 
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -46,6 +46,12 @@ setup(
     packages=find_packages(), 
     zip_safe=False,
     cmdclass={
-            'clean': CleanCommand,
-            }
-    )
+        'clean': CleanCommand,
+    },
+    install_requires=[
+        'numpy',
+        'scipy',
+        'matplotlib',
+        'iminuit',
+    ]
+)
