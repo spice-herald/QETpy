@@ -223,7 +223,9 @@ class PileupOF(object):
         """
 
         numer = self._v - self._s * sum(
-            a * self._exp_array[int(t * self._fs)] for a, t in zip(amps, t0s)
+            a * self._exp_array[
+                np.argmin(np.abs(self._exp_times - t))
+            ] for a, t in zip(amps, t0s)
         )
 
         return np.real(np.dot(numer.conjugate() / self._psd, numer) * self._df)
