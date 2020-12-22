@@ -435,6 +435,15 @@ class _BaseDIDV(object):
 
         """
 
+        if np.mod(fs, sgfreq)!=0:
+            raise ValueError(
+                '`fs` and `sgfreq` do not divide to an integer. If '
+                'these are the true values, please resample the data '
+                'and use the resampled versions of `rawtraces` and '
+                '`fs`. To do this, we recommend using'
+                '`scipy.signal.resample_poly`.'
+            )
+
         self._rawtraces = rawtraces
         self._fs = fs
         self._sgfreq = sgfreq
