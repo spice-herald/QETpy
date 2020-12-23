@@ -4,6 +4,8 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
+from qetpy.utils import resample_data
+
 
 __all__ = [
     "stdcomplex",
@@ -455,7 +457,7 @@ class _BaseDIDV(object):
                 'unintended effects on the DIDV fit in frequency '
                 'space.'
             )
-            resampled_rawtraces, resampled_fs = qp.utils.resample_data(
+            resampled_rawtraces, resampled_fs = resample_data(
                 rawtraces, fs, sgfreq,
             )
             self._rawtraces = resampled_rawtraces
