@@ -1,5 +1,7 @@
 import qetpy as qp
 import numpy as np
+import pytest
+
 
 def _initialize_didv(poles, priors):
     """Function for initializing dIdV data"""
@@ -110,6 +112,26 @@ def _run_plotting_suite(didvfit, poles):
     didvfit.plot_re_im_didv()
     didvfit.plot_re_im_didv(saveplot=True, savename='test')
 
+def _raise_errors():
+    """
+    Function for asserting certain errors are raised
+    for specific cases.
+
+    """
+
+    error_str = "`fs` and `sgfreq` do not divide to an integer."
+
+    with pytest.raises(ValueError) as excinfo:
+        didvfit = qp.DIDV(
+            None,
+            625e3, # fs
+            30, # sgfreq
+            None,
+            None,
+        )
+
+    assert error_str in str(excinfo.value)
+    
 
 def test_didv():
     """Function for testing the DIDV and DIDVPriors classes."""
@@ -130,3 +152,6 @@ def test_didv():
                 ),
                 rtol=1e-2,
             )
+
+    _raise_errors()
+
