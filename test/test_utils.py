@@ -233,6 +233,14 @@ def test_resample():
     assert all(res[ii] == expected_res[ii] for ii in range(2))
 
     fs = 1.25e6
+    sgfreq = 37
+
+    res = resample_factors(fs, sgfreq)
+    expected_res = [37, 10]
+
+    assert all(res[ii] == expected_res[ii] for ii in range(2))
+
+    fs = 1.25e6
     sgfreq = 30
 
     res = resample_factors(fs, sgfreq)
