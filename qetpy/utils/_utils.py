@@ -116,7 +116,7 @@ def resample_factors(fs, sgfreq):
     if up==0:
         up = np.ceil(down / min(denom)).astype(int) * min(denom)
 
-    return up, down
+    return int(up), int(down)
 
 
 def resample_data(x, fs, sgfreq, **kwargs):
