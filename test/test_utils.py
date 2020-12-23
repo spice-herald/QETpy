@@ -7,7 +7,8 @@ from qetpy.cut import removeoutliers, iterstat
 from qetpy.core.didv._base_didv import stdcomplex
 from qetpy.utils import (lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
-                         shift, make_template, estimate_g)
+                         shift, make_template, estimate_g,
+                         resample_factors, resample_data)
 
 def test_shift():
     """Testing function for `qetpy.utils.shift`."""
@@ -206,3 +207,52 @@ def test_estimate_g():
         estimate_g(p0, tc, tbath, cov=cov_test),
         [3.75e-10, 1.339382436983552e-10],
     )
+
+
+def test_resample():
+    """Testing function for the resampling data functions."""
+
+    np.random.seed(0)
+
+    with pytest.raises(ValueError):
+        fs = 100.1
+        sgfreq = 30
+        res = resample_factors(fs, sgfreq)
+
+    with pytest.raises(ValueError):
+        fs = 1.25e6
+        sgfreq = 30.1
+        res = resample_factors(fs, sgfreq)
+
+    fs = 1.25e6
+    sgfreq = 50
+
+    res = resample_factors(fs, sgfreq)
+    expected_res = [1, 1]
+
+    assert all(res[ii] == expected_res[ii] for ii in range(2))
+
+    fs = 1.25e6
+    sgfreq = 30
+
+    res = resample_factors(fs, sgfreq)
+    expected_res = [9, 10]
+
+    assert all(res[ii] == expected_res[ii] for ii in range(2))
+
+    ntraces = 10
+    tracelength = 32768
+    resampled_traces, resampled_fs = resample_data(
+        np.random.rand(ntraces, tracelength),
+        fs,
+        sgfreq,
+    )
+
+    res = (resampled_traces.shape[-1], resampled_fs)
+    expected_length = np.ceil(tracelength * expected_res[0] / expected_res[1])
+    expected_resampled_fs = fs * expected_res[0] / expected_res[1]
+    expected_res = (expected_length, expected_resampled_fs)
+
+    assert all(res[ii] == expected_res[ii] for ii in range(2))
+
+

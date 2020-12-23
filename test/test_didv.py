@@ -3,14 +3,13 @@ import numpy as np
 import pytest
 
 
-def _initialize_didv(poles, priors):
+def _initialize_didv(poles, priors, sqfreq=100):
     """Function for initializing dIdV data"""
     np.random.seed(0)
 
     rsh = 5e-3
     rbias_sg = 20000
     fs = 625e3
-    sgfreq = 100
     sgamp = 0.009381 / rbias_sg
 
     rfb = 5000
@@ -131,7 +130,27 @@ def _raise_errors():
         )
 
     assert error_str in str(excinfo.value)
+
+
+def _autoresample():
+    """
+    Function for testing the autoresample kwarg for _BaseDIDV.
+
+    """
+
+    didvfit, true_params = _initialize_didv(2, False, sgfreq=90)
+
+    assert np.isclose(
+        qp.complexadmittance(
+            1e4, **didvfit.fitresult(2)['smallsignalparams'],
+        ),
+        qp.complexadmittance(
+            1e4, **true_params,
+        ),
+        rtol=1e-2,
+    )
     
+
 
 def test_didv():
     """Function for testing the DIDV and DIDVPriors classes."""
@@ -154,4 +173,4 @@ def test_didv():
             )
 
     _raise_errors()
-
+    _autoresample()
