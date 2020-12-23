@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 
-def _initialize_didv(poles, priors, sgfreq=100):
+def _initialize_didv(poles, priors, sgfreq=100, autoresample=False):
     """Function for initializing dIdV data"""
     np.random.seed(0)
 
@@ -66,6 +66,7 @@ def _initialize_didv(poles, priors, sgfreq=100):
             rsh,
             tracegain=1.0,
             dt0=-1e-6,
+            autoresample=autoresample,
         )
         if poles == 1:
             didvfit.processtraces()
@@ -84,6 +85,7 @@ def _initialize_didv(poles, priors, sgfreq=100):
             rp=true_params['rp'],
             dt0=-1e-6 - 1 / (2 * sgfreq),
             add180phase=True,
+            autoresample=autoresample,
         )
         assert didvfit.fitresult(poles) == dict()
         didvfit.dofit(poles)
@@ -111,7 +113,8 @@ def _run_plotting_suite(didvfit, poles):
     didvfit.plot_re_im_didv()
     didvfit.plot_re_im_didv(saveplot=True, savename='test')
 
-def _raise_errors():
+
+def test_errors():
     """
     Function for asserting certain errors are raised
     for specific cases.
@@ -132,24 +135,34 @@ def _raise_errors():
     assert error_str in str(excinfo.value)
 
 
-def _autoresample():
+def test_autoresample():
     """
     Function for testing the autoresample kwarg for _BaseDIDV.
 
     """
 
-    didvfit, true_params = _initialize_didv(2, False, sgfreq=90)
+    np.random.seed(0)
 
-    assert np.isclose(
-        qp.complexadmittance(
-            1e4, **didvfit.fitresult(2)['smallsignalparams'],
-        ),
-        qp.complexadmittance(
-            1e4, **true_params,
-        ),
-        rtol=1e-2,
+    sgfreq = 90
+    rsh = 5e-3
+    rbias_sg = 20000
+    fs = 625e3
+    sgamp = 0.009381 / rbias_sg
+
+    rawtraces = np.random.rand(300, 32768)
+
+    didvfit = qp.DIDV(
+        rawtraces,
+        fs,
+        sgfreq,
+        sgamp,
+        rsh,
+        autoresample=True,
     )
 
+    expected_length = np.ceil(rawtraces.shape[-1] * 9 / 10)
+
+    assert didvfit._rawtraces.shape[-1] == expected_length
 
 
 def test_didv():
@@ -172,5 +185,3 @@ def test_didv():
                 rtol=1e-2,
             )
 
-    _raise_errors()
-    _autoresample()
