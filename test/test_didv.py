@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 
-def _initialize_didv(poles, priors, sqfreq=100):
+def _initialize_didv(poles, priors, sgfreq=100):
     """Function for initializing dIdV data"""
     np.random.seed(0)
 
@@ -149,7 +149,7 @@ def _autoresample():
         ),
         rtol=1e-2,
     )
-    
+
 
 
 def test_didv():
