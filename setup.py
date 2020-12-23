@@ -53,5 +53,6 @@ setup(
         'scipy',
         'matplotlib',
         'iminuit<2.0',
+        'sympy',
     ]
 )
