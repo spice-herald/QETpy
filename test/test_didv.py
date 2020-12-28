@@ -1,14 +1,15 @@
 import qetpy as qp
 import numpy as np
+import pytest
 
-def _initialize_didv(poles, priors):
+
+def _initialize_didv(poles, priors, sgfreq=100, autoresample=False):
     """Function for initializing dIdV data"""
     np.random.seed(0)
 
     rsh = 5e-3
     rbias_sg = 20000
     fs = 625e3
-    sgfreq = 100
     sgamp = 0.009381 / rbias_sg
 
     rfb = 5000
@@ -65,6 +66,7 @@ def _initialize_didv(poles, priors):
             rsh,
             tracegain=1.0,
             dt0=-1e-6,
+            autoresample=autoresample,
         )
         if poles == 1:
             didvfit.processtraces()
@@ -83,6 +85,7 @@ def _initialize_didv(poles, priors):
             rp=true_params['rp'],
             dt0=-1e-6 - 1 / (2 * sgfreq),
             add180phase=True,
+            autoresample=autoresample,
         )
         assert didvfit.fitresult(poles) == dict()
         didvfit.dofit(poles)
@@ -111,6 +114,57 @@ def _run_plotting_suite(didvfit, poles):
     didvfit.plot_re_im_didv(saveplot=True, savename='test')
 
 
+def test_errors():
+    """
+    Function for asserting certain errors are raised
+    for specific cases.
+
+    """
+
+    error_str = "`fs` and `sgfreq` do not divide to an integer."
+
+    with pytest.raises(ValueError) as excinfo:
+        didvfit = qp.DIDV(
+            None,
+            625e3, # fs
+            30, # sgfreq
+            None,
+            None,
+        )
+
+    assert error_str in str(excinfo.value)
+
+
+def test_autoresample():
+    """
+    Function for testing the autoresample kwarg for _BaseDIDV.
+
+    """
+
+    np.random.seed(0)
+
+    sgfreq = 90
+    rsh = 5e-3
+    rbias_sg = 20000
+    fs = 625e3
+    sgamp = 0.009381 / rbias_sg
+
+    rawtraces = np.random.rand(300, 32768)
+
+    didvfit = qp.DIDV(
+        rawtraces,
+        fs,
+        sgfreq,
+        sgamp,
+        rsh,
+        autoresample=True,
+    )
+
+    expected_length = np.ceil(rawtraces.shape[-1] * 9 / 10)
+
+    assert didvfit._rawtraces.shape[-1] == expected_length
+
+
 def test_didv():
     """Function for testing the DIDV and DIDVPriors classes."""
 
@@ -130,3 +184,4 @@ def test_didv():
                 ),
                 rtol=1e-2,
             )
+

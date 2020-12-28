@@ -4,6 +4,8 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
+from qetpy.utils import resample_data
+
 
 __all__ = [
     "stdcomplex",
@@ -384,7 +386,7 @@ class _BaseDIDV(object):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
-                 dt0=10.0e-6):
+                 dt0=10.0e-6, autoresample=False):
         """
         Initialization of the _BaseDIDV class object
 
@@ -432,11 +434,38 @@ class _BaseDIDV(object):
             finding the value on the first run if it the initial value
             is far from the actual value, so a solution is to do this
             iteratively.
+        autoresample : bool, optional
+            If True, the initialization will automatically resample
+            the data so that `fs` / `sgfreq` is an integer, which
+            ensures that an arbitrary number of signal-generator
+            periods can fit in an integer number of time bins. See
+            `qetpy.utils.resample_data` for more info.
 
         """
 
-        self._rawtraces = rawtraces
-        self._fs = fs
+        if np.mod(fs, sgfreq)!=0 and not autoresample:
+            raise ValueError(
+                '`fs` and `sgfreq` do not divide to an integer. If '
+                'these are the true values, please resample the data '
+                'and use the resampled versions of `rawtraces` and '
+                '`fs`. To do this, try using the optional argument '
+                '`autoresample` or using `scipy.signal.resample_poly`.'
+            )
+        elif np.mod(fs, sgfreq)!=0 and autoresample:
+            warnings.warn(
+                'The data is being autoresampled. This may have '
+                'unintended effects on the DIDV fit in frequency '
+                'space.'
+            )
+            resampled_rawtraces, resampled_fs = resample_data(
+                rawtraces, fs, sgfreq,
+            )
+            self._rawtraces = resampled_rawtraces
+            self._fs = resampled_fs
+        else:
+            self._rawtraces = rawtraces
+            self._fs = fs
+
         self._sgfreq = sgfreq
         self._sgamp = sgamp
         self._r0 = r0

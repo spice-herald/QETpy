@@ -24,7 +24,8 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
     """
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
-                 dutycycle=0.5, add180phase=False, dt0=10.0e-6):
+                 dutycycle=0.5, add180phase=False, dt0=10.0e-6,
+                 autoresample=False):
         """
         Initialization of the DIDVPriors class object
 
@@ -59,6 +60,12 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
         dt0 : float, optional
             The value of the starting guess for the time offset of the
             didv when fitting. See Notes for more information.
+        autoresample : bool, optional
+            If True, the initialization will automatically resample
+            the data so that `fs` / `sgfreq` is an integer, which
+            ensures that an arbitrary number of signal-generator
+            periods can fit in an integer number of time bins. See
+            `qetpy.utils.resample_data` for more info.
 
         Notes
         -----
@@ -81,6 +88,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             dutycycle=dutycycle,
             add180phase=add180phase,
             dt0=dt0,
+            autoresample=autoresample,
         )
 
 
