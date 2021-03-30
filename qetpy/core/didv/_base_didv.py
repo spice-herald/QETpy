@@ -402,8 +402,8 @@ class _BaseDIDV(object):
         sgfreq : float
             Frequency of the signal generator, in Hz
         sgamp : float
-            Amplitude of the signal generator, in Amps (equivalent to
-            jitter in the QET bias)
+            Peak-to-peak size of the square wave supplied by the signal
+            generator, in Amps (equivalent to jitter in the QET bias)
         rsh : float
             Shunt resistance in the circuit, Ohms
         tracegain : float, optional
