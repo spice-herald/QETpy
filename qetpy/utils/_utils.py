@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import interpolate, signal, constants
 from scipy import ndimage
+from sympy.ntheory import factorrat
+from sympy.core.symbol import S
 
 
 __all__ = [
@@ -16,6 +18,8 @@ __all__ = [
     "shift",
     "make_template",
     "estimate_g",
+    "resample_factors",
+    "resample_data",
 ]
 
 
@@ -62,6 +66,116 @@ def shift(arr, num, fill_value=0):
         )
 
     return result
+
+
+def resample_factors(fs, sgfreq):
+    """
+    Function for determining the upsampling and downsampling factors
+    needed to ensure that `fs`/`sgfreq` is an integer. These factor are
+    to be used with `scipy.signal.resample_poly`. Note that these
+    factors are not a unique solution, but a simple one.
+
+    Parameters
+    ----------
+    fs : int
+        The digitization rate of the data in Hz.
+    sgfreq : int
+        The frequency of the square wave from the signal generator in
+        Hz.
+
+    Returns
+    -------
+    up : int
+        The upsampling factor.
+    down : int
+        The downsampling factor.
+
+    Notes
+    -----
+    See the documentation for `scipy.signal.resample_poly` for more
+    information on these factors.
+
+    """
+
+    if int(fs) != fs:
+        raise ValueError('`fs` must be an integer to use this function')
+    if int(sgfreq) != sgfreq:
+        raise ValueError('`sgfreq` must be an integer to use this function')
+
+    rfacs = factorrat(S(int(fs)) / int(sgfreq))
+    numer = [key for key in rfacs if rfacs[key] > 0]
+    denom = [key for key in rfacs if rfacs[key] < 0]
+
+    if len(denom)==0:
+        return 1, 1
+
+    down = np.multiply.reduce(numer)
+    up = round(down / min(denom)) * min(denom)
+
+    # round up if `sgfreq` is prime (otherwise would return 0)
+    if up==0:
+        up = np.ceil(down / min(denom)).astype(int) * min(denom)
+
+    return int(up), int(down)
+
+
+def resample_data(x, fs, sgfreq, **kwargs):
+    """
+    Function that uses `resample_factors` and
+    `scipy.signal.resample_poly` to automatically resample the data to
+    ensure that `fs`/`sgfreq` is an integer.
+
+    Parameters
+    ----------
+    x : array_like
+        The data to be resampled.
+    fs : int
+        The digitization rate of the data in Hz.
+    sgfreq : int
+        The frequency of the square wave from the signal generator in
+        Hz.
+    axis : int, optional
+        The axis of `x` that is resampled. Default is -1.
+    window : string, tuple, or array_like, optional
+        Desired window to use to design the low-pass filter, or the FIR
+        filter coefficients to employ.
+    padtype : string, optional
+        `constant`, `line`, `mean`, `median`, `maximum`, `minimum` or
+        any of the other signal extension modes supported by
+        `scipy.signal.upfirdn`. Changes assumptions on values beyond
+        the boundary. If `constant`, assumed to be `cval` (default
+        zero). If `line` assumed to continue a linear trend defined by
+        the first and last points. `mean`, `median`, `maximum` and
+        `minimum` work as in `np.pad` and assume that the values beyond
+        the boundary are the mean, median, maximum or minimum
+        respectively of the array along the axis. Default is
+        `constant`.
+    cval : float, optional
+        Value to use if `padtype='constant'`. Default is zero.
+
+    Returns
+    -------
+    resampled_x : ndarray
+        The resampled data.
+    resampled_fs : float
+        The digitization rate of `resampled_x` in Hz.
+
+    Notes
+    -----
+    The `kwargs` are each passed to the `scipy.signal.resample_poly`
+    function, from which we took the text for this dosctring for those
+    parameters.
+
+    """
+
+    if 'axis' not in kwargs:
+        kwargs['axis'] = -1
+
+    up, down = resample_factors(fs, sgfreq)
+    resampled_x = signal.resample_poly(x, up, down, **kwargs)
+    resampled_fs =  fs * up / down
+
+    return resampled_x, resampled_fs
 
 
 def make_template(t, tau_r, tau_f, offset=0):
