@@ -2,7 +2,6 @@ import numpy as np
 import random
 from qetpy import ofamp
 from qetpy.utils import make_template
-from qetpy.cut import iterstat, removeoutliers
 from astropy.stats import sigma_clip
 from scipy import stats, optimize
 from scipy.stats import skew
@@ -21,21 +20,23 @@ __all__ = [
 
 def removeoutliers(x, maxiter=20, skewtarget=0.05):
     """
-    Function to return indices of inlying points, removing points by minimizing the skewness.
+    Function to return indices of inlying points, removing points by minimizing the
+    skewness.
 
     Parameters
     ----------
     x : ndarray
         Array of real-valued variables from which to remove outliers.
     maxiter : float, optional
-        Maximum number of iterations to continue to minimize skewness. Default is 20.
+        Maximum number of iterations to continue to minimize skewness.
+        Default is 20.
     skewtarget : float, optional
         Desired residual skewness of distribution. Default is 0.05.
 
     Returns
     -------
     inds : ndarray
-        Boolean indices indicating which values to select/reject, same length as x.
+        Boolean indices indicating which values to select/reject, same length as `x`.
 
     """
 
@@ -135,9 +136,15 @@ class _UnbiasedEstimators(object):
         # term due to truncation
         mu_eqn += self._lenx / (cdf_upr - cdf_lwr) * (pdf_upr - pdf_lwr)
 
-        std_eqn = self._sumx2 - 2 * mu * self._sumx + self._lenx * mu**2 - self._lenx * std**2
+        std_eqn = (
+            self._sumx2 - 2 * mu * self._sumx
+        ) + (
+            self._lenx * mu**2 - self._lenx * std**2
+        )
         # term due to truncation
-        std_eqn += self._lenx * std**2 / (cdf_upr - cdf_lwr) * ((self._uprbnd - mu) * pdf_upr - (self._lwrbnd - mu) * pdf_lwr)
+        std_eqn += self._lenx * std**2 / (cdf_upr - cdf_lwr) * (
+            (self._uprbnd - mu) * pdf_upr - (self._lwrbnd - mu) * pdf_lwr
+        )
 
         return (mu_eqn, std_eqn)
 
@@ -147,13 +154,18 @@ class _UnbiasedEstimators(object):
 
         """
 
-        self.mu, self.std = optimize.fsolve(self._equations, (self.mu0, self.std0))
+        self.mu, self.std = optimize.fsolve(
+            self._equations,
+            (self.mu0, self.std0),
+        )
 
 
-def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
+def iterstat(data, cut=3, precision=1000.0,
+             return_unbiased_estimates=False):
     """
-    Function to iteratively remove outliers based on how many standard deviations they are from the mean,
-    where the mean and standard deviation are recalculated after each cut.
+    Function to iteratively remove outliers based on how many standard deviations
+    they are from the mean, where the mean and standard deviation are recalculated
+    after each cut.
 
     Parameters
     ----------
@@ -162,12 +174,12 @@ def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
     cut : float, optional
         Number of standard deviations from the mean to be used for outlier rejection
     precision : float, optional
-        Threshold for change in mean or standard deviation such that we stop iterating. The threshold is
-        determined by np.std(data)/precision. This means that a higher number for precision means a lower
-        threshold (i.e. more iterations).
+        Threshold for change in mean or standard deviation such that we stop iterating.
+        The threshold is determined by np.std(data)/precision. This means that a higher
+        number for precision means a lower threshold (i.e. more iterations).
     return_unbiased_estimates : bool, optional
-        Boolean flag for whether or not to return the biased or unbiased estimates of the mean and
-        standard deviation of the data. Default is False.
+        Boolean flag for whether or not to return the biased or unbiased estimates of
+        the mean and standard deviation of the data. Default is False.
 
     Returns
     -------
@@ -176,7 +188,8 @@ def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
     datastd : float
         Standard deviation of the data after outliers have been removed
     datamask : ndarray
-        Boolean array indicating which values to keep or reject in data, same length as data.
+        Boolean array indicating which values to keep or reject in data, same length
+        as data.
 
     """
 
@@ -204,7 +217,11 @@ def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
         meanthis = np.mean(data[mask])
         stdthis = np.std(data[mask])
 
-        if (abs(meanthis - meanlast) > stdcutoff) or (abs(stdthis - stdlast) > stdcutoff):
+        if (
+            abs(meanthis - meanlast) > stdcutoff
+        ) or (
+            abs(stdthis - stdlast) > stdcutoff
+        ):
             nstable = 0
         else:
             nstable = nstable + 1
@@ -215,32 +232,39 @@ def iterstat(data, cut=3, precision=1000.0, return_unbiased_estimates=False):
         stdlast = stdthis
 
     if return_unbiased_estimates:
-        unb = _UnbiasedEstimators(data[mask], meanthis - cut * stdthis, meanthis + cut * stdthis)
+        unb = _UnbiasedEstimators(
+            data[mask],
+            meanthis - cut * stdthis,
+            meanthis + cut * stdthis,
+        )
         return unb.mu, unb.std, mask
 
     return meanthis, stdthis, mask
 
-def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
+def itercov(*args, nsigma=2.75, threshold=None, maxiter=15,
+            frac_err=1e-3):
     """
-    Function for iteratively determining the estimated covariance matrix of a multidimensional
-    normal distribution.
+    Function for iteratively determining the estimated covariance matrix of a
+    multidimensional normal distribution.
 
     Parameters
     ----------
     args : array_like
-        The data to be iteratively cut on. Can be inputted as a single N-by-M array or as
-        M arguments that are 1D vectors of length N, where N is the number of data points and
-        M is the number of dimensions.
+        The data to be iteratively cut on. Can be inputted as a single N-by-M
+        array or as M arguments that are 1D vectors of length N, where N is the
+        number of data points and M is the number of dimensions.
     nsigma : float, optional
-        The number of sigma that defines that maximum chi-squared each data point must be below.
-        Default is 2.75.
+        The number of sigma that defines that maximum chi-squared each data
+        point must be below. Default is 2.75.
     threshold : float, NoneType, optional
-        The threshold to cut data. If left as None, this is set to the larger of 3 sigma or
-        the number of sigma such that 95% of the data is kept if the data is normal.
+        The threshold to cut data. If left as None, this is set to the larger of
+        3 sigma or the number of sigma such that 95% of the data is kept if the
+        data is normal.
     maxiter : int, optional
         The maximum number of iterations to perform when cutting. Default is 15.
     frac_err : float, optional
-        The fractional error allowed before stopping the iterations. Default is 1e-3.
+        The fractional error allowed before stopping the iterations.
+        Default is 1e-3.
 
     Returns
     -------
@@ -249,7 +273,8 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
     datacov : ndarray
         The estimated covariance of the data points, after iteratively cutting outliers.
     datamask : ndarray
-        The boolean mask of the original data that specifies which data points were kept.
+        The boolean mask of the original data that specifies which data points were
+        kept.
 
     Raises
     ------
@@ -273,7 +298,9 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
         raise ValueError("Shape of data is inconsistent.")
 
     if data.shape[0] == 1:
-        raise ValueError("The inputted data is 1-dimensional, use qetpy.cut.iterstat instead.")
+        raise ValueError(
+            "The inputted data is 1-dimensional, use qetpy.cut.iterstat instead."
+        )
 
     if threshold is None:
         sigma2 = stats.chi2.ppf(0.95**(1 / ndim), 1)**0.5
@@ -302,7 +329,10 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
         chi2 = np.sum(delta * np.dot(np.linalg.inv(cov_last), delta), axis=0)
         mask = chi2 < max_chi2
 
-        mask = mask & np.all(np.abs(delta) < std_last[:, np.newaxis] * threshold, axis=0)
+        mask = mask & np.all(
+            np.abs(delta) < std_last[:, np.newaxis] * threshold,
+            axis=0,
+        )
         nmask = np.sum(mask)
 
         if nmask <= 1:
@@ -320,7 +350,11 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
         mean_this = np.mean(data[:, mask], axis=1)
         cov_this = np.atleast_1d(np.cov(data[:, mask]))
 
-        if np.any(np.abs(mean_this - mean_last) > err_mean) or np.any(np.abs(cov_this - cov_last) > err_cov):
+        if np.any(
+            np.abs(mean_this - mean_last) > err_mean
+        ) or np.any(
+            np.abs(cov_this - cov_last) > err_cov
+        ):
             nstable = 0
         else:
             nstable += 1
@@ -337,11 +371,13 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15, frac_err=1e-3):
 
 def symmetrizedist(vals):
     """
-    Function to symmetrize a distribution about zero. Useful for if the distribution of some value
-    centers around a nonzero value, but should center around zero. An example of this would be when
-    most of the measured slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
-    muon tails, which we want to cut out). To do this, the algorithm randomly chooses points in a histogram
-    to cut out until the histogram is symmetric about zero.
+    Function to symmetrize a distribution about zero. Useful for if the
+    distribution of some value centers around a nonzero value, but should
+    center around zero. An example of this would be when most of the measured
+    slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
+    muon tails, which we want to cut out). To do this, the algorithm randomly
+    chooses points in a histogram to cut out until the histogram is symmetric
+    about zero.
 
     Parameters
     ----------
@@ -359,39 +395,54 @@ def symmetrizedist(vals):
     # figure out which direction the slopes are usually
     valsmean, valsstd = iterstat(vals, cut=2, precision=10000.0)[:-1]
 
-    # if most vals are positive, flip the sign of them so we can use the same code for both negative and positive vals
+    # if most vals are positive, flip the sign of them so we can use
+    # the same code for both negative and positive vals
     if valsmean>0.0:
         vals= vals
 
-    # choose symmetric upper and lower bounds for histogram to make the middle bin centered on zero (since we want zero mean)
+    # choose symmetric upper and lower bounds for histogram to make
+    # the middle bin centered on zero (since we want zero mean)
     histupr=max(vals)
     histlwr=-histupr
 
-    # specify number of bins in histogram (should be an odd number so that we have the middle bin centered on zero)
+    # specify number of bins in histogram (should be an odd number
+    # so that we have the middle bin centered on zero)
     histbins=int(np.sqrt(nvals))
     if np.mod(histbins,2)==0:
         histbins+=1
 
     if histupr>0:
-        # create histogram, get number of events in each bin and where the bin edges are
-        hist_num, bin_edges = np.histogram(vals, bins=histbins, range=(histlwr, histupr))
+        # create histogram, get number of events in each bin and
+        # where the bin edges are
+        hist_num, bin_edges = np.histogram(
+            vals,
+            bins=histbins,
+            range=(histlwr, histupr),
+        )
 
         if len(hist_num)>2: # otherwise we cannot symmetrize the distribution
             # inititalize the cut that symmetrizes the slopes
             czeromeanvals = np.zeros(nvals, dtype=bool)
             czeromeanvals[vals>bin_edges[histbins//2]] = True
 
-            # go through each bin and remove events until the bin number is symmetric
+            # go through each bin and remove events until the bin number
+            # is symmetric
             for ibin in range(histbins//2, histbins-1):
-                cvalsinbin = np.logical_and(vals<bin_edges[histbins-ibin-1], vals>=bin_edges[histbins-ibin-2])
+                cvalsinbin = np.logical_and(
+                    vals<bin_edges[histbins-ibin-1],
+                    vals>=bin_edges[histbins-ibin-2],
+                )
                 ntracesinthisbin = hist_num[histbins-ibin-2]
                 ntracesinoppobin = hist_num[ibin+1]
                 ntracestoremove = ntracesinthisbin-ntracesinoppobin
                 if ntracestoremove>0.0:
                     cvalsinbininds = np.where(cvalsinbin)[0]
-                    crandcut = np.random.choice(cvalsinbininds, ntracestoremove, replace=False)
+                    crandcut = np.random.choice(
+                        cvalsinbininds, ntracestoremove, replace=False,
+                    )
                     cvalsinbin[crandcut] = False
-                czeromeanvals += cvalsinbin # update cut to include these events
+                # update cut to include these events
+                czeromeanvals += cvalsinbin
         else:
             # don't do anything about the shape of the distrbution
             czeromeanvals = np.ones(nvals, dtype=bool)
@@ -444,7 +495,8 @@ class IterCut(object):
         self._cutinds = self._cutinds[cout]
 
 
-    def pileupcut(self, template=None, psd=None, removemeans=False, outlieralgo="iterstat", **kwargs):
+    def pileupcut(self, template=None, psd=None, removemeans=False,
+                  outlieralgo="iterstat", **kwargs):
 
         if template is None:
             time = np.arange(self._nbin) / self.fs
@@ -506,7 +558,8 @@ class IterCut(object):
 
         return self.cmask
 
-    def chi2cut(self, template=None, psd=None, outlieralgo="iterstat", **kwargs):
+    def chi2cut(self, template=None, psd=None, outlieralgo="iterstat",
+                **kwargs):
 
         if template is None:
             time = np.arange(self._nbin) / self.fs
@@ -530,7 +583,8 @@ class IterCut(object):
 
         return self.cmask
 
-    def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat", **kwargs):
+    def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat",
+                     **kwargs):
 
         temp_traces = self.traces[self._cutinds]
         vals = cutfunction(temp_traces, *args)
@@ -542,12 +596,13 @@ class IterCut(object):
 
 
 def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
-             outlieralgo="removeoutliers",
-             lgcpileup1=True, lgcslope=True, lgcbaseline=True, lgcpileup2=True, lgcchi2=True,
-             nsigpileup1=2, nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3, **kwargs):
+             outlieralgo="removeoutliers", lgcpileup1=True,
+             lgcslope=True, lgcbaseline=True, lgcpileup2=True,
+             lgcchi2=True, nsigpileup1=2, nsigslope=2, nsigbaseline=2,
+             nsigpileup2=2, nsigchi2=3, **kwargs):
     """
-    Function to automatically cut out bad traces based on the optimum filter amplitude, slope, baseline, and chi^2
-    of the traces.
+    Function to automatically cut out bad traces based on the optimum filter
+    amplitude, slope, baseline, and chi^2 of the traces.
 
     Parameters
     ----------
@@ -558,52 +613,61 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     is_didv : bool, optional
         Boolean flag on whether or not the trace is a dIdV curve
     outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard deviations from the mean
+        Which outlier algorithm to use. If set to "removeoutliers", uses the
+        removeoutliers algorithm that removes data based on the skewness of
+        the dataset. If set to "iterstat", uses the iterstat algorithm
+        to remove data based on being outside a certain number of standard
+        deviations from the mean
     lgcpileup1 : boolean, optional
-        Boolean value on whether or not do the pileup1 cut (this is the initial pileup cut
-        that is always done whether or not we have dIdV data). Default is True.
+        Boolean value on whether or not do the pileup1 cut (this is the
+        initial pileup cut that is always done whether or not we have dIdV data).
+        Default is True.
     lgcslope : boolean, optional
         Boolean value on whether or not do the slope cut. Default is True.
     lgcbaseline : boolean, optional
         Boolean value on whether or not do the baseline cut. Default is True.
     lgcpileup2 : boolean, optional
-        Boolean value on whether or not do the pileup2 cut (this cut is only done when is_didv is
-        also True). Default is True.
+        Boolean value on whether or not do the pileup2 cut (this cut is only done
+        when is_didv is also True). Default is True.
     lgcchi2 : boolean, optional
         Boolean value on whether or not do the chi2 cut. Default is True.
     nsigpileup1 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the number of
+        standard deviations from the mean to cut outliers from the data when
+        using iterstat on the optimum filter amplitudes. Default is 2.
     nsigslope : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the slopes. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the number of
+        standard deviations from the mean to cut outliers from the data when
+        using iterstat on the slopes. Default is 2.
     nsigbaseline : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the baselines. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the number of
+        standard deviations from the mean to cut outliers from the data when
+        using iterstat on the baselines. Default is 2.
     nsigpileup2 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the optimum filter amplitudes after the mean
-        has been subtracted. (only used if is_didv is True). Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the number of
+        standard deviations from the mean to cut outliers from the data when
+        using iterstat on the optimum filter amplitudes after the mean has
+        been subtracted. (only used if is_didv is True). Default is 2.
     nsigchi2 : float, optional
-        This can be used to tune the number of standard deviations from the mean to cut outliers from the data
-        when using iterstat on the chi^2 values. Default is 3. This is always used, as iterstat is always used
-        for the chi^2 cut.
+        This can be used to tune the number of standard deviations from the
+        mean to cut outliers from the data when using iterstat on the chi^2
+        values. Default is 3.
 
     Returns
     -------
     ctot : ndarray
-        Boolean array giving which indices to keep or throw out based on the autocuts algorithm
+        Boolean array giving which indices to keep or throw out based on the
+        autocuts algorithm.
 
     """
 
     if 'sgfreq' in kwargs:
         warnings.warn(
-            "The `sgfreq` option has been deprecated and is now ignored when is_didv is True."
+            "The `sgfreq` option has been deprecated and "
+            "is now ignored when is_didv is True."
         )
 
-    Cut = IterCut(traces, fs, sgfreq=sgfreq if is_didv else None)
+    Cut = IterCut(traces, fs)
     
 
     if lgcpileup1:
@@ -647,7 +711,7 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     return Cut.cmask
 
 
-def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
+def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
     """
     Function to help identify saturated muons from array of time series traces.
 
@@ -682,8 +746,8 @@ def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
         # that the maximum is decently larger than the minimum
 
         peak_loc = np.argmax(trace)
-        # check that the peak is saturated (this should be true for muons that saturate the
-        # detector or muon that rail the amplifier) 
+        # check that the peak is saturated (this should be true for muons
+        # that saturate the detector or muon that rail the amplifier) 
         if ((peak_loc + int(nsatbins)) < arr.shape[-1]):
             if (trace[peak_loc+int(nsatbins)] >= trace_max*thresh_pct):
                 muon_cut[ii] = True                    
