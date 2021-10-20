@@ -2,6 +2,8 @@ import numpy as np
 import random
 from qetpy import ofamp
 from qetpy.utils import make_template
+from qetpy.cut import iterstat, removeoutliers
+from astropy.stats import sigma_clip
 from scipy import stats, optimize
 from scipy.stats import skew
 import warnings
@@ -11,6 +13,7 @@ __all__ = [
     "removeoutliers",
     "iterstat",
     "itercov",
+    "IterCut",
     "autocuts",
     "get_muon_cut",
 ]
@@ -398,240 +401,150 @@ def symmetrizedist(vals):
 
     return czeromeanvals
 
-def pileupcut(traces, template, psd, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemeans=False):
-    """
-    Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.
 
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float, optional
-        Digitization rate that the data was taken at
-    outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard deviations from the mean
-    nsig : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the optimum filter amplitudes. Default is 2.
-    removemeans : boolean, optional
-        Boolean flag on if the mean of each trace should be removed before doing the optimal filter (True) or
-        if the means should not be removed (False). This is useful for dIdV traces, when we want to cut out
-        pulses that have smaller amplitude than the dIdV overshoot. Default is False.
+class IterCut(object):
 
-    Returns
-    -------
-    cpileup : ndarray
-        Boolean array giving which indices to keep or throw out based on the outlier algorithm
+    def __init__(self, traces, fs):
 
-    """
+        self.traces = traces
+        self.fs = fs
+        self._ntraces = len(traces)
+        self._nbin = len(traces[0])
+        self._cutinds = np.arange(len(traces))
 
-    if removemeans:
-        mean = np.mean(traces, axis=1)
-        traces -= mean[:, np.newaxis]
+    @property
+    def cmask(self):
+        _cmask = np.zeros(self._ntraces, dtype=bool)
+        _cmask[self._cutinds] = True
+        return _cmask
 
-    amps = np.zeros(len(traces))
+    @cmask.setter
+    def cmask(self, value):
+        raise AttributeError("cmask is a protected attribute, can't set it")
 
-    #do optimum filter on all traces
-    for itrace in range(0,len(traces)):
-        amps[itrace] = ofamp(traces[itrace], template, psd, fs)[0]
+    @cmask.deleter
+    def cmask(self):
+        raise AttributeError("cmask is a protected attribute, can't delete it")
 
-    if outlieralgo=="removeoutliers":
-        cpileup = removeoutliers(abs(amps))
-    elif outlieralgo=="iterstat":
-        cpileup = iterstat(abs(amps), cut=nsig, precision=10000.0)[2]
-    else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+    def _run_algo(self, vals, outlieralgo, **kwargs):
 
-    return cpileup
-
-def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, symmetrizeflag=False, sgfreq=100.0):
-    """
-    Function to automatically cut out outliers of the slopes of the inputted traces. Includes a routine that 
-    attempts to symmetrize the distribution of slopes around zero, which is useful when the majority of traces 
-    have a slope.
-
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float, optional
-        Digitization rate that the data was taken at
-    outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard deviations from the mean
-    nsig : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the slopes. Default is 2.
-    is_didv : bool, optional
-        Boolean flag on whether or not the trace is a dIdV curve
-    symmetrizeflag : bool, optional
-        Flag for whether or not the slopes should be forced to have an average value of zero.
-        Should be used if most of the traces have a slope
-    sgfreq : float, optional
-        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
-
-    Returns
-    -------
-    cslope : ndarray
-        Boolean array giving which indices to keep or throw out based on the outlier algorithm
-
-    """
-
-    nbin = len(traces[0])
-    tracebegin = np.zeros(len(traces))
-    traceend = np.zeros(len(traces))
-
-    # number of periods and bins in period to determine where to calculate slopes and baselines
-    nperiods = np.floor((nbin/fs)*sgfreq)
-    binsinperiod = fs/sgfreq
-
-    if is_didv:
-        # try to use flat part of DIDV trace (assuming it's lined up with the start of a period)
-        # should still work if it's not lined up
-        if nperiods>1:
-            sloperangebegin = range(int(binsinperiod/4), int(3*binsinperiod/8))
-            sloperangeend = range(int((nperiods-1.0)*binsinperiod+binsinperiod/4), 
-                                  int((nperiods-1.0)*binsinperiod+3*binsinperiod/8))
+        if outlieralgo=="iterstat":
+            cout = iterstat(vals, **kwargs)[2]
+        elif outlieralgo=="removeoutliers": 
+            cout = removeoutliers(vals, **kwargs)
+        elif outlieralgo=="sigma_clip":
+            array = sigma_clip(vals, axis=0, masked=False, **kwargs)
+            cout = ~np.isnan(array)
         else:
-            sloperangebegin = range(int(binsinperiod/4), int(5*binsinperiod/16))
-            sloperangeend = range(int(5*binsinperiod/16), int(3*binsinperiod/8))
-    else:
-        sloperangebegin = range(0, int(nbin/10))
-        sloperangeend = range(int(9*nbin/10), nbin)
+            raise ValueError(
+                "Unrecognized outlieralgo, must be a str "
+                "of 'iterstat', 'removeoutliers', or 'sigma_clip'"
+            )
 
-    tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
-    traceend = np.mean(traces[:, sloperangeend], axis=1)
+        self._cutinds = self._cutinds[cout]
 
-    # now the slope cut to get rid of muon tails
-    # first, create a symmetric distribution about zero slope to get rid of the biased results, 
-    # but randomly cutting out events on biased side
-    slopes = traceend - tracebegin
 
-    if symmetrizeflag:
-        czeromeanslope = symmetrizedist(slopes)
-        czeromeanslopeinds = np.where(czeromeanslope)[0]
-    else:
-        # don't do anything about the shape of the distrbution
-        czeromeanslopeinds = np.arange(len(traces))
+    def pileupcut(self, template=None, psd=None, removemeans=False, outlieralgo="iterstat", **kwargs):
 
-    # now get rid of outliers from the symmetrized distribution
-    if outlieralgo=="removeoutliers":
-        cslope = removeoutliers(slopes[czeromeanslopeinds])
-    elif outlieralgo=="iterstat":
-        cslope = iterstat(slopes[czeromeanslopeinds], cut=nsig, precision=10000.0)[2]
-    else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
-    cslopeinds = czeromeanslopeinds[cslope]
+        if template is None:
+            time = np.arange(self._nbin) / self.fs
+            template = make_template(time, 10e-6, 100e-6)
 
-    cslopetot = np.ones(len(traces), dtype=bool)
-    cslopetot[cslopeinds] = True
+        if psd is None:
+            psd = np.ones(self._nbin)
 
-    return cslopetot
+        temp_traces = self.traces[self._cutinds]
 
-def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=False, sgfreq=100.0):
-    """
-    Function to automatically cut out outliers of the baselines of the inputted traces.
+        if removemeans:
+            mean = np.mean(temp_traces, axis=-1, keepdims=True)
+            temp_traces -= mean
 
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float, optional
-        Digitization rate that the data was taken at
-    outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard deviations from the mean
-    nsig : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the baselines. Default is 2.
-    is_didv : bool, optional
-        Boolean flag on whether or not the trace is a dIdV curve
-    sgfreq : float, optional
-        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
+        ntemptraces = len(temp_traces)
 
-    Returns
-    -------
-    cbaseline : ndarray
-        Boolean array giving which indices to keep or throw out based on the outlier algorithm
+        amps = np.zeros(ntemptraces)
 
-    """
+        #do optimum filter on all traces
+        for itrace in range(ntemptraces):
+            amps[itrace] = ofamp(
+                temp_traces[itrace], template, psd, self.fs,
+            )[0]
 
-    nbin = len(traces[0])
-    tracebegin = np.zeros(len(traces))
+        self._run_algo(np.abs(amps), outlieralgo, **kwargs)
 
-    # number of periods and bins in period to determine where to calculate slopes and baselines
-    nperiods = np.floor((nbin/fs)*sgfreq)
-    binsinperiod = fs/sgfreq
+        return self.cmask
 
-    if is_didv:
-        # try to use flat part of DIDV trace (assuming it's lined up with the start of a period)
-        # should still work if it's not lined up
-        if nperiods>1:
-            sloperangebegin = range(int(binsinperiod/4), int(3*binsinperiod/8))
-        else:
-            sloperangebegin = range(int(binsinperiod/4), int(5*binsinperiod/16))
-    else:
-        sloperangebegin = range(0, int(nbin/10))
+    def baselinecut(self, endindex=None, outlieralgo="iterstat", **kwargs):
+        
+        temp_traces = self.traces[self._cutinds]
+        ntemptraces = len(temp_traces)
 
-    tracebegin = np.mean(traces[:, sloperangebegin], axis=1)
+        if endindex is None:
+            endindex = self._nbin // 2
 
-    # baseline cut
-    if outlieralgo=="removeoutliers":
-        cbaseline = removeoutliers(tracebegin)
-    elif outlieralgo=="iterstat":
-        cbaseline = iterstat(tracebegin, cut=nsig, precision=10000.0)[2]
-    else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+        baselines = np.mean(temp_traces[..., :endindex], axis=-1)
 
-    return cbaseline
+        self._run_algo(baselines, outlieralgo, **kwargs)
 
-def chi2cut(traces, template, psd, fs=625e3, outlieralgo="iterstat", nsig=2):
-    """
-    Function to automatically cut out outliers of the baselines of the inputted traces.
+        return self.cmask
 
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float, optional
-        Digitization rate that the data was taken at
-    outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
-        removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard deviations from the mean
-    nsig : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of standard deviations from the mean
-        to cut outliers from the data when using iterstat on the Chi2s. Default is 2.
+    def slopecut(self, outlieralgo="iterstat", **kwargs):
 
-    Returns
-    -------
-    cchi2 : ndarray
-        Boolean array giving which indices to keep or throw out based on the outlier algorithm
+        temp_traces = self.traces[self._cutinds]
+        ntemptraces = len(temp_traces)
+        time = np.arange(self._nbin) / self.fs
+        ymean = np.mean(temp_traces, axis=-1, keepdims=True)
+        xmean = np.mean(time)
 
-    """
+        slopes = np.sum(
+            (time - xmean) * (temp_traces - ymean),
+            axis=-1,
+        ) / np.sum(
+            (time - xmean)**2,
+        )
 
-    chi2 = np.zeros(len(traces))
+        self._run_algo(slopes, outlieralgo, **kwargs)
 
-    for itrace in range(0,len(traces)):
-        chi2[itrace] = ofamp(traces[itrace], template, psd, fs)[2]
+        return self.cmask
 
-    if outlieralgo=="removeoutliers":
-        cchi2 = removeoutliers(chi2)
-    elif outlieralgo=="iterstat":
-        cchi2 = iterstat(chi2, cut=nsig, precision=10000.0)[2]
-    else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+    def chi2cut(self, template=None, psd=None, outlieralgo="iterstat", **kwargs):
 
-    return cchi2
+        if template is None:
+            time = np.arange(self._nbin) / self.fs
+            template = make_template(time, 10e-6, 100e-6)
 
-def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False, sgfreq=200.0,
-             symmetrizeflag=False, outlieralgo="removeoutliers",
+        if psd is None:
+            psd = np.ones(self._nbin)
+
+        temp_traces = self.traces[self._cutinds]
+        ntemptraces = len(temp_traces)
+
+        chi2s = np.zeros(ntemptraces)
+
+        #do optimum filter on all traces
+        for itrace in range(ntemptraces):
+            chi2s[itrace] = ofamp(
+                temp_traces[itrace], template, psd, self.fs,
+            )[-1]
+
+        self._run_algo(chi2s, outlieralgo, **kwargs)
+
+        return self.cmask
+
+    def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat", **kwargs):
+
+        temp_traces = self.traces[self._cutinds]
+        vals = cutfunction(temp_traces, *args)
+
+        self._run_algo(vals, outlieralgo, **kwargs)
+
+        return self.cmask
+
+
+
+def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
+             outlieralgo="removeoutliers",
              lgcpileup1=True, lgcslope=True, lgcbaseline=True, lgcpileup2=True, lgcchi2=True,
-             nsigpileup1=2, nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3):
+             nsigpileup1=2, nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3, **kwargs):
     """
     Function to automatically cut out bad traces based on the optimum filter amplitude, slope, baseline, and chi^2
     of the traces.
@@ -644,11 +557,6 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False, sgfreq=20
         Sample rate that the data was taken at
     is_didv : bool, optional
         Boolean flag on whether or not the trace is a dIdV curve
-    sgfreq : float, optional
-        If is_didv is True, then the sgfreq is used to know where the flat parts of the traces should be
-    symmetrizeflag : bool, optional
-        Flag for whether or not the slopes should be forced to have an average value of zero.
-        Should be used if most of the traces have a slope
     outlieralgo : string, optional
         Which outlier algorithm to use. If set to "removeoutliers", uses the removeoutliers algorithm that
         removes data based on the skewness of the dataset. If set to "iterstat", uses the iterstat algorithm
@@ -690,59 +598,54 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False, sgfreq=20
 
     """
 
-    if template is None or psd is None:
-        nbin = len(traces[0])
+    if 'sgfreq' in kwargs:
+        warnings.warn(
+            "The `sgfreq` option has been deprecated and is now ignored when is_didv is True."
+        )
 
-    if template is None:
-        time = np.arange(0, nbin) / fs
-        template = make_template(time, 10e-6, 100e-6)
-
-    if psd is None:
-        psd = np.ones(nbin)
+    Cut = IterCut(traces, fs, sgfreq=sgfreq if is_didv else None)
     
-    # pileup cut
+
     if lgcpileup1:
-        cpileup1 = pileupcut(traces, template=template, psd=psd, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup1)
-        cpileup1inds = np.where(cpileup1)[0]
-    else:
-        cpileup1inds = np.arange(len(traces))
+        kwargs = {'cut': nsigpileup1} if outlieralgo=="iterstat" else {}
+        Cut.pileupcut(
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            **kwargs,
+        )
 
-    #slope cut
     if lgcslope:
-        cslope = slopecut(traces[cpileup1inds], fs=fs, outlieralgo=outlieralgo, nsig=nsigslope, is_didv=is_didv, 
-                          symmetrizeflag=symmetrizeflag, sgfreq=sgfreq)
-    else:
-        cslope = np.ones(cpileup1inds.shape, dtype=bool)
-    cslopeinds = cpileup1inds[cslope]
+        kwargs = {'cut': nsigslope} if outlieralgo=="iterstat" else {}
+        Cut.slopecut(outlieralgo=outlieralgo, **kwargs)
 
-    # baseline cut
     if lgcbaseline:
-        cbaseline = baselinecut(traces[cslopeinds], fs=fs, outlieralgo=outlieralgo, nsig=nsigbaseline, is_didv=is_didv, 
-                                sgfreq=sgfreq)
-    else:
-        cbaseline = np.ones(cslopeinds.shape, dtype=bool)
-    cbaselineinds = cslopeinds[cbaseline]
+        kwargs = {'cut': nsigbaseline} if outlieralgo=="iterstat" else {}
+        Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
 
-    # do a pileup cut on the mean subtracted data if this is a dIdV, so that we remove pulses
-    # that are smaller than the dIdV peaks
+    # do a pileup cut on the mean subtracted data if this is a dIdV,
+    # so that we remove pulses that are smaller than the dIdV peaks
     if lgcpileup2 and is_didv:
-        cpileup2 = pileupcut(traces[cbaselineinds], template=template, psd=psd, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup2, removemeans=True)
-    else:
-        cpileup2 = np.ones(cbaselineinds.shape, dtype=bool)
-    cpileup2inds = cbaselineinds[cpileup2]
+        kwargs = {'cut': nsigpileup2} if outlieralgo=="iterstat" else {}
+        Cut.pileupcut(
+            template=template,
+            psd=psd,
+            removemeans=True,
+            outlieralgo=outlieralgo,
+            **kwargs,
+        )
 
-    #general chi2 cut
     if lgcchi2:
-        cchi2 = chi2cut(traces[cpileup2inds], template=template, psd=psd, fs=fs, outlieralgo="iterstat", nsig=nsigchi2)
-    else:
-        cchi2 = np.ones(cpileup2inds.shape, dtype=bool)
-    cchi2inds = cpileup2inds[cchi2]
+        kwargs = {'cut': nsigchi2} if outlieralgo=="iterstat" else {}
+        Cut.chi2cut(
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            **kwargs,
+        )
 
-    # convert total cut to logical array
-    ctot = np.zeros(len(traces),dtype=bool)
-    ctot[cchi2inds] = True
+    return Cut.cmask
 
-    return ctot
 
 def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
     """
