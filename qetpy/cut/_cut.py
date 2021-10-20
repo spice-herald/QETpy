@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from qetpy import ofamp
+from qetpy.utils import make_template
 from scipy import stats, optimize
 from scipy.stats import skew
 import warnings
@@ -397,7 +398,7 @@ def symmetrizedist(vals):
 
     return czeromeanvals
 
-def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemeans=False):
+def pileupcut(traces, template, psd, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemeans=False):
     """
     Function to automatically cut out outliers of the optimum filter amplitudes of the inputted traces.
 
@@ -426,21 +427,6 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
 
     """
 
-    nbin = len(traces[0])
-    ind_trigger = round(nbin/2)
-    time = 1.0/fs*(np.arange(1, nbin+1)-ind_trigger)
-    lgc_b0 = time < 0.0
-
-    # pulse shape
-    tau_risepulse = 10.0e-6
-    tau_fallpulse = 100.0e-6
-    dummytemplate = (1.0-np.exp(-time/tau_risepulse))*np.exp(-time/tau_fallpulse)
-    dummytemplate[lgc_b0]=0.0
-    dummytemplate = dummytemplate/max(dummytemplate)
-
-    # assume we just have white noise
-    dummypsd = np.ones(nbin)
-
     if removemeans:
         mean = np.mean(traces, axis=1)
         traces -= mean[:, np.newaxis]
@@ -449,7 +435,7 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
 
     #do optimum filter on all traces
     for itrace in range(0,len(traces)):
-        amps[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[0]
+        amps[itrace] = ofamp(traces[itrace], template, psd, fs)[0]
 
     if outlieralgo=="removeoutliers":
         cpileup = removeoutliers(abs(amps))
@@ -603,7 +589,7 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
 
     return cbaseline
 
-def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
+def chi2cut(traces, template, psd, fs=625e3, outlieralgo="iterstat", nsig=2):
     """
     Function to automatically cut out outliers of the baselines of the inputted traces.
 
@@ -628,26 +614,10 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
 
     """
 
-    nbin = len(traces[0])
-    ind_trigger = round(nbin/2)
-    time = 1.0/fs*(np.arange(1, nbin+1)-ind_trigger)
-    lgc_b0 = time < 0.0
-
-    # pulse shape
-    tau_risepulse = 10.0e-6
-    tau_fallpulse = 100.0e-6
-    dummytemplate = (1.0-np.exp(-time/tau_risepulse))*np.exp(-time/tau_fallpulse)
-    dummytemplate[lgc_b0]=0.0
-    dummytemplate = dummytemplate/max(dummytemplate)
-
-    # assume we just have white noise
-    dummypsd = np.ones(nbin)
-
     chi2 = np.zeros(len(traces))
 
-    # First do optimum filter on all traces without mean subtracted
     for itrace in range(0,len(traces)):
-        chi2[itrace] = ofamp(traces[itrace], dummytemplate, dummypsd, fs)[2]
+        chi2[itrace] = ofamp(traces[itrace], template, psd, fs)[2]
 
     if outlieralgo=="removeoutliers":
         cchi2 = removeoutliers(chi2)
@@ -658,7 +628,8 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
 
     return cchi2
 
-def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False, outlieralgo="removeoutliers",
+def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False, sgfreq=200.0,
+             symmetrizeflag=False, outlieralgo="removeoutliers",
              lgcpileup1=True, lgcslope=True, lgcbaseline=True, lgcpileup2=True, lgcchi2=True,
              nsigpileup1=2, nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3):
     """
@@ -719,9 +690,19 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
 
     """
 
+    if template is None or psd is None:
+        nbin = len(traces[0])
+
+    if template is None:
+        time = np.arange(0, nbin) / fs
+        template = make_template(time, 10e-6, 100e-6)
+
+    if psd is None:
+        psd = np.ones(nbin)
+    
     # pileup cut
     if lgcpileup1:
-        cpileup1 = pileupcut(traces, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup1)
+        cpileup1 = pileupcut(traces, template=template, psd=psd, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup1)
         cpileup1inds = np.where(cpileup1)[0]
     else:
         cpileup1inds = np.arange(len(traces))
@@ -745,14 +726,14 @@ def autocuts(traces, fs=625e3, is_didv=False, sgfreq=200.0, symmetrizeflag=False
     # do a pileup cut on the mean subtracted data if this is a dIdV, so that we remove pulses
     # that are smaller than the dIdV peaks
     if lgcpileup2 and is_didv:
-        cpileup2 = pileupcut(traces[cbaselineinds], fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup2, removemeans=True)
+        cpileup2 = pileupcut(traces[cbaselineinds], template=template, psd=psd, fs=fs, outlieralgo=outlieralgo, nsig=nsigpileup2, removemeans=True)
     else:
         cpileup2 = np.ones(cbaselineinds.shape, dtype=bool)
     cpileup2inds = cbaselineinds[cpileup2]
 
-    #general chi2 cut, this should use iterstat, as there shouldn't be a tail
+    #general chi2 cut
     if lgcchi2:
-        cchi2 = chi2cut(traces[cpileup2inds], fs=fs, outlieralgo="iterstat", nsig=nsigchi2)
+        cchi2 = chi2cut(traces[cpileup2inds], template=template, psd=psd, fs=fs, outlieralgo="iterstat", nsig=nsigchi2)
     else:
         cchi2 = np.ones(cpileup2inds.shape, dtype=bool)
     cchi2inds = cpileup2inds[cchi2]
