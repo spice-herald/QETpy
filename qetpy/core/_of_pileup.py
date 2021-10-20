@@ -22,10 +22,6 @@ class PileupOF(object):
         nonnegligibly reducing the sensitivity of the iterative pileup
         optimum filter. Set to None when initialized or when the signal
         is updated via the `update_signal` class method.
-    iter_res : ndarray
-        The amplitudes, time-shift values, and chi-square from the
-        iterative pileup optimum filter,
-        `qetpy.OptimumFilter.ofamp_pileup_iterative`.
 
     Notes
     -----
@@ -123,12 +119,6 @@ class PileupOF(object):
         )
 
         amp_start, t0_start, chi2_start = self._OF.ofamp_withdelay()
-        res = self._OF.ofamp_pileup_iterative(
-            amp_start,
-            t0_start,
-        )
-
-        self.iter_res = np.asarray((amp_start, t0_start, *res))
 
         self._time_array = np.arange(
             -(int(2 * self._tcutoff * self._fs)//2) + int(t0_start * self._fs),
@@ -195,7 +185,7 @@ class PileupOF(object):
         np.einsum('jii->ji', self._p)[:] = 1
         self._p[:, 0, 1] = self._p[:, 1, 0] = self._pmatrix_off[:end_ind]
 
-        self._p_inv = np.linalg.inv(self._p)
+        self._p_inv = np.linalg.pinv(self._p)
         self._p_inv[0] = np.array([[1, 0], [0, 0]])
 
 
@@ -269,6 +259,4 @@ class PileupOF(object):
 
         self.pileup_res = pileup_results[np.argmin(pileup_results[:, -1])]
 
-        if self.pileup_res[-1] < self.iter_res[-1]:
-            return self.pileup_res
-        return self.iter_res
+        return self.pileup_res
