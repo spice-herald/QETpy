@@ -21,8 +21,7 @@ def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
     tau_collect : float
         The collection time of the sensor
     Sp : array 
-        Power spectral density (either one sided or two, but make sure
-        to include negative freqs if using two sided psd)
+        Power spectral density (must be one-sided, see qetpy.foldpsd)
     collection_eff : float
         The collection efficiency of the detector
 
