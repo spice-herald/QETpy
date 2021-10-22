@@ -352,7 +352,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         # take matrix product of transpose of jac and jac, take the inverse
         # to get the analytic covariance matrix
         pcovinv = np.dot(res["jac"].transpose(), res["jac"])
-        pcov = np.linalg.inv(pcovinv)
+        pcov = np.linalg.pinv(pcovinv)
 
         return popt, pcov, cost
 
