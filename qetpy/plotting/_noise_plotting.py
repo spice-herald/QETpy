@@ -545,25 +545,25 @@ def plot_noise_sim(f, psd, noise_sim, istype, qetbias, lgcsave=False, figsavepat
 
     """
 
-    if istype is 'current':
+    if istype == 'current':
         fig, ax = _plot_ti_noise(f, psd, noise_sim, xlims, ylims)
         if lgcsave:
             fig.savefig(figsavepath+f'current_qetbias{qetbias*1e6:.3f}muA.png', bbox_inches='tight')
         else:
             return fig, ax 
-    elif istype is 'power':
+    elif istype == 'power':
         fig, ax = _plot_tp_noise(f, psd, noise_sim, xlims, ylims)
         if lgcsave:
             fig.savefig(figsavepath+f'power_noise_qetbias{qetbias*1e6:.3f}muA.png', bbox_inches='tight')
         else:
             return fig, ax 
-    elif istype is 'sc':
+    elif istype == 'sc':
         fig, ax = _plot_sc_noise(f, psd, noise_sim, qetbias, xlims, ylims)    
         if lgcsave:
             plt.savefig(f'{figsavepath}SC_noise_qetbias{qetbias*1e6:.3f}muA.png')
         else:
             return fig, ax 
-    elif istype is 'normal':
+    elif istype == 'normal':
         fig, ax = _plot_n_noise(f, psd, noise_sim, qetbias, xlims, ylims)    
         if lgcsave:
             plt.savefig(f'{figsavepath}normal_noise_qetbias{qetbias*1e6:.3f}muA.png')

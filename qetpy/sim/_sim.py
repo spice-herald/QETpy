@@ -96,7 +96,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
 
     """
 
-    if noisetype is "superconducting":
+    if noisetype == "superconducting":
         fitresult = DIDVobj.fitresult(1)
         if 'smallsignalparams' in fitresult:
             key = 'smallsignalparams'
@@ -111,7 +111,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
         loopgain = 0
         tau0 = 0
         G = 0
-    elif noisetype is "normal":
+    elif noisetype == "normal":
         raise ValueError('Please specify rnormal.')
         fitresult = DIDVobj.fitresult(1)
         if 'smallsignalparams' in fitresult:
@@ -127,7 +127,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
         loopgain = 0
         tau0 = 0
         G = 0
-    elif noisetype is "transition":
+    elif noisetype == "transition":
         fitresult = DIDVobj.fitresult(2)
         if 'smallsignalparams' in fitresult:
             key = 'smallsignalparams'
