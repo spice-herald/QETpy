@@ -36,7 +36,7 @@ class CleanCommand(Command):
 
 setup(
     name="QETpy",
-    version="1.3.1",
+    version="1.3.2",
     description="TES Detector Calibration and Analysis Python Tools",
     long_description=long_description,
     long_description_content_type='text/markdown',
