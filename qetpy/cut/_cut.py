@@ -790,7 +790,6 @@ def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
 
     """
 
-    muons = []
     muon_cut = np.zeros(shape = len(traces), dtype = bool)
     for ii, trace in enumerate(traces):
         trace_max = np.max(trace)
@@ -800,7 +799,7 @@ def get_muon_cut(traces, thresh_pct = 0.95, nsatbins = 600):
         peak_loc = np.argmax(trace)
         # check that the peak is saturated (this should be true for muons that saturate the
         # detector or muon that rail the amplifier) 
-        if ((peak_loc + int(nsatbins)) < arr.shape[-1]):
+        if ((peak_loc + int(nsatbins)) < traces.shape[-1]):
             if (trace[peak_loc+int(nsatbins)] >= trace_max*thresh_pct):
-                muon_cut[ii] = True                    
+                muon_cut[ii] = True
     return muon_cut
