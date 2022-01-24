@@ -1,10 +1,13 @@
 # QETpy Package
 -------
 
-[![Build Status](https://travis-ci.com/ucbpylegroup/QETpy.svg?branch=master)](https://travis-ci.com/ucbpylegroup/QETpy) [![Documentation Status](https://readthedocs.org/projects/qetpy/badge/?version=latest)](https://qetpy.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/ucbpylegroup/QETpy/branch/master/graph/badge.svg)](https://codecov.io/gh/ucbpylegroup/QETpy) 
+[![Build Status](https://travis-ci.com/ucbpylegroup/QETpy.svg?branch=master)](https://travis-ci.com/ucbpylegroup/QETpy)
+[![Documentation Status](https://readthedocs.org/projects/qetpy/badge/?version=latest)](https://qetpy.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/ucbpylegroup/QETpy/branch/master/graph/badge.svg)](https://codecov.io/gh/ucbpylegroup/QETpy)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.6](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360/)
-[![PyPI version](https://badge.fury.io/py/QETpy.svg)](https://badge.fury.io/py/QETpy)
+[![PyPI](https://img.shields.io/pypi/v/qetpy)](https://pypi.org/project/QETpy/)
+[![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/qetpy)](https://anaconda.org/conda-forge/qetpy)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5104856.svg)](http://doi.org/10.5281/zenodo.5104856)
 
 QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge sensors) provides a general set of tools for TES-based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, nonlinear optimum filter pulse fitting, and many other useful detector R&D analysis tools. This package is _NOT_ intended to contain any tools specific to a particular analysis. It is also meant to be DAQ independent, meaning it contains no IO functionality. It is assumed that the user is able to load their data as NumPy arrays separate from QETpy. 
@@ -19,9 +22,11 @@ To install the current stable version of QETpy, from the command line type
 
 `pip install --upgrade qetpy`
 
-Beware, the version hosted on PyPi will likely be an older version than the version on GitHub. 
+If you prefer conda for package management, QETpy is also available on the conda-forge channel and can be installed via
 
-To install the most recent (stable) development version of QETpy, clone this repo, then from the top-level directory of the repo, type the following line into your command line
+`conda install -c conda-forge qetpy`
+
+To install the most recent (stable) development version of QETpy, clone this repo, then from the top-level directory of the repo, type the following into your command line
 
 `pip install .`
 
