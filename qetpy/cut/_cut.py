@@ -456,7 +456,7 @@ def pileupcut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, removemean
     elif outlieralgo=="iterstat":
         cpileup = iterstat(abs(amps), cut=nsig, precision=10000.0)[2]
     else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+        raise ValueError("Unknown outlier algorithm inputted.")
 
     return cpileup
 
@@ -537,7 +537,7 @@ def slopecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=Fal
     elif outlieralgo=="iterstat":
         cslope = iterstat(slopes[czeromeanslopeinds], cut=nsig, precision=10000.0)[2]
     else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+        raise ValueError("Unknown outlier algorithm inputted.")
     cslopeinds = czeromeanslopeinds[cslope]
 
     cslopetot = np.ones(len(traces), dtype=bool)
@@ -599,7 +599,7 @@ def baselinecut(traces, fs=625e3, outlieralgo="removeoutliers", nsig=2, is_didv=
     elif outlieralgo=="iterstat":
         cbaseline = iterstat(tracebegin, cut=nsig, precision=10000.0)[2]
     else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+        raise ValueError("Unknown outlier algorithm inputted.")
 
     return cbaseline
 
@@ -654,7 +654,7 @@ def chi2cut(traces, fs=625e3, outlieralgo="iterstat", nsig=2):
     elif outlieralgo=="iterstat":
         cchi2 = iterstat(chi2, cut=nsig, precision=10000.0)[2]
     else:
-        raise ValueErrror("Unknown outlier algorithm inputted.")
+        raise ValueError("Unknown outlier algorithm inputted.")
 
     return cchi2
 
