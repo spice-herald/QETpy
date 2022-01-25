@@ -21,8 +21,7 @@ def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
     tau_collect : float
         The collection time of the sensor
     Sp : array 
-        Power spectral density (either one sided or two, but make sure
-        to include negative freqs if using two sided psd)
+        Power spectral density (must be one-sided, see qetpy.foldpsd)
     collection_eff : float
         The collection efficiency of the detector
 
@@ -97,7 +96,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
 
     """
 
-    if noisetype is "superconducting":
+    if noisetype == "superconducting":
         fitresult = DIDVobj.fitresult(1)
         if 'smallsignalparams' in fitresult:
             key = 'smallsignalparams'
@@ -112,7 +111,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
         loopgain = 0
         tau0 = 0
         G = 0
-    elif noisetype is "normal":
+    elif noisetype == "normal":
         raise ValueError('Please specify rnormal.')
         fitresult = DIDVobj.fitresult(1)
         if 'smallsignalparams' in fitresult:
@@ -128,7 +127,7 @@ def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
         loopgain = 0
         tau0 = 0
         G = 0
-    elif noisetype is "transition":
+    elif noisetype == "transition":
         fitresult = DIDVobj.fitresult(2)
         if 'smallsignalparams' in fitresult:
             key = 'smallsignalparams'
