@@ -454,8 +454,34 @@ def symmetrizedist(vals):
 
 
 class IterCut(object):
+    """
+    Class for iteratively applying various cuts to data while being
+    able to track what events were cut between steps.
+
+    Attributes
+    ----------
+    traces : ndarray
+        The traces that will be cut on.
+    fs : float
+        The digitization rate of the traces.
+    cmask : ndarray
+        The current data quality cut after applying the cuts before
+        this. This is a protected attribute.
+
+    """
 
     def __init__(self, traces, fs):
+        """
+        Initialization of the IterCut class object.
+
+        Parameters
+        ----------
+        traces : ndarray
+            The traces that will be cut on.
+        fs : float
+            The digitization rate of the traces.
+
+        """
 
         self.traces = traces
         self.fs = fs
@@ -478,6 +504,11 @@ class IterCut(object):
         raise AttributeError("cmask is a protected attribute, can't delete it")
 
     def _run_algo(self, vals, outlieralgo, **kwargs):
+        """
+        Hidden function for running the outlier algorithm on a set of
+        values.
+
+        """
 
         if outlieralgo=="iterstat":
             cout = iterstat(vals, **kwargs)[2]
@@ -496,6 +527,41 @@ class IterCut(object):
 
     def pileupcut(self, template=None, psd=None, removemeans=False,
                   outlieralgo="iterstat", **kwargs):
+        """
+        Function to automatically cut out outliers of the optimum
+        filter amplitudes of the inputted traces.
+
+        Parameters
+        ----------
+        template : ndarray, NoneType, optional
+            The pulse template to use for the optimum filter. If
+            not passed, then a 10 us rise time and 100 us fall time
+            pulse is used.
+        psd : ndarray, NoneType, optional
+            The two-sided PSD (units of A^2/Hz) to use for the
+            optimum filter. If not passed, then all frequencies are
+            weighted equally.
+        removemeans : bool, optional
+            Boolean flag for if the mean of each trace should be
+            removed before doing the optimum filter (True) or if the
+            means should not be removed (False). This is useful for
+            dIdV traces, when we want to cut out pulses that have
+            smaller amplitude than the dIdV overshoot. Default is
+            False.
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cpileup : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
 
         if template is None:
             time = np.arange(self._nbin) / self.fs
@@ -525,6 +591,30 @@ class IterCut(object):
         return self.cmask
 
     def baselinecut(self, endindex=None, outlieralgo="iterstat", **kwargs):
+        """
+        Function to automatically cut out outliers of the baselines
+        of the inputted traces.
+
+        Parameters
+        ----------
+        endindex : int, NoneType, optional
+            The end index of the trace to average up to for the
+            basleine calculation. If not passed, the default value
+            is half of the trace length.
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cbaseline : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
         
         temp_traces = self.traces[self._cutinds]
         ntemptraces = len(temp_traces)
@@ -539,6 +629,27 @@ class IterCut(object):
         return self.cmask
 
     def slopecut(self, outlieralgo="iterstat", **kwargs):
+        """
+        Function to automatically cut out outliers of the slopes of the
+        inputted traces. Slopes are calculated via maximum likelihood
+        and use the entire trace.
+
+        Parameters
+        ----------
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cslope : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
 
         temp_traces = self.traces[self._cutinds]
         ntemptraces = len(temp_traces)
@@ -559,6 +670,34 @@ class IterCut(object):
 
     def chi2cut(self, template=None, psd=None, outlieralgo="iterstat",
                 **kwargs):
+        """
+        Function to automatically cut out outliers of the optimum
+        filter chi-squares of the inputted traces.
+
+        Parameters
+        ----------
+        template : ndarray, NoneType, optional
+            The pulse template to use for the optimum filter. If
+            not passed, then a 10 us rise time and 100 us fall time
+            pulse is used.
+        psd : ndarray, NoneType, optional
+            The two-sided PSD (units of A^2/Hz) to use for the
+            optimum filter. If not passed, then all frequencies are
+            weighted equally.
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cchi2 : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
 
         if template is None:
             time = np.arange(self._nbin) / self.fs
@@ -584,6 +723,33 @@ class IterCut(object):
 
     def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat",
                      **kwargs):
+        """
+        Function to automatically cut out outliers of the optimum
+        filter amplitudes of the inputted traces.
+
+        Parameters
+        ----------
+        cutfunction : FunctionType
+            A function to set cuts on. Should be able to take
+            in the traces ndarray, and any other arguments can
+            be passed before defining the kwargs.
+        *args
+            The arguments that should be passed to `cutfunction`
+            beyond the traces.
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cpileup : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
 
         temp_traces = self.traces[self._cutinds]
         vals = cutfunction(temp_traces, *args)
@@ -659,14 +825,13 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
 
     """
 
-    if 'sgfreq' in kwargs:
+    if is_didv and 'sgfreq' in kwargs:
         warnings.warn(
             "The `sgfreq` option has been deprecated and "
             "is now ignored when is_didv is True."
         )
 
     Cut = IterCut(traces, fs)
-    
 
     if lgcpileup1:
         kwargs = {'cut': nsigpileup1} if outlieralgo=="iterstat" else {}
