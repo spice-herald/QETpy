@@ -55,5 +55,6 @@ setup(
         'matplotlib',
         'iminuit<2.0',
         'sympy',
+        'astropy',
     ],
 )
