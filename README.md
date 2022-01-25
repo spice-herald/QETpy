@@ -6,7 +6,7 @@
 [![Python 3.6](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![PyPI](https://img.shields.io/pypi/v/qetpy)](https://pypi.org/project/QETpy/)
 [![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/qetpy)](https://anaconda.org/conda-forge/qetpy)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5104856.svg)](http://doi.org/10.5281/zenodo.5104856)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5104855.svg)](https://doi.org/10.5281/zenodo.5104855)
 
 QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge sensors) provides a general set of tools for TES-based detector calibration and analysis. It contains submodules for noise modeling, IV analysis, complex impedance fitting, nonlinear optimum filter pulse fitting, and many other useful detector R&D analysis tools. This package is _NOT_ intended to contain any tools specific to a particular analysis. It is also meant to be DAQ independent, meaning it contains no IO functionality. It is assumed that the user is able to load their data as NumPy arrays separate from QETpy. 
 
