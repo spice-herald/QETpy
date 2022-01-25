@@ -6,6 +6,7 @@ from astropy.stats import sigma_clip
 from scipy import stats, optimize
 from scipy.stats import skew
 import warnings
+import matplotlib.pyplot as plt
 
 
 __all__ = [
@@ -20,8 +21,8 @@ __all__ = [
 
 def removeoutliers(x, maxiter=20, skewtarget=0.05):
     """
-    Function to return indices of inlying points, removing points by minimizing the
-    skewness.
+    Function to return indices of inlying points, removing points
+    by minimizing the skewness.
 
     Parameters
     ----------
@@ -36,7 +37,8 @@ def removeoutliers(x, maxiter=20, skewtarget=0.05):
     Returns
     -------
     inds : ndarray
-        Boolean indices indicating which values to select/reject, same length as `x`.
+        Boolean indices indicating which values to select/reject, same
+        length as `x`.
 
     """
 
@@ -62,15 +64,17 @@ class _UnbiasedEstimators(object):
     Attributes
     ----------
     mu0 : float
-        The biased estimator of the mean of the inputted and truncated data.
+        The biased estimator of the mean of the inputted and truncated
+        data.
     std0 : float
-        The biased estimator of the standard deviation of the inputted and
-        truncated data.
+        The biased estimator of the standard deviation of the inputted
+        and truncated data.
     mu : float
-        The unbiased estimator of the mean of the inputted and truncated data.
-    std : float
-        The unbiased estimator of the standard deviation of the inputted and
+        The unbiased estimator of the mean of the inputted and
         truncated data.
+    std : float
+        The unbiased estimator of the standard deviation of the
+        inputted and truncated data.
 
     """
     
@@ -81,8 +85,8 @@ class _UnbiasedEstimators(object):
         Parameters
         ----------
         x : ndarray
-            A 1D array of data that has been truncated, for which the unbiased
-            estimators will be calculated.
+            A 1D array of data that has been truncated, for which the
+            unbiased estimators will be calculated.
         lwrbnd : float
             The lower bound of the truncation of the distribution.
         uprbnd : float
@@ -95,7 +99,7 @@ class _UnbiasedEstimators(object):
         self._lwrbnd = lwrbnd
         self._uprbnd = uprbnd
 
-        self._x = x[inds] # make sure data is only between the specified bounds
+        self._x = x[inds] # make sure data is between the specified bounds
         self._sumx = np.sum(self._x)
         self._sumx2 = np.sum(self._x**2)
         self._lenx = len(self._x)
@@ -107,20 +111,21 @@ class _UnbiasedEstimators(object):
 
     def _equations(self, p):
         """
-        Helper method for calculating the system of equations that will be
-        numerically solved for find the unbiased estimators.
+        Helper method for calculating the system of equations that will
+        be numerically solved for find the unbiased estimators.
 
         Parameters
         ----------
         p : tuple
-            A tuple of length 2 containing the current estimated values of the
-            unbiased estimators: (mu, std).
+            A tuple of length 2 containing the current estimated values
+            of the unbiased estimators: (mu, std).
 
         Returns
         -------
         (mu_eqn, std_eqn) : tuple
-            A tuple containing the two equations that will be solved to give the
-            unbiased estimators of the mean and standard deviation of the data.
+            A tuple containing the two equations that will be solved to
+            give the unbiased estimators of the mean and standard
+            deviation of the data.
 
         """
 
@@ -150,7 +155,8 @@ class _UnbiasedEstimators(object):
 
     def _calc_unbiased_estimators(self):
         """
-        Method for calculating the unbiased estimators of the truncated distribution.
+        Method for calculating the unbiased estimators of the truncated
+        distribution.
 
         """
 
@@ -163,33 +169,37 @@ class _UnbiasedEstimators(object):
 def iterstat(data, cut=3, precision=1000.0,
              return_unbiased_estimates=False):
     """
-    Function to iteratively remove outliers based on how many standard deviations
-    they are from the mean, where the mean and standard deviation are recalculated
-    after each cut.
+    Function to iteratively remove outliers based on how many standard
+    deviations they are from the mean, where the mean and standard
+    deviation are recalculated after each cut.
 
     Parameters
     ----------
     data : ndarray
         Array of data that we want to remove outliers from.
     cut : float, optional
-        Number of standard deviations from the mean to be used for outlier rejection
+        Number of standard deviations from the mean to be used for
+        outlier rejection
     precision : float, optional
-        Threshold for change in mean or standard deviation such that we stop iterating.
-        The threshold is determined by np.std(data)/precision. This means that a higher
-        number for precision means a lower threshold (i.e. more iterations).
+        Threshold for change in mean or standard deviation such that we
+        stop iterating. The threshold is determined by
+        np.std(data)/precision. This means that a higher number for
+        precision means a lower threshold (i.e. more iterations).
     return_unbiased_estimates : bool, optional
-        Boolean flag for whether or not to return the biased or unbiased estimates of
-        the mean and standard deviation of the data. Default is False.
+        Boolean flag for whether or not to return the biased or
+        unbiased estimates of the mean and standard deviation of the
+        data. Default is False.
 
     Returns
     -------
     datamean : float
         Mean of the data after outliers have been removed.
     datastd : float
-        Standard deviation of the data after outliers have been removed
+        Standard deviation of the data after outliers have been
+        removed.
     datamask : ndarray
-        Boolean array indicating which values to keep or reject in data, same length
-        as data.
+        Boolean array indicating which values to keep or reject in
+        data, same length as data.
 
     """
 
@@ -244,24 +254,26 @@ def iterstat(data, cut=3, precision=1000.0,
 def itercov(*args, nsigma=2.75, threshold=None, maxiter=15,
             frac_err=1e-3):
     """
-    Function for iteratively determining the estimated covariance matrix of a
-    multidimensional normal distribution.
+    Function for iteratively determining the estimated covariance
+    matrix of a multidimensional normal distribution.
 
     Parameters
     ----------
     args : array_like
-        The data to be iteratively cut on. Can be inputted as a single N-by-M
-        array or as M arguments that are 1D vectors of length N, where N is the
-        number of data points and M is the number of dimensions.
+        The data to be iteratively cut on. Can be inputted as a single
+        N-by-M array or as M arguments that are 1D vectors of length N,
+        where N is the number of data points and M is the number of
+        dimensions.
     nsigma : float, optional
-        The number of sigma that defines that maximum chi-squared each data
-        point must be below. Default is 2.75.
+        The number of sigma that defines that maximum chi-squared each
+        data point must be below. Default is 2.75.
     threshold : float, NoneType, optional
-        The threshold to cut data. If left as None, this is set to the larger of
-        3 sigma or the number of sigma such that 95% of the data is kept if the
-        data is normal.
+        The threshold to cut data. If left as None, this is set to the
+        larger of 3 sigma or the number of sigma such that 95% of the
+        data is kept if the data is normal.
     maxiter : int, optional
-        The maximum number of iterations to perform when cutting. Default is 15.
+        The maximum number of iterations to perform when cutting.
+        Default is 15.
     frac_err : float, optional
         The fractional error allowed before stopping the iterations.
         Default is 1e-3.
@@ -269,17 +281,20 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15,
     Returns
     -------
     datamean : ndarray
-        The estimated mean of the data points, after iteratively cutting outliers.
+        The estimated mean of the data points, after iteratively
+        cutting outliers.
     datacov : ndarray
-        The estimated covariance of the data points, after iteratively cutting outliers.
+        The estimated covariance of the data points, after iteratively
+        cutting outliers.
     datamask : ndarray
-        The boolean mask of the original data that specifies which data points were
-        kept.
+        The boolean mask of the original data that specifies which data
+        points were kept.
 
     Raises
     ------
     ValueError
-        If the shape of the data does not match the two options specified by `args`.
+        If the shape of the data does not match the two options
+            specified by `args`.
         If the data inputted is 1-dimensional.
 
     """
@@ -372,12 +387,12 @@ def itercov(*args, nsigma=2.75, threshold=None, maxiter=15,
 def symmetrizedist(vals):
     """
     Function to symmetrize a distribution about zero. Useful for if the
-    distribution of some value centers around a nonzero value, but should
-    center around zero. An example of this would be when most of the measured
-    slopes are nonzero, but we want the slopes with zero values (e.g. lots of 
-    muon tails, which we want to cut out). To do this, the algorithm randomly
-    chooses points in a histogram to cut out until the histogram is symmetric
-    about zero.
+    distribution of some value centers around a nonzero value, but
+    should center around zero. An example of this would be when most of
+    the measured slopes are nonzero, but we want the slopes with zero
+    values (e.g. lots of muon tails, which we want to cut out). To do
+    this, the algorithm randomly chooses points in a histogram to cut
+    out until the histogram is symmetric about zero.
 
     Parameters
     ----------
@@ -453,7 +468,87 @@ def symmetrizedist(vals):
     return czeromeanvals
 
 
-class IterCut(object):
+class _PlotCut(object):
+    """
+    Helper class for storing plotting functions for use in IterCut.
+
+    """
+
+    def _get_plot_inds(self, cout):
+        """
+        Hidden function for accessing the indices that specify passing
+        events and failing events given some cut on the data.
+
+        """
+
+        cinds_pre = self._cutinds
+
+        cpass = self._cutinds[cout]
+        npass = len(cpass)
+        cfail = np.setdiff1d(cinds_pre, cpass)
+        nfail = len(cfail)
+
+        fail_plot = np.random.choice(
+            cfail,
+            size=self._nplot if nfail > self._nplot else nfail,
+            replace=False,
+        )
+
+        pass_plot = np.random.choice(
+            cpass,
+            size=self._nplot if npass > self._nplot else npass,
+            replace=False,
+        )
+
+        return np.sort(fail_plot), np.sort(pass_plot)
+
+    def _plot_events(self, cout):
+        """
+        Hidden function for plotting passing events and failing events
+        given some cut on the data.
+
+        """
+
+        fail_inds, pass_inds = self._get_plot_inds(cout)
+
+        fig, axes = plt.subplots(ncols=2, sharex=True)
+        time = np.arange(self._nbin) / self.fs
+
+        for temp_trace in self.traces[fail_inds]:
+            axes[0].plot(time * 1e3, temp_trace, alpha=0.5)
+
+        for temp_trace in self.traces[pass_inds]:
+            axes[1].plot(time * 1e3, temp_trace, alpha=0.5)
+
+        axes[0].set_title('Failed Cut')
+        axes[0].set_xlim(time[0] * 1e3, time[-1] * 1e3)
+
+        axes[1].set_title('Passed Cut')
+        axes[1].yaxis.set_label_position("right")
+        axes[1].yaxis.tick_right()
+
+        for ax in axes:
+            ax.tick_params(
+                which='both',
+                direction='in',
+                right=True,
+                top=True,
+                left=True,
+            )
+
+        fig.add_subplot(111, frameon=False)
+        plt.tick_params(
+            labelcolor='none',
+            which='both',
+            top=False,
+            bottom=False,
+            left=False,
+            right=False,
+        )
+        plt.xlabel("Time [ms]")
+
+
+class IterCut(_PlotCut):
     """
     Class for iteratively applying various cuts to data while being
     able to track what events were cut between steps.
@@ -470,7 +565,7 @@ class IterCut(object):
 
     """
 
-    def __init__(self, traces, fs):
+    def __init__(self, traces, fs, verbose=False, nplot=10):
         """
         Initialization of the IterCut class object.
 
@@ -480,11 +575,19 @@ class IterCut(object):
             The traces that will be cut on.
         fs : float
             The digitization rate of the traces.
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False.
+        nplot : int, optional
+            The number of events that should be plotted from each
+            set of passing events and failing events. Default is 10.
 
         """
 
         self.traces = traces
         self.fs = fs
+        self._verbose = verbose
+        self._nplot = nplot
         self._ntraces = len(traces)
         self._nbin = len(traces[0])
         self._cutinds = np.arange(len(traces))
@@ -522,6 +625,9 @@ class IterCut(object):
                 "Unrecognized outlieralgo, must be a str "
                 "of 'iterstat', 'removeoutliers', or 'sigma_clip'"
             )
+
+        if self._verbose:
+            self._plot_events(cout)
 
         self._cutinds = self._cutinds[cout]
 
@@ -760,13 +866,13 @@ class IterCut(object):
 
 
 def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
-             outlieralgo="removeoutliers", lgcpileup1=True,
-             lgcslope=True, lgcbaseline=True, lgcpileup2=True,
-             lgcchi2=True, nsigpileup1=2, nsigslope=2, nsigbaseline=2,
-             nsigpileup2=2, nsigchi2=3, **kwargs):
+             outlieralgo="iterstat", lgcpileup1=True, lgcslope=True,
+             lgcbaseline=True, lgcpileup2=True, lgcchi2=True, nsigpileup1=2,
+             nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3,
+             **kwargs):
     """
-    Function to automatically cut out bad traces based on the optimum filter
-    amplitude, slope, baseline, and chi^2 of the traces.
+    Function to automatically cut out bad traces based on the optimum
+    filter amplitude, slope, baseline, and chi^2 of the traces.
 
     Parameters
     ----------
@@ -777,51 +883,60 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     is_didv : bool, optional
         Boolean flag on whether or not the trace is a dIdV curve
     outlieralgo : string, optional
-        Which outlier algorithm to use. If set to "removeoutliers", uses the
-        removeoutliers algorithm that removes data based on the skewness of
-        the dataset. If set to "iterstat", uses the iterstat algorithm
-        to remove data based on being outside a certain number of standard
-        deviations from the mean
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip".
     lgcpileup1 : boolean, optional
         Boolean value on whether or not do the pileup1 cut (this is the
-        initial pileup cut that is always done whether or not we have dIdV data).
-        Default is True.
+        initial pileup cut that is always done whether or not we have
+        dIdV data). Default is True.
     lgcslope : boolean, optional
-        Boolean value on whether or not do the slope cut. Default is True.
+        Boolean value on whether or not do the slope cut. Default is
+        True.
     lgcbaseline : boolean, optional
-        Boolean value on whether or not do the baseline cut. Default is True.
+        Boolean value on whether or not do the baseline cut. Default is
+        True.
     lgcpileup2 : boolean, optional
-        Boolean value on whether or not do the pileup2 cut (this cut is only done
-        when is_didv is also True). Default is True.
+        Boolean value on whether or not do the pileup2 cut (this cut is
+        only done when is_didv is also True). Default is True.
     lgcchi2 : boolean, optional
-        Boolean value on whether or not do the chi2 cut. Default is True.
+        Boolean value on whether or not do the chi2 cut. Default is
+        True.
     nsigpileup1 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of
-        standard deviations from the mean to cut outliers from the data when
-        using iterstat on the optimum filter amplitudes. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the
+        number of standard deviations from the mean to cut outliers
+        from the data when using iterstat on the optimum filter
+        amplitudes. Default is 2.
     nsigslope : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of
-        standard deviations from the mean to cut outliers from the data when
-        using iterstat on the slopes. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the
+        number of standard deviations from the mean to cut outliers
+        from the data when using iterstat on the slopes. Default is 2.
     nsigbaseline : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of
-        standard deviations from the mean to cut outliers from the data when
-        using iterstat on the baselines. Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the
+        number of standard deviations from the mean to cut outliers
+        from the data when using iterstat on the baselines. Default is
+        2.
     nsigpileup2 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the number of
-        standard deviations from the mean to cut outliers from the data when
-        using iterstat on the optimum filter amplitudes after the mean has
-        been subtracted. (only used if is_didv is True). Default is 2.
+        If outlieralgo is "iterstat", this can be used to tune the
+        number of standard deviations from the mean to cut outliers
+        from the data when using iterstat on the optimum filter
+        amplitudes after the mean has been subtracted. (only used if
+        is_didv is True). Default is 2.
     nsigchi2 : float, optional
-        This can be used to tune the number of standard deviations from the
-        mean to cut outliers from the data when using iterstat on the chi^2
-        values. Default is 3.
+        This can be used to tune the number of standard deviations
+        from the mean to cut outliers from the data when using iterstat
+        on the chi^2 values. Default is 3.
+    **kwargs
+        Placeholder kwargs for backwards compatibility.
 
     Returns
     -------
     ctot : ndarray
-        Boolean array giving which indices to keep or throw out based on the
-        autocuts algorithm.
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
 
     """
 
@@ -876,21 +991,24 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
 
 def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
     """
-    Function to help identify saturated muons from array of time series traces.
+    Function to help identify saturated muons from array of time series
+    traces.
 
     ***Traces must have POSITIVE going pulses***
 
-    Note, for best results, only large amplitude traces should based to this
-    function. The user may need to play around with the thresh_pct and nsatbins
-    parameters to achive the desired result. 
+    Note, for best results, only large amplitude traces should based to
+    this function. The user may need to play around with the thresh_pct
+    and nsatbins parameters to achive the desired result. 
 
     Parameters
     ----------
     traces: array
-        Array of time series traces of shape (#number of traces, #bins per trace).
+        Array of time series traces of shape (#number of traces, #bins
+        per trace).
     thresh_pct: float, optional
-        The percentage of the maximum amplitude that the pulse must remain above
-        for nsatbins in order to be considered `saturated'.
+        The percentage of the maximum amplitude that the pulse must
+        remain above for nsatbins in order to be considered
+        `saturated'.
     nsatbins: int, optional
         The minimum number of bins that a muon should be saturated for.
 
@@ -913,4 +1031,5 @@ def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
         if ((peak_loc + int(nsatbins)) < traces.shape[-1]):
             if (trace[peak_loc+int(nsatbins)] >= trace_max*thresh_pct):
                 muon_cut[ii] = True
+
     return muon_cut
