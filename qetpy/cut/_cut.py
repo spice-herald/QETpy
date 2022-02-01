@@ -565,7 +565,7 @@ class IterCut(_PlotCut):
 
     """
 
-    def __init__(self, traces, fs, verbose=False, nplot=10):
+    def __init__(self, traces, fs, plotall=False, nplot=10):
         """
         Initialization of the IterCut class object.
 
@@ -575,9 +575,11 @@ class IterCut(_PlotCut):
             The traces that will be cut on.
         fs : float
             The digitization rate of the traces.
-        verbose : bool, optional
+        plotall : bool, optional
             If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False.
+            plotted at each step. Default is False. To plot events that
+            pass or fail specific cuts, use the `verbose` kwarg when
+            applying those cuts to the data.
         nplot : int, optional
             The number of events that should be plotted from each
             set of passing events and failing events. Default is 10.
@@ -586,7 +588,7 @@ class IterCut(_PlotCut):
 
         self.traces = traces
         self.fs = fs
-        self._verbose = verbose
+        self._plotall = plotall
         self._nplot = nplot
         self._ntraces = len(traces)
         self._nbin = len(traces[0])
@@ -606,7 +608,7 @@ class IterCut(_PlotCut):
     def cmask(self):
         raise AttributeError("cmask is a protected attribute, can't delete it")
 
-    def _run_algo(self, vals, outlieralgo, **kwargs):
+    def _run_algo(self, vals, outlieralgo, verbose, **kwargs):
         """
         Hidden function for running the outlier algorithm on a set of
         values.
@@ -626,13 +628,13 @@ class IterCut(_PlotCut):
                 "of 'iterstat', 'removeoutliers', or 'sigma_clip'"
             )
 
-        if self._verbose:
+        if self._plotall or verbose:
             self._plot_events(cout)
 
         self._cutinds = self._cutinds[cout]
 
     def pileupcut(self, template=None, psd=None, removemeans=False,
-                  outlieralgo="iterstat", **kwargs):
+                  outlieralgo="iterstat", verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter amplitudes of the inputted traces.
@@ -657,6 +659,11 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -692,11 +699,12 @@ class IterCut(_PlotCut):
                 temp_traces[itrace], template, psd, self.fs,
             )[0]
 
-        self._run_algo(np.abs(amps), outlieralgo, **kwargs)
+        self._run_algo(np.abs(amps), outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
-    def baselinecut(self, endindex=None, outlieralgo="iterstat", **kwargs):
+    def baselinecut(self, endindex=None, outlieralgo="iterstat",
+                    verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the baselines
         of the inputted traces.
@@ -710,6 +718,11 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -730,11 +743,11 @@ class IterCut(_PlotCut):
 
         baselines = np.mean(temp_traces[..., :endindex], axis=-1)
 
-        self._run_algo(baselines, outlieralgo, **kwargs)
+        self._run_algo(baselines, outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
-    def slopecut(self, outlieralgo="iterstat", **kwargs):
+    def slopecut(self, outlieralgo="iterstat", verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the slopes of the
         inputted traces. Slopes are calculated via maximum likelihood
@@ -745,6 +758,11 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -770,12 +788,12 @@ class IterCut(_PlotCut):
             (time - xmean)**2,
         )
 
-        self._run_algo(slopes, outlieralgo, **kwargs)
+        self._run_algo(slopes, outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
     def chi2cut(self, template=None, psd=None, outlieralgo="iterstat",
-                **kwargs):
+                verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter chi-squares of the inputted traces.
@@ -793,6 +811,11 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -823,12 +846,12 @@ class IterCut(_PlotCut):
                 temp_traces[itrace], template, psd, self.fs,
             )[-1]
 
-        self._run_algo(chi2s, outlieralgo, **kwargs)
+        self._run_algo(chi2s, outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
     def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat",
-                     **kwargs):
+                     verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter amplitudes of the inputted traces.
@@ -845,6 +868,11 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -860,7 +888,7 @@ class IterCut(_PlotCut):
         temp_traces = self.traces[self._cutinds]
         vals = cutfunction(temp_traces, *args)
 
-        self._run_algo(vals, outlieralgo, **kwargs)
+        self._run_algo(vals, outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
