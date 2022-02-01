@@ -35,15 +35,16 @@ class CleanCommand(Command):
                 shutil.rmtree(path)
 
 setup(
-    name="QETpy", 
-    version="1.3.1", 
-    description="TES Detector Calibration and Analysis Python Tools", 
+    name="QETpy",
+    version="1.4.0",
+    description="TES Detector Calibration and Analysis Python Tools",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author="Samuel Watkins, Caleb Fink", 
-    author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu", 
-    url="https://github.com/ucbpylegroup/QETpy", 
-    packages=find_packages(), 
+    author="Samuel Watkins, Caleb Fink",
+    author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu",
+    url="https://github.com/ucbpylegroup/QETpy",
+    license_files = ('LICENSE', ),
+    packages=find_packages(),
     zip_safe=False,
     cmdclass={
         'clean': CleanCommand,
@@ -52,7 +53,8 @@ setup(
         'numpy',
         'scipy',
         'matplotlib',
-        'iminuit<2.0',
+        'iminuit>=2',
         'sympy',
-    ]
+        'astropy',
+    ],
 )

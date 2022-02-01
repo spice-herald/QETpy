@@ -13,8 +13,8 @@ __all__ = [
 
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
-                     sgamp, rsh, r0=0.3, rp=0.005, add180phase=False,
-                     dt0=10.0e-6):
+                     sgamp, rsh, r0=0.3, rp=0.005, dutycycle=0.5,
+                     add180phase=False, dt0=10.0e-6):
     """
     Function to initialize and process a dIdV dataset without having
     all of the traces, but just the parameters that are required for
@@ -50,6 +50,9 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         The estimated parasitic resistance of the non-shunt side of the
         TES circuit in Ohms. Should be set if accurate small signal
         parameters are desired.
+    dutycycle : float, optional
+        The duty cycle of the signal generator, should be a float
+        between 0 and 1. Set to 0.5 by default
     add180phase : boolean, optional
         If the signal generator is out of phase (i.e. if it looks like
         --__ instead of __--), then this should be set to True. Adds
@@ -81,6 +84,7 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         rp=rp,
         add180phase=add180phase,
         dt0=dt0,
+        dutycycle=dutycycle,
     )
 
     didvobj._didvmean = didvmean
@@ -352,7 +356,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         # take matrix product of transpose of jac and jac, take the inverse
         # to get the analytic covariance matrix
         pcovinv = np.dot(res["jac"].transpose(), res["jac"])
-        pcov = np.linalg.inv(pcovinv)
+        pcov = np.linalg.pinv(pcovinv)
 
         return popt, pcov, cost
 
