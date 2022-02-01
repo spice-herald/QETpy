@@ -221,18 +221,18 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
                 (_residual(params))**2 / 2
             ) + _residualpriors(params)**2 / 2
 
-        m = Minuit.from_array_func(
+        m = Minuit(
             _neg_log_likelihood,
             p0,
-            limit=(len(p0) - 1) * ((0, None), ) + ((None, None), ),
-            error=np.abs(p0),
-            errordef=0.5,
         )
+        m.limits = (len(p0) - 1) * ((0, None), ) + ((None, None), )
+        m.errors = np.abs(p0)
+        m.errordef = 0.5
 
         m.migrad()
 
-        popt = m.np_values()
-        pcov = m.np_covariance()
+        popt = np.asarray(m.values)
+        pcov = np.asarray(m.covariance)
         cost = m.fval
 
         return popt, pcov, cost

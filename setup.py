@@ -53,7 +53,7 @@ setup(
         'numpy',
         'scipy',
         'matplotlib',
-        'iminuit<2.0',
+        'iminuit>=2',
         'sympy',
         'astropy',
     ],
