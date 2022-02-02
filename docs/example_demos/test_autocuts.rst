@@ -67,27 +67,6 @@ Apply the autocuts function.
 
 .. parsed-literal::
 
-    [0;31mSignature:[0m
-    [0mautocuts[0m[0;34m([0m[0;34m[0m
-    [0;34m[0m    [0mtraces[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mfs[0m[0;34m=[0m[0;36m625000.0[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mtemplate[0m[0;34m=[0m[0;32mNone[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mpsd[0m[0;34m=[0m[0;32mNone[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mis_didv[0m[0;34m=[0m[0;32mFalse[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0moutlieralgo[0m[0;34m=[0m[0;34m'iterstat'[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mlgcpileup1[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mlgcslope[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mlgcbaseline[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mlgcpileup2[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mlgcchi2[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mnsigpileup1[0m[0;34m=[0m[0;36m2[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mnsigslope[0m[0;34m=[0m[0;36m2[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mnsigbaseline[0m[0;34m=[0m[0;36m2[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mnsigpileup2[0m[0;34m=[0m[0;36m2[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mnsigchi2[0m[0;34m=[0m[0;36m3[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0;34m**[0m[0mkwargs[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m[0;34m)[0m[0;34m[0m[0;34m[0m[0m
-    [0;31mDocstring:[0m
     Function to automatically cut out bad traces based on the optimum
     filter amplitude, slope, baseline, and chi^2 of the traces.
     
@@ -154,8 +133,6 @@ Apply the autocuts function.
     ctot : ndarray
         Boolean array giving which indices to keep or throw out based
         on the autocuts algorithm.
-    [0;31mFile:[0m      ~/Library/Python/3.10/lib/python/site-packages/qetpy/cut/_cut.py
-    [0;31mType:[0m      function
 
 
 
@@ -505,8 +482,6 @@ default outlier algorithm for these automated cut routines).
 
 .. parsed-literal::
 
-    [0;31mSignature:[0m [0miterstat[0m[0;34m([0m[0mdata[0m[0;34m,[0m [0mcut[0m[0;34m=[0m[0;36m3[0m[0;34m,[0m [0mprecision[0m[0;34m=[0m[0;36m1000.0[0m[0;34m,[0m [0mreturn_unbiased_estimates[0m[0;34m=[0m[0;32mFalse[0m[0;34m)[0m[0;34m[0m[0;34m[0m[0m
-    [0;31mDocstring:[0m
     Function to iteratively remove outliers based on how many standard
     deviations they are from the mean, where the mean and standard
     deviation are recalculated after each cut.
@@ -538,8 +513,6 @@ default outlier algorithm for these automated cut routines).
     datamask : ndarray
         Boolean array indicating which values to keep or reject in
         data, same length as data.
-    [0;31mFile:[0m      ~/Library/Python/3.10/lib/python/site-packages/qetpy/cut/_cut.py
-    [0;31mType:[0m      function
 
 
 
@@ -551,8 +524,6 @@ default outlier algorithm for these automated cut routines).
 
 .. parsed-literal::
 
-    [0;31mSignature:[0m [0mremoveoutliers[0m[0;34m([0m[0mx[0m[0;34m,[0m [0mmaxiter[0m[0;34m=[0m[0;36m20[0m[0;34m,[0m [0mskewtarget[0m[0;34m=[0m[0;36m0.05[0m[0;34m)[0m[0;34m[0m[0;34m[0m[0m
-    [0;31mDocstring:[0m
     Function to return indices of inlying points, removing points
     by minimizing the skewness.
     
@@ -571,8 +542,6 @@ default outlier algorithm for these automated cut routines).
     inds : ndarray
         Boolean indices indicating which values to select/reject, same
         length as `x`.
-    [0;31mFile:[0m      ~/Library/Python/3.10/lib/python/site-packages/qetpy/cut/_cut.py
-    [0;31mType:[0m      function
 
 
 
@@ -584,22 +553,6 @@ default outlier algorithm for these automated cut routines).
 
 .. parsed-literal::
 
-    [0;31mSignature:[0m
-    [0msigma_clip[0m[0;34m([0m[0;34m[0m
-    [0;34m[0m    [0mdata[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0msigma[0m[0;34m=[0m[0;36m3[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0msigma_lower[0m[0;34m=[0m[0;32mNone[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0msigma_upper[0m[0;34m=[0m[0;32mNone[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mmaxiters[0m[0;34m=[0m[0;36m5[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mcenfunc[0m[0;34m=[0m[0;34m'median'[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mstdfunc[0m[0;34m=[0m[0;34m'std'[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0maxis[0m[0;34m=[0m[0;32mNone[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mmasked[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mreturn_bounds[0m[0;34m=[0m[0;32mFalse[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mcopy[0m[0;34m=[0m[0;32mTrue[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m    [0mgrow[0m[0;34m=[0m[0;32mFalse[0m[0;34m,[0m[0;34m[0m
-    [0;34m[0m[0;34m)[0m[0;34m[0m[0;34m[0m[0m
-    [0;31mDocstring:[0m
     Perform sigma-clipping on the provided data.
     
     The data will be iterated over, each time rejecting values that are
@@ -779,8 +732,5 @@ default outlier algorithm for these automated cut routines).
     
     Note that along the other axis, no points would be clipped, as the
     standard deviation is higher.
-    [0;31mFile:[0m      /Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/site-packages/astropy/stats/sigma_clipping.py
-    [0;31mType:[0m      function
-
 
 
