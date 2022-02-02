@@ -1,4 +1,3 @@
-
 .. raw:: html
 
    <h1>
@@ -8,7 +7,16 @@ Table of Contents
 .. raw:: html
 
    </h1>
-   <div class="toc"><ul class="toc-item"></ul></div>
+
+.. container:: toc
+
+   .. raw:: html
+
+      <ul class="toc-item">
+
+   .. raw:: html
+
+      </ul>
 
 Example Code for using the IV class
 ===================================
@@ -20,7 +28,7 @@ Import the need packages to run the test script
     import numpy as np
     from qetpy import IV
 
-Let's load the example data provided, which is from a dataset taken at
+Let’s load the example data provided, which is from a dataset taken at
 SLAC for multiple devices and multiple bath temperatures.
 
 .. code:: ipython3
@@ -33,14 +41,14 @@ SLAC for multiple devices and multiple bath temperatures.
     rload = testdata["rload"]
     rload_err = testdata["rload_err"]
 
-Now let's use the IV class and calculate the IV curves
+Now let’s use the IV class and calculate the IV curves
 
 .. code:: ipython3
 
     ivdata = IV(dites, dites_err, vb, vb_err, rload, rload_err, ["A","B","C"])
     ivdata.calc_iv()
 
-Let's take a look at the plotting. We can plot all of the curves
+Let’s take a look at the plotting. We can plot all of the curves
 together.
 
 .. code:: ipython3

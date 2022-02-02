@@ -2,10 +2,25 @@ qetpy.core package
 ==================
 
 
-qetpy.core.\_didv module
+qetpy.core.didv module
 ------------------------
 
-.. automodule:: qetpy.core._didv
+.. automodule:: qetpy.core.didv._base_didv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: qetpy.core.didv._didv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: qetpy.core.didv._didv_priors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: qetpy.core.didv._plot_didv
     :members:
     :undoc-members:
     :show-inheritance:

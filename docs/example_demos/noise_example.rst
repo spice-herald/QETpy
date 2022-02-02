@@ -1,4 +1,3 @@
-
 .. raw:: html
 
    <h1>
@@ -8,7 +7,16 @@ Table of Contents
 .. raw:: html
 
    </h1>
-   <div class="toc"><ul class="toc-item"></ul></div>
+
+.. container:: toc
+
+   .. raw:: html
+
+      <ul class="toc-item">
+
+   .. raw:: html
+
+      </ul>
 
 Noise Analysis Test
 ===================

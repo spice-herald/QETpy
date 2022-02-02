@@ -1,4 +1,3 @@
-
 # Example Code for the Optimum Filters
 --------------------------------------
 
@@ -69,7 +68,7 @@ create an example pulse.
 Fit a single pulse with ``OptimumFilter``
 -----------------------------------------
 
-With a pulse created, let's use the ``qetpy.OptimumFilter`` class to run
+With a pulse created, let’s use the ``qetpy.OptimumFilter`` class to run
 different Optimum Filters.
 
 .. code:: ipython3
@@ -102,7 +101,7 @@ documentation for the other methods, as there are many useful ones!
      'update_signal']
 
 
-Let's run the Optimum Filter without and with a time-shifting degree of
+Let’s run the Optimum Filter without and with a time-shifting degree of
 freedom.
 
 .. code:: ipython3
@@ -121,7 +120,7 @@ freedom.
     With Delay Fit: amp = 1.00 μA, t_0 = 160.0 μs, χ^2 = 32407.30
 
 
-Since we have added a 160 us shift, we see that the "with delay" optimum
+Since we have added a 160 us shift, we see that the “with delay” optimum
 filter fit the time-shift perfectly, and the chi-squared is very close
 to the number of degrees of freedom (32768), as we would expect for a
 good fit.
@@ -148,7 +147,7 @@ good fit.
 Add a pileup pulse and fit with ``OptimumFilter``
 -------------------------------------------------
 
-Let's now add a second (pileup) pulse in order to see how we can use
+Let’s now add a second (pileup) pulse in order to see how we can use
 ``ofamp_pileup_iterative``.
 
 .. code:: ipython3
@@ -217,7 +216,7 @@ not match the data well.
     noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
     signal = noise + np.roll(template, 100)*pulse_amp
 
-We can try using our "bad" template (with a 66 us fall time), but we
+We can try using our “bad” template (with a 66 us fall time), but we
 will see that the chi-squared indicates a non-ideal fit.
 
 .. code:: ipython3
@@ -233,7 +232,7 @@ will see that the chi-squared indicates a non-ideal fit.
     With Delay Fit: amp = 1.07 μA, t_0 = 163.20 μs, χ^2 = 72524.20
 
 
-Let's use ``qetpy.OFnonlin`` to do the fit. To help visualize the fit,
+Let’s use ``qetpy.OFnonlin`` to do the fit. To help visualize the fit,
 we will use the parameter ``lgcplot=True`` to plot the fit in frequency
 domain and time domain
 
@@ -271,5 +270,5 @@ indicates that we have a good fit.
 
 For further documentation on the different fitting functions, please
 visit
-https://qetpy.readthedocs.io/en/latest/qetpy.core.html#module-qetpy.core.\_fitting.
+https://qetpy.readthedocs.io/en/latest/qetpy.core.html#module-qetpy.core._fitting.
 

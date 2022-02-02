@@ -1,4 +1,3 @@
-
 Example Code for using the :math:`\partial I/ \partial V` Fitting Routines
 ==========================================================================
 
@@ -101,28 +100,28 @@ From the Notes in ``DIDV.dofit``:
 
 ::
 
-    Notes
-    -----
-    Depending on the fit, there are three possible models to be
-    used with different parameterizations:
+   Notes
+   -----
+   Depending on the fit, there are three possible models to be
+   used with different parameterizations:
 
-    1-pole model
-        - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+   1-pole model
+       - has the form:
+           dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
 
-    2-pole model
-        - has the form:
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1)
+   2-pole model
+       - has the form:
+           dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+                 + B / (1.0 + 2.0j * pi * freq * tau1)
 
-    3-pole model
-        - note the placement of the parentheses in the last term of
-          this model, such that pole related to `C` is in the
-          denominator of the `B` term
-        - has the form: 
-            dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
-                  + B / (1.0 + 2.0j * pi * freq * tau1
-                  - C / (1.0 + 2.0j * pi * freq * tau3))
+   3-pole model
+       - note the placement of the parentheses in the last term of
+         this model, such that pole related to `C` is in the
+         denominator of the `B` term
+       - has the form: 
+           dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
+                 + B / (1.0 + 2.0j * pi * freq * tau1
+                 - C / (1.0 + 2.0j * pi * freq * tau3))
 
 .. code:: ipython3
 
@@ -143,7 +142,7 @@ From the Notes in ``DIDV.dofit``:
     didvfit.dofit(2)
     didvfit.dofit(3)
 
-Let's look at the fit parameters for the fits.
+Let’s look at the fit parameters for the fits.
 
 .. code:: ipython3
 
@@ -208,7 +207,7 @@ results, where we use two of them below.
     # didvfit.plot_full_trace()
     # didvfit.plot_single_period_of_trace()
     # didvfit.plot_didv_flipped()
-    # didvfit.plot_re_vs_im_didv()
+    # didvfit.plot_re_vs_im_dvdi()
     # didvfit.plot_re_im_didv()
     
     didvfit.plot_zoomed_in_trace(zoomfactor=0.1)
@@ -272,14 +271,14 @@ shape (4, 4) containing the corresponding covariance matrix - 2-pole -
 ``priors`` is a 1-d array of length 8 containing (``rsh``, ``rp``,
 ``r0``, ``beta``, ``l``, ``L``, ``tau0``, ``dt``) **(in that order!)** -
 ``priorscov`` is a 2-d array of shape (8, 8) containing the
-corresponding covariance matrix - 1-pole - ``priors`` is a 1-d array of
+corresponding covariance matrix - 3-pole - ``priors`` is a 1-d array of
 length 10 containing (``rsh``, ``rp``, ``r0``, ``beta``, ``l``, ``L``,
 ``tau0``, ``gratio``, ``tau3``, ``dt``) **(in that order!)** -
 ``priorscov`` is a 2-d array of shape (10, 10) containing the
 corresponding covariance matrix
 
 We note that, the more parameters passed to the fitting algorithm, the
-'better' the result will be, as degeneracies will be removed.
+‘better’ the result will be, as degeneracies will be removed.
 
 At minimum, we recommend passing ``rsh``, ``rp``, and ``r0`` (the last
 of which should not be passed to the 1-pole fit).
