@@ -1,11 +1,11 @@
 # Contributing Guidelines
 
-If you are unsure where to start, click on the issues tab to see open [issues](https://github.com/ucbpylegroup/QETpy/issues). 
+If you are unsure where to start, click on the issues tab to see open [issues](https://github.com/spice-herald/QETpy/issues). 
 
 ### Development Process
 
 * For first time contributors
-    - Go to https://github.com/ucbpylegroup/QETpy and click the “fork” button to create your own copy of the project.
+    - Go to https://github.com/spice-herald/QETpy and click the “fork” button to create your own copy of the project.
     - Clone the project to your local computer:
     ```
     git clone https://github.com/your-username/QETpy.git
