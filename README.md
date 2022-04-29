@@ -1,6 +1,6 @@
 # QETpy Package
 
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ucbpylegroup/QETpy/Python%20package/master)](https://github.com/ucbpylegroup/QETpy/actions/workflows/python-package.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/spice-herald/QETpy/Python%20package/master)](https://github.com/spice-herald/QETpy/actions/workflows/python-package.yml)
 [![Documentation Status](https://readthedocs.org/projects/qetpy/badge/?version=latest)](https://qetpy.readthedocs.io/en/latest/?badge=latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.6](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360/)
