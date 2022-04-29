@@ -12,7 +12,7 @@ QETpy (Quasiparticle-trap-assisted Electrothermal-feedback Transition-edge senso
 
 Descriptions of all the functions can be found below, as well as examples of how to use most of the functionality of QETpy. 
 
-This code is available on GitHub: https://github.com/ucbpylegroup/QETpy
+This code is available on GitHub: https://github.com/spice-herald/QETpy
 
 
 

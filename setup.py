@@ -42,7 +42,7 @@ setup(
     long_description_content_type='text/markdown',
     author="Samuel Watkins, Caleb Fink",
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu",
-    url="https://github.com/ucbpylegroup/QETpy",
+    url="https://github.com/spice-herald/QETpy",
     license_files = ('LICENSE', ),
     packages=find_packages(),
     zip_safe=False,

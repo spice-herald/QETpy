@@ -3,7 +3,7 @@ Example Usage
 
 Jupyter notebooks providing detailed instructions and examples of how to use the various classes
 and functions of QETpy can be found below. The notebooks themselves (and corresponding data) can 
-be downloaded from: https://github.com/ucbpylegroup/QETpy/tree/master/demos
+be downloaded from: https://github.com/spice-herald/QETpy/tree/master/demos
 
 
 
