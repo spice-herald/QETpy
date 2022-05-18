@@ -301,8 +301,12 @@ class _PlotDIDV(object):
         else:
             poleslist = np.array(poles)
 
-        ## don't plot points with huge errors
-        goodinds = self._didvmean != 0.5 - 0.5j # remove values set with placeholder mean
+        # remove values set with placeholder mean
+        goodinds = (
+            self._didvmean != 0.5 - 0.5j
+        ) & (
+            self._didvmean != - 0.5 + 0.5j
+        )
         fitinds = self._freq > 0
         plotinds = np.logical_and(fitinds, goodinds)
 
