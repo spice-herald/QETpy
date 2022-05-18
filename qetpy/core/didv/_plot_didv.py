@@ -302,7 +302,7 @@ class _PlotDIDV(object):
             poleslist = np.array(poles)
 
         ## don't plot points with huge errors
-        goodinds = np.abs(self._didvmean / self._didvstd) > 2.0
+        goodinds = self._didvmean != 0.5 - 0.5j # remove values set with placeholder mean
         fitinds = self._freq > 0
         plotinds = np.logical_and(fitinds, goodinds)
 
