@@ -10,7 +10,8 @@ __all__ = [
 
 class PileupOF(object):
     """
-    Class for efficient calculation of the Pileup Optimum Filter (OF).
+    Class for efficient calculation of the two-pulse Pileup Optimum
+    Filter (OF).
 
     Attributes
     ----------
@@ -25,15 +26,15 @@ class PileupOF(object):
 
     Notes
     -----
-    The parameters in both `pileup_res` and `iter_res` are:
+    The parameters in both `pileup_res` are:
 
         (amplitude 1, time offset 1,
          amplitude 2, time offset 2, chi-square)
 
     """
 
-    def __init__(self, signal, template, psd, fs, ac_coupled=True,
-                 integralnorm=False):
+    def __init__(self, signal, template, psd, fs, error_cutoff=0.1,
+                 ac_coupled=True, integralnorm=False):
         """
         Initalization of the PileupOF class.
 
@@ -50,6 +51,11 @@ class PileupOF(object):
             in the signal (in Amps^2/Hz)
         fs : ndarray
             The sample rate of the data being taken (in Hz).
+        error_cutoff : float
+            The cutoff on the error in the inversion of the pileup OF
+            matrix to determine the time range to consider pileup.
+            Setting to small values corresponds to a larger time
+            range. Default is 0.1.
         ac_coupled : bool, optional
             If True, the zero frequency bin of the psd
             will be ignored (i.e. set to infinity) when calculating
@@ -89,7 +95,7 @@ class PileupOF(object):
 
         self._freqs = np.fft.fftfreq(self._nbins, d=1 / self._fs)
 
-        self._tcutoff = self._determine_tcutoff()
+        self._tcutoff = self._determine_tcutoff(error_cutoff)
 
         self._createpmatrices()
 
@@ -158,11 +164,11 @@ class PileupOF(object):
         self._update_signal(signal)
 
 
-    def _determine_tcutoff(self, cutoff=0.2):
+    def _determine_tcutoff(self, cutoff):
         """
         Hidden function to determine the cutoff on the time difference
         between pulses where, after this point, the iterative pileup
-        optimum filter is 'good enough.'
+        optimum filter is "good enough".
 
         """
 
@@ -234,11 +240,7 @@ class PileupOF(object):
         res : ndarray
             The results of the pileup optimum filter algorithm. The
             parameters returned are (amplitude 1, time offset 1,
-            amplitude 2, time offset 2, chi-square). The fit from the
-            pileup OF within the neighborhood of the first pulse is
-            compared to the iterative pileup OF throughout the entire
-            trace. The resulst of the pileup OF with the lowest
-            chi-square are returned.
+            amplitude 2, time offset 2, chi-square).
 
         """
 

@@ -40,8 +40,8 @@ class PileupDE(object):
 
     """
 
-    def __init__(self, signal, template, psd, fs, ac_coupled=True,
-                 integralnorm=False):
+    def __init__(self, signal, template, psd, fs, error_cutoff=0.1,
+                 ac_coupled=True, integralnorm=False):
         """
         Initalization of the PileupOF class.
 
@@ -58,6 +58,11 @@ class PileupDE(object):
             in the signal (in Amps^2/Hz)
         fs : ndarray
             The sample rate of the data being taken (in Hz).
+        error_cutoff : float
+            The cutoff on the error in the inversion of the pileup OF
+            matrix to determine the time range to consider pileup.
+            Setting to small values corresponds to a larger time
+            range. Default is 0.1.
         ac_coupled : bool, optional
             If True, the zero frequency bin of the psd
             will be ignored (i.e. set to infinity) when calculating
@@ -91,13 +96,14 @@ class PileupDE(object):
         self._phi = self._s.conjugate() / self._psd
         self._norm = np.real(np.dot(self._phi, self._s)) * self._df
 
+        self._time_array = None
         self._pmatrix_off = np.real(
             np.fft.ifft(self._s * self._phi) / self._norm * self._fs
         )[:self._nbins//2]
 
         self._freqs = np.fft.fftfreq(self._nbins, d=1 / self._fs)
 
-        self._tcutoff = self._determine_tcutoff()
+        self._tcutoff = self._determine_tcutoff(error_cutoff)
 
         self._OF = qp.OptimumFilter(
             signal,
@@ -124,14 +130,8 @@ class PileupDE(object):
             np.fft.ifft(self._v * self._phi) / self._norm * self._fs
         )
 
-        amp_start, t0_start, chi2_start = self._OF.ofamp_withdelay()
+        _, self.t0_start, _ = self._OF.ofamp_withdelay()
 
-        self._time_array = np.arange(
-            -(int(2 * self._tcutoff * self._fs)//2) + int(t0_start * self._fs),
-            int(2 * self._tcutoff * self._fs)//2 + int(
-                2 * self._tcutoff * self._fs
-            )%2 + int(t0_start * self._fs),
-        ) / self._fs
 
 
     def update_signal(self, signal):
@@ -156,7 +156,7 @@ class PileupDE(object):
         self._update_signal(signal)
 
 
-    def _determine_tcutoff(self, cutoff=0.2):
+    def _determine_tcutoff(self, cutoff):
         """
         Hidden function to determine the cutoff on the time difference
         between pulses where, after this point, the iterative pileup
@@ -271,7 +271,7 @@ class PileupDE(object):
         )
 
 
-    def run(self, npulses, pulseconstraint=0):
+    def run(self, npulses, pulseconstraint=0, fit_window=None):
         """
         Runs the pileup optimum filter algorithm for the specified
         number of pulses.
@@ -282,6 +282,14 @@ class PileupDE(object):
             The total number of pulses to fit.
         pulseconstraint : int, optional
             Contrain the pulse direction of the pileup.
+        fit_window : NoneType, tuple
+            The indices in which to restrict the time shift window
+            that the differential evolution algorithm will search
+            for pulses in. Corresponds to range of time shift values
+            (in unites of indices) to be allowed in the pulses, NOT 
+            the time elapsed since the beginning of the event. If
+            left as None, the value is determined by the estimate of
+            where there is strong mixing of signals.
 
         Returns
         -------
@@ -294,10 +302,18 @@ class PileupDE(object):
 
         constraints = PileupDE._create_constraint(pulseconstraint)
 
-        fit_window = (
-            int(self._time_array[0] * self._fs),
-            int(self._time_array[-1] * self._fs),
-        )
+        if fit_window is None:
+            self._time_array = np.arange(
+                -(int(npulses * self._tcutoff * self._fs)//2) + int(self.t0_start * self._fs),
+                int(npulses * self._tcutoff * self._fs)//2 + int(
+                    npulses * self._tcutoff * self._fs
+                )%2 + int(self.t0_start * self._fs),
+            ) / self._fs
+
+            fit_window = (
+                int(self._time_array[0] * self._fs),
+                int(self._time_array[-1] * self._fs),
+            )
 
         res = optimize.differential_evolution(
             lambda x: self._chi2(x / self._fs),
@@ -305,7 +321,7 @@ class PileupDE(object):
             **constraints,
         )
 
-        t0s = res['x'] / self._fs
+        t0s = np.sort(res['x'] / self._fs)
         amps = self._get_amps(t0s)
         chi2 = res['fun']
         self._res = res
