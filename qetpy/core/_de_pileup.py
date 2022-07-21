@@ -226,8 +226,7 @@ class PileupDE(object):
             numer,
         ) * self._df)
 
-    @staticmethod
-    def _create_constraint(pulseconstraint):
+    def _create_constraint(self, pulseconstraint):
         """
         Helper method for instantiating the constraint to be
         passed to `scipy.optimize.differential_evolution`. Also
