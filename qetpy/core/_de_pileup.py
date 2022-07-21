@@ -299,7 +299,7 @@ class PileupDE(object):
 
         """
 
-        constraints = PileupDE._create_constraint(pulseconstraint)
+        constraints = self._create_constraint(pulseconstraint)
 
         if fit_window is None:
             self._time_array = np.arange(
