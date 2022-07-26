@@ -5,3 +5,5 @@ from .cut import autocuts, IterCut
 from . import plotting
 from . import sim
 from . import utils
+from ._version import __version__
+
