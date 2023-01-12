@@ -210,7 +210,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def _fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6,
                  tau10=-1.0/(2*np.pi*5e2), tau20=1.0/(2*np.pi*1e5), tau30=0.0,
                  dt=-10.0e-6, poles=2, isloopgainsub1=None,
-                 bounds=None, verbose=0, max_nfev=1000):
+                 bounds=None, verbose=0, max_nfev=1000,
+                 method='trf',ftol=1e-8):
         """
         Function to find the fit parameters for either the 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
@@ -313,9 +314,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 bounds=bounds1,
                 loss='linear',
                 max_nfev=max_nfev,
-                verbose=0,
                 x_scale=np.abs(p0),
                 verbose=verbose,
+                method=method,
             )
             # res2 assumes loop gain < 1, where B>0 and tauI>0
             res2 = least_squares(
@@ -326,6 +327,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
+                method=method,
             )
             # check which loop gain cases gave the better fit
             if (res1['cost'] < res2['cost']):
@@ -342,6 +344,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
+                method=method,
             )
         else:
             #assume loop gain > 1, where B<0 and tauI<0
@@ -353,6 +356,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
+                method=method,
             )
 
         popt = res['x']
@@ -374,7 +378,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def dofit(self, poles, fcutoff=np.inf,
               bounds=None, guess_params=None,
               guess_isloopgainsub1=None,
-              verbose=0, max_nfev=1000):
+              verbose=0, max_nfev=1000,
+              method='trf', ftol=1e-8):
         """
         This method does the fit that is specified by the variable
         poles. If the `processtraces` method has not been run yet, then
@@ -491,7 +496,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 if intau20 is not None:
                     tau20 = intau20
                 if indt is not None:
-                    dt = indt 
+                    dt = indt
+
 
             # loopgainsub1   
             if guess_isloopgainsub1 is not None:
@@ -514,6 +520,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 bounds=bounds,
                 verbose=verbose,
                 max_nfev=max_nfev,
+                method=method,
+                ftol=ftol,
             )
 
             # Convert to didv falltimes
