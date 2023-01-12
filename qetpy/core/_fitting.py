@@ -241,7 +241,8 @@ class OptimumFilter(object):
         self.nbins = signal.shape[-1]
         self.fs = fs
         self.df = self.fs / self.nbins
-
+     
+        
         self.s = fft(template) / self.nbins / self.df
 
         if integralnorm:
@@ -251,6 +252,8 @@ class OptimumFilter(object):
         self.norm = np.real(np.dot(self.phi, self.s)) * self.df
 
         self.v = fft(signal, axis=-1) / self.nbins / self.df
+        print('A self.v[50]: ' + str(self.v[50]))
+        print('A signal[50]: '+ str(signal[50]))
         self.signalfilt = self.phi * self.v / self.norm
 
         self.chi0 = None
@@ -545,30 +548,37 @@ class OptimumFilter(object):
 
         """
 
-        if self.signalfilt_td is None:
-            self.signalfilt_td = np.real(
-                ifft(self.signalfilt * self.nbins, axis=-1)
-            ) * self.df
+        #if self.signalfilt_td is None:
+        self.signalfilt_td = np.real(
+            ifft(self.signalfilt * self.nbins, axis=-1)
+        ) * self.df
 
         # signal part of chi2
-        if self.chi0 is None:
-            self.chi0 = np.real(
-                np.dot(self.v.conjugate() / self.psd, self.v) * self.df
-            )
+        #if self.chi0 is None:
+        self.chi0 = np.real(
+            np.dot(self.v.conjugate() / self.psd, self.v) * self.df
+        )
+
+        print('self.df: ' + str(self.df))
+        print('self.psd[50]: ' + str(self.psd[50]))
+        print('self.v[50]: ' + str(self.v[50]))
+        print('self.chisq0: ' + str(self.chi0))
 
         # fitting part of chi2
-        if self.chit_withdelay is None:
-            self.chit_withdelay = (self.signalfilt_td**2) * self.norm
+        #if self.chit_withdelay is None:
+        self.chit_withdelay = (self.signalfilt_td**2) * self.norm
 
+      
         # sum parts of chi2
-        if self.chi_withdelay is None:
-            chi = self.chi0 - self.chit_withdelay
-            self.chi_withdelay = np.roll(chi, self.nbins//2, axis=-1)
-
-        if self.amps_withdelay is None:
-            self.amps_withdelay = np.roll(
-                self.signalfilt_td, self.nbins//2, axis=-1,
-            )
+        #if self.chi_withdelay is None:
+        chi = self.chi0 - self.chit_withdelay
+        print('chisq_t0: ' + str(self.chit_withdelay[10]))
+        self.chi_withdelay = np.roll(chi, self.nbins//2, axis=-1)
+        print('chisq_rolled: ' + str(self.chi_withdelay[self.nbins//2]))
+        #if self.amps_withdelay is None:
+        self.amps_withdelay = np.roll(
+            self.signalfilt_td, self.nbins//2, axis=-1,
+        )
 
         constraint_mask = _get_pulse_direction_constraint_mask(
             self.amps_withdelay,

@@ -7,3 +7,5 @@ from ._fitting import *
 from ._of_nsmb import *
 from ._of_pileup import *
 from ._de_pileup import *
+from ._of_base import *
+from ._of_1x1 import *
