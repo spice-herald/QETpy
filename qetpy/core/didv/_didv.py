@@ -133,7 +133,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
-                 dt0=10.0e-6, autoresample=False):
+                 dt0=1.5e-6, autoresample=False):
         """
         Initialization of the DIDV class object
 
@@ -210,9 +210,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def _fitdidv(freq, didv, yerr=None, A0=0.25, B0=-0.6, C0=-0.6,
                  tau10=-1.0/(2*np.pi*5e2), tau20=1.0/(2*np.pi*1e5), tau30=0.0,
                  dt=-10.0e-6, poles=2, isloopgainsub1=None,
-                 bounds=None, verbose=0, max_nfev=1000,
-                 method='trf',
-                 ftol=1e-8, xtol=1e-8, gtol=1e-8):
+                 bounds=None, lgcfix=None, verbose=0, max_nfev=1000,
+                 method='trf', loss='linear',
+                 ftol=1e-15, xtol=1e-15):
         """
         Function to find the fit parameters for either the 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
@@ -222,70 +222,91 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         if (poles==1):
             # assume the square wave is not inverted
-            p0 = (A0, tau20, dt)
+            p0 = np.array((A0, tau20, dt), dtype=float)
             bounds1 = (
-                (0.0, 0.0, -np.inf),
-                (np.inf, np.inf, np.inf),
+                np.array((0.0, 0.0, -np.inf)),
+                np.array((np.inf, np.inf, np.inf)),
             )
             # assume the square wave is inverted
-            p02 = (-A0, tau20, dt)
+            p02 =  np.array((-A0, tau20, dt), dtype=float)
             bounds2 = (
-                (-np.inf, 0.0, -np.inf),
-                (0.0, np.inf, np.inf),
+                np.array((-np.inf, 0.0, -np.inf)),
+                np.array((0.0, np.inf, np.inf)),
             )
         elif (poles==2):
             # assume loop gain > 1, where B<0 and tauI<0
-            p0 = (A0, B0, tau10, tau20, dt)
+            p0 = np.array((A0, B0, tau10, tau20, dt),
+                          dtype=float)
             bounds1 = bounds
             if bounds is None:
                 bounds1 = (
-                    (0.0, -np.inf, -np.inf, 0.0, -np.inf),
-                    (np.inf, 0.0, 0.0, np.inf, np.inf),
+                    np.array((0.0, -np.inf, -np.inf, 0.0, -np.inf)),
+                    np.array((np.inf, 0.0, 0.0, np.inf, np.inf)),
                 )
                 
             # assume loop gain < 1, where B>0 and tauI>0
-            p02 = (A0, -B0, -tau10, tau20, dt)
+            p02 = np.array((A0, -B0, -tau10, tau20, dt),
+                           dtype=float)
             bounds2 = bounds
             if bounds is None:
                 bounds2 = (
-                    (0.0, 0.0, 0.0, 0.0, -np.inf),
-                    (np.inf, np.inf, np.inf, np.inf, np.inf),
+                    np.array((0.0, 0.0, 0.0, 0.0, -np.inf)),
+                    np.array((np.inf, np.inf, np.inf, np.inf, np.inf)),
                 )
-
             
             
         elif (poles==3):
             # assume loop gain > 1, where B<0 and tauI<0
-            p0 = (A0, B0, C0, tau10, tau20, tau30, dt)
+            p0 = np.array((A0, B0, C0, tau10, tau20, tau30, dt),
+                          dtype=float)
             bounds1 = (
-                (0.0, -np.inf, -np.inf, -np.inf, 0.0, 0.0, -np.inf),
-                (np.inf, 0.0, 0.0, 0.0, np.inf, np.inf, np.inf),
+                np.array((0.0, -np.inf, -np.inf, -np.inf, 0.0, 0.0, -np.inf)),
+                np.array((np.inf, 0.0, 0.0, 0.0, np.inf, np.inf, np.inf)),
             )
             # assume loop gain < 1, where B>0 and tauI>0
-            p02 = (A0, -B0, -C0, -tau10, tau20, tau30, dt)
+            p02 = np.array((A0, -B0, -C0, -tau10, tau20, tau30, dt),
+                           dtype=float)
             bounds2 = (
-                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf),
-                (np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf),
+                np.array((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -np.inf)),
+                np.array((np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf)),
             )
 
-        def _residual(params):
+
+        fix_params = None
+        if lgcfix is not None:
+
+            fix_params =  p0[lgcfix].copy()
+            
+            p0 = p0[~lgcfix]
+            bounds1 = (bounds1[0][~lgcfix],
+                       bounds1[1][~lgcfix])
+            
+            p02 = p02[~lgcfix]
+            bounds2 = (bounds2[0][~lgcfix],
+                       bounds2[1][~lgcfix])
+
+            
+
+            
+        def _residual_calc(params):
             """
             Define a residual for the nonlinear least squares
             algorithm. Different functions for different amounts of
             poles.
 
             """
-
             if (poles==1):
                 A, tau2, dt = params
                 ci = DIDV._onepoleadmittance(
                     freq, A, tau2,
                 ) * np.exp(-2.0j*np.pi*freq*dt)
+
             elif(poles==2):
                 A, B, tau1, tau2, dt = params
                 ci = DIDV._twopoleadmittance(
                     freq, A, B, tau1, tau2,
                 ) * np.exp(-2.0j*np.pi*freq*dt)
+                
             elif(poles==3):
                 A, B, C, tau1, tau2, tau3, dt = params
                 ci = DIDV._threepoleadmittance(
@@ -307,27 +328,55 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             z1d[1:z1d.size:2] = diff.imag*weights.imag
             return z1d
 
+
+        def _residual(var_params):
+            """
+            Function that is passed to nonlinear 
+            least_squares scipy algorithm
+            
+            Parameters
+            ----------
+
+            var_params : np.array (dtype=float)
+               variable fit parameters array
+
+            
+            Return
+            ------
+
+            residual :  np.array
+            """
+
+            if fix_params is None:
+                return _residual_calc(var_params)
+            else:
+                all_params = np.zeros_like(lgcfix, dtype=float)
+                np.place(all_params, lgcfix, fix_params)
+                np.place(all_params, ~lgcfix, var_params)
+                return _residual_calc(all_params)
+
+        
+
         if isloopgainsub1 is None:
             # res1 assumes loop gain > 1, where B<0 and tauI<0
             res1 = least_squares(
                 _residual,
                 p0,
                 bounds=bounds1,
-                loss='linear',
+                loss=loss,
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
                 method=method,
                 ftol=ftol,
                 xtol=xtol,
-                gtol=gtol,
             )
             # res2 assumes loop gain < 1, where B>0 and tauI>0
             res2 = least_squares(
                 _residual,
                 p02,
                 bounds=bounds2,
-                loss='linear',
+                loss=loss,
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
@@ -347,11 +396,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 _residual,
                 p02,
                 bounds=bounds2,
-                loss='linear',
+                loss=loss,
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
                 method=method,
+                ftol=ftol,
+                xtol=xtol,
             )
         else:
             #assume loop gain > 1, where B<0 and tauI<0
@@ -359,18 +410,26 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 _residual,
                 p0,
                 bounds=bounds1,
-                loss='linear',
+                loss=loss,
                 max_nfev=max_nfev,
                 x_scale=np.abs(p0),
                 verbose=verbose,
                 method=method,
                 ftol=ftol,
                 xtol=xtol,
-                gtol=gtol,
             )
 
-        popt = res['x']
+
+        # variables
+        popt = res['x'].copy()
+        if lgcfix is not None:
+            popt = np.zeros_like(lgcfix, dtype=float)
+            np.place(popt, lgcfix, fix_params)
+            np.place(popt, ~lgcfix, res['x'])
+            
+        # cost
         cost = res['cost']
+
 
         # check if the fit failed (usually only happens when we reach maximum
         # evaluations, likely when fitting assuming the wrong loop gain)
@@ -388,9 +447,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def dofit(self, poles, fcutoff=np.inf,
               bounds=None, guess_params=None,
               guess_isloopgainsub1=None,
+              lgcfix=None,
               verbose=0, max_nfev=1000,
-              method='trf', ftol=1e-8,
-              xtol=1e-8, gtol=1e-8):
+              method='trf', loss='linear',
+              ftol=1e-15, xtol=1e-15):
         """
         This method does the fit that is specified by the variable
         poles. If the `processtraces` method has not been run yet, then
@@ -472,6 +532,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._rsh,
                 self._rp,
                 self._r0,
+                lgcfix=lgcfix,
             )
 
         elif poles==2:
@@ -488,7 +549,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # time shift
             dt = self._dt0
-
             
 
             # overrite guessed values if provided by user
@@ -529,14 +589,16 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 poles=poles,
                 isloopgainsub1=isloopgainsub1,
                 bounds=bounds,
+                lgcfix=lgcfix,
                 verbose=verbose,
                 max_nfev=max_nfev,
                 method=method,
+                loss=loss,
                 ftol=ftol,
                 xtol=xtol,
-                gtol=gtol,
             )
 
+            
             # Convert to didv falltimes
             falltimes2 = DIDV._findpolefalltimes(fitparams2)
 
@@ -549,6 +611,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._rsh,
                 self._rp,
                 self._r0,
+                lgcfix=lgcfix,
             )
 
         elif poles==3:
@@ -619,7 +682,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0):
+    def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0,
+                   lgcfix=None):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -627,7 +691,15 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         """
 
         result = dict()
+        result['lgcfix'] = lgcfix
 
+        # errores
+        errors = np.diag(cov)**0.5
+        if lgcfix is not None:
+            errors = np.zeros_like(lgcfix, dtype=float)
+            np.place(errors, lgcfix, 0.0)
+            np.place(errors, ~lgcfix,  np.diag(cov)**0.5)
+        
         if poles == 1:
             result['params'] = {
                 'A': params[0],
@@ -635,7 +707,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': params[2],
             }
             result['cov'] = cov
-            errors = np.diag(cov)**0.5
             result['errors'] = {
                 'A': errors[0],
                 'tau2': errors[1],
@@ -660,7 +731,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': params[4],
             }
             result['cov'] = cov
-            errors = np.diag(cov)**0.5
             result['errors'] = {
                 'A': errors[0],
                 'B': errors[1],
@@ -693,7 +763,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': params[6],
             }
             result['cov'] = cov
-            errors = np.diag(cov)**0.5
             result['errors'] = {
                 'A': errors[0],
                 'B': errors[1],
