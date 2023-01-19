@@ -1,9 +1,7 @@
 import numpy as np
-from scipy.optimize import least_squares
 from math import ceil, floor
 from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import shift, interpolate_of, argmin_chisq
-import matplotlib.pyplot as plt
 
 
 __all__ = ['OFBase']
@@ -11,17 +9,18 @@ __all__ = ['OFBase']
 
 class OFBase:
     """
-    Single channel/trace optimal filter base class.
-    Multiple templates can be added, single PSD 
+    Single channel (trace) - multiple templates,
+    optimal filter base class
 
-    Atributes
-    --------
-
+    The calculation use single noise psd, single pre-trigger
+    samples
+    
     """
 
-    def __init__(self, channel_name, sample_rate,
-                 pretrigger_msec=None,
+    def __init__(self, sample_rate,
                  pretrigger_samples=None,
+                 pretrigger_msec=None,
+                 channel_name='unknown',
                  verbose=True):
         """
         Initialization of the optimum filter base class
@@ -32,11 +31,33 @@ class OFBase:
         sample_rate : float
             The sample rate of the data being taken (in Hz).
 
-        verbose : bool, optional (default=True)
-            Display information
         
+        pretrigger_samples : int, optional
+            Number of pretrigger samples
+            Default: use pretrigger_msec or if also None,
+                     use 1/2 trace length
+
+        pretrigger_msec : float, optional
+            Pretrigger length in ms (if  pretrigger_samples is None)
+            Default: 1/2 trace length
+
+
+        channel_name : str, optional
+            Name of the channel 
+            Default='unknown' 
+
+        verbose : bool, optional 
+            Display information
+            Default=True
+
+
+        Return
+        ------
+        None
 
         """
+
+        
         self._debug = False
         self._verbose = verbose
         self._channel_name = channel_name
@@ -44,38 +65,40 @@ class OFBase:
         self._pretrigger_samples = pretrigger_samples
         if pretrigger_msec is not None:
             self._pretrigger_samples = (
-                pretrigger_msec*1e-3*self._fs
+                int(round(pretrigger_msec*1e-3*self._fs))
             )
             
 
-        # nb samples and frequency spacing of FFT
+        # Initialize some parameters
+            
+        # initialize nb samples 
         self._nbins = None
 
-        # frequency spacing of FFT and frequencies
+        # initialize frequency spacing of FFT and frequencies
         self._df = None
         self._fft_freqs = None
 
         
-        # templates (time domain and FFT)
+        # initialize templates (time domain and FFT)
         # dict key = template tag
         self._templates = dict()
         self._templates_fft = dict()
 
-        # two-sided noise psd (in Amps^2/Hz)
+        # initialize two-sided noise psd (in Amps^2/Hz)
         self._psd = None
         self._psd_tag = None
 
-        # calculated optimal filter abd norm
+        # initialize calculated optimal filter abd norm
         # (not dependent of signal)
         # dict key = template tag
         self._phis = dict()
         self._norms = dict()
             
-        # signal
+        # initialize signal
         self._signal = None
         self._signal_fft = None
     
-        # (optimal) filtered  signals and templates
+        # initialize (optimal) filtered  signals and templates
         # (frequency domain and  converted back to time domain)
         # dict key = template tag
         self._signal_filts = dict()
@@ -84,7 +107,7 @@ class OFBase:
         self._template_filts_td = dict()
 
 
-        # amplitudes and chi2 (for all times)
+        # initialize amplitudes and chi2 (for all times)
         # dict key = template tag
         self._chisq0 = None # "no pulse" chisq (independent of template)
         self._chisqs_alltimes_rolled = dict() # chisq all times
@@ -106,15 +129,32 @@ class OFBase:
         return self._channel_name
 
 
+    @property
+    def sample_rate(self):
+        return self._sample_rate
+
+    @property
+    def pretrigger_samples(self):
+        return self._pretrigger_samples
+
 
     
-    def sample_rate(self):
-        return self._fs
 
-  
+
     def template_tags(self):
         """
         get template tags
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        
+        tag : list
+         list with template tags
+        
         """
         
         if self._templates:
@@ -126,7 +166,22 @@ class OFBase:
     
     def template(self, template_tag='default'):
         """
-        get template
+        Get template in time domain for the specified tag
+
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+ 
+
+        Return
+        ------
+        
+        template : ndarray
+         template trace in time domain
+
         """
         
         if  template_tag in self._templates.keys():
@@ -139,7 +194,22 @@ class OFBase:
 
     def template_fft(self, template_tag='default'):
         """
-        get template FFT
+        Get template FFT for the specified tag
+
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+ 
+
+        Return
+        ------
+        
+        template : ndarray
+         template trace FFT
+
         """
         
         if  template_tag in self._templates_fft.keys():
@@ -147,10 +217,22 @@ class OFBase:
         else:
             return None    
 
-
+        
     def psd(self):
         """
-        get psd
+        Get psd
+
+        Parameters
+        ----------        
+        None
+
+
+        Return
+        ------
+        
+        psd : ndarray
+         noise PSD
+
         """
 
         return self._psd
@@ -158,7 +240,17 @@ class OFBase:
 
     def psd_tag(self):
         """
-        get psd tag
+        Get psd tag
+        
+        Parameters
+        ----------        
+        None
+
+
+        Return
+        ------
+        psd_tag: str
+         PSD tag 
         """
 
         return self._psd_tag
@@ -166,14 +258,39 @@ class OFBase:
 
     def signal(self):
         """
-        Get signal
+        Get current signal trace in time domain
+        
+        
+        Parameters
+        ----------        
+        None
+
+
+        Return
+        ------
+        signal : ndarray
+          time domain signal trace    
+
         """
 
         return self._signal
 
+
+    
     def signal_fft(self):
         """
-        Get signal FFT
+        Get current signal trace FFT
+          
+        Parameters
+        ----------        
+        None
+
+
+        Return
+        ------
+        signal_fft : ndarray
+          signal trace FFT    
+
         """
 
         return self._signal_fft
@@ -182,7 +299,23 @@ class OFBase:
 
     def phi(self, template_tag='default'):
         """
-        Get optimal filter (phi)
+        Get "optimal filter" (phi) for a specified
+        template tag, depends only
+        on template and PSD
+
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default;='
+
+        Return
+        ------
+        
+        phi : ndarray
+          "optimal filter" values
+
         """
         
         if template_tag in self._phis.keys():
@@ -196,6 +329,16 @@ class OFBase:
                  
         """
         Method to return norm for the optimum filter
+        (this is the denominator of amplitude estimate)
+        for the specified template tag
+
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
 
         Returns
         -------
@@ -213,6 +356,23 @@ class OFBase:
     def signal_filt(self, template_tag='default'):
         """
         Get (optimal) filtered signal in frequency domain
+        for the specified template tag
+
+        signal_filt = phi*signal_fft/norm
+ 
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+
+        Returns
+        -------
+        signal_filt  :ndarray
+           optimal filtered signal 
+
         """
 
         if template_tag in self._signal_filts.keys():
@@ -224,6 +384,24 @@ class OFBase:
     def signal_filt_td(self, template_tag='default'):
         """
         Get (optimal) filtered signal converted back to time domain
+        for the specified template tag
+
+        signal_filt_td = ifft(signal_filt)
+                       = ifft(phi*signal_fft/norm)
+ 
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+
+        Returns
+        -------
+        signal_filt_td  :ndarray
+           optimal filtered signal in time domain
+
         """
 
         if template_tag in self._signal_filts_td.keys():
@@ -233,9 +411,29 @@ class OFBase:
 
   
 
+
+        
     def template_filt(self, template_tag='default'):
         """
-        Get (optimal) filtered template
+        FIXME: no implemented yet
+
+        Get (optimal) filtered template in frequency domain
+        for a specified template tag
+        
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+
+        Returns
+        -------
+        template_filt  :ndarray
+           optimal filtered template in fourier domain
+        
+
         """
 
         if template_tag in self._template_filts.keys():
@@ -248,22 +446,43 @@ class OFBase:
         
     def template_filt_td(self, template_tag='default'):
         """
+        FIXME: no implemented yet
+
         Get (optimal) filtered template converted back to time domain
+        for a specified template tag
+        
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+
+        Returns
+        -------
+        template_filt_td  :ndarray
+           optimal filtered template in time domain
+        
+
+
         """
 
         if template_tag in self._template_filts_td.keys():
             return self._template_filts_td[template_tag]
         else:
             return None
-        
+       
 
         
 
     def add_template(self, template, template_tag='default',
                      integralnorm=False):
         """
-        Add template to dictionary, 
-        immediately calculate template FFT
+        Add template with a user specified tag. If template
+        with same tag already exist, it is overwritten!
+
+        immediately calculate template FFT automatically 
         
         Parameters
         ----------
@@ -319,8 +538,9 @@ class OFBase:
             
     def set_psd(self, psd, coupling="AC", psd_tag='default'):
         """
-        Add psd to internal psd dictionary, 
-        immediately calculate psd FFT
+        Add psd, a tag can be specified 
+        If psd already exist, it is overwritten and tag replaced.
+        
         
         Parameters
         ----------
@@ -355,9 +575,11 @@ class OFBase:
         self._psd_tag = psd_tag
       
 
+
+        
     def clear_signal(self):
         """
-        Method to intialize calculated signa
+        Method to intialize calculated signal
         parameters
  
         Parameters
@@ -395,7 +617,7 @@ class OFBase:
                       calc_chisq_amp=True,
                       template_tags=None):
         """
-        Method to update new signal, called each event
+        Method to update new signal trace, needs to be called each event
 
         Parameters
         ----------
@@ -403,7 +625,33 @@ class OFBase:
         signal : ndarray 
            the signal that we want to apply the optimum filter to
            (units should be Amps).
+
+        calc_signal_filt : bool, optional
+           If true calculate signal filt
+           (for tags specified with "template_tags" or all tags if None)
+           Default: True
+
+        
+        calc_signal_filt_td : bool, optional
+           If true calculate signal filt and convert back to time domain
+           (for tags specified with "template_tags" or all tags if None)
+           Default: True
+
+        calc_chisq_amp : bool, optional
+           If true calculate (rolled) chisq/amps for all times
+           (for tags specified with "template_tags" or all tags if None)
+           Default: True
+
+        template_tags : list 
+         list of template tags for the above calculations
+         Dafault: all tags 
+               
          
+        Return
+        ------
+        None
+
+
         """
 
         # check nb samples
@@ -448,7 +696,9 @@ class OFBase:
 
     def calc_phi(self, template_tags=None):
         """
-        calculate optimal filters
+        calculate optimal filters (phi)
+
+        phi = template_fft* / psd
         
         Parameters
         ----------
@@ -499,7 +749,22 @@ class OFBase:
 
     def calc_signal_filt(self, template_tags=None):
         """
-        Calculate filtered signal 
+        Calculate filtered signal (for the specified
+        or all template tags)
+ 
+        signal_filt = phi*signal_fft/norm
+         
+        Parameters
+        ----------
+        template_tags : NoneType or str or list of string 
+                        [default=None]    
+           template tags to calculate optimal filters, if None, 
+           calculate optimal filter for all templates
+
+        Return
+        ------
+        None
+
         """
 
 
@@ -533,6 +798,24 @@ class OFBase:
 
     def calc_signal_filt_td(self, template_tags=None):
         """
+        Convert signal filt to time domain (for the specified
+        or all template tags)
+
+        signal_filt_td = ifft(signal_filt)
+                       = ifft(phi*signal_fft/norm)
+
+
+        Parameters
+        ----------
+        template_tags : NoneType or str or list of string 
+                        [default=None]    
+           template tags to calculate optimal filters, if None, 
+           calculate optimal filter for all templates
+
+        Return
+        ------
+        None
+
         """
 
         # check if filtered signal available
@@ -565,6 +848,18 @@ class OFBase:
             
     def calc_chisq0(self):
         """
+        Calculate part of chi2 that doesn't depend 
+        on template (aka "no pulse chisq)
+
+        Parameters
+        ----------
+        None
+
+
+        Return
+        ------
+        None
+        
         """
 
         # "no pulse chisq" (doesn't depend on template)
@@ -577,6 +872,21 @@ class OFBase:
         
     def calc_chisq_amp(self, template_tags=None):
         """
+        Calculate chi2/amp for all times (rolled
+        so that 0-delay is the pretrigger bin)
+
+        Parameters
+        ----------
+        template_tags : NoneType or str or list of string 
+                        [default=None]    
+           template tags to calculate optimal filters, if None, 
+           calculate optimal filter for all templates
+
+        Return
+        ------
+        None
+        
+
         """
         
         # "no pulse chisq" (doesn't depend on template)
@@ -637,28 +947,38 @@ class OFBase:
                         shift_usec=None,
                         use_chisq_alltimes=True):
         """
-        Function for calculating the optimum amplitude of a pulse in
+        Function to calculat and return the optimum amplitude/chisq of a pulse in
         data with no time shifting, or at a specific time.
         
         Parameters
         ----------
-        windowcenter : int, optional
-            The bin, relative to the center bin of the trace, at which
-            to calculate the OF amplitude. Default of 0 calculates the
-            usual no delay optimum filter. Equivalent to calculating
-            the OF amplitude at the bin `self.nbins//2 + windowcenter`.
-            Useful for calculating amplitudes at specific times, if
-            there is some prior knowledge.
+
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+        shift_usec : float, optional
+          shift in micro seconds from pretrigger time
+          default: no shift
+        
+        use_chisq_alltimes : bool, optional
+          use the chisq all times instead of re-calculate 
+        
+       
 
         Returns
         -------
         amp : float
             The optimum amplitude calculated for the trace (in Amps)
             with no time shifting allowed (or at the time specified by
-            `windowcenter`).
-        chi2 : float
+            'shift_usec').
+
+         t0 : float
+            The time shift (=0 or shift_usec)
+
+        chisq : float
             The chi^2 value calculated from the optimum filter with no
-            time shifting (or at the time specified by `windowcenter`).
+            time shifting (or at the time shift specified by shift_usec)
 
         """
 
@@ -743,18 +1063,34 @@ class OFBase:
                           interpolate_t0=False):
         """
         Function for calculating the optimum amplitude of a pulse in
-        data with time delay.
+        data with time delay. The OF window min/max can be specified 
+        either in usec from pretrigger or ADC samples. If no window, 
+        the all trace (unconstrained) is used. 
 
         Parameters
         ----------
-        nconstrain : int, NoneType, optional
-            The length of the window (in bins) to constrain the
-            possible t0 values to. By default centered on the unshifted
-            trigger, non-default center choosen with windowcenter. If
-            left as None, then t0 is uncontrained. If `nconstrain` is
-            larger than `self.nbins`, then the function sets
-            `nconstrain` to `self.nbins`,  as this is the maximum
-            number of values that t0 can vary over.
+
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
+               
+        window_min_from_trig_usec : float, optional
+           OF filter window start in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_max_from_trig_usec : float, optional
+           OF filter window end in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_min_index: int, optional
+            OF filter window start in ADC samples 
+        
+        window_max_index: int, optional
+            OF filter window end in ADC samples
+
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether the Optimum
             Filter should look inside `nconstrain` or outside it. If
@@ -762,18 +1098,15 @@ class OFBase:
             specified by `nconstrain`, which is the default behavior.
             If True, then it will minimize the chi^2 in the bins that
             do not contain the constrained window.
+
+
         pulse_direction_constraint : int, optional
             Sets a constraint on the direction of the fitted pulse.
             If 0, then no constraint on the pulse direction is set.
             If 1, then a positive pulse constraint is set for all fits.
             If -1, then a negative pulse constraint is set for all
             fits. If any other value, then a ValueError will be raised.
-        windowcenter : int, optional
-            The bin, relative to the center bin of the trace, on which
-            the delay window specified by `nconstrain` is centered.
-            Default of 0 centers the delay window in the center of the
-            trace. Equivalent to centering the `nconstrain` window on
-            `self.nbins//2 + windowcenter`.
+      
         interpolate_t0 : bool, optional
             If True, then a precomputed solution to the parabolic
             equation is used to find the interpolated time-of-best-fit.
@@ -878,7 +1211,16 @@ class OFBase:
     def get_energy_resolution(self,  template_tag='default'):
         """
         Method to return the energy resolution for the optimum filter.
-        (resolution depends only on template and noise!)
+        (resolution depends only on template and noise!) for a 
+        specified tag
+        
+        Parameters
+        ----------
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
+
 
         Returns
         -------
@@ -901,7 +1243,16 @@ class OFBase:
         """
         Method to return the time resolution for the optimum filter.
         Resolution depends also on fitted amplitude (-> reset every events)
+ 
+        Parameters
+        ----------
 
+        amp : float
+          OF fitted amplitude
+        
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
 
         Returns
         -------
@@ -938,11 +1289,16 @@ class OFBase:
         ----------
         amp : float
             The optimum amplitude calculated for the trace (in Amps).
-        t0 : float
+        t0 : float, optional
             The time shift calculated for the pulse (in s).
+            default: 0 (np shift)
         fcutoff : float, optional
             The frequency (in Hz) that we should cut off the chi^2 when
             calculating the low frequency chi^2. Default is 10 kHz.
+
+        template_tag : str, optional
+          template tag/id
+          default: 'default'
 
         Returns
         -------

@@ -11,17 +11,79 @@ __all__ = ['OF1x1']
 
 class OF1x1:
     """
-    Single trace single template optimal filter
+    Single trace /  single template optimal filter (1x1)
+    calculations
     """
 
-    def __init__(self, channel_name, of_base=None,
-                 template_tag='default', template=None,
-                 psd=None, sample_rate=None,
+    def __init__(self, of_base=None, template_tag='default', 
+                 template=None, psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
+                 channel_name='unknown',
                  verbose=True):
         
         """
+        Initialize OF1x1
+
+        Parameters
+        ----------
+        
+        of_base : OFBase object, optional 
+           OF base with pre-calculations
+           Default: instantiate base class within OF1x1
+
+        template_tag : str, optional 
+           tamplate tag, default='default'
+        
+        template : ndarray, optional
+          template array used for OF calculation, can be 
+          None if already in of_base, otherwise required
+
+        psd : ndarray, optional
+          psd array used for OF calculation, can be 
+          None if already in of_base, otherwise required
+
+
+        sample_rate : float, optional if of_base is not None
+          The sample rate of the data being taken (in Hz)
+          Only Required if of_base=None
+
+        pretrigger_samples : int, optional if of_base is not None
+            Number of pretrigger samples
+            Default: use pretrigger_msec or if also None,
+                     use 1/2 trace length
+
+        pretrigger_msec : float, optionalif of_base is not None
+            Pretrigger length in ms (if  pretrigger_samples is None)
+            Default: 1/2 trace length
+
+        coupling : str, optional 
+            String that determines if the zero frequency bin of the psd
+            should be ignored (i.e. set to infinity) when calculating
+            the optimum amplitude. If set to 'AC', then ths zero
+            frequency bin is ignored. If set to anything else, then the
+            zero frequency bin is kept.
+            Default='AC'
+
+        integralnorm : bool, optional
+            If set to True, then  template will be normalized 
+            to an integral of 1, and any optimum filters will
+            instead return the optimum integral in units of Coulombs.
+            If set to False, then the usual optimum filter amplitudes
+            will be returned (in units of Amps).
+            Default=False
+
+        channel_name : str, optional
+            channel name
+        
+        verbose : bool, optional 
+            Display information
+            Default=True
+
+
+        Return
+        ------
+        
         """
     
         # verbose
@@ -44,9 +106,10 @@ class OF1x1:
                                  + 'pretrigger (msec or samples) required!')
                         
             # instantiate
-            self._of_base = OFBase(channel_name, sample_rate, 
+            self._of_base = OFBase(sample_rate, 
                                    pretrigger_msec=pretrigger_msec,
                                    pretrigger_samples=pretrigger_samples,
+                                   channel_name=channel_name,
                                    verbose=verbose)
             
 
@@ -125,12 +188,69 @@ class OF1x1:
              window_max_from_trig_usec=None,
              window_min_index=None,
              window_max_index=None,
+             lgc_outside_window=False,
              pulse_direction_constraint=0,
              interpolate_t0=False,
-             lgc_outside_window=False,
              lgc_fit_nodelay=True,
              lgc_plot=False):
         """
+        Calculate OF with delay (and no delay if 
+        lgc_fit_nodelay=True)
+
+        Parameters
+        ----------
+        
+        signal : ndarray, optional
+          signal trace, can be None if already
+          set in 'of_base
+
+        window_min_from_trig_usec : float, optional
+           OF filter window start in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_max_from_trig_usec : float, optional
+           OF filter window end in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_min_index: int, optional
+            OF filter window start in ADC samples 
+        
+        window_max_index: int, optional
+            OF filter window end in ADC samples
+
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the Optimum
+            Filter should look inside `nconstrain` or outside it. If
+            False, the filter will minimize the chi^2 in the bins
+            specified by `nconstrain`, which is the default behavior.
+            If True, then it will minimize the chi^2 in the bins that
+            do not contain the constrained window.
+
+
+        pulse_direction_constraint : int, optional
+            Sets a constraint on the direction of the fitted pulse.
+            If 0, then no constraint on the pulse direction is set.
+            If 1, then a positive pulse constraint is set for all fits.
+            If -1, then a negative pulse constraint is set for all
+            fits. If any other value, then a ValueError will be raised.
+      
+        interpolate_t0 : bool, optional
+            If True, then a precomputed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
+
+        lgc_fit_nodelay : bool, option
+            calculation no-delay OF, default=True
+
+        lgc_plot : bool, optional
+            display diagnostic plot
+
+        Return
+        ------
+        None
+
         """
 
         
@@ -187,6 +307,32 @@ class OF1x1:
                      use_chisq_alltimes=True,
                      lgc_plot=False):
         """
+        Calculate no-delay OF  (a shift
+        from pretrigger can be added)
+
+        Parameters
+        ----------
+
+        signal : ndarray, optional
+          signal trace, can be None if already
+          set in 'of_base
+
+
+        shift_usec : float, optional
+          shift in micro seconds from pretrigger time
+          default: no shift
+        
+        use_chisq_alltimes : bool, optional
+          use the chisq all times 
+        
+        lgc_plot : bool, optional
+            display diagnostic plot
+
+
+        Return
+        ------
+        None
+
         """
 
 
@@ -227,6 +373,27 @@ class OF1x1:
 
     def get_result_nodelay(self):
         """
+        Get OF no-delay results
+
+        Parameters
+        ----------
+        none
+
+        Return
+        ------
+  
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps)
+            with no time shifting allowed (or at the time specified by
+            'shift_usec').
+
+         t0 : float
+            The time shift (=0 or shift_usec)
+
+        chisq : float
+            The chi^2 value calculated from the optimum filter with no
+            time shifting (or at the time shift specified by shift_usec)
+        
         """
 
         
@@ -237,6 +404,21 @@ class OF1x1:
 
     def get_result_withdelay(self):
         """
+        Get OF with delay results
+ 
+        Parameters
+        ----------
+        none
+
+        Return
+        ------
+
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float
+            The time shift calculated for the pulse (in s).
+        chi2 : float
+            The chi^2 value calculated from the optimum filter.
         """
 
         
@@ -248,6 +430,19 @@ class OF1x1:
     
     def get_energy_resolution(self):
         """
+        Method to return the energy resolution for the optimum filter.
+        (resolution depends only on template and noise!) 
+        
+        Parameters
+        ----------
+        None
+
+
+        Returns
+        -------
+        sigma : float
+            The energy resolution of the optimum filter.
+
         """
         sigma = self._of_base.get_energy_resolution(
             self._template_tag
@@ -258,6 +453,21 @@ class OF1x1:
     
     def get_time_resolution(self, amp):
         """
+        Method to return the time resolution for the optimum filter.
+        Resolution depends also on fitted amplitude (-> reset every events)
+ 
+        Parameters
+        ----------
+
+        amp : float
+          OF fitted amplitude
+       
+
+        Returns
+        -------
+        sigma : float
+            The time resolution of the optimum filter.
+
         """
 
         sigma =  self._of_base.get_time_resolution(
@@ -275,6 +485,29 @@ class OF1x1:
              figsize=(8, 5),
              xlim_msec=None):
         """
+        Diagnostic plot
+
+        Parameters
+        ----------
+        lgc_plot_withdelay : bool, optional
+           If true, include OF with delay
+           Default=True
+
+        lgc_plot_nodelay : bool, optional
+           If true, include OF no-delay
+           Default=True
+
+        figsize : tuple, optional
+           figure size
+           Default=(8, 5)
+
+        xlim_msec : array like, optional
+          min/max x-axis
+        
+        Return
+        ------
+        none
+        
         """
 
 
@@ -290,7 +523,7 @@ class OF1x1:
         # signal
         signal = self._of_base.signal()
         template = self._of_base.template()
-        fs = self._of_base.sample_rate()
+        fs = self._of_base.sample_rate
         nbins = len(signal)
         chi2 = self._of_chisq_withdelay/len(signal)
         
