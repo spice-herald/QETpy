@@ -131,7 +131,7 @@ class OFBase:
 
     @property
     def sample_rate(self):
-        return self._sample_rate
+        return self._fs
 
     @property
     def pretrigger_samples(self):

@@ -568,7 +568,7 @@ class OF1x1:
         ax.set_ylabel(r'Current [$\mu A$]')
         ax.set_xlabel('Time [ms]')
         ax.set_title(f'{self._of_base.channel_name} OF Results')
-        lgd = ax.legend(loc='upper left')
+        lgd = ax.legend(loc='best')
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(linestyle='dotted')
         fig.tight_layout()
