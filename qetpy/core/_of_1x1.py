@@ -363,13 +363,6 @@ class OF1x1:
             
 
         
-    def calc_iterative(self, signal):
-        """
-        """
-        pass
-
-
-        
 
     def get_result_nodelay(self):
         """
