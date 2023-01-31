@@ -212,7 +212,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                  dt=-10.0e-6, poles=2, isloopgainsub1=None,
                  bounds=None, lgcfix=None, verbose=0, max_nfev=1000,
                  method='trf', loss='linear',
-                 ftol=1e-15, xtol=1e-15):
+                 ftol=1e-12, xtol=1e-12):
         """
         Function to find the fit parameters for either the 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
@@ -383,7 +383,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 method=method,
                 ftol=ftol,
                 xtol=xtol,
-                gtol=gtol,
             )
             # check which loop gain cases gave the better fit
             if (res1['cost'] < res2['cost']):
