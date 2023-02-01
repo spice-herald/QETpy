@@ -12,7 +12,6 @@ __all__ = [
     "ofamp_pileup_stationary",
     "chi2lowfreq",
     "chi2_nopulse",
-    "OFnonlin",
     "MuonTailFit",
 ]
 

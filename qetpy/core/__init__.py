@@ -9,3 +9,4 @@ from ._of_pileup import *
 from ._de_pileup import *
 from ._of_base import *
 from ._of_1x1 import *
+from ._of_nonlin import *
