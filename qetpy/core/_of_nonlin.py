@@ -5,7 +5,7 @@ from qetpy.plotting import plotnonlin
 from qetpy.utils import shift
 
 
-__all__ = [ "OFnonlin"]
+__all__ = ["OFnonlin"]
 
 
 
@@ -707,13 +707,13 @@ class OFnonlin(object):
                     [Aguess / 100, Bguess / 100, Cguess / 100,
                      tauriseguess / 10, taufall1guess / 10,
                      taufall2guess / 10, taufall3guess / 10,
-                     t0guess - 30 / self.fs]
+                     t0guess - 300 / self.fs]
                 )
                 boundsupper =  np.array(
                     [Aguess * 100, Bguess * 100, Cguess * 100,
                      tauriseguess * 10, taufall1guess * 10,
                      taufall2guess * 10, taufall3guess * 10,
-                     t0guess + 30 / self.fs]
+                     t0guess + 300 / self.fs]
                 )
 
                 bounds = (boundslower, boundsupper)
@@ -772,12 +772,12 @@ class OFnonlin(object):
                 boundslower = np.array(
                     [Aguess / 100, Bguess / 100, tauriseguess / 10,
                      taufall1guess / 10, taufall2guess / 10,
-                     t0guess - 500 / self.fs]
+                     t0guess - 300 / self.fs]
                 )
                 boundsupper = np.array([
                     Aguess * 100, Bguess * 100, tauriseguess * 10,
                     taufall1guess * 10, taufall2guess * 10,
-                    t0guess + 500 / self.fs]
+                    t0guess + 300 / self.fs]
                 )
                 
                 bounds = (boundslower, boundsupper)
@@ -828,11 +828,11 @@ class OFnonlin(object):
             if bounds is None:
                 boundslower = np.array(
                     [ampguess / 100, tauriseguess / 10,
-                     taufallguess / 10, t0guess - 500 / self.fs]
+                     taufallguess / 10, t0guess - 300 / self.fs]
                 )         
                 boundsupper =  np.array(
                     [ampguess * 100, tauriseguess * 10,
-                     taufallguess * 10, t0guess + 500 / self.fs]
+                     taufallguess * 10, t0guess + 300 / self.fs]
                 )
                 bounds = (boundslower, boundsupper)
         else:
@@ -878,11 +878,11 @@ class OFnonlin(object):
             if bounds is None:
                 boundslower = np.array(
                     [ampguess / 100, taufallguess / 10,
-                     t0guess - 500 / self.fs]
+                     t0guess - 300 / self.fs]
                     )
                 boundsupper = np.array(
                     [ampguess * 100, taufallguess * 10,
-                     t0guess + 500 / self.fs]
+                     t0guess + 300 / self.fs]
                 )
                 bounds = (boundslower, boundsupper)
 
