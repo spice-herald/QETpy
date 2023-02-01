@@ -282,26 +282,26 @@ def test_OFnonlin():
     signal = np.roll(signal, -100) # undo the roll in create_example_data to make test easier
     
     nlin = qp.OFnonlin(psd, fs, template=template)
-    res1a = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=True)
-    res1 = nlin.fit_falltimes(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=False)
-    res2a = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=True)
-    res2 = nlin.fit_falltimes(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=False)
-    res3 = nlin.fit_falltimes(signal, npolefit=3, lgcfullrtn=False, lgcplot=True)
-    res4 = nlin.fit_falltimes(signal, npolefit=4, lgcfullrtn=False, lgcplot=True)
+    res1a = nlin.dofit(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=True)
+    res1 = nlin.dofit(signal, npolefit=1, lgcfullrtn=False, lgcplot=True, taurise=20e-6, scale_amplitude=False)
+    res2a = nlin.dofit(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=True)
+    res2 = nlin.dofit(signal, npolefit=2, lgcfullrtn=False, lgcplot=True, scale_amplitude=False)
+    res3 = nlin.dofit(signal, npolefit=3, lgcfullrtn=False, lgcplot=True)
+    res4 = nlin.dofit(signal, npolefit=4, lgcfullrtn=False, lgcplot=True)
     
-    assert isclose(res1a, [4.00765402e-06, 6.57906792e-05, 2.60000249e-02], rtol=1e-6)
-    assert isclose(res1, [9.69052169e-06, 6.57726236e-05, 2.60000311e-02], rtol=1e-6)
-    assert isclose(res2a, [4.01116847e-06, 1.93760843e-05,
-                           6.69570394e-05, 2.60001479e-02], rtol=1e-6)
-    assert isclose(res2, [9.43354233e-06, 1.95230990e-05,
-                          6.66547840e-05, 2.60001217e-02], rtol=1e-6)
-    assert isclose(res3, [9.69211548e-06, 1.67751067e-08,
-                          1.99674317e-05, 6.54865901e-05,
-                          2.22027660e-04, 2.60000533e-02], rtol=1e-6) 
-    assert isclose(res4, [9.491495350665769e-06, 3.023941433370170e-08,
-                          5.523645346886680e-08, 1.976936973433418e-05,
-                          6.566969025231684e-05, 9.213022382501221e-05,
-                          2.246779922836221e-04, 2.600006569525561e-02], rtol=1e-6)
+    assert isclose(res1a, [4.00801301e-06, 6.57824204e-05, 2.60000272e-02], rtol=1e-6)
+    assert isclose(res1, [9.69052142e-06, 6.57726246e-05, 2.60000311e-02], rtol=1e-6)
+    assert isclose(res2a, [4.00954923e-06, 1.98364701e-05,
+                           6.60692408e-05, 2.60000622e-02], rtol=1e-6)
+    assert isclose(res2, [9.35735641e-06, 1.93841450e-05,
+                          6.69374757e-05, 2.60001467e-02], rtol=1e-6)
+    assert isclose(res3, [9.63212105e-06, 7.84008525e-08,
+                          1.99470233e-05, 6.51290402e-05,
+                          1.49376493e-04, 2.60000597e-02], rtol=1e-6)
+    assert isclose(res4, [9.15466859e-06, 5.06330471e-07,
+                          1.68478560e-08, 1.97920064e-05,
+                          6.38075778e-05, 1.01482898e-04,
+                          1.92735955e-04, 2.60001024e-02], rtol=1e-6)
     
 def test_MuonTailFit():
     """
