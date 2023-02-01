@@ -20,6 +20,9 @@ __all__ = [
     "estimate_g",
     "resample_factors",
     "resample_data",
+    "interpolate_parabola",
+    "interpolate_of",
+    "argmin_chisq",
 ]
 
 
@@ -673,3 +676,155 @@ def estimate_g(p0, tc, tbath, p0_err=0, cov=None, n=5):
         g_err = np.abs(p0_err * g / p0)
 
     return g, g_err
+
+
+
+
+def interpolate_parabola(vals, bestind, delta, t_interp=None):
+    """
+    Precomputed equation of a parabola given 3 equally spaced
+    points. Returns the coordinates of the extremum of the
+    parabola.
+    """
+
+    sf = 1 / (2 * delta**2)
+    
+    a = sf * (vals[bestind + 1] - 2 * vals[bestind] + vals[bestind - 1])
+    b = sf * delta * (vals[bestind + 1] - vals[bestind - 1])
+    c = sf * 2 * delta**2 * vals[bestind]
+    
+    if t_interp is None:
+        t_interp = - b / (2 * a)
+    vals_interp = a * t_interp**2 + b * t_interp + c
+        
+    return t_interp, vals_interp
+
+
+    
+   
+def interpolate_of(amps, chi2, bestind, delta):
+    """
+    Helper function for running `_interpolate_parabola` twice,
+    in the correct order.
+    """
+    
+    t_interp, chi2_interp = interpolate_parabola(
+        chi2, bestind, delta,
+    )
+    _, amps_interp = interpolate_parabola(
+        amps, bestind, delta, t_interp=t_interp,
+    )
+    
+    return amps_interp, t_interp, chi2_interp
+
+
+
+
+def argmin_chisq(chisq,
+                 window_min=None,
+                 window_max=None,
+                 lgc_outside_window=False,
+                 constraint_mask=None):
+    """
+    Helper function for finding the index for the minimum of a chi^2.
+    Includes options for constraining the values of chi^2.
+        
+    Parameters
+    ----------
+    chi2 : ndarray
+             An array containing the chi^2 to minimize. If `chi2` has
+             dimension greater than 1, then it is minimized along the last
+             axis. 
+
+    window_min : NoneType, int, optional
+         This is the window minimum length  (in bins) to
+          constrain the possible values to in the chi^2 minimization,
+          Default is None, `chi2` is uncontrained is both 
+          window min/max = None
+    
+    window_max : NoneType, int, optional
+          This is the window maximum length  (in bins) to
+          constrain the possible values to in the chi^2 minimization,
+          Default is None, `chi2` is uncontrained is both 
+          window min/max = None
+    
+
+    
+    lgcoutsidewindow : bool, optional
+        If False, then the function will minimize the chi^2 in the bins
+        inside the constrained window specified by window_min/max.
+        If True, the function will minimize the chi^2 in the bins outside 
+        window
+        
+    constraint_mask : NoneType, boolean ndarray, optional
+        An additional constraint on the chi^2 to apply, which should be
+        in the form of a boolean mask. If left as None, no additional
+        constraint is applied.
+    
+    Returns
+    -------
+    bestind : int, ndarray, float
+        The index of the minimum of `chi2` given the constraints
+        specified by `nconstrain` and `lgcoutsidewindow`. If the
+        dimension of `chi2` is greater than 1, then this will be an
+        ndarray of ints.
+    
+    """
+
+    # intitialize
+    bestind = np.nan
+    
+    # number samples
+    nbins = len(chisq)
+
+    # case constraints
+    if (window_min is not None
+        or window_max is not None):
+        
+        # check window min
+        if  window_min is None or window_min<0:
+            window_min = 0
+                    
+        # check window max
+        if  window_max is None or window_max>nbins:
+            window_max = nbins
+          
+
+        if window_min>window_max:
+            raise ValueError('ERROR: OF window min bin bigger than window max bin!')
+
+
+        inds=[]
+        if lgc_outside_window:
+            inds = np.concatenate(
+                (np.arange(0, window_min),
+                 np.arange(window_max, nbins))
+            )
+        else:
+            inds = np.arange(window_min, window_max)
+
+        if len(inds)==0:
+            raise ValueError('ERROR: OF window is empty. Check arguments')
+        
+        inds = inds[(inds>=0) & (inds<nbins)]
+            
+        if constraint_mask is not None:
+            inds = inds[constraint_mask[inds]]
+            
+        if len(inds)!=0:
+            bestind = np.argmin(chisq[..., inds], axis=-1)
+            bestind = inds[bestind]
+
+    else:
+
+        if constraint_mask is None:
+            bestind = np.argmin(chisq, axis=-1)
+        else:
+            inds = np.flatnonzero(constraint_mask)
+            if len(inds)!=0:
+                bestind = np.argmin(chisq[..., constraint_mask],
+                                    axis=-1)
+                bestind = inds[bestind]
+               
+
+    return bestind
