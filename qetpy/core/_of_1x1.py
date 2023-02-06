@@ -18,6 +18,7 @@ class OF1x1:
     def __init__(self, of_base=None, template_tag='default', 
                  template=None, psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
+                 fcutoff=10000,
                  coupling='AC', integralnorm=False,
                  channel_name='unknown',
                  verbose=True):
@@ -52,8 +53,12 @@ class OF1x1:
             Number of pretrigger samples
             Default: use pretrigger_msec or if also None,
                      use 1/2 trace length
+                     
+        fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
 
-        pretrigger_msec : float, optionalif of_base is not None
+        pretrigger_msec : float, optional if of_base is not None
             Pretrigger length in ms (if  pretrigger_samples is None)
             Default: 1/2 trace length
 
@@ -75,7 +80,7 @@ class OF1x1:
 
         channel_name : str, optional
             channel name
-        
+            
         verbose : bool, optional 
             Display information
             Default=True
@@ -109,6 +114,7 @@ class OF1x1:
             self._of_base = OFBase(sample_rate, 
                                    pretrigger_msec=pretrigger_msec,
                                    pretrigger_samples=pretrigger_samples,
+                                   fcutoff=fcutoff,
                                    channel_name=channel_name,
                                    verbose=verbose)
             
@@ -170,16 +176,19 @@ class OF1x1:
         self._of_amp_nodelay = None
         self._of_chisq_nodelay = None
         self._of_t0_nodelay = None
+        self._of_chi2low_nodelay = None
 
         self._of_amp_withdelay = None
         self._of_chisq_withdelay = None
         self._of_t0_withdelay = None
+        self._of_chi2low_withdelay = None
         
 
         # iterative
         self._of_amps_iterative = None
         self._of_chisq_iterative = None
         self._of_t0_iterative = None
+        self._of_chi2low_iterative = None
 
 
             
@@ -203,11 +212,10 @@ class OF1x1:
         signal : ndarray, optional
           signal trace, can be None if already
           set in 'of_base
-
+          
         window_min_from_trig_usec : float, optional
            OF filter window start in micro seconds from
            pre-trigger (can be negative if prior pre-trigger)
-
 
         window_max_from_trig_usec : float, optional
            OF filter window end in micro seconds from
@@ -219,7 +227,7 @@ class OF1x1:
         
         window_max_index: int, optional
             OF filter window end in ADC samples
-
+            
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether the Optimum
             Filter should look inside `nconstrain` or outside it. If
@@ -280,8 +288,7 @@ class OF1x1:
         self._of_amp_withdelay = amp
         self._of_chisq_withdelay = chisq
         self._of_t0_withdelay = t0
-     
-            
+        
         # add nodelay fit
         if lgc_fit_nodelay:
             amp_0,t0_0,chisq_0 = self._of_base.get_fit_nodelay(
@@ -293,7 +300,6 @@ class OF1x1:
             self._of_amp_nodelay = amp_0
             self._of_chisq_nodelay = chisq_0
             self._of_t0_nodelay = t0_0
-
 
         if lgc_plot:
             self.plot(lgc_plot_withdelay=True,
@@ -364,7 +370,7 @@ class OF1x1:
 
         
 
-    def get_result_nodelay(self):
+    def get_result_nodelay(self, fcutoff):
         """
         Get OF no-delay results
 
@@ -386,16 +392,29 @@ class OF1x1:
         chisq : float
             The chi^2 value calculated from the optimum filter with no
             time shifting (or at the time shift specified by shift_usec)
+            
+        lowchi2_0 : float
+            The low frequency chi^2 value (cut off at fcutoff) for the
+            inputted values with no time shifting (or at the time shift 
+            specified by shift_usec)
         
         """
 
+        lowchi2_0 = self._of_base.get_chisq_lowfreq(
+            template_tag=self._template_tag,
+            amp=self._of_amp_nodelay,
+            t0=self._of_t0_nodelay,
+            fcutoff=fcutoff
+        )
+        self._of_chi2low_nodelay = lowchi2_0
         
         return (self._of_amp_nodelay,
                 self._of_t0_nodelay,
-                self._of_chisq_nodelay)
+                self._of_chisq_nodelay, 
+                self._of_chi2low_nodelay)
 
 
-    def get_result_withdelay(self):
+    def get_result_withdelay(self, fcutoff):
         """
         Get OF with delay results
  
@@ -412,12 +431,23 @@ class OF1x1:
             The time shift calculated for the pulse (in s).
         chi2 : float
             The chi^2 value calculated from the optimum filter.
+        lowchi2 : float
+            The low frequency chi^2 value (cut off at fcutoff) for the
+            inputted values
         """
 
+        lowchi2 = self._of_base.get_chisq_lowfreq(
+            template_tag=self._template_tag,
+            amp=self._of_amp_withdelay,
+            t0=self._of_t0_withdelay,
+            fcutoff=fcutoff
+        )
+        self._of_chi2low_withdelay = lowchi2
         
         return (self._of_amp_withdelay,
                 self._of_t0_withdelay,
-                self._of_chisq_withdelay)
+                self._of_chisq_withdelay, 
+                self._of_chi2low_withdelay)
 
 
     
