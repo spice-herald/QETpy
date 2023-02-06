@@ -20,6 +20,7 @@ class OFBase:
     def __init__(self, sample_rate,
                  pretrigger_samples=None,
                  pretrigger_msec=None,
+                 fcutoff=None,
                  channel_name='unknown',
                  verbose=True):
         """
@@ -1317,8 +1318,7 @@ class OFBase:
         # check signal
         if self._signal_fft  is None:
             raise ValueError('ERROR: no signal available!')
-
-        
+            
         template_fft = self._templates_fft[template_tag]
         signal_fft = self._signal_fft 
 
