@@ -20,7 +20,6 @@ class OFBase:
     def __init__(self, sample_rate,
                  pretrigger_samples=None,
                  pretrigger_msec=None,
-                 fcutoff=None,
                  channel_name='unknown',
                  verbose=True):
         """
