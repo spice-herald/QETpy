@@ -109,7 +109,6 @@ class OF1x1:
             self._of_base = OFBase(sample_rate, 
                                    pretrigger_msec=pretrigger_msec,
                                    pretrigger_samples=pretrigger_samples,
-                                   fcutoff=fcutoff,
                                    channel_name=channel_name,
                                    verbose=verbose)
             
