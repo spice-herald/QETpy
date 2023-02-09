@@ -1279,7 +1279,7 @@ class OFBase:
 
 
     
-    def get_chisq_lowfreq(self, amp, t0=0, fcutoff=10000,
+    def get_chisq_lowfreq(self, amp, t0=0, lowchi2_fcutoff=10000,
                           template_tag='default'):
         """
         Method for calculating the low frequency chi^2 of the optimum
@@ -1292,7 +1292,7 @@ class OFBase:
         t0 : float, optional
             The time shift calculated for the pulse (in s).
             default: 0 (np shift)
-        fcutoff : float, optional
+        lowchi2_fcutoff : float, optional
             The frequency (in Hz) that we should cut off the chi^2 when
             calculating the low frequency chi^2. Default is 10 kHz.
 
@@ -1303,7 +1303,7 @@ class OFBase:
         Returns
         -------
         chi2low : float
-            The low frequency chi^2 value (cut off at fcutoff) for the
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
             inputted values.
 
         """
@@ -1317,8 +1317,7 @@ class OFBase:
         # check signal
         if self._signal_fft  is None:
             raise ValueError('ERROR: no signal available!')
-
-        
+            
         template_fft = self._templates_fft[template_tag]
         signal_fft = self._signal_fft 
 
@@ -1329,7 +1328,7 @@ class OFBase:
         
 
         # find low freq indices
-        chi2inds = np.abs(self._fft_freqs) <= fcutoff
+        chi2inds = np.abs(self._fft_freqs) <= lowchi2_fcutoff
 
         # sum
         chi2low = np.sum(chi2tot[chi2inds])

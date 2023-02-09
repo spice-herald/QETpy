@@ -53,7 +53,7 @@ class OF1x1:
             Default: use pretrigger_msec or if also None,
                      use 1/2 trace length
 
-        pretrigger_msec : float, optionalif of_base is not None
+        pretrigger_msec : float, optional if of_base is not None
             Pretrigger length in ms (if  pretrigger_samples is None)
             Default: 1/2 trace length
 
@@ -75,7 +75,7 @@ class OF1x1:
 
         channel_name : str, optional
             channel name
-        
+            
         verbose : bool, optional 
             Display information
             Default=True
@@ -170,16 +170,19 @@ class OF1x1:
         self._of_amp_nodelay = None
         self._of_chisq_nodelay = None
         self._of_t0_nodelay = None
+        self._of_chi2low_nodelay = None
 
         self._of_amp_withdelay = None
         self._of_chisq_withdelay = None
         self._of_t0_withdelay = None
+        self._of_chi2low_withdelay = None
         
 
         # iterative
         self._of_amps_iterative = None
         self._of_chisq_iterative = None
         self._of_t0_iterative = None
+        self._of_chi2low_iterative = None
 
 
             
@@ -188,6 +191,7 @@ class OF1x1:
              window_max_from_trig_usec=None,
              window_min_index=None,
              window_max_index=None,
+             lowchi2_fcutoff=10000,
              lgc_outside_window=False,
              pulse_direction_constraint=0,
              interpolate_t0=False,
@@ -203,11 +207,10 @@ class OF1x1:
         signal : ndarray, optional
           signal trace, can be None if already
           set in 'of_base
-
+          
         window_min_from_trig_usec : float, optional
            OF filter window start in micro seconds from
            pre-trigger (can be negative if prior pre-trigger)
-
 
         window_max_from_trig_usec : float, optional
            OF filter window end in micro seconds from
@@ -219,7 +222,11 @@ class OF1x1:
         
         window_max_index: int, optional
             OF filter window end in ADC samples
-
+            
+        lowchi2_fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
+            
         lgcoutsidewindow : bool, optional
             Boolean flag that is used to specify whether the Optimum
             Filter should look inside `nconstrain` or outside it. If
@@ -276,12 +283,19 @@ class OF1x1:
             pulse_direction_constraint=pulse_direction_constraint,
             interpolate_t0=interpolate_t0
         )
+        
+        lowchi2 = self._of_base.get_chisq_lowfreq(
+            template_tag=self._template_tag,
+            amp=amp,
+            t0=t0,
+            lowchi2_fcutoff=lowchi2_fcutoff
+        )
 
         self._of_amp_withdelay = amp
         self._of_chisq_withdelay = chisq
         self._of_t0_withdelay = t0
-     
-            
+        self._of_chi2low_withdelay = lowchi2
+        
         # add nodelay fit
         if lgc_fit_nodelay:
             amp_0,t0_0,chisq_0 = self._of_base.get_fit_nodelay(
@@ -289,11 +303,17 @@ class OF1x1:
                 shift_usec=None,
                 use_chisq_alltimes=True
             )
+            lowchi2_0 = self._of_base.get_chisq_lowfreq(
+                template_tag=self._template_tag,
+                amp=amp_0,
+                t0=t0_0,
+                lowchi2_fcutoff=lowchi2_fcutoff
+            )
         
             self._of_amp_nodelay = amp_0
             self._of_chisq_nodelay = chisq_0
             self._of_t0_nodelay = t0_0
-
+            self._of_chi2low_nodelay = lowchi2_0
 
         if lgc_plot:
             self.plot(lgc_plot_withdelay=True,
@@ -304,6 +324,7 @@ class OF1x1:
 
     def calc_nodelay(self, signal=None,
                      shift_usec=None,
+                     lowchi2_fcutoff=10000,
                      use_chisq_alltimes=True,
                      lgc_plot=False):
         """
@@ -317,10 +338,13 @@ class OF1x1:
           signal trace, can be None if already
           set in 'of_base
 
-
         shift_usec : float, optional
           shift in micro seconds from pretrigger time
           default: no shift
+                             
+        lowchi2_fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
         
         use_chisq_alltimes : bool, optional
           use the chisq all times 
@@ -354,9 +378,17 @@ class OF1x1:
             use_chisq_alltimes=use_chisq_alltimes
         )
         
+        lowchi2_0 = self._of_base.get_chisq_lowfreq(
+            template_tag=self._template_tag,
+            amp=amp_0,
+            t0=t0_0,
+            lowchi2_fcutoff=lowchi2_fcutoff
+        )
+        
         self._of_amp_nodelay = amp_0
         self._of_chisq_nodelay = chisq_0
         self._of_t0_nodelay = t0_0
+        self._of_chi2low_nodelay = lowchi2_0
 
         if lgc_plot:
             self.plot(lgc_fit_nodelay=True)
@@ -386,13 +418,18 @@ class OF1x1:
         chisq : float
             The chi^2 value calculated from the optimum filter with no
             time shifting (or at the time shift specified by shift_usec)
+            
+        lowchi2_0 : float
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
+            inputted values with no time shifting (or at the time shift 
+            specified by shift_usec)
         
         """
-
         
         return (self._of_amp_nodelay,
                 self._of_t0_nodelay,
-                self._of_chisq_nodelay)
+                self._of_chisq_nodelay, 
+                self._of_chi2low_nodelay)
 
 
     def get_result_withdelay(self):
@@ -412,12 +449,16 @@ class OF1x1:
             The time shift calculated for the pulse (in s).
         chi2 : float
             The chi^2 value calculated from the optimum filter.
+        lowchi2 : float
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
+            inputted values
         """
 
         
         return (self._of_amp_withdelay,
                 self._of_t0_withdelay,
-                self._of_chisq_withdelay)
+                self._of_chisq_withdelay, 
+                self._of_chi2low_withdelay)
 
 
     
