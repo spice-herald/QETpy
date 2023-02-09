@@ -191,7 +191,7 @@ class OF1x1:
              window_max_from_trig_usec=None,
              window_min_index=None,
              window_max_index=None,
-             fcutoff=10000,
+             lowchi2_fcutoff=10000,
              lgc_outside_window=False,
              pulse_direction_constraint=0,
              interpolate_t0=False,
@@ -223,7 +223,7 @@ class OF1x1:
         window_max_index: int, optional
             OF filter window end in ADC samples
             
-        fcutoff : float, optional
+        lowchi2_fcutoff : float, optional
             The frequency (in Hz) that we should cut off the chi^2 when
             calculating the low frequency chi^2. Default is 10 kHz.
             
@@ -288,7 +288,7 @@ class OF1x1:
             template_tag=self._template_tag,
             amp=amp,
             t0=t0,
-            fcutoff=fcutoff
+            lowchi2_fcutoff=lowchi2_fcutoff
         )
 
         self._of_amp_withdelay = amp
@@ -307,7 +307,7 @@ class OF1x1:
                 template_tag=self._template_tag,
                 amp=amp_0,
                 t0=t0_0,
-                fcutoff=fcutoff
+                lowchi2_fcutoff=lowchi2_fcutoff
             )
         
             self._of_amp_nodelay = amp_0
@@ -324,7 +324,7 @@ class OF1x1:
 
     def calc_nodelay(self, signal=None,
                      shift_usec=None,
-                     fcutoff=10000,
+                     lowchi2_fcutoff=10000,
                      use_chisq_alltimes=True,
                      lgc_plot=False):
         """
@@ -342,7 +342,7 @@ class OF1x1:
           shift in micro seconds from pretrigger time
           default: no shift
                              
-        fcutoff : float, optional
+        lowchi2_fcutoff : float, optional
             The frequency (in Hz) that we should cut off the chi^2 when
             calculating the low frequency chi^2. Default is 10 kHz.
         
@@ -382,7 +382,7 @@ class OF1x1:
             template_tag=self._template_tag,
             amp=amp_0,
             t0=t0_0,
-            fcutoff=fcutoff
+            lowchi2_fcutoff=lowchi2_fcutoff
         )
         
         self._of_amp_nodelay = amp_0
@@ -420,7 +420,7 @@ class OF1x1:
             time shifting (or at the time shift specified by shift_usec)
             
         lowchi2_0 : float
-            The low frequency chi^2 value (cut off at fcutoff) for the
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
             inputted values with no time shifting (or at the time shift 
             specified by shift_usec)
         
@@ -450,7 +450,7 @@ class OF1x1:
         chi2 : float
             The chi^2 value calculated from the optimum filter.
         lowchi2 : float
-            The low frequency chi^2 value (cut off at fcutoff) for the
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
             inputted values
         """
 
