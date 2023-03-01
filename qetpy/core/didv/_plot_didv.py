@@ -127,8 +127,10 @@ class _PlotDIDV(object):
         return fig, ax
 
 
-    def plot_full_trace(self, poles="all", saveplot=False, savepath="",
-                        savename=""):
+    def plot_full_trace(self, poles="all",
+                        saveplot=False, savepath="",
+                        savename="",
+                        lp_cutoff=None):
         """
         Function to plot the entire trace in time domain
 
