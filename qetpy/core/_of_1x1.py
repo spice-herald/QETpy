@@ -168,19 +168,21 @@ class OF1x1:
 
         # single 1x1
         self._of_amp_nodelay = None
-        self._of_chisq_nodelay = None
+        self._of_chi2_nodelay = None
         self._of_t0_nodelay = None
         self._of_chi2low_nodelay = None
 
         self._of_amp_withdelay = None
-        self._of_chisq_withdelay = None
+        self._of_chi2_withdelay = None
         self._of_t0_withdelay = None
         self._of_chi2low_withdelay = None
-        
+
+        # "no pulse" chi2
+        self._of_chi2_nopulse = None
 
         # iterative
         self._of_amps_iterative = None
-        self._of_chisq_iterative = None
+        self._of_chi2_iterative = None
         self._of_t0_iterative = None
         self._of_chi2low_iterative = None
 
@@ -273,7 +275,7 @@ class OF1x1:
             )
             
         # get fit results
-        amp,t0,chisq = self._of_base.get_fit_withdelay(
+        amp,t0,chi2 = self._of_base.get_fit_withdelay(
             self._template_tag,
             window_min_from_trig_usec=window_min_from_trig_usec,
             window_max_from_trig_usec=window_max_from_trig_usec,
@@ -292,13 +294,20 @@ class OF1x1:
         )
 
         self._of_amp_withdelay = amp
-        self._of_chisq_withdelay = chisq
+        self._of_chi2_withdelay = chi2
         self._of_t0_withdelay = t0
         self._of_chi2low_withdelay = lowchi2
+
+
+        # chisq no pulse
+        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse()
+        
+
+
         
         # add nodelay fit
         if lgc_fit_nodelay:
-            amp_0,t0_0,chisq_0 = self._of_base.get_fit_nodelay(
+            amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
                 template_tag=self._template_tag,
                 shift_usec=None,
                 use_chisq_alltimes=True
@@ -311,7 +320,7 @@ class OF1x1:
             )
         
             self._of_amp_nodelay = amp_0
-            self._of_chisq_nodelay = chisq_0
+            self._of_chi2_nodelay = chi2_0
             self._of_t0_nodelay = t0_0
             self._of_chi2low_nodelay = lowchi2_0
 
@@ -372,7 +381,7 @@ class OF1x1:
             )
         
         # nodelay fit
-        amp_0,t0_0,chisq_0 = self._of_base.get_fit_nodelay(
+        amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
             template_tag=self._template_tag,
             shift_usec=shift_usec,
             use_chisq_alltimes=use_chisq_alltimes
@@ -386,9 +395,15 @@ class OF1x1:
         )
         
         self._of_amp_nodelay = amp_0
-        self._of_chisq_nodelay = chisq_0
+        self._of_chi2_nodelay = chi2_0
         self._of_t0_nodelay = t0_0
         self._of_chi2low_nodelay = lowchi2_0
+
+
+        # chisq no pulse
+        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse()
+        
+            
 
         if lgc_plot:
             self.plot(lgc_fit_nodelay=True)
@@ -415,7 +430,7 @@ class OF1x1:
          t0 : float
             The time shift (=0 or shift_usec)
 
-        chisq : float
+        chi2 : float
             The chi^2 value calculated from the optimum filter with no
             time shifting (or at the time shift specified by shift_usec)
             
@@ -428,7 +443,7 @@ class OF1x1:
         
         return (self._of_amp_nodelay,
                 self._of_t0_nodelay,
-                self._of_chisq_nodelay, 
+                self._of_chi2_nodelay, 
                 self._of_chi2low_nodelay)
 
 
@@ -457,10 +472,28 @@ class OF1x1:
         
         return (self._of_amp_withdelay,
                 self._of_t0_withdelay,
-                self._of_chisq_withdelay, 
+                self._of_chi2_withdelay, 
                 self._of_chi2low_withdelay)
 
 
+    def get_chisq_nopulse(self):
+        """
+        Method to get 'no pulse' part of the chi2
+        (independent of template)
+
+        Parameters
+        ---------
+        None
+
+        Return
+        ------
+        chi2_nopulse : float 
+          
+        """
+        return self._of_chi2_nopulse
+
+
+    
     
     def get_energy_resolution(self):
         """
@@ -559,7 +592,7 @@ class OF1x1:
         template = self._of_base.template()
         fs = self._of_base.sample_rate
         nbins = len(signal)
-        chi2 = self._of_chisq_withdelay/len(signal)
+        chi2 = self._of_chi2_withdelay/len(signal)
         
         # time axis
         xtime_ms = 1e3*np.arange(nbins)/fs
@@ -571,7 +604,7 @@ class OF1x1:
         ax.plot(xtime_ms, signal*1e6, label='Signal', color='blue', alpha=0.5)
 
         if lgc_plot_withdelay:
-            chi2 = self._of_chisq_withdelay/len(signal)
+            chi2 = self._of_chi2_withdelay/len(signal)
             
             ax.plot(xtime_ms,
                     self._of_amp_withdelay*np.roll(
@@ -584,7 +617,7 @@ class OF1x1:
                     linestyle='dotted')
 
         if lgc_plot_nodelay:
-            chi2 = self._of_chisq_nodelay/len(signal)
+            chi2 = self._of_chi2_nodelay/len(signal)
             ax.plot(xtime_ms,
                     self._of_amp_nodelay*np.roll(
                         template,

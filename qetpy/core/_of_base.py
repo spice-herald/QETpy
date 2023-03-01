@@ -1276,7 +1276,25 @@ class OFBase:
         return sigma
 
 
+    def get_chisq_nopulse(self):
+        """
+        Method to get "no pulse" part of the chi2
+        (independent of template)
 
+        Parameters
+        ---------
+        None
+
+        Return
+        ------
+        chi2_nopulse : float 
+          
+        """
+
+        if  self._chisq0 is None:
+            self.calc_chisq0()
+
+        return self._chisq0
 
     
     def get_chisq_lowfreq(self, amp, t0=0, lowchi2_fcutoff=10000,
