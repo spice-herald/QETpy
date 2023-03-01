@@ -41,7 +41,7 @@ class _PlotDIDV(object):
         return best_time_offset
 
 
-    def _plot_time_domain(self, poles, lp_cutoff = None):
+    def _plot_time_domain(self, poles, lp_cutoff=None):
         """Helper function for plotting the fits in time domain."""
 
         if poles == "all":
@@ -59,10 +59,10 @@ class _PlotDIDV(object):
             label='Mean',
         )
 
-        if lp_cutoff:
-            order_ = 2
+        if lp_cutoff is not None:
+
             lp_meantrace = lowpassfilter((self._tmean - self._offset) * 1e6,
-                                         lp_cutoff, fs=self._fs, order = order_)
+                                         lp_cutoff, fs=self._fs, order=2)
             ax.plot(
                 self._time * 1e6,
                 lp_meantrace,
@@ -160,6 +160,9 @@ class _PlotDIDV(object):
         savename : string, optional
             A string to append to the end of the file name if saving.
             Empty string by default.
+        lp_cutoff : float, optional
+            cutoff frequency in Hz for display filtered trace
+            Default: None (filtered trace not displayed)
 
         """
 
@@ -176,7 +179,8 @@ class _PlotDIDV(object):
 
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
-                                    savepath="", savename="", lp_cutoff = None):
+                                    savepath="", savename="",
+                                    lp_cutoff=None):
         """
         Function to plot a single period of the trace in time domain
 
@@ -194,6 +198,9 @@ class _PlotDIDV(object):
         savename : string, optional
             A string to append to the end of the file name if saving.
             Empty string by default.
+        lp_cutoff : float, optional
+            cutoff frequency in Hz for display filtered trace
+            Default: None (filtered trace not displayed)
 
         """
 
@@ -235,6 +242,9 @@ class _PlotDIDV(object):
         savename : string, optional
             A string to append to the end of the file name if saving.
             Empty string by default.
+        lp_cutoff : float, optional
+            cutoff frequency in Hz for display filtered trace
+            Default: None (filtered trace not displayed)
 
         """
 
@@ -263,7 +273,7 @@ class _PlotDIDV(object):
 
 
     def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
-                          savename="", lp_cutoff = None, zoomfactor = None):
+                          savename="", zoomfactor=None, lp_cutoff=None):
         """
         Function to plot the flipped trace in time domain. This
         function should be used to test if there are nonlinearities in
@@ -283,6 +293,12 @@ class _PlotDIDV(object):
         savename : string, optional
             A string to append to the end of the file name if saving.
             Empty string by default.
+        zoomfactor : float, optional, optional
+            Number between zero and 1 to show different amounts of the
+            zoomed in trace.
+        lp_cutoff : float, optional
+            cutoff frequency in Hz for display filtered trace
+            Default: None (filtered trace not displayed)
 
         """
 
@@ -300,10 +316,11 @@ class _PlotDIDV(object):
             alpha = 0.6,
         )
 
-        if lp_cutoff:
-            order_ = 2
+        if lp_cutoff is not None:
+            
             lp_meantrace_flip = lowpassfilter(tmean_flipped * 1e6,
-                                         lp_cutoff, fs=self._fs, order = order_)
+                                              lp_cutoff, fs=self._fs,
+                                              order=2)
             ax.plot(
                 time_flipped * 1e6,
                 lp_meantrace_flip,
@@ -311,7 +328,8 @@ class _PlotDIDV(object):
                 label='Flipped Data, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
             )
 
-        if zoomfactor:
+        if zoomfactor is not None:
+            
             period = 1.0 / self._sgfreq
 
             best_time_offset = self._get_best_time_offset()
