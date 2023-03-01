@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ._base_didv import squarewaveresponse, complexadmittance
+from qetpy.utils import lowpassfilter
 
 
 class _PlotDIDV(object):
@@ -40,7 +41,7 @@ class _PlotDIDV(object):
         return best_time_offset
 
 
-    def _plot_time_domain(self, poles):
+    def _plot_time_domain(self, poles, lp_cutoff = None):
         """Helper function for plotting the fits in time domain."""
 
         if poles == "all":
@@ -57,6 +58,17 @@ class _PlotDIDV(object):
             color='k',
             label='Mean',
         )
+
+        if lp_cutoff:
+            order_ = 2
+            lp_meantrace = lowpassfilter((self._tmean - self._offset) * 1e6,
+                                         lp_cutoff, fs=self._fs, order = order_)
+            ax.plot(
+                self._time * 1e6,
+                lp_meantrace,
+                color='red',
+                label='Mean, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+            )
 
         if (self._1poleresult is not None) and (1 in poleslist):
             if 'smallsignalparams' in self._1poleresult:
@@ -127,8 +139,10 @@ class _PlotDIDV(object):
         return fig, ax
 
 
-    def plot_full_trace(self, poles="all", saveplot=False, savepath="",
-                        savename=""):
+    def plot_full_trace(self, poles="all",
+                        saveplot=False, savepath="",
+                        savename="",
+                        lp_cutoff=None):
         """
         Function to plot the entire trace in time domain
 
@@ -149,7 +163,7 @@ class _PlotDIDV(object):
 
         """
 
-        fig, ax = self._plot_time_domain(poles)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff)
 
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
         ax.set_title("Full Trace of dIdV")
@@ -162,7 +176,7 @@ class _PlotDIDV(object):
 
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
-                                    savepath="", savename=""):
+                                    savepath="", savename="", lp_cutoff = None):
         """
         Function to plot a single period of the trace in time domain
 
@@ -183,7 +197,7 @@ class _PlotDIDV(object):
 
         """
 
-        fig, ax = self._plot_time_domain(poles)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff)
 
         period = 1.0/self._sgfreq
 
@@ -198,7 +212,8 @@ class _PlotDIDV(object):
 
 
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
-                             saveplot=False, savepath="", savename=""):
+                             saveplot=False, savepath="", savename="",
+                             lp_cutoff=None):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -227,7 +242,7 @@ class _PlotDIDV(object):
 
         best_time_offset = self._get_best_time_offset()
 
-        fig, ax = self._plot_time_domain(poles)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff)
 
         ax.set_xlim(
             (best_time_offset + self._time[0] + (
@@ -248,7 +263,7 @@ class _PlotDIDV(object):
 
 
     def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
-                          savename=""):
+                          savename="", lp_cutoff = None, zoomfactor = None):
         """
         Function to plot the flipped trace in time domain. This
         function should be used to test if there are nonlinearities in
@@ -271,7 +286,7 @@ class _PlotDIDV(object):
 
         """
 
-        fig, ax = self._plot_time_domain(poles)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff)
 
         period = 1.0 / self._sgfreq
         time_flipped = self._time - period / 2.0
@@ -282,7 +297,34 @@ class _PlotDIDV(object):
             tmean_flipped * 1e6,
             color='blue',
             label='Flipped Data',
+            alpha = 0.6,
         )
+
+        if lp_cutoff:
+            order_ = 2
+            lp_meantrace_flip = lowpassfilter(tmean_flipped * 1e6,
+                                         lp_cutoff, fs=self._fs, order = order_)
+            ax.plot(
+                time_flipped * 1e6,
+                lp_meantrace_flip,
+                color='cyan',
+                label='Flipped Data, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+            )
+
+        if zoomfactor:
+            period = 1.0 / self._sgfreq
+
+            best_time_offset = self._get_best_time_offset()
+
+            ax.set_xlim(
+                (best_time_offset + self._time[0] + (
+                0.5 - zoomfactor / 2
+                ) * period) * 1e6,
+                (best_time_offset + self._time[0] + (
+                0.5 + zoomfactor / 2) * period
+                ) * 1e6,
+            )
+        
 
         ax.set_title("Flipped Traces to Check Asymmetry")
 
