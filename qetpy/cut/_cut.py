@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from qetpy import ofamp
+from qetpy import ofamp, calc_psd, OF1x1
 from qetpy.utils import make_template
 from astropy.stats import sigma_clip
 from scipy import stats, optimize
@@ -166,7 +166,7 @@ class _UnbiasedEstimators(object):
         )
 
 
-def iterstat(data, cut=3, precision=1000.0,
+def iterstat(data, sigma=2, precision=1000.0,
              return_unbiased_estimates=False):
     """
     Function to iteratively remove outliers based on how many standard
@@ -177,7 +177,7 @@ def iterstat(data, cut=3, precision=1000.0,
     ----------
     data : ndarray
         Array of data that we want to remove outliers from.
-    cut : float, optional
+    sigma : float, optional
         Number of standard deviations from the mean to be used for
         outlier rejection
     precision : float, optional
@@ -212,7 +212,7 @@ def iterstat(data, cut=3, precision=1000.0,
     keepgoing = True
 
     while keepgoing:
-        mask = abs(data - meanlast) < cut*stdlast
+        mask = abs(data - meanlast) < sigma*stdlast
         if sum(mask) <=1:
             warnings.warn(
                 "The number of events passing iterative cut via iterstat is <= 1. "
@@ -244,8 +244,8 @@ def iterstat(data, cut=3, precision=1000.0,
     if return_unbiased_estimates:
         unb = _UnbiasedEstimators(
             data[mask],
-            meanthis - cut * stdthis,
-            meanthis + cut * stdthis,
+            meanthis - sigma * stdthis,
+            meanthis + sigma * stdthis,
         )
         return unb.mu, unb.std, mask
 
@@ -608,6 +608,14 @@ class IterCut(_PlotCut):
     def cmask(self):
         raise AttributeError("cmask is a protected attribute, can't delete it")
 
+
+    @property
+    def cutinds(self):
+        return self._cutinds
+
+
+        
+
     def _run_algo(self, vals, outlieralgo, verbose, **kwargs):
         """
         Hidden function for running the outlier algorithm on a set of
@@ -620,7 +628,9 @@ class IterCut(_PlotCut):
         elif outlieralgo=="removeoutliers": 
             cout = removeoutliers(vals, **kwargs)
         elif outlieralgo=="sigma_clip":
-            array = sigma_clip(vals, axis=0, masked=False, **kwargs)
+            array = sigma_clip(vals, axis=0, masked=False,
+                               maxiters=None,
+                               **kwargs)
             cout = ~np.isnan(array)
         else:
             raise ValueError(
@@ -633,8 +643,35 @@ class IterCut(_PlotCut):
 
         self._cutinds = self._cutinds[cout]
 
-    def pileupcut(self, template=None, psd=None, removemeans=False,
-                  outlieralgo="iterstat", verbose=False, **kwargs):
+        
+    def update_cutinds(self, cut):
+        """
+        Update cutinds with an external cut
+        
+        Parameter
+        ---------
+
+        cut : ndarray
+          cut array (boolean) with same length as cutinds
+
+        Return
+        ------
+        None
+        """
+
+        if self._cutinds.shape != cut.shape:
+            raise ValueError('ERROR: external cut needs to have'
+                             + ' shape = ' + str(self._cutinds.shape))
+        
+                
+        self._cutinds = self._cutinds[cut]
+
+
+
+
+        
+    def pileupcut(self, template=None, psd=None,
+                  outlieralgo="sigma_cut", verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter amplitudes of the inputted traces.
@@ -649,13 +686,6 @@ class IterCut(_PlotCut):
             The two-sided PSD (units of A^2/Hz) to use for the
             optimum filter. If not passed, then all frequencies are
             weighted equally.
-        removemeans : bool, optional
-            Boolean flag for if the mean of each trace should be
-            removed before doing the optimum filter (True) or if the
-            means should not be removed (False). This is useful for
-            dIdV traces, when we want to cut out pulses that have
-            smaller amplitude than the dIdV overshoot. Default is
-            False.
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
@@ -684,26 +714,33 @@ class IterCut(_PlotCut):
             psd = np.ones(self._nbin)
 
         temp_traces = self.traces[self._cutinds]
+     
+        # instantiate OF
+        bins  = temp_traces.shape[1]
+        OF = qp.OF1x1(template=template, psd=psd,
+                      sample_rate=self.fs,
+                      pretrigger_samples=bins//2,
+                      verbose=False)
 
-        if removemeans:
-            mean = np.mean(temp_traces, axis=-1, keepdims=True)
-            temp_traces -= mean
-
+        # loop traces and calc OF 
         ntemptraces = len(temp_traces)
-
-        amps = np.zeros(ntemptraces)
-
-        #do optimum filter on all traces
+        of_amps = np.zeros(ntemptraces)
+        
         for itrace in range(ntemptraces):
-            amps[itrace] = ofamp(
-                temp_traces[itrace], template, psd, self.fs,
-            )[0]
 
-        self._run_algo(np.abs(amps), outlieralgo, verbose, **kwargs)
+            OF.calc(signal=temp_traces[itrace], 
+                    lowchi2_fcutoff=10000,
+                    lgc_plot=False)
+
+            amp, t0, chi2, lowchi2 = OF.get_result_withdelay()
+            of_amps[itrace]=amp
+            
+
+        self._run_algo(np.abs(of_amps), outlieralgo, verbose, **kwargs)
 
         return self.cmask
 
-    def baselinecut(self, endindex=None, outlieralgo="iterstat",
+    def baselinecut(self, endindex=None, outlieralgo="sigma_cut",
                     verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the baselines
@@ -747,7 +784,48 @@ class IterCut(_PlotCut):
 
         return self.cmask
 
-    def slopecut(self, outlieralgo="iterstat", verbose=False, **kwargs):
+
+
+    
+    def minmaxcut(self, outlieralgo="sigma_cut",
+                  verbose=False, **kwargs):
+        """
+        Function to automatically cut out outliers of the baselines
+        of the inputted traces.
+
+        Parameters
+        ----------
+        outlieralgo : str, optional
+            Which outlier algorithm to use: iterstat, removeoutliers,
+            or astropy's sigma_clip. Default is "iterstat".
+        verbose : bool, optional
+            If True, the events that pass or fail each cut will be
+            plotted at each step. Default is False. If `plotall` is
+            True when initializing this class, then this will be
+            ignored in favor of `plotall`.
+        **kwargs
+            Keyword arguments to pass to the outlier algorithm function
+            call.
+
+        Returns
+        -------
+        cminmax : ndarray
+            Boolean array giving which indices to keep or throw out
+            based on the outlier algorithm.
+
+        """
+        
+        temp_traces = self.traces[self._cutinds]
+        min_max = temp_traces.max(axis=-1) - temp_traces.min(axis=-1)
+      
+        self._run_algo(min_max, outlieralgo, verbose, **kwargs)
+
+        return self.cmask
+
+
+    
+
+    def slopecut(self, outlieralgo="sigma_cut", verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the slopes of the
         inputted traces. Slopes are calculated via maximum likelihood
@@ -792,7 +870,12 @@ class IterCut(_PlotCut):
 
         return self.cmask
 
-    def chi2cut(self, template=None, psd=None, outlieralgo="iterstat",
+
+    
+    def chi2cut(self, template=None, psd=None,
+                outlieralgo="sigma_cut",
+                delta_chi2=False,
+                nodelay_chi2=False,
                 verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -811,6 +894,8 @@ class IterCut(_PlotCut):
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
+        delta_chi2 : bool, optional
+            If True, use delta chi2 = no pulse chi2 - chi2
         verbose : bool, optional
             If True, the events that pass or fail each cut will be
             plotted at each step. Default is False. If `plotall` is
@@ -836,21 +921,44 @@ class IterCut(_PlotCut):
             psd = np.ones(self._nbin)
 
         temp_traces = self.traces[self._cutinds]
+
+
+        # instantiate OF
+        bins  = temp_traces.shape[1]
+        OF = qp.OF1x1(template=template, psd=psd,
+                      sample_rate=self.fs,
+                      pretrigger_samples=bins//2,
+                      verbose=False)
+        
+        # loop traces and calc OF 
         ntemptraces = len(temp_traces)
-
-        chi2s = np.zeros(ntemptraces)
-
-        #do optimum filter on all traces
+        of_chi2s = np.zeros(ntemptraces)
+         
         for itrace in range(ntemptraces):
-            chi2s[itrace] = ofamp(
-                temp_traces[itrace], template, psd, self.fs,
-            )[-1]
 
-        self._run_algo(chi2s, outlieralgo, verbose, **kwargs)
+            OF.calc(signal=temp_traces[itrace], 
+                    lowchi2_fcutoff=10000,
+                    lgc_plot=False)
 
+            if nodelay_chi2:
+                amp, t0, chi2, lowchi2 = OF.get_result_nodelay()
+            else:
+                amp, t0, chi2, lowchi2 = OF.get_result_withdelay()
+                
+            if delta_chi2:
+                chi2_nopulse = OF.get_chisq_nopulse()
+                of_chi2s[itrace] = chi2_nopulse - lowchi2
+            else:
+                of_chi2s[itrace] = lowchi2 
+            
+            
+        # apply cut
+        self._run_algo(of_chi2s, outlieralgo, verbose, **kwargs)
+
+        
         return self.cmask
 
-    def arbitrarycut(self, cutfunction, *args, outlieralgo="iterstat",
+    def arbitrarycut(self, cutfunction, *args, outlieralgo="sigma_cut",
                      verbose=False, **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -894,9 +1002,7 @@ class IterCut(_PlotCut):
 
 
 def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
-             outlieralgo="iterstat", lgcpileup1=True, lgcslope=True,
-             lgcbaseline=True, lgcpileup2=True, lgcchi2=True, nsigpileup1=2,
-             nsigslope=2, nsigbaseline=2, nsigpileup2=2, nsigchi2=3,
+             outlieralgo='sigma_clip', level='strict',
              **kwargs):
     """
     Function to automatically cut out bad traces based on the optimum
@@ -916,47 +1022,7 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
         the skewness of the dataset. If set to "iterstat", uses the
         iterstat algorithm to remove data based on being outside a
         certain number of standard deviations from the mean. Can also
-        be set to astropy's "sigma_clip".
-    lgcpileup1 : boolean, optional
-        Boolean value on whether or not do the pileup1 cut (this is the
-        initial pileup cut that is always done whether or not we have
-        dIdV data). Default is True.
-    lgcslope : boolean, optional
-        Boolean value on whether or not do the slope cut. Default is
-        True.
-    lgcbaseline : boolean, optional
-        Boolean value on whether or not do the baseline cut. Default is
-        True.
-    lgcpileup2 : boolean, optional
-        Boolean value on whether or not do the pileup2 cut (this cut is
-        only done when is_didv is also True). Default is True.
-    lgcchi2 : boolean, optional
-        Boolean value on whether or not do the chi2 cut. Default is
-        True.
-    nsigpileup1 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the
-        number of standard deviations from the mean to cut outliers
-        from the data when using iterstat on the optimum filter
-        amplitudes. Default is 2.
-    nsigslope : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the
-        number of standard deviations from the mean to cut outliers
-        from the data when using iterstat on the slopes. Default is 2.
-    nsigbaseline : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the
-        number of standard deviations from the mean to cut outliers
-        from the data when using iterstat on the baselines. Default is
-        2.
-    nsigpileup2 : float, optional
-        If outlieralgo is "iterstat", this can be used to tune the
-        number of standard deviations from the mean to cut outliers
-        from the data when using iterstat on the optimum filter
-        amplitudes after the mean has been subtracted. (only used if
-        is_didv is True). Default is 2.
-    nsigchi2 : float, optional
-        This can be used to tune the number of standard deviations
-        from the mean to cut outliers from the data when using iterstat
-        on the chi^2 values. Default is 3.
+        be set to astropy's "sigma_clip" (default)
     **kwargs
         Placeholder kwargs for backwards compatibility.
 
@@ -968,53 +1034,218 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
 
     """
 
-    if is_didv and 'sgfreq' in kwargs:
-        warnings.warn(
-            "The `sgfreq` option has been deprecated and "
-            "is now ignored when is_didv is True."
+
+    # define cut level
+    niter_noise = 1
+    niter_didv = 1
+
+    if level=='strict':
+        niter_noise = 2
+        niter_didv = 2
+
+
+    
+    ctot = np.zeros
+    if is_didv:
+        ctot = _autocuts_didv(
+            traces=traces,
+            fs=fs,
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            niter_didv=niter_didv,
+            niter_noise=niter_noise)
+    else:
+        ctot = _autocuts_noise(
+            traces=traces,
+            fs=fs,
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            niter=niter_noise)
+    
+    return ctot
+
+
+
+def _autocuts_noise(traces,fs=625e3, template=None, psd=None,
+                    outlieralgo='sigma_clip', niter=1):
+    """
+    """
+    
+
+    # First calculation with default PSD
+    ctot, psd = _autocuts_noise_core(
+        traces=traces,
+        fs=fs,
+        template=template,
+        psd=psd,
+        outlieralgo=outlieralgo,
+        lgc_chi2=False
+    )
+    
+    # iterate
+    for istep in range(niter):
+
+        # only do chi2 last step
+        lgc_chi2 = False
+        if istep == niter-1:
+            lgc_chi2 = True
+
+        # call core autocut
+        ctot, psd = _autocuts_noise_core(
+            traces=traces,
+            fs=fs,
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            lgc_chi2=lgc_chi2
         )
+        
+    return ctot, psd
+
+
+    
+def _autocuts_noise_core(traces,fs=625e3, template=None, psd=None,
+                         outlieralgo='sigma_clip', sigma=2,
+                         lgc_chi2=False):
+    """
+    """
 
     Cut = IterCut(traces, fs)
+    kwargs = {'sigma': sigma}
+    
+    # 1. OF amplitude cut
+    Cut.pileupcut(
+        template=template,
+        psd=psd,
+        outlieralgo=outlieralgo,
+        **kwargs,)
 
-    if lgcpileup1:
-        kwargs = {'cut': nsigpileup1} if outlieralgo=="iterstat" else {}
-        Cut.pileupcut(
-            template=template,
-            psd=psd,
-            outlieralgo=outlieralgo,
-            **kwargs,
-        )
+    # 2. Baseline  cut
+    Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
 
-    if lgcslope:
-        kwargs = {'cut': nsigslope} if outlieralgo=="iterstat" else {}
-        Cut.slopecut(outlieralgo=outlieralgo, **kwargs)
 
-    if lgcbaseline:
-        kwargs = {'cut': nsigbaseline} if outlieralgo=="iterstat" else {}
-        Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
+    # 3. Slope cut
+    Cut.slopecut(outlieralgo=outlieralgo, **kwargs)
 
-    # do a pileup cut on the mean subtracted data if this is a dIdV,
-    # so that we remove pulses that are smaller than the dIdV peaks
-    if lgcpileup2 and is_didv:
-        kwargs = {'cut': nsigpileup2} if outlieralgo=="iterstat" else {}
-        Cut.pileupcut(
-            template=template,
-            psd=psd,
-            removemeans=True,
-            outlieralgo=outlieralgo,
-            **kwargs,
-        )
 
-    if lgcchi2:
-        kwargs = {'cut': nsigchi2} if outlieralgo=="iterstat" else {}
+    # compute chi2
+    f, psd = calc_psd(traces[Cut.cmask], fs=fs)
+
+
+    # 4. delta chi2 pulse - no pulse 
+    if lgc_chi2:
         Cut.chi2cut(
             template=template,
             psd=psd,
             outlieralgo=outlieralgo,
+            delta_chi2=True,
             **kwargs,
         )
 
-    return Cut.cmask
+
+    return Cut.cmask, psd
+
+
+
+
+def _autocuts_didv(traces,fs=625e3, template=None, psd=None,
+                   outlieralgo='sigma_clip',
+                   niter_noise=1, niter_didv=1):
+    """
+    """
+    
+
+    # Preliminary template
+    ctot, didv_template, psd = _autocuts_didv_core(
+        traces=traces,
+        fs=fs,
+        template=template,
+        didv_template=None,
+        psd=psd,
+        outlieralgo=outlieralgo,
+    )
+    
+    # iterate
+    for istep in range(niter_didv):
+
+        ctot, didv_template, psd = _autocuts_didv_core(
+            traces=traces,
+            fs=fs,
+            template=template,
+            didv_template=didv_template
+            psd=psd,
+            outlieralgo=outlieralgo,
+            niter_noise=niter_noise,
+        )
+
+    return ctot
+
+
+    
+def _autocuts_didv_core(traces,fs=625e3, template=None, psd=None,
+                        didv_template=None,
+                        outlieralgo='sigma_clip',
+                        niter_noise=1):
+    """
+    """
+
+    if didv_template is None:
+        
+        Cut = IterCut(traces, fs)
+        kwargs = {'sigma': 2}
+
+        
+        # 1. OF amplitude cut
+        Cut.pileupcut(
+            template=template,
+            psd=psd,
+            outlieralgo=outlieralgo,
+            **kwargs,)
+
+        # 2. minmax  cut
+        Cut.minmaxcut(outlieralgo=outlieralgo, **kwargs)
+   
+        # 3. Baseline  cut
+        Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
+
+
+        # compute didv template
+        didv_template = np.mean(traces[Cut.cmask], axis=0,
+                                keepdims=True)
+
+
+    
+    Cut = IterCut(traces, fs)
+
+ 
+    # noise cut
+    noise_traces = traces - didv_template
+    cout, psd = _autocuts_noise(
+        traces,fs=fs, template=template, psd=psd,
+        outlieralgo='sigma_clip', niter=niter_noise)
+    
+    # didv chi2 cut
+    Cut.update_cutinds(cout)
+    
+    kwargs = {'sigma': 2}
+    Cut.chi2cut(
+        template=didv_template,
+        psd=psd,
+        outlieralgo=outlieralgo,
+        nodelay_chi2=True,
+        **kwargs,)
+
+
+    return Cut.cmask, didv_template, psd
+
+
+
+
+
+
+
 
 
 def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
