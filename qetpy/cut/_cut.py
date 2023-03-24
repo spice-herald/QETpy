@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from qetpy import ofamp, calc_psd, OF1x1
+from qetpy import calc_psd, OF1x1
 from qetpy.utils import make_template
 from astropy.stats import sigma_clip
 from scipy import stats, optimize
@@ -15,6 +15,8 @@ __all__ = [
     "itercov",
     "IterCut",
     "autocuts",
+    "autocuts_noise",
+    "autocuts_didv",
     "get_muon_cut",
 ]
 
@@ -572,7 +574,7 @@ class IterCut(_PlotCut):
         Parameters
         ----------
         traces : ndarray
-            The traces that will be cut on.
+            The traces that will be cut on, 2D [ntraces, nbins]
         fs : float
             The digitization rate of the traces.
         plotall : bool, optional
@@ -590,9 +592,9 @@ class IterCut(_PlotCut):
         self.fs = fs
         self._plotall = plotall
         self._nplot = nplot
-        self._ntraces = len(traces)
-        self._nbin = len(traces[0])
-        self._cutinds = np.arange(len(traces))
+        self._ntraces = traces.shape[0]
+        self._nbin = traces.shape[-1]
+        self._cutinds = np.arange(self._ntraces)
 
     @property
     def cmask(self):
@@ -713,14 +715,13 @@ class IterCut(_PlotCut):
         if psd is None:
             psd = np.ones(self._nbin)
 
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
      
         # instantiate OF
-        bins  = temp_traces.shape[1]
-        OF = qp.OF1x1(template=template, psd=psd,
-                      sample_rate=self.fs,
-                      pretrigger_samples=bins//2,
-                      verbose=False)
+        OF = OF1x1(template=template, psd=psd,
+                   sample_rate=self.fs,
+                   pretrigger_samples=self._nbin//2,
+                   verbose=False)
 
         # loop traces and calc OF 
         ntemptraces = len(temp_traces)
@@ -728,7 +729,7 @@ class IterCut(_PlotCut):
         
         for itrace in range(ntemptraces):
 
-            OF.calc(signal=temp_traces[itrace], 
+            OF.calc(signal=temp_traces[itrace,:], 
                     lowchi2_fcutoff=10000,
                     lgc_plot=False)
 
@@ -772,7 +773,7 @@ class IterCut(_PlotCut):
 
         """
         
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
         ntemptraces = len(temp_traces)
 
         if endindex is None:
@@ -815,7 +816,7 @@ class IterCut(_PlotCut):
 
         """
         
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
         min_max = temp_traces.max(axis=-1) - temp_traces.min(axis=-1)
       
         self._run_algo(min_max, outlieralgo, verbose, **kwargs)
@@ -853,7 +854,7 @@ class IterCut(_PlotCut):
 
         """
 
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
         ntemptraces = len(temp_traces)
         time = np.arange(self._nbin) / self.fs
         ymean = np.mean(temp_traces, axis=-1, keepdims=True)
@@ -920,23 +921,23 @@ class IterCut(_PlotCut):
         if psd is None:
             psd = np.ones(self._nbin)
 
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
 
 
         # instantiate OF
         bins  = temp_traces.shape[1]
-        OF = qp.OF1x1(template=template, psd=psd,
-                      sample_rate=self.fs,
-                      pretrigger_samples=bins//2,
-                      verbose=False)
+        OF = OF1x1(template=template, psd=psd,
+                   sample_rate=self.fs,
+                   pretrigger_samples=self._nbin//2,
+                   verbose=False)
         
         # loop traces and calc OF 
         ntemptraces = len(temp_traces)
         of_chi2s = np.zeros(ntemptraces)
          
         for itrace in range(ntemptraces):
-
-            OF.calc(signal=temp_traces[itrace], 
+            
+            OF.calc(signal=temp_traces[itrace,:], 
                     lowchi2_fcutoff=10000,
                     lgc_plot=False)
 
@@ -1002,7 +1003,7 @@ class IterCut(_PlotCut):
 
 
 def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
-             outlieralgo='sigma_clip', level='strict',
+             outlieralgo='sigma_clip', selection_level='strict',
              **kwargs):
     """
     Function to automatically cut out bad traces based on the optimum
@@ -1038,16 +1039,32 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     # define cut level
     niter_noise = 1
     niter_didv = 1
-
-    if level=='strict':
+    sigma = 2.5
+    
+    if selection_level=='strict':
         niter_noise = 2
         niter_didv = 2
+        sigma = 2     
 
+        
+    # template
+    nbins = traces.shape[-1]
+    if template is None:
+        time = np.arange(nbins) / fs
+        template = make_template(time, 10e-6, 100e-6)
+    elif len(template) != nbins:
+        raise ValueError('ERROR: Unrecognized template length!')
 
     
+    # PSD 
+    if psd is None:
+        psd = np.ones(nbins)
+    elif len(psd) != nbins:
+        raise ValueError('ERROR: Unrecognized psd length!')
+
     ctot = np.zeros
     if is_didv:
-        ctot = _autocuts_didv(
+        ctot = autocuts_didv(
             traces=traces,
             fs=fs,
             template=template,
@@ -1056,42 +1073,28 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
             niter_didv=niter_didv,
             niter_noise=niter_noise)
     else:
-        ctot = _autocuts_noise(
+        ctot,_ = autocuts_noise(
             traces=traces,
             fs=fs,
             template=template,
             psd=psd,
             outlieralgo=outlieralgo,
-            niter=niter_noise)
-    
+            niter=niter_noise,
+            sigma=sigma)
+        
     return ctot
 
 
 
-def _autocuts_noise(traces,fs=625e3, template=None, psd=None,
-                    outlieralgo='sigma_clip', niter=1):
+def autocuts_noise(traces,fs=625e3, template=None, psd=None,
+                   outlieralgo='sigma_clip',
+                   niter=2, sigma=2):
     """
     """
     
-
-    # First calculation with default PSD
-    ctot, psd = _autocuts_noise_core(
-        traces=traces,
-        fs=fs,
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        lgc_chi2=False
-    )
-    
-    # iterate
+    # Loop niter times
     for istep in range(niter):
-
-        # only do chi2 last step
-        lgc_chi2 = False
-        if istep == niter-1:
-            lgc_chi2 = True
-
+        
         # call core autocut
         ctot, psd = _autocuts_noise_core(
             traces=traces,
@@ -1099,16 +1102,16 @@ def _autocuts_noise(traces,fs=625e3, template=None, psd=None,
             template=template,
             psd=psd,
             outlieralgo=outlieralgo,
-            lgc_chi2=lgc_chi2
+            sigma=sigma
         )
-        
+            
+    # return bot cut a PSD
     return ctot, psd
 
 
     
-def _autocuts_noise_core(traces,fs=625e3, template=None, psd=None,
-                         outlieralgo='sigma_clip', sigma=2,
-                         lgc_chi2=False):
+def _autocuts_noise_core(traces, fs=625e3, template=None, psd=None,
+                         outlieralgo='sigma_clip', sigma=2):
     """
     """
 
@@ -1130,42 +1133,41 @@ def _autocuts_noise_core(traces,fs=625e3, template=None, psd=None,
     Cut.slopecut(outlieralgo=outlieralgo, **kwargs)
 
 
-    # compute chi2
-    f, psd = calc_psd(traces[Cut.cmask], fs=fs)
-
-
     # 4. delta chi2 pulse - no pulse 
-    if lgc_chi2:
-        Cut.chi2cut(
-            template=template,
-            psd=psd,
-            outlieralgo=outlieralgo,
-            delta_chi2=True,
-            **kwargs,
-        )
+    Cut.chi2cut(
+        template=template,
+        psd=psd,
+        outlieralgo=outlieralgo,
+        delta_chi2=True,
+        **kwargs,
+    )
 
+  
+    # compute chi2
+    f, psd = calc_psd(traces[Cut.cmask,:], fs=fs, folded_over=False)
 
     return Cut.cmask, psd
 
 
 
 
-def _autocuts_didv(traces,fs=625e3, template=None, psd=None,
-                   outlieralgo='sigma_clip',
-                   niter_noise=1, niter_didv=1):
+def autocuts_didv(traces,fs=625e3, template=None, psd=None,
+                  outlieralgo='sigma_clip',
+                  niter_noise=2, niter_didv=2,
+                  sigma=2):
     """
     """
     
 
-    # Preliminary template
-    ctot, didv_template, psd = _autocuts_didv_core(
+    # Preliminary dIdV template
+    didv_template  = _autocuts_prelim_didv(
         traces=traces,
         fs=fs,
         template=template,
-        didv_template=None,
         psd=psd,
         outlieralgo=outlieralgo,
-    )
+        sigma=sigma
+)
     
     # iterate
     for istep in range(niter_didv):
@@ -1174,74 +1176,100 @@ def _autocuts_didv(traces,fs=625e3, template=None, psd=None,
             traces=traces,
             fs=fs,
             template=template,
-            didv_template=didv_template
+            didv_template=didv_template,
             psd=psd,
             outlieralgo=outlieralgo,
             niter_noise=niter_noise,
+            sigma=sigma
         )
-
+        
     return ctot
 
 
-    
-def _autocuts_didv_core(traces,fs=625e3, template=None, psd=None,
-                        didv_template=None,
-                        outlieralgo='sigma_clip',
-                        niter_noise=1):
+def _autocuts_prelim_didv(traces, fs=625e3, template=None, psd=None,
+                          outlieralgo='sigma_clip', sigma=2):
     """
     """
-
-    if didv_template is None:
-        
-        Cut = IterCut(traces, fs)
-        kwargs = {'sigma': 2}
-
-        
-        # 1. OF amplitude cut
-        Cut.pileupcut(
-            template=template,
-            psd=psd,
-            outlieralgo=outlieralgo,
-            **kwargs,)
-
-        # 2. minmax  cut
-        Cut.minmaxcut(outlieralgo=outlieralgo, **kwargs)
-   
-        # 3. Baseline  cut
-        Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
-
-
-        # compute didv template
-        didv_template = np.mean(traces[Cut.cmask], axis=0,
-                                keepdims=True)
-
 
     
     Cut = IterCut(traces, fs)
+    kwargs = {'sigma': sigma}
+
+    
+    # 1. OF amplitude cut
+    Cut.pileupcut(
+        template=template,
+        psd=psd,
+        outlieralgo=outlieralgo,
+        **kwargs,)
+
+    # 2. minmax  cut
+    Cut.minmaxcut(outlieralgo=outlieralgo, **kwargs)
+    
+    # 3. Baseline  cut
+    Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
+    
+
+    # compute didv template
+    didv_template = np.mean(traces[Cut.cmask], axis=0,
+                            keepdims=True)
+
+    return didv_template
+
+    
+
+    
+def _autocuts_didv_core(traces, fs=625e3, template=None, psd=None,
+                       didv_template=None,
+                       outlieralgo='sigma_clip',
+                       niter_noise=2, sigma=2):
+    """
+
+    """
+    
+    Cut = IterCut(traces, fs)
+    kwargs = {'sigma': sigma}
+    
+
+    if didv_template is None:
+       didv_template =  _autocuts_prelim_didv(
+           traces=traces,
+           fs=fs,
+           template=template,
+           psd=psd,
+           outlieralgo=outlieralgo,
+           sigma=sigma
+       )
+
+       # compute didv template
+       didv_template = np.mean(traces[Cut.cmask,:], axis=0,
+                               keepdims=True)
 
  
     # noise cut
     noise_traces = traces - didv_template
-    cout, psd = _autocuts_noise(
-        traces,fs=fs, template=template, psd=psd,
-        outlieralgo='sigma_clip', niter=niter_noise)
-    
-    # didv chi2 cut
+    cout, psd = autocuts_noise(
+        noise_traces,fs=fs,
+        template=template, psd=psd,
+        outlieralgo=outlieralgo,
+        niter=niter_noise,
+        sigma=sigma)
+
     Cut.update_cutinds(cout)
     
-    kwargs = {'sigma': 2}
+    # didv chi2 cut
     Cut.chi2cut(
-        template=didv_template,
+        template=didv_template[0],
         psd=psd,
         outlieralgo=outlieralgo,
         nodelay_chi2=True,
         **kwargs,)
 
+    # compute didv template
+    didv_template = np.mean(traces[Cut.cmask,:], axis=0,
+                            keepdims=True)
 
     return Cut.cmask, didv_template, psd
-
-
-
 
 
 
