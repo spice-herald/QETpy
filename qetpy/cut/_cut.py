@@ -672,19 +672,18 @@ class IterCut(_PlotCut):
 
 
         
-    def pileupcut(self, template=None, psd=None,
-                  outlieralgo="sigma_cut", verbose=False, **kwargs):
+    def pileupcut(self, template, psd,
+                  outlieralgo="sigma_cut", verbose=False,
+                  **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter amplitudes of the inputted traces.
 
         Parameters
         ----------
-        template : ndarray, NoneType, optional
-            The pulse template to use for the optimum filter. If
-            not passed, then a 10 us rise time and 100 us fall time
-            pulse is used.
-        psd : ndarray, NoneType, optional
+        template : ndarray
+            The pulse template to use for the optimum filter. 
+        psd : ndarray
             The two-sided PSD (units of A^2/Hz) to use for the
             optimum filter. If not passed, then all frequencies are
             weighted equally.
@@ -707,13 +706,6 @@ class IterCut(_PlotCut):
             based on the outlier algorithm.
 
         """
-
-        if template is None:
-            time = np.arange(self._nbin) / self.fs
-            template = make_template(time, 10e-6, 100e-6)
-
-        if psd is None:
-            psd = np.ones(self._nbin)
 
         temp_traces = self.traces[self._cutinds,:]
      
@@ -791,7 +783,7 @@ class IterCut(_PlotCut):
     def minmaxcut(self, outlieralgo="sigma_cut",
                   verbose=False, **kwargs):
         """
-        Function to automatically cut out outliers of the baselines
+        Function to automatically cut out outliers of the minmax
         of the inputted traces.
 
         Parameters
@@ -873,7 +865,7 @@ class IterCut(_PlotCut):
 
 
     
-    def chi2cut(self, template=None, psd=None,
+    def chi2cut(self, template, psd,
                 outlieralgo="sigma_cut",
                 delta_chi2=False,
                 nodelay_chi2=False,
@@ -884,19 +876,19 @@ class IterCut(_PlotCut):
 
         Parameters
         ----------
-        template : ndarray, NoneType, optional
-            The pulse template to use for the optimum filter. If
-            not passed, then a 10 us rise time and 100 us fall time
-            pulse is used.
+        template : ndarray
+            The pulse template to use for the optimum filter. 
         psd : ndarray, NoneType, optional
             The two-sided PSD (units of A^2/Hz) to use for the
-            optimum filter. If not passed, then all frequencies are
-            weighted equally.
+            optimum filter. 
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
             or astropy's sigma_clip. Default is "iterstat".
         delta_chi2 : bool, optional
             If True, use delta chi2 = no pulse chi2 - chi2
+        nodelay_chi2 : bool, optional
+            If True, use no-delay optimal filter algorithm
+            If False, find best fit over full trace
         verbose : bool, optional
             If True, the events that pass or fail each cut will be
             plotted at each step. Default is False. If `plotall` is
@@ -913,13 +905,6 @@ class IterCut(_PlotCut):
             based on the outlier algorithm.
 
         """
-
-        if template is None:
-            time = np.arange(self._nbin) / self.fs
-            template = make_template(time, 10e-6, 100e-6)
-
-        if psd is None:
-            psd = np.ones(self._nbin)
 
         temp_traces = self.traces[self._cutinds,:]
 
@@ -1002,8 +987,9 @@ class IterCut(_PlotCut):
         return self.cmask
 
 
-def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
-             outlieralgo='sigma_clip', selection_level='strict',
+def autocuts(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
+             psd=None, is_didv=False,
+             outlieralgo='sigma_clip', level='strict',
              **kwargs):
     """
     Function to automatically cut out bad traces based on the optimum
@@ -1014,7 +1000,16 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     traces : ndarray
         2-dimensional array of traces to do cuts on
     fs : float, optional
-        Sample rate that the data was taken at
+        Sample rate that the data was taken at (default: 1.25e6)
+    template : array-like, optional
+        Pulse template numpy array (template ength should match  trace lenght)
+        or functional form parameter list:
+           2-pole: [A, tau_r, tau_f, (optional) t0] (default)
+           3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
+           4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
+           (t0 in sec, default 1/2 trace)
+    psd : ndarray, optional
+        noise psd array (psd length should match trace length)
     is_didv : bool, optional
         Boolean flag on whether or not the trace is a dIdV curve
     outlieralgo : string, optional
@@ -1024,6 +1019,8 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
         iterstat algorithm to remove data based on being outside a
         certain number of standard deviations from the mean. Can also
         be set to astropy's "sigma_clip" (default)
+    level : str, optional
+       cut level: 'loose' or 'strict' 
     **kwargs
         Placeholder kwargs for backwards compatibility.
 
@@ -1041,7 +1038,7 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
     niter_didv = 1
     sigma = 2.5
     
-    if selection_level=='strict':
+    if level=='strict':
         niter_noise = 2
         niter_didv = 2
         sigma = 2     
@@ -1049,13 +1046,16 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
         
     # template
     nbins = traces.shape[-1]
-    if template is None:
-        time = np.arange(nbins) / fs
-        template = make_template(time, 10e-6, 100e-6)
-    elif len(template) != nbins:
-        raise ValueError('ERROR: Unrecognized template length!')
-
+    tlen = len(template)
     
+    if tlen!=nbins:
+        t = np.arange(nbins) / fs
+        template = make_template(
+            t,
+            params=template,
+            fs=fs
+        )
+        
     # PSD 
     if psd is None:
         psd = np.ones(nbins)
@@ -1073,7 +1073,7 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
             niter_didv=niter_didv,
             niter_noise=niter_noise)
     else:
-        ctot,_ = autocuts_noise(
+        ctot,_  = autocuts_noise(
             traces=traces,
             fs=fs,
             template=template,
@@ -1086,33 +1086,126 @@ def autocuts(traces, fs=625e3, template=None, psd=None, is_didv=False,
 
 
 
-def autocuts_noise(traces,fs=625e3, template=None, psd=None,
+def autocuts_noise(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
+                   psd=None,
                    outlieralgo='sigma_clip',
                    niter=2, sigma=2):
     """
+    Function to automatically cut out bad traces from noise data 
+    based on the optimum filter amplitude, slope, baseline, 
+    and chi^2 of the traces.
+
+    Parameters
+    ----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Sample rate that the data was taken at (default: 1.25e6)
+    template : array-like, optional
+        Pulse template numpy array (template length should match  trace length)
+        or functional form parameter list:
+           2-pole: [A, tau_r, tau_f, (optional) t0] (default)
+           3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
+           4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
+           (t0 in sec, default 1/2 trace)
+    psd : ndarray, optional
+        noise psd array (psd length should match trace length
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    niter : int, optional
+        Number of iteration. PSD is re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+    sigma : int, optional
+        Number of standard deviations from the mean to be used for
+        outlier rejection 
+      
+    Returns
+    -------
+    ctot : ndarray
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
+
     """
+    
+    # template
+    nbins = traces.shape[-1]
+    tlen = len(template)
+    
+    if tlen!=nbins:
+        t = np.arange(nbins) / fs
+        template = make_template(
+            t,
+            params=template,
+            fs=fs
+        )
+        
+    # psd
+    if psd is None:
+        psd = np.ones(nbins)
+    elif len(psd) != nbins:
+        raise ValueError('ERROR: Unrecognized psd length!')
+
+
     
     # Loop niter times
     for istep in range(niter):
         
         # call core autocut
         ctot, psd = _autocuts_noise_core(
-            traces=traces,
-            fs=fs,
-            template=template,
-            psd=psd,
-            outlieralgo=outlieralgo,
-            sigma=sigma
+            traces, fs, template, psd,
+            outlieralgo, sigma
         )
             
-    # return bot cut a PSD
+    # return both cut a PSD
     return ctot, psd
 
 
     
-def _autocuts_noise_core(traces, fs=625e3, template=None, psd=None,
-                         outlieralgo='sigma_clip', sigma=2):
+def _autocuts_noise_core(traces, fs, template, psd,
+                         outlieralgo, sigma):
     """
+    Internal function to automatically cut out bad traces from noise data 
+    based on the optimum filter amplitude, slope, baseline, 
+    and chi^2 of the traces and calculate PSD.  
+
+    This function is called iteratively by autocuts_noise
+
+    Parameters
+    ----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float
+        Sample rate that the data was taken at 
+    template : ndarray
+        pulse template (template length should match  trace length)
+    psd : ndarray
+        the two-sided PSD 
+    outlieralgo : string
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    sigma : int
+        Number of standard deviations from the mean to be used for
+        outlier rejection 
+
+
+    Returns
+    -------
+    cut : ndarray
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
+
+    psd : ndarray
+        psd waveform array
+
     """
 
     Cut = IterCut(traces, fs)
@@ -1151,44 +1244,132 @@ def _autocuts_noise_core(traces, fs=625e3, template=None, psd=None,
 
 
 
-def autocuts_didv(traces,fs=625e3, template=None, psd=None,
+def autocuts_didv(traces, fs=1.25e6,
+                  template=[1, 10e-6, 100e-6],
+                  psd=None,
                   outlieralgo='sigma_clip',
                   niter_noise=2, niter_didv=2,
                   sigma=2):
     """
+    Function to automatically cut out bad traces from dIdV data 
+    based on the optimum filter amplitude, slope, baseline, 
+    and chi^2 of the traces.
+
+    Parameters
+    ----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Sample rate that the data was taken at (default: 1.25e6)
+    template : array-like, optional
+        Pulse template numpy array (template length should match  trace length)
+        or functional form parameter list:
+           2-pole: [A, tau_r, tau_f, (optional) t0]
+           3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
+           4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
+           (t0 in sec, default 1/2 trace)
+    psd : ndarray, optional
+        noise psd array (psd length should match trace length
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    niter_noise : int, optional
+        Number of iteration for noise (dIdV subtracted traces) cut.
+        PSD is re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+    niter_didv : int, optional
+        Number of iteration for dIdV cut.
+        Average dIdV is re-calculated after each iteration
+        and use for OF chi2 cut and dIdV subtracted waveform (noise) 
+        Default = 2
+    sigma : int, optional
+        Number of standard deviations from the mean to be used for
+        outlier rejection 
+      
+    Returns
+    -------
+    ctot : ndarray
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
+
     """
+
+    # pulse template
+    nbins = traces.shape[-1]
+    tlen = len(template)
+    
+    if tlen!=nbins:
+        t = np.arange(nbins) / fs
+        template = make_template(
+            t,
+            params=template,
+            fs=fs
+        )
+        
+    # psd
+    if psd is None:
+        psd = np.ones(nbins)
+    elif len(psd) != nbins:
+        raise ValueError('ERROR: Unrecognized psd length!')
+
     
 
     # Preliminary dIdV template
     didv_template  = _autocuts_prelim_didv(
-        traces=traces,
-        fs=fs,
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        sigma=sigma
-)
+        traces, fs, template, psd,
+        outlieralgo, sigma
+    )
     
     # iterate
     for istep in range(niter_didv):
-
+        
         ctot, didv_template, psd = _autocuts_didv_core(
-            traces=traces,
-            fs=fs,
-            template=template,
+            traces, fs, template, psd, 
+            outlieralgo, niter_noise, sigma,
             didv_template=didv_template,
-            psd=psd,
-            outlieralgo=outlieralgo,
-            niter_noise=niter_noise,
-            sigma=sigma
         )
         
     return ctot
 
 
-def _autocuts_prelim_didv(traces, fs=625e3, template=None, psd=None,
-                          outlieralgo='sigma_clip', sigma=2):
+def _autocuts_prelim_didv(traces, fs, template,
+                          psd, outlieralgo, sigma):
     """
+    Internal function to automatically cut out bad traces from dIdV data 
+    based on the optimum filter amplitude, minmax, and baseline to 
+    produce a preliminary dIdV template.
+
+
+    Parameters
+    ----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float
+        Sample rate that the data was taken at 
+    template : ndarray
+        Pulse template numpy array (template length should match  trace length)
+    psd : ndarray
+        noise psd array (psd length should match trace length)
+    outlieralgo : string
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    sigma : int
+        Number of standard deviations from the mean to be used for
+        outlier rejection 
+      
+    Returns
+    -------
+    didv_template : ndarray
+        array with dIdV template (mean traces after cuts)
+
     """
 
     
@@ -1217,13 +1398,56 @@ def _autocuts_prelim_didv(traces, fs=625e3, template=None, psd=None,
     return didv_template
 
     
-
     
-def _autocuts_didv_core(traces, fs=625e3, template=None, psd=None,
-                       didv_template=None,
-                       outlieralgo='sigma_clip',
-                       niter_noise=2, sigma=2):
+def _autocuts_didv_core(traces, fs, template, psd,
+                        outlieralgo, niter_noise,
+                        sigma, didv_template=None):
     """
+    Internal function to automatically cut out bad traces from dIdV data 
+    based on the optimum filter amplitude, minmax slope, baseline, 
+    and chi^2 of the traces. This function is iteratively called by
+    autocuts_didV and call autocuts_noise to cut bad traces after dIdV template
+    subtraction.
+
+    Parameters
+    ----------
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float
+        Sample rate that the data was taken at
+    template : ndarray
+        Pulse template numpy array (template length should match  trace length)
+    psd : ndarray
+        noise psd array (psd length should match trace length)
+    outlieralgo : string
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    niter_noise : int
+        Number of iteration for noise (dIdV subtracted traces) cut.
+        PSD is re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+    sigma : int
+        Number of standard deviations from the mean to be used for
+        outlier rejection 
+
+    didv_template : ndarray, optional
+        dIdV template  array
+        default: get template from _autocuts_prelim_didv
+
+      
+    Returns
+    -------
+    ctot : ndarray
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
+    didv_template : ndarray
+        array with dIdV template (mean traces after cuts)
+    psd : ndarray
+        noise psd (after cuts from  autocuts_noise)
 
     """
     
@@ -1248,13 +1472,17 @@ def _autocuts_didv_core(traces, fs=625e3, template=None, psd=None,
  
     # noise cut
     noise_traces = traces - didv_template
+    
     cout, psd = autocuts_noise(
-        noise_traces,fs=fs,
-        template=template, psd=psd,
+        noise_traces,
+        fs=fs,
+        template=template,
+        psd=psd,
         outlieralgo=outlieralgo,
         niter=niter_noise,
         sigma=sigma)
 
+    
     Cut.update_cutinds(cout)
     
     # didv chi2 cut
