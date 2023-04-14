@@ -68,7 +68,7 @@ def test_iterstat():
     nsig = 3
     x = stats.norm.rvs(size=100, random_state=1)
     x[0] += 100
-    res = qp.cut.iterstat(x, cut=nsig)
+    res = qp.cut.iterstat(x, sigma=nsig)
 
     expected_mask = np.ones(len(x), dtype=bool)
     expected_mask[0] = False
@@ -78,7 +78,7 @@ def test_iterstat():
 
     assert np.all([np.all(expected_res[ii] == res[ii]) for ii in range(3)])
 
-    res_unb = qp.cut.iterstat(x, cut=nsig, return_unbiased_estimates=True)
+    res_unb = qp.cut.iterstat(x, sigma=nsig, return_unbiased_estimates=True)
     unb = _UnbiasedEstimators(x, expected_mu0 - nsig * expected_std0, expected_mu0 + nsig * expected_std0)
     expected_res_unb = (unb.mu, unb.std, expected_mask)
 

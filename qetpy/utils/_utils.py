@@ -17,6 +17,9 @@ __all__ = [
     "fill_negatives",
     "shift",
     "make_template",
+    "make_template_twopole",
+    "make_template_threepole",
+    "make_template_fourpole",
     "estimate_g",
     "resample_factors",
     "resample_data",
@@ -181,7 +184,9 @@ def resample_data(x, fs, sgfreq, **kwargs):
     return resampled_x, resampled_fs
 
 
-def make_template(t, tau_r, tau_f, offset=0):
+def make_template(t, tau_r=None, tau_f=None,  offset=0,
+                  params=None, fs=None,
+                  normalize=True):
     """
     Function to make an ideal pulse template in time domain with single
     pole exponential rise and fall times, and a given time offset. The
@@ -194,25 +199,314 @@ def make_template(t, tau_r, tau_f, offset=0):
     ----------
     t : ndarray
         Array of time values to make the pulse with
-    tau_r : float
+    tau_r : float, optional (for back-compatibility, use params instead)
         The time constant for the exponential rise of the pulse
-    tau_f : float
+    tau_f : float, optional (for back-compatibility, use params instead)
         The time constant for the exponential fall of the pulse
-    offset : int
+    offset : int, optional (for back-compatibility, use params instead)
         The number of bins the pulse template should be shifted
+        from 1/2 trace point
+    params : list, optional
+         2-pole: [A, tau_r, tau_f, (optional) t0]
+         3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
+         4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
+         (t0 in sec, default 1/2 trace, if t0->fs arguement required)
+    fs :  float,  optional (required if t0 in params argument)
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
 
     Returns
     -------
-    template_normed : array
+    template : array
         the pulse template in time domain
 
     """
 
-    pulse = np.exp(-t/tau_f)-np.exp(-t/tau_r)
-    pulse_shifted = shift(pulse, len(t)//2 + offset)
-    template_normed = pulse_shifted/pulse_shifted.max()
+    template = None
 
-    return template_normed
+    # back compatibility
+    if (tau_r is not None and
+        tau_f is not None):
+    
+        pulse = np.exp(-t/tau_f)-np.exp(-t/tau_r)
+        pulse_shifted = shift(pulse, len(t)//2 + offset)
+        if normalize:
+            template = pulse_shifted/pulse_shifted.max()
+
+    elif params is not None:
+        
+        tlen = len(params)
+
+        # 2-pole fit
+        if tlen==3 or  tlen==4:
+            t0 = None
+            if  tlen==4:
+                t0 = params[-1]
+            template = make_template_twopole(
+                t,
+                A=params[0],
+                tau_r=params[1],
+                tau_f=params[2],
+                t0=t0,
+                fs=fs
+            )
+            
+        elif tlen==5 or tlen==6:
+            t0 = None
+            if  tlen==6:
+                t0 = params[-1]
+            template = make_template_threepole(
+                t,
+                A=params[0],
+                B=params[1],
+                tau_r=params[2],
+                tau_f1=params[3],
+                tau_f2=params[4],
+                t0=t0,
+                fs=fs
+            )    
+        elif tlen==7 or tlen==8:
+            t0 = None
+            if  tlen==8:
+                t0 = params[-1]
+            template = make_template_fourpole(
+                t,
+                A=params[0],
+                B=params[1],
+                C=params[2],
+                tau_r=params[3],
+                tau_f1=params[4],
+                tau_f2=params[5],
+                tau_f3=params[6],
+                t0=t0,
+                fs=fs
+            )
+            
+    else:
+        raise ValueError('ERROR: unrecognized make_template parameters!')
+            
+            
+    return template
+
+
+def make_template_twopole(t, A=None, tau_r=None, tau_f=None,
+                          t0=None, fs=None,
+                          normalize=True):
+    """
+    Functional form of pulse in time domain with the amplitude,
+    rise time, fall time, and time offset. The
+    functional form is:
+     
+            A*(exp(-t/\tau_fall)) - A*(exp(-t/\tau_rise))
+
+    Note that there are 2 ways to interpret the 'A' parameter input
+    to this function (see below).
+
+    Parameters
+    ----------
+    t : ndarray
+        Array of time values to make the pulse with
+    A : float
+        Amplitude parameter.
+    tau_r : float
+        Rise time of two-pole pulse
+    tau_f : float
+        Fall time of two-pole pulse
+    t0 : float, optional
+        Time offset of two pole pulse
+            default: 1/2 trace
+    fs :  float, required if t0 not None
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
+
+    Returns
+    -------
+    pulse : ndarray
+        Array of amplitude values as a function of time
+
+    """
+
+    pulse = (
+        A * (np.exp(-t/tau_f))
+    ) - (
+        A * (np.exp(-t/tau_r))
+    )
+    
+    # offset -> default 1/2 traces
+    offset = len(t)//2
+    if t0 is not None:
+        if fs is None:
+            raise ValueError(
+                'ERROR: sample rate (fs) '
+                + ' required!'
+            )
+        offset = int(t0 * fs)
+            
+    pulse = shift(pulse, offset)
+    
+    # normalize
+    if normalize:
+        pulse = pulse/pulse.max()
+
+    return pulse
+        
+
+def make_template_threepole(t, A, B, tau_r, tau_f1, tau_f2,
+                            t0=None, fs=None,
+                            normalize=True):
+    """
+    Functional form of pulse in time domain with 1 rise time and
+    two fall times. The  fall times have independent amplitudes
+    (A,B) and the condition f(0)=0 constrains the rise time to have
+    amplitude (A+B). The functional form (time domain) is:
+
+            A*(exp(-t/\tau_fall1)) + B*(exp(-t/\tau_fall2)) - 
+            (A+B)*(exp(-t/\tau_rise))
+
+    and therefore the "amplitudes" take on different meanings than
+    in the other n-pole functions
+
+    3 rise/fall times, 2 amplitudes, and time offset allowed to
+    float.
+    
+    Parameters
+    ----------
+    t : ndarray
+        Array of time values to make the pulse with
+    A : float
+        Amplitude for first fall time
+    B : float
+        Amplitude for second fall time
+    tau_r : float
+        Rise time of pulse
+    tau_f1 : float
+        First fall time of pulse
+    tau_f2 : float
+        Second fall time of pulse
+    t0 : float, optional
+        Time offset of three pole pulse
+        Default: 1/2 trace
+    fs :  float, required if t0 not None
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
+
+
+    Returns
+    -------
+    pulse : ndarray
+        Array of amplitude values as a function of time
+    """
+
+    pulse = (
+        A * (np.exp(-t / tau_f1))
+    ) + (
+        B * (np.exp(-t / tau_f2))
+    ) - (
+        (A + B) * (np.exp(-t / tau_r))
+    )
+
+    # offset -> default 1/2 traces
+    offset = len(t)//2
+    if t0 is not None:
+        if fs is None:
+            raise ValueError(
+                'ERROR: sample rate (fs) '
+                + ' required!'
+            )
+        offset = int(t0 * fs)
+            
+    pulse = shift(pulse, offset)
+    
+    # normalize
+    if normalize:
+        pulse = pulse/pulse.max()
+
+    return pulse
+
+
+def make_template_fourpole(t, A, B, C, tau_r,
+                           tau_f1, tau_f2, tau_f3,
+                           t0=None, fs=None,
+                           normalize=True):
+    """
+    Functional form of pulse in time domain with 1 rise time and
+    three fall times The fall times have independent amplitudes
+    (A,B,C). The condition f(0)=0 requires the rise time to have
+    amplitude (A+B+C). Therefore, the "amplitudes" take on
+    different meanings than in other n-pole functions. The
+    functional form (time-domain) is:
+
+            A*(exp(-t/tau_fall1)) + B*(exp(-t/tau_fall2)) +
+            C*(exp(-t/tau_fall3)) - (A+B+C)*(exp(-t/tau_rise))
+
+    4 rise/fall times, 3 amplitudes, and time offset allowed to
+    float.
+
+    Parameters
+    ----------
+    t : ndarray
+        Array of time values to make the pulse with
+    A : float
+        Amplitude for first fall time
+    B : float
+        Amplitude for second fall time
+    C : float
+        Amplitude for third fall time
+    tau_r : float
+        Rise time of pulse
+    tau_f1 : float
+        First fall time of pulse
+    tau_f2 : float
+        Second fall time of pulse
+    tau_f3 : float
+        Third fall time of pulse
+    t0 : float, optional
+        Time offset of three pole pulse
+        Default: 1/2 trace
+    fs :  float, required if t0 not None
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
+
+    Returns
+    -------
+    pulse : ndarray
+        Array of amplitude values as a function of time
+
+    """
+
+    pulse = (
+        A * (np.exp(-t / tau_f1))
+    ) + (
+        B * (np.exp(-t / tau_f2))
+    ) + (
+        C * (np.exp(-t / tau_f3))
+    ) - (
+        (A + B + C) * (np.exp(-t / tau_r))
+    )
+
+
+    # offset -> default 1/2 traces
+    offset = len(t)//2
+    if t0 is not None:
+        if fs is None:
+            raise ValueError(
+                'ERROR: sample rate (fs) '
+                + ' required!'
+            )
+        offset = int(t0 * fs)
+            
+    pulse = shift(pulse, offset)
+    
+    # normalize
+    if normalize:
+        pulse = pulse/pulse.max()
+        
+    return pulse
+
 
 def make_decreasing(y, x=None):
     """

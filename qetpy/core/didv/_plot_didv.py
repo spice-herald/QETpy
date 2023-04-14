@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.fftpack import fft, ifft, fftfreq
+
 
 from ._base_didv import squarewaveresponse, complexadmittance
 from qetpy.utils import lowpassfilter
@@ -40,8 +42,24 @@ class _PlotDIDV(object):
 
         return best_time_offset
 
+    def _get_didv_filtered_trace(self):
+        """Helper function for making a filtered version of the time domain trace with
+           only dIdV frequencies shown"""
+        st = fft(self._tmean)
+        sf = np.zeros_like(self._freq)*0.0j
+        tracelength = len(self._tmean)
 
-    def _plot_time_domain(self, poles, lp_cutoff=None):
+        oddinds = ((np.abs(np.mod(np.absolute(self._freq/self._sgfreq), 2)-1))<1e-8)
+        sf[oddinds] = 1.0
+
+        sf[tracelength//2] = 0.0j
+
+        filtered_trace = sf * st
+
+        return ifft(filtered_trace)
+
+
+    def _plot_time_domain(self, poles, lp_cutoff=None, didv_freq_filt=False):
         """Helper function for plotting the fits in time domain."""
 
         if poles == "all":
@@ -69,6 +87,37 @@ class _PlotDIDV(object):
                 color='red',
                 label='Mean, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
             )
+
+            if didv_freq_filt:
+                didv_filt_trace = self._get_didv_filtered_trace()
+                lp_didv_filt_trace = lowpassfilter(didv_filt_trace * 1e6,
+                                                   lp_cutoff, fs=self._fs, order=2)
+
+                ax.plot(
+                    self._time * 1e6,
+                    didv_filt_trace * 1e6,
+                    color='purple',
+                    label='Mean, dIdV Frequencies Only',
+                )
+
+                
+                ax.plot(
+                    self._time * 1e6,
+                    lp_didv_filt_trace,
+                    color='lime',
+                    label='Mean, dIdV Frequencies Only +  ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+                )
+        elif didv_freq_filt:
+            didv_filt_trace = self._get_didv_filtered_trace()
+            
+            ax.plot(
+                self._time * 1e6,
+                didv_filt_trace,
+                color='purple',
+                label='Mean, dIdV Frequencies Only',
+            )
+
+                
 
         if (self._1poleresult is not None) and (1 in poleslist):
             if 'smallsignalparams' in self._1poleresult:
@@ -142,7 +191,7 @@ class _PlotDIDV(object):
     def plot_full_trace(self, poles="all",
                         saveplot=False, savepath="",
                         savename="",
-                        lp_cutoff=None):
+                        lp_cutoff=None, didv_freq_filt=False):
         """
         Function to plot the entire trace in time domain
 
@@ -163,10 +212,14 @@ class _PlotDIDV(object):
         lp_cutoff : float, optional
             cutoff frequency in Hz for display filtered trace
             Default: None (filtered trace not displayed)
+        didv_freq_filt : bool, optional
+            If true, plots an additional trace with only frequencies in 
+            the dIdV square wave passed.
 
         """
 
-        fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff,
+                                         didv_freq_filt = didv_freq_filt)
 
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
         ax.set_title("Full Trace of dIdV")
@@ -180,7 +233,7 @@ class _PlotDIDV(object):
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
                                     savepath="", savename="",
-                                    lp_cutoff=None):
+                                    lp_cutoff=None, didv_freq_filt=False):
         """
         Function to plot a single period of the trace in time domain
 
@@ -201,10 +254,13 @@ class _PlotDIDV(object):
         lp_cutoff : float, optional
             cutoff frequency in Hz for display filtered trace
             Default: None (filtered trace not displayed)
+        didv_freq_filt : bool, optional
+            If true, plots an additional trace with only frequencies in 
+            the dIdV square wave passed.
 
         """
 
-        fig, ax = self._plot_time_domain(poles, lp_cutoff)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff, didv_freq_filt)
 
         period = 1.0/self._sgfreq
 
@@ -220,7 +276,7 @@ class _PlotDIDV(object):
 
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
                              saveplot=False, savepath="", savename="",
-                             lp_cutoff=None):
+                             lp_cutoff=None, didv_freq_filt=False):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -245,6 +301,9 @@ class _PlotDIDV(object):
         lp_cutoff : float, optional
             cutoff frequency in Hz for display filtered trace
             Default: None (filtered trace not displayed)
+        didv_freq_filt : bool, optional
+            If true, plots an additional trace with only frequencies in 
+            the dIdV square wave passed.
 
         """
 
@@ -252,7 +311,8 @@ class _PlotDIDV(object):
 
         best_time_offset = self._get_best_time_offset()
 
-        fig, ax = self._plot_time_domain(poles, lp_cutoff)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff,
+                                         didv_freq_filt = didv_freq_filt)
 
         ax.set_xlim(
             (best_time_offset + self._time[0] + (
