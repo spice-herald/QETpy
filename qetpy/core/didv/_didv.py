@@ -570,6 +570,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._rsh,
                 self._rp,
                 self._r0,
+                self._offset,
+                self._offset_err, 
                 lgcfix=lgcfix,
             )
 
@@ -649,6 +651,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._rsh,
                 self._rp,
                 self._r0,
+                self._offset, 
+                self._offset_err, 
                 lgcfix=lgcfix,
             )
 
@@ -755,6 +759,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._rsh,
                 self._rp,
                 self._r0,
+                self._offset,
+                self._offset_err,
                 lgcfix=lgcfix,
             )
 
@@ -764,6 +770,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     @staticmethod
     def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0,
+                   offset, offset_err, 
                    lgcfix=None):
         """
         Function for converting data from different fit results to a
@@ -869,6 +876,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': smallsignalparams[9],
             }
 
+        result['offset'] = offset
+        result['offset_err'] = offset_err
+        
         result['falltimes'] = falltimes
         result['cost'] = cost
         result['didv0'] = complexadmittance(0, **result['smallsignalparams']).real
