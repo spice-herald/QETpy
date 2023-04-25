@@ -507,8 +507,8 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
     
     """
     
-    dPdI = np.zeros(len(freqs))
-    dPdI_err = np.zeros(len(freqs))
+    dPdI = np.zeros(len(freqs), dtype = 'complex64')
+    dPdI_err = np.zeros(len(freqs), dtype = 'complex64')
     
     i = 0
     while i < len(freqs):
