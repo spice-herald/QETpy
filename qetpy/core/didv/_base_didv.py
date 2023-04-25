@@ -12,6 +12,9 @@ __all__ = [
     "compleximpedance",
     "complexadmittance",
     "squarewaveresponse",
+    "get_i0",
+    "get_ibias",
+    "get_tes_bias_parameters_dict"
 ]
 
 
@@ -372,6 +375,340 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
         return _BaseDIDV._convolvedidv(
             t, A, B, C, tau1, tau2, tau3, sgamp, rsh, sgfreq, dutycycle,
         )
+
+
+
+def _get_current_offset(metadata, channel_name):
+    """
+    Gets and returns the changable current offset (i.e. the current offset set
+    from the FEB control labview tool)
+    
+    Parameters
+    ----------        
+    metadata : dict
+        Metadata returned when loading the dIdV traces.  Used to get
+        the voltage/current offset set with the slider on the FEB controller
+        labview script, so that we can compensate for it. Can be just for 
+        one event
+        
+    channel_name : str
+        Channel name, e.g. 'Melange025pcRight'
+    
+    """
+    
+    voltage_offset = metadata[0]['detector_config'][channel_name]['output_offset']
+    close_loop_norm = metadata[0]['detector_config'][channel_name]['close_loop_norm']
+    return voltage_offset/close_loop_norm
+
+
+def get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnostics=False):
+    """
+    Gets and returns the current and uncertainty in the current
+    through the TES from a didv_fitresult dictonary (which
+    includes a parameter for the offset of the didv and the offset)
+    
+    Parameters
+    ----------
+    offset: float
+        The current offset of the dIdV as fit (i.e. as measured, without
+        any corrections)
+        
+    offset_err: float
+        The uncertainty in the current offset of the dIdV fit
+        
+    offset_dict : dict
+        The dictonary of offsets calculated from an IV sweep
+        
+    metadata : dict
+        Metadata returned when loading the dIdV traces.  Used to get
+        the voltage/current offset set with the slider on the FEB controller
+        labview script, so that we can compensate for it. Can be just for 
+        one event
+        
+    channel_name : str
+        Channel name, e.g. 'Melange025pcRight'
+        
+    lgcdiagnostics : bool, optional
+        Used if you want to see the raw currents and offsets and how they're
+        added together. Prints these out
+        
+    Returns
+    -------
+    i0 : float
+        The calculated absolute current through the TES
+    i0_err : float
+        The uncertainty in the absolute current through the TES
+        
+    """
+    
+    current_didv = offset
+    current_err_didv = offset_err
+    
+    offset_changable = _get_current_offset(metadata, channel_name)
+    delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
+    
+    i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
+    
+    if lgcdiagnostics:
+        print("Current as measured from dIdV: " + str(current_didv) + " amps")
+        print("Changable current as meaured from metadata for this dIdV: " + str(offset_changable) + " amps")
+        print(" ")
+        print("Changable current as measured during IV when offsets were measured: " + 
+              str(offset_dict['i0_changable_offset']) + " amps")
+        print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
+        print(" ")
+        print("Delta changable current: " + str(offset_changable) + " - " + 
+             str(offset_dict['i0_changable_offset']) + " = \n " + str(delta_i_changable) + " amps")
+        print(" ")
+        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_changable) + " - \n" + 
+             str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
+    
+    i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
+    
+    if lgcdiagnostics:
+        print(" ")
+        print(" --------- ")
+        print(" ")
+        print("Current uncertainty from dIdV: " + str(current_err_didv) + " amps")
+        print("Current offset uncertainty from IV: " + str(offset_dict['i0_off_err']) + " amps")
+        print(" ")
+        print("Total current uncetainty: (("  + str(current_err_didv) + ")**2.0 + (" +
+             str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
+              str(i0_err) + " amps")
+    
+    return i0, i0_err
+
+def get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics=False):
+    """
+    Gets and returns the current and uncertainty in the current
+    used to bias the TES from a metadata list
+    
+    Parameters
+    ----------
+        
+    metadata : dict
+        Metadata returned when loading traces. Used to get the bias current. 
+        Can be just for one event
+        
+    offset_dict : dict
+        The dictonary of offsets calculated from an IV sweep
+        
+    channel_name : str
+        The channel name, e.g. 'Melange025pcRight'
+        
+    lgcdiagnostics : bool, optional
+        Used if you want to see the raw currents and offsets and how they're
+        added together. Prints these out
+        
+    Returns
+    -------
+    ibias : float
+        The calculated absolute current used to bias the TES
+    ibias_err : float
+        The uncertainty in the absolute current used to bias the TES
+        
+    """
+    
+    ibias_metadata = float(metadata[0]['detector_config'][channel_name]['tes_bias'])
+    
+    ibias = ibias_metadata - offset_dict['ibias_off']
+    ibias_err = offset_dict['ibias_off_err']
+    
+    if lgcdiagnostics:
+        print("Bias current from metadata: " + str(ibias_metadata) + " amps")
+        print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
+        print("True bias current: " + str(ibias_metadata) + " - " + str(offset_dict['ibias_off']) + 
+             " = \n" + str(ibias) + " amps")
+        print(" ")
+        
+        print("Bias current uncertainty from IV: " + str(offset_dict['ibias_off_err']) + " amps")
+        
+    return ibias, ibias_err
+
+
+def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
+    """
+    Gets and returns voltage and uncertainty in voltage across the
+    TES at a given bias point.
+    
+    Parameters
+    ----------
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    ibias: float
+        The bias current applied to the TES/shunt system
+        
+    ibias_err: float
+        The uncertainty in the bias current applied to the TES/shunt
+        system
+        
+    rsh: float
+        The shunt resistance in ohms
+        
+    rp: float
+        The parasitic resistance in ohms
+        
+    Returns
+    -------
+    v0 : float
+        The calculated voltage across the TES in volts
+        
+    v0_err : float
+        The calculated uncertainty in the voltage across the TES
+        in volts
+        
+    """
+    
+    vb = rsh * (ibias - i0) #voltage across the shunt resistor
+    vb_err = rsh * np.sqrt(i0_err**2 + ibias_err**2)
+    
+    v0 = vb - rp * i0 #the voltage across the shunt resistor minus
+                      #the voltage across the parasitic resistance
+    v0_err = np.sqrt(vb_err**2 + rp**2 * i0_err**2)
+    
+    return v0, v0_err
+
+def _get_r0(i0, i0_err, v0, v0_err):
+    """
+    Gets and returns the resistance and uncertainty in resistance
+    of a TES at a given bias point
+    
+    Parameters
+    ----------
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    v0: float
+        The voltage across the TES at the bias point
+        
+    v0_err: float
+        The uncertainty in the voltage across the TES at the bias
+        point
+        
+    Returns
+    -------
+    r0 : float
+        The calculated resistance of the TES at the bias point
+        in ohms
+        
+    r0_err : float
+        The calculated uncertainty in the resistance of the TES at
+        the bias point in ohms
+        
+    """
+    
+    r0 = v0/i0
+    r0_err = np.sqrt(v0_err**2 * i0**-2 + v0**2 * i0_err**2 * i0**-4)
+    
+    return r0, r0_err
+
+def _get_p0(i0, i0_err, v0, v0_err):
+    """
+    Gets and returns the bias power and uncertainty in bias power
+    of a TES at a given bias point
+    
+    Parameters
+    ----------
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    v0: float
+        The voltage across the TES at the bias point
+        
+    v0_err: float
+        The uncertainty in the voltage across the TES at the bias
+        point
+        
+    Returns
+    -------
+    p0 : float
+        The calculated bias power of the TES at the bias point
+        in watts
+        
+    p0_err : float
+        The calculated uncertainty in the bias power of the TES at
+        the bias point in watts
+        
+    """
+    
+    p0 = v0*i0
+    p0_err = np.sqrt(v0_err**2 * i0**2 + v0**2 * i0_err**2)
+    
+    return p0, p0_err
+
+def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
+    """
+    Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
+    from the measured TES bias current and i0
+    
+    Parameters
+    ----------
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    ibias: float
+        The bias current applied to the TES/shunt system
+        
+    ibias_err: float
+        The uncertainty in the bias current applied to the TES/shunt
+        system
+        
+    rsh: float
+        The shunt resistance in ohms
+        
+    rp: float
+        The parasitic resistance in ohms
+        
+    Returns
+    -------
+    bias_parameters_dict : dict
+        A dictonary of bias parameters and uncertainties, including i0, r0,
+        v0, and p0
+        
+    """
+    
+    i0 = np.absolute(i0)
+    
+    v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
+    r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
+    p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+    
+    bias_parameter_dict = {
+        'i0': i0,
+        'i0_err': i0_err,
+        'v0': v0,
+        'v0_err': v0_err,
+        'r0': r0,
+        'r0_err': r0_err,
+        'p0': p0,
+        'p0_err': p0_err,
+    }
+    
+    return bias_parameter_dict
+
+
+
 
 
 

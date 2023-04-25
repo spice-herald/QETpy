@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
-from ._base_didv import _BaseDIDV, complexadmittance
+from ._base_didv import _BaseDIDV, complexadmittance, get_i0, get_ibias, get_tes_bias_parameters_dict
 from ._plot_didv import _PlotDIDV
 
 
@@ -454,6 +454,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
     def dofit(self, poles, fcutoff=np.inf,
               bounds=None, guess_params=None,
               guess_isloopgainsub1=None,
+              biasparams_dict=None,
               lgcfix=None,
               verbose=0, max_nfev=1000,
               method='trf', loss='linear',
@@ -573,6 +574,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._offset,
                 self._offset_err, 
                 lgcfix=lgcfix,
+                biasparams_dict=biasparams_dict,
             )
 
         elif poles==2:
@@ -654,6 +656,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._offset, 
                 self._offset_err, 
                 lgcfix=lgcfix,
+                biasparams_dict=biasparams_dict,
             )
 
         elif poles==3:
@@ -762,16 +765,43 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 self._offset,
                 self._offset_err,
                 lgcfix=lgcfix,
+                biasparams_dict=biasparams_dict,
             )
 
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
+    def dofit_with_true_current(self, offset_dict, metadata, channel_name,
+                            lgcdiagnostics=False):
+        """
+        Given the offset dictionary used to store the various current
+        current offsets used to reconstruct the true current through the 
+        TES and the trace metadata, finds the true current through the TES,
+        makes a biasparams dict, and recalculates the smallsignalparams
+        from the newly found true bias point.
+        """
+
+        self._rp = offset_dict['rp']
+
+        rsh = self._rsh
+        rp = self._rp
+
+        offset = self._offset
+        offset_err = self._offset_err
+
+        i0, i0_err = get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnostics)
+        ibias, ibias_err = get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics)
+        biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
+        self._r0 = biasparams_dict['r0']
+
+        result3 = self.dofit(3, biasparams_dict=biasparams_dict)
+
+        return result3
 
     @staticmethod
     def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0,
                    offset, offset_err, 
-                   lgcfix=None):
+                   biasparams_dict=None, lgcfix=None):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -878,6 +908,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         result['offset'] = offset
         result['offset_err'] = offset_err
+        
+        if biasparams_dict is not None:
+            result['biasparams'] = biasparams_dict
         
         result['falltimes'] = falltimes
         result['cost'] = cost
