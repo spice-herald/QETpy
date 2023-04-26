@@ -523,7 +523,7 @@ def get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics=False):
         
         print("Bias current uncertainty from IV: " + str(offset_dict['ibias_off_err']) + " amps")
         
-    return ibias, ibias_err
+    return np.absolute(ibias), ibias_err
 
 
 def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
@@ -568,7 +568,7 @@ def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
     vb = rsh * (ibias - i0) #voltage across the shunt resistor
     vb_err = rsh * np.sqrt(i0_err**2 + ibias_err**2)
     
-    v0 = vb - rp * i0 #the voltage across the shunt resistor minus
+    v0 = np.absolute(vb - rp * i0) #the voltage across the shunt resistor minus
                       #the voltage across the parasitic resistance
     v0_err = np.sqrt(vb_err**2 + rp**2 * i0_err**2)
     
@@ -608,7 +608,7 @@ def _get_r0(i0, i0_err, v0, v0_err):
         
     """
     
-    r0 = v0/i0
+    r0 = np.absolute(v0/i0)
     r0_err = np.sqrt(v0_err**2 * i0**-2 + v0**2 * i0_err**2 * i0**-4)
     
     return r0, r0_err
@@ -647,7 +647,7 @@ def _get_p0(i0, i0_err, v0, v0_err):
         
     """
     
-    p0 = v0*i0
+    p0 = np.absolute(v0*i0)
     p0_err = np.sqrt(v0_err**2 * i0**2 + v0**2 * i0_err**2)
     
     return p0, p0_err
