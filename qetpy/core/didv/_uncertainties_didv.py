@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from numpy import pi
+import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
 from scipy.fftpack import fft, ifft, fftfreq
 
@@ -518,7 +519,8 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
         
     return dPdI, dPdI_err
 
-def get_power_noise_with_uncertainties(freqs, current_noise, didv_result):
+def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
+				       lgcplots=False):
     """
     Calculates the power noise at an array of frequencies given a
     didv_result with a biasparams dict as part of it. Note
@@ -542,6 +544,10 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result):
         dict calculated from didvfit.dofit_with_true_current which 
         in turn requires having calculated an offset_dict from an
         IV sweep, a metadata array, and a channel name string.
+
+    lgcplots: bool
+        If True, shows plots of current noise, dIdP and power noise
+        vs frequency for diagnostic purposes.
         
     Returns
     -------
@@ -559,5 +565,33 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result):
     
     power_noise = current_noise * dPdI
     power_noise_err = current_noise * dPdI_err
+
+    if lgcplots:
+        plt.plot(freqs, current_noise)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("Current Noise (Amps/rt(Hz))")
+        plt.grid()
+        plt.show()
+
+        plt.plot(freqs, np.abs(dPdI), label = "dPdI")
+        plt.plot(freqs, np.abs(dPdI) + np.abs(dPdI_err), label = "dPdI + 1 Sigma", color = 'C2')
+        plt.plot(freqs, np.abs(dPdI) - np.abs(dPdI_err), label = "dPdI - 1 Sigma", color = 'C2')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dPdI Magnitude (Volts)")
+        plt.grid()
+        plt.legend()
+        plt.show()
+        
+        plt.plot(freqs, np.abs(power_noise), color = 'C1')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("Power Noise Magnitude (Watts/rt(Hz))")
+        plt.grid()
+        plt.show()
     
     return power_noise, power_noise_err
