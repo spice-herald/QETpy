@@ -520,7 +520,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
     return dPdI, dPdI_err
 
 def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
-				       lgcplots=False):
+				       lgcplots=False, lgcdpdireturn=False):
     """
     Calculates the power noise at an array of frequencies given a
     didv_result with a biasparams dict as part of it. Note
@@ -545,9 +545,13 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         in turn requires having calculated an offset_dict from an
         IV sweep, a metadata array, and a channel name string.
 
-    lgcplots: bool
+    lgcplots: bool, optional
         If True, shows plots of current noise, dIdP and power noise
         vs frequency for diagnostic purposes.
+        
+    lgcdpdireturn: bool, optional
+        If True, returns the dPdI and dPdI uncertainties in addition
+        the power noise and power noise uncertainties
         
     Returns
     -------
@@ -558,6 +562,12 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
     power_noise_err: array
         Array of uncertainties in power noise at each of the frequencies
         in freqs.
+        
+    dPdI: array, optional
+        If lgcdpdireturn is True, returned.
+    
+    dPdI_err: array, optional
+        If lgcdpdireturn is True, returned.
     
     """
     
@@ -573,6 +583,7 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Current Noise (Amps/rt(Hz))")
         plt.grid()
+        plt.title("Current Noise vs. Frequency")
         plt.show()
 
         plt.plot(freqs, np.abs(dPdI), label = "dPdI")
@@ -584,6 +595,7 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.ylabel("dPdI Magnitude (Volts)")
         plt.grid()
         plt.legend()
+        plt.title("dPdI vs. Frequency")
         plt.show()
         
         plt.plot(freqs, np.abs(power_noise), color = 'C1')
@@ -592,6 +604,10 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Power Noise Magnitude (Watts/rt(Hz))")
         plt.grid()
+        plt.title("Power Noise vs. Frequency)
         plt.show()
-    
+        
+        
+    if lgcdpdireturn:
+        return power_noise, power_noise_err, dPdI, dPdI_err
     return power_noise, power_noise_err
