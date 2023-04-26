@@ -604,7 +604,7 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Power Noise Magnitude (Watts/rt(Hz))")
         plt.grid()
-        plt.title("Power Noise vs. Frequency)
+        plt.title("Power Noise vs. Frequency")
         plt.show()
         
         
