@@ -4,6 +4,7 @@ from scipy.fftpack import fft, ifft, fftfreq
 
 from ._base_didv import _BaseDIDV, complexadmittance, get_i0, get_ibias, get_tes_bias_parameters_dict
 from ._plot_didv import _PlotDIDV
+from ._uncertainties_didv import get_power_noise_with_uncertainties, get_dPdI_with_uncertainties
 
 
 __all__ = [
@@ -771,14 +772,48 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
-    def dofit_with_true_current(self, offset_dict, metadata, channel_name,
-                            lgcdiagnostics=False):
+    def dofit_with_true_current(self, offset_dict, output_offset, closed_loop_norm, ibias_metadata,
+                            bounds=None, lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
         current offsets used to reconstruct the true current through the 
         TES and the trace metadata, finds the true current through the TES,
         makes a biasparams dict, and recalculates the smallsignalparams
         from the newly found true bias point.
+        
+        
+        Parameters:
+        ----------
+        
+        offset_dict: dict
+            Where are the relevant offsets are stored. Generated from the IV
+            sweep.
+            
+        output_offset: float, volts
+            The output offset gotten from the event metadata. In units of volts,
+            we correct for volts to amps conversion with the closed loop norm.
+            
+        closed_loop_norm: float, volts/amp=ohms
+            The constant from the metadata used to translate the voltage measured by
+            the DAQ into a current coming into the input coil of the SQUIDs. In units of
+            volts/amp = ohms.
+            
+        ibias_metadata: float
+            The ibias gotten from the event metadata, i.e. without correcting for
+            the ibias offset calculated from the IV curve
+            
+        bounds: array, optional
+            Passed to dofit.
+            
+        
+        
+        Returns:
+        --------
+            
+        retult3: fitresult_dict
+            3 pole fit result with biasparams calculated, and the smallsignalparams
+            correctly calculated from the r0 calculated for the biasparams
+        
         """
 
         self._rp = offset_dict['rp']
@@ -789,12 +824,12 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         offset = self._offset
         offset_err = self._offset_err
 
-        i0, i0_err = get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnostics)
-        ibias, ibias_err = get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics)
+        i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, lgcdiagnostics)
+        ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgcdiagnostics)
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         self._r0 = biasparams_dict['r0']
 
-        result3 = self.dofit(3, biasparams_dict=biasparams_dict)
+        result3 = self.dofit(3, bounds=bounds, biasparams_dict=biasparams_dict)
 
         return result3
 
