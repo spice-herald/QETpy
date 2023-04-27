@@ -401,7 +401,8 @@ def _get_current_offset(metadata, channel_name):
     return voltage_offset/close_loop_norm
 
 
-def get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnostics=False):
+def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
+           lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     through the TES from a didv_fitresult dictonary (which
@@ -416,17 +417,17 @@ def get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnosti
     offset_err: float
         The uncertainty in the current offset of the dIdV fit
         
-    offset_dict : dict
-        The dictonary of offsets calculated from an IV sweep
+    offset_dict: dict
+        Dictionary of offsets gotten from the IV sweep.
         
-    metadata : dict
-        Metadata returned when loading the dIdV traces.  Used to get
-        the voltage/current offset set with the slider on the FEB controller
-        labview script, so that we can compensate for it. Can be just for 
-        one event
+    output_offset: float, volts
+        The output offset gotten from the event metadata. In units of volts,
+        we correct for volts to amps conversion with the closed loop norm.
         
-    channel_name : str
-        Channel name, e.g. 'Melange025pcRight'
+    closed_loop_norm: float, volts/amp=ohms
+        The constant from the metadata used to translate the voltage measured by
+        the DAQ into a current coming into the input coil of the SQUIDs. In units of
+        volts/amp = ohms.
         
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
@@ -444,7 +445,7 @@ def get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnosti
     current_didv = offset
     current_err_didv = offset_err
     
-    offset_changable = _get_current_offset(metadata, channel_name)
+    offset_changable = output_offset/closed_loop_norm
     delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
     
     i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
@@ -478,7 +479,7 @@ def get_i0(offset, offset_err, offset_dict, metadata, channel_name, lgcdiagnosti
     
     return i0, i0_err
 
-def get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics=False):
+def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     used to bias the TES from a metadata list
@@ -486,15 +487,12 @@ def get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics=False):
     Parameters
     ----------
         
-    metadata : dict
-        Metadata returned when loading traces. Used to get the bias current. 
-        Can be just for one event
+    ibias_metadata: float
+        The ibias gotten from the event metadata, i.e. without correcting for
+        the ibias offset calculated from the IV curve
         
-    offset_dict : dict
-        The dictonary of offsets calculated from an IV sweep
-        
-    channel_name : str
-        The channel name, e.g. 'Melange025pcRight'
+    offset_dict: dict
+        Dictionary of offsets gotten from the IV sweep.
         
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
@@ -508,8 +506,6 @@ def get_ibias(metadata, offset_dict, channel_name, lgcdiagnostics=False):
         The uncertainty in the absolute current used to bias the TES
         
     """
-    
-    ibias_metadata = float(metadata[0]['detector_config'][channel_name]['tes_bias'])
     
     ibias = ibias_metadata - offset_dict['ibias_off']
     ibias_err = offset_dict['ibias_off_err']
