@@ -57,7 +57,161 @@ def _ddr0_i0(didv_result):
     rsh = didv_result['smallsignalparams']['rsh']
     rl = rp + rsh
     
-    return -1.0 * i0 * (r0 + rp)**-1
+    return -1.0 * i0 * (r0 + rl)**-1
+    
+#r0 terms
+
+def _ddA_r0(didv_result):
+    return 0.0
+
+def _ddB_r0(didv_result):
+    return 0.0
+
+def _ddC_r0(didv_result):
+    return 0.0
+
+def _ddtau1_r0(didv_result):
+    return 0.0
+
+def _ddtau2_r0(didv_result):
+    return 0.0
+
+def _ddtau3_r0(didv_result):
+    return 0.0
+
+def _ddr0_r0(didv_result):
+    return 1.0
+    
+#inductance terms
+
+def _get_L(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return A * tau2
+
+def _ddA_L(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return tau2
+
+def _ddB_L(didv_result):
+    return 0.0
+
+def _ddC_L(didv_result):
+    return 0.0
+
+def _ddtau1_L(didv_result):
+    return 0.0
+
+def _ddtau2_L(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return A
+
+def _ddtau3_L(didv_result):
+    return 0.0
+
+def _ddr0_L(didv_result):
+    return 0.0
+    
+#beta terms
+
+def _get_beta(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return (A - rl)/r0 - 1
+
+def _ddA_beta(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return r0**-1
+
+def _ddB_beta(didv_result):
+    return 0.0
+
+def _ddC_beta(didv_result):
+    return 0.0
+
+def _ddtau1_beta(didv_result):
+    return 0.0
+
+def _ddtau2_beta(didv_result):
+    return 0.0
+
+def _ddtau3_beta(didv_result):
+    return 0.0
+
+def _ddr0_beta(didv_result):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -(A - rl) * r0**-2
+
 
 #loopgain terms
 
@@ -383,6 +537,109 @@ def _dddVdI_dPdI(didv_result, f):
     dvdi = _get_dVdI(didv_result, f)
     
     return i0 * (1.0 - 1.0/loopgain) * (1.0 + 2.0j * np.pi * f * tau0/(1.0 - loopgain))
+    
+
+#second iteration of dPdI terms
+#order of variables: i0, r0, dVdI, beta, L
+
+def _get_dPdI_2(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    numerator = - i0 * dVdI * r0 * (2 + beta)
+    denominator = dVdI - rl - 2.0j * f * np.pi * L - r0 * (1 + beta)
+    
+    return numerator/denominator
+
+def _ddi0_dPdI_2(didv_result, f):
+    dPdI = _get_dPdI_2(didv_result, f)
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    return i0**-1 * dPdI
+
+
+def _ddr0_dPdI_2(didv_result, f):
+    dPdI = _get_dPdI_2(didv_result, f)
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
+    
+    term1 = r0**-1
+    term2 = (1 + beta) / denominator
+    
+    return dPdI * (term1 + term2)
+
+def _dddVdI_dPdI_2(didv_result, f):
+    dPdI = _get_dPdI_2(didv_result, f)
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
+    
+    term1 = dVdI**-1
+    term2 = -1.0 / denominator
+    
+    return dPdI * (term1 + term2)
+
+def _ddbeta_dPdI_2(didv_result, f):
+    dPdI = _get_dPdI_2(didv_result, f)
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
+    
+    term1 = (2 + beta)**-1
+    term2 = r0 / denominator
+    
+    return dPdI * (term1 + term2)
+
+def _ddL_dPdI_2(didv_result, f):
+    dPdI = _get_dPdI_2(didv_result, f)
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    beta = _get_beta(didv_result)
+    L = _get_L(didv_result)
+    
+    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
+    
+    return dPdI * 2.0j * np.pi * f/denominator
+
 
 """
 Functions for calculating covariance matricies and Jacobians, etc.
@@ -401,9 +658,9 @@ def _get_full_base_cov(didv_result):
     return full_cov
 
 def _get_base_jacobian(didv_result, f):
-    #order of derived variables is i0, loopgain, tau0, dVdI
+    #order of derived variables: i0, r0, dVdI, beta, L
     
-    base_jacobian = np.zeros((4, 7), dtype = 'complex64')
+    base_jacobian = np.zeros((5, 7), dtype = 'complex64')
     
     #i0 terms
     base_jacobian[0,0] = _ddA_i0(didv_result)
@@ -414,44 +671,54 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[0,5] = _ddtau3_i0(didv_result)
     base_jacobian[0,6] = _ddr0_i0(didv_result)
     
-    #loopgain terms
-    base_jacobian[1,0] = _ddA_loopgain(didv_result)
-    base_jacobian[1,1] = _ddB_loopgain(didv_result)
-    base_jacobian[1,2] = _ddC_loopgain(didv_result)
-    base_jacobian[1,3] = _ddtau1_loopgain(didv_result)
-    base_jacobian[1,4] = _ddtau2_loopgain(didv_result)
-    base_jacobian[1,5] = _ddtau3_loopgain(didv_result)
-    base_jacobian[1,6] = _ddr0_loopgain(didv_result)
-    
-    #tau0 terms
-    base_jacobian[2,0] = _ddA_tau0(didv_result)
-    base_jacobian[2,1] = _ddB_tau0(didv_result)
-    base_jacobian[2,2] = _ddC_tau0(didv_result)
-    base_jacobian[2,3] = _ddtau1_tau0(didv_result)
-    base_jacobian[2,4] = _ddtau2_tau0(didv_result)
-    base_jacobian[2,5] = _ddtau3_tau0(didv_result)
-    base_jacobian[2,6] = _ddr0_tau0(didv_result)
+    #r0 terms
+    base_jacobian[1,0] = _ddA_r0(didv_result)
+    base_jacobian[1,1] = _ddB_r0(didv_result)
+    base_jacobian[1,2] = _ddC_r0(didv_result)
+    base_jacobian[1,3] = _ddtau1_r0(didv_result)
+    base_jacobian[1,4] = _ddtau2_r0(didv_result)
+    base_jacobian[1,5] = _ddtau3_r0(didv_result)
+    base_jacobian[1,6] = _ddr0_r0(didv_result)
     
     #dVdI terms
-    base_jacobian[3,0] = _ddA_dVdI(didv_result, f)
-    base_jacobian[3,1] = _ddB_dVdI(didv_result, f)
-    base_jacobian[3,2] = _ddC_dVdI(didv_result, f)
-    base_jacobian[3,3] = _ddtau1_dVdI(didv_result, f)
-    base_jacobian[3,4] = _ddtau2_dVdI(didv_result, f)
-    base_jacobian[3,5] = _ddtau3_dVdI(didv_result, f)
-    base_jacobian[3,6] = _ddr0_dVdI(didv_result, f)
+    base_jacobian[2,0] = _ddA_dVdI(didv_result, f)
+    base_jacobian[2,1] = _ddB_dVdI(didv_result, f)
+    base_jacobian[2,2] = _ddC_dVdI(didv_result, f)
+    base_jacobian[2,3] = 0.0#_ddtau1_dVdI(didv_result, f)
+    base_jacobian[2,4] = _ddtau2_dVdI(didv_result, f)
+    base_jacobian[2,5] = _ddtau3_dVdI(didv_result, f)
+    base_jacobian[2,6] = _ddr0_dVdI(didv_result, f)
+    
+    #beta terms
+    base_jacobian[3,0] = _ddA_beta(didv_result)
+    base_jacobian[3,1] = _ddB_beta(didv_result)
+    base_jacobian[3,2] = _ddC_beta(didv_result)
+    base_jacobian[3,3] = 0.0#_ddtau1_beta(didv_result)
+    base_jacobian[3,4] = _ddtau2_beta(didv_result)
+    base_jacobian[3,5] = _ddtau3_beta(didv_result)
+    base_jacobian[3,6] = _ddr0_beta(didv_result)
+    
+    #inductance terms
+    base_jacobian[4,0] = _ddA_L(didv_result)
+    base_jacobian[4,1] = _ddB_L(didv_result)
+    base_jacobian[4,2] = _ddC_L(didv_result)
+    base_jacobian[4,3] = _ddtau1_L(didv_result)
+    base_jacobian[4,4] = _ddtau2_L(didv_result)
+    base_jacobian[4,5] = _ddtau3_L(didv_result)
+    base_jacobian[4,6] = _ddr0_L(didv_result)
     
     return base_jacobian
 
 def _get_derived_jacobian(didv_result, f):
-    #order of derived variables is i0, loopgain, tau0, dVdI
+    #order of derived variables: i0, r0, dVdI, beta, L
     
-    derived_jacobian = np.zeros(4)
+    derived_jacobian = np.zeros(5)
     
-    derived_jacobian[0] = _ddi0_dPdI(didv_result, f)
-    derived_jacobian[1] = _ddloopgain_dPdI(didv_result, f)
-    derived_jacobian[2] = _ddtau0_dPdI(didv_result, f)
-    derived_jacobian[3] = _dddVdI_dPdI(didv_result, f)
+    derived_jacobian[0] = _ddi0_dPdI_2(didv_result, f)
+    derived_jacobian[1] = _ddr0_dPdI_2(didv_result, f)
+    derived_jacobian[2] = _dddVdI_dPdI_2(didv_result, f)
+    derived_jacobian[3] = _ddbeta_dPdI_2(didv_result, f)
+    derived_jacobian[4] = _ddL_dPdI_2(didv_result, f)
     
     return derived_jacobian
 
@@ -513,7 +780,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
     
     i = 0
     while i < len(freqs):
-        dPdI[i] = _get_dPdI(didv_result, freqs[i])
+        dPdI[i] = _get_dPdI_2(didv_result, freqs[i])
         dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
         i += 1
         
