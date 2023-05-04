@@ -684,7 +684,7 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[2,0] = _ddA_dVdI(didv_result, f)
     base_jacobian[2,1] = _ddB_dVdI(didv_result, f)
     base_jacobian[2,2] = _ddC_dVdI(didv_result, f)
-    base_jacobian[2,3] = 0.0#_ddtau1_dVdI(didv_result, f)
+    base_jacobian[2,3] = _ddtau1_dVdI(didv_result, f)
     base_jacobian[2,4] = _ddtau2_dVdI(didv_result, f)
     base_jacobian[2,5] = _ddtau3_dVdI(didv_result, f)
     base_jacobian[2,6] = _ddr0_dVdI(didv_result, f)
@@ -693,7 +693,7 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[3,0] = _ddA_beta(didv_result)
     base_jacobian[3,1] = _ddB_beta(didv_result)
     base_jacobian[3,2] = _ddC_beta(didv_result)
-    base_jacobian[3,3] = 0.0#_ddtau1_beta(didv_result)
+    base_jacobian[3,3] = _ddtau1_beta(didv_result)
     base_jacobian[3,4] = _ddtau2_beta(didv_result)
     base_jacobian[3,5] = _ddtau3_beta(didv_result)
     base_jacobian[3,6] = _ddr0_beta(didv_result)
@@ -736,13 +736,141 @@ def _get_dPdI_uncertainty(didv_result, f):
     dPdI_variance = np.matmul(np.matmul(derived_jacobian, derived_cov), np.transpose(derived_jacobian))
     
     return dPdI_variance**0.5
+    
+def _get_dVdI_uncertainty(didv_result, f):
+    dVdI_gradiant = np.zeros(6, dtype = 'cfloat')
+    
+    dVdI_gradiant[0] = _ddA_dVdI(didv_result, f)
+    dVdI_gradiant[1] = _ddB_dVdI(didv_result, f)
+    dVdI_gradiant[2] = _ddC_dVdI(didv_result, f)
+    dVdI_gradiant[3] = _ddtau1_dVdI(didv_result, f)
+    dVdI_gradiant[4] = _ddtau2_dVdI(didv_result, f)
+    dVdI_gradiant[5] = _ddtau3_dVdI(didv_result, f)
+    
+    cov = didv_result['cov'][:6,:6]
+    
+    variance = np.matmul(np.matmul(dVdI_gradiant, cov), np.transpose(dVdI_gradiant))
+    
+    return variance**0.5
 
 
 """
 Functions that are for general use
 """
 
-def get_dPdI_with_uncertainties(freqs, didv_result):
+def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
+    """
+    Calculates the dVdI at an array of frequencies given a
+    didv_result with a biasparams dict as part of it. Note
+    that to get a didv_result that works with this, you 
+    need to run didvfit.dofit_with_true_current which requires
+    having calculated an offset_dict from an IV sweep, a metadata
+    array, and a channel name string.
+    
+    Parameters
+    ----------
+    freqs: array
+        Array of frequencies at which the dPdI and uncertainty
+        in dPdI is calculated.
+        
+    didv_result
+        A result gotten from a dIdV fit that includes a biasparams 
+        dict calculated from didvfit.dofit_with_true_current which 
+        in turn requires having calculated an offset_dict from an
+        IV sweep, a metadata array, and a channel name string.
+        
+    lgcplot: bool, optional
+        If True, plots the absolute value of dVdI with the
+        uncertainty in dVdI
+        
+    Returns
+    -------
+    dVdI: array
+        Array of dPdI values calculated at each frequency in freqs,
+        in units of volts.
+        
+    dVdI_err: array
+        Array of uncertainties in dPdI calculated at eqch frequency
+        in freqs, in units of volts.
+    
+    """
+    
+    dVdI = np.zeros(len(freqs), dtype = 'complex64')
+    dVdI_err = np.zeros(len(freqs), dtype = 'complex64')
+    
+    i = 0
+    while i < len(freqs):
+        dVdI[i] = _get_dVdI(didv_result, freqs[i])
+        dVdI_err[i] = _get_dVdI_uncertainty(didv_result, freqs[i])
+        i += 1
+        
+    if lgcplot:
+        
+        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
+        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
+        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
+        
+        print("Tau1: " + str(didv_result['params']['tau1']))
+        print("Tau1 frequency: " + str(tau1_freq))
+        print("Tau2: " + str(didv_result['params']['tau2']))
+        print("Tau2 frequency: " + str(tau2_freq))
+        print("Tau3: " + str(didv_result['params']['tau3']))
+        print("Tau3 frequency: " + str(tau3_freq))
+        
+        
+        plt.plot(freqs, np.abs(dVdI), label = "dVdI", color = 'C1')
+        plt.fill_between(freqs, np.abs(dVdI) - np.abs(dVdI_err), np.abs(dVdI) + np.abs(dVdI_err),
+                         color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dVdI Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dVdI Magnitude (ohms)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylim(min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1)
+        plt.legend()
+        plt.show()
+        
+        plt.plot(freqs, np.abs(np.real(dVdI)), label = "dVdI", color = 'C2')
+        plt.fill_between(freqs, np.abs(np.real(dVdI)) - np.abs(np.real(dVdI_err)),
+                         np.abs(np.real(dVdI)) + np.abs(np.real(dVdI_err)),
+                         color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dVdI)))*0.9, 
+                   max(np.abs(np.real(dVdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dVdI Real Component Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dVdI Real Component (ohms)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.legend()
+        plt.ylim( min(np.abs(np.real(dVdI)))*0.9, max(np.abs(np.real(dVdI)))*1.1)
+        plt.show()
+        
+        plt.plot(freqs, np.abs(np.imag(dVdI)), label = "dVdI", color = 'C3')
+        plt.fill_between(freqs, np.abs(np.imag(dVdI)) - np.abs(np.imag(dVdI_err)), 
+                         np.abs(np.imag(dVdI)) + np.abs(np.real(dVdI_err)),
+                         color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dVdI)))*0.9, 
+                   max(np.abs(np.imag(dVdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dVdI Imaginary Component Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dVdI Imaginary Component (ohms)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylim(min(np.abs(np.imag(dVdI)))*0.9, max(np.abs(np.imag(dVdI)))*1.1)
+        plt.legend()
+        plt.show()
+        
+    return dVdI, dVdI_err
+
+
+def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     """
     Calculates the dPdI at an array of frequencies given a
     didv_result with a biasparams dict as part of it. Note
@@ -762,6 +890,10 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
         dict calculated from didvfit.dofit_with_true_current which 
         in turn requires having calculated an offset_dict from an
         IV sweep, a metadata array, and a channel name string.
+        
+    lgcplot: bool, optional
+        If True, plots the absolute value of dVdI with the
+        uncertainty in dVdI 
         
     Returns
     -------
@@ -783,6 +915,69 @@ def get_dPdI_with_uncertainties(freqs, didv_result):
         dPdI[i] = _get_dPdI_2(didv_result, freqs[i])
         dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
         i += 1
+        
+    if lgcplot:
+        
+        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
+        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
+        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
+        
+        print("Tau1: " + str(didv_result['params']['tau1']))
+        print("Tau1 frequency: " + str(tau1_freq))
+        print("Tau2: " + str(didv_result['params']['tau2']))
+        print("Tau2 frequency: " + str(tau2_freq))
+        print("Tau3: " + str(didv_result['params']['tau3']))
+        print("Tau3 frequency: " + str(tau3_freq))
+        
+        
+        plt.plot(freqs, np.abs(dPdI), label = "dPdI", color = 'C1')
+        plt.fill_between(freqs, np.abs(dPdI) - np.abs(dPdI_err), np.abs(dPdI) + np.abs(dPdI_err),
+                         color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dPdI Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dPdI Magnitude (volts)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylim(min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1)
+        plt.legend()
+        plt.show()
+        
+        plt.plot(freqs, np.abs(np.real(dPdI)), label = "dPdI", color = 'C2')
+        plt.fill_between(freqs, np.abs(np.real(dPdI)) - np.abs(np.real(dPdI_err)),
+                         np.abs(np.real(dPdI)) + np.abs(np.real(dPdI_err)),
+                         color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dPdI)))*0.9, 
+                   max(np.abs(np.real(dPdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dPdI Real Component Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dPdI Real Component (volts)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.legend()
+        plt.ylim( min(np.abs(np.real(dPdI)))*0.9, max(np.abs(np.real(dPdI)))*1.1)
+        plt.show()
+        
+        plt.plot(freqs, np.abs(np.imag(dPdI)), label = "dVdI", color = 'C3')
+        plt.fill_between(freqs, np.abs(np.imag(dPdI)) - np.abs(np.imag(dPdI_err)), 
+                         np.abs(np.imag(dPdI)) + np.abs(np.real(dPdI_err)),
+                         color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dPdI)))*0.9, 
+                   max(np.abs(np.imag(dPdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
+        plt.grid()
+        plt.title("dPdI Imaginary Component Magnitude vs. Frequency")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("dPdI Imaginary Component (volts)")
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.ylim(min(np.abs(np.imag(dPdI)))*0.9, max(np.abs(np.imag(dPdI)))*1.1)
+        plt.legend()
+        plt.show()
         
     return dPdI, dPdI_err
 
