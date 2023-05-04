@@ -211,6 +211,77 @@ def _ddr0_beta(didv_result):
     rl = rp + rsh
     
     return -(A - rl) * r0**-2
+    
+
+#denominator, called D
+
+def _get_D(didv_result, f):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    bottom = 1 + 2.0j * np.pi * f * tau1 - C/(1 + 2.0j * np.pi * f * tau3)
+    
+    return B/bottom
+
+def _ddA_D(didv_result, f):
+    return 0.0
+
+def _ddB_D(didv_result, f):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    D = _get_D(didv_result, f)
+    bottom = 1 + 2.0j * np.pi * f * tau1 - C/(1 + 2.0j * np.pi * f * tau3)
+    
+    return D/B
+
+def _ddC_D(didv_result, f):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    D = _get_D(didv_result, f)
+    bottom = 1 + 2.0j * np.pi * f * tau1 - C/(1 + 2.0j * np.pi * f * tau3)
+    
+    return D/(bottom * (1 + 2.0j * np.pi * f * tau3))
+
+def _ddtau1_D(didv_result, f):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    D = _get_D(didv_result, f)
+    bottom = 1 + 2.0j * np.pi * f * tau1 - C/(1 + 2.0j * np.pi * f * tau3)
+    
+    return -1.0*(1 + 2.0j * np.pi * f)*D/(bottom)
+
+def _ddtau2_D(didv_result, f):
+    return 0.0
+
+def _ddtau3_D(didv_result, f):
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    D = _get_D(didv_result, f)
+    bottom = 1 + 2.0j * np.pi * f * tau1 - C/(1 + 2.0j * np.pi * f * tau3)
+    
+    return -1.0*D*C*(2.0j * np.pi * f)/(bottom * (1 + 2.0j * np.pi * f * tau3))
+
+def _ddr0_D(didv_result, f):
+    return 0.0
 
 
 #loopgain terms
@@ -639,6 +710,68 @@ def _ddL_dPdI_2(didv_result, f):
     denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
     
     return dPdI * 2.0j * np.pi * f/denominator
+    
+    
+#third iteration of dPdI terms
+#order of variables: i0, r0, dVdI, beta, D
+def _get_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    
+    return -i0 * dVdI * r0 * (2 + beta)/D
+
+def _ddi0_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_3(didv_result, f)
+    
+    return dPdI/i0
+
+def _ddr0_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_3(didv_result, f)
+    
+    return dPdI/r0
+
+def _dddVdI_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_3(didv_result, f)
+    
+    return dPdI/dVdI
+
+def _ddbeta_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_3(didv_result, f)
+    
+    return dPdI/(2 + beta)
+
+def _ddD_dPdI_3(didv_result, f):
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = didv_result['biasparams']['i0']
+    r0 = didv_result['biasparams']['r0']
+    beta = _get_beta(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_3(didv_result, f)
+    
+    return -1.0*dPdI/D
 
 
 """
@@ -658,7 +791,7 @@ def _get_full_base_cov(didv_result):
     return full_cov
 
 def _get_base_jacobian(didv_result, f):
-    #order of derived variables: i0, r0, dVdI, beta, L
+    #order of derived variables: i0, r0, dVdI, beta, D
     
     base_jacobian = np.zeros((5, 7), dtype = 'complex64')
     
@@ -699,13 +832,22 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[3,6] = _ddr0_beta(didv_result)
     
     #inductance terms
-    base_jacobian[4,0] = _ddA_L(didv_result)
-    base_jacobian[4,1] = _ddB_L(didv_result)
-    base_jacobian[4,2] = _ddC_L(didv_result)
-    base_jacobian[4,3] = _ddtau1_L(didv_result)
-    base_jacobian[4,4] = _ddtau2_L(didv_result)
-    base_jacobian[4,5] = _ddtau3_L(didv_result)
-    base_jacobian[4,6] = _ddr0_L(didv_result)
+    #base_jacobian[4,0] = _ddA_L(didv_result)
+    #base_jacobian[4,1] = _ddB_L(didv_result)
+    #base_jacobian[4,2] = _ddC_L(didv_result)
+    #base_jacobian[4,3] = _ddtau1_L(didv_result)
+    #base_jacobian[4,4] = _ddtau2_L(didv_result)
+    #base_jacobian[4,5] = _ddtau3_L(didv_result)
+    #base_jacobian[4,6] = _ddr0_L(didv_result)
+    
+    #denominator terms
+    base_jacobian[4,0] = _ddA_D(didv_result, f)
+    base_jacobian[4,1] = _ddB_D(didv_result, f)
+    base_jacobian[4,2] = _ddC_D(didv_result, f)
+    base_jacobian[4,3] = _ddtau1_D(didv_result, f)
+    base_jacobian[4,4] = _ddtau2_D(didv_result, f)
+    base_jacobian[4,5] = _ddtau3_D(didv_result, f)
+    base_jacobian[4,6] = _ddr0_D(didv_result, f)
     
     return base_jacobian
 
@@ -714,11 +856,11 @@ def _get_derived_jacobian(didv_result, f):
     
     derived_jacobian = np.zeros(5)
     
-    derived_jacobian[0] = _ddi0_dPdI_2(didv_result, f)
-    derived_jacobian[1] = _ddr0_dPdI_2(didv_result, f)
-    derived_jacobian[2] = _dddVdI_dPdI_2(didv_result, f)
-    derived_jacobian[3] = _ddbeta_dPdI_2(didv_result, f)
-    derived_jacobian[4] = _ddL_dPdI_2(didv_result, f)
+    derived_jacobian[0] = _ddi0_dPdI_3(didv_result, f)
+    derived_jacobian[1] = _ddr0_dPdI_3(didv_result, f)
+    derived_jacobian[2] = _dddVdI_dPdI_3(didv_result, f)
+    derived_jacobian[3] = _ddbeta_dPdI_3(didv_result, f)
+    derived_jacobian[4] = _ddD_dPdI_3(didv_result, f)
     
     return derived_jacobian
 
@@ -912,7 +1054,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     
     i = 0
     while i < len(freqs):
-        dPdI[i] = _get_dPdI_2(didv_result, freqs[i])
+        dPdI[i] = _get_dPdI_3(didv_result, freqs[i])
         dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
         i += 1
         
