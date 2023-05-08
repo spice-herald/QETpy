@@ -10,3 +10,4 @@ sphinxcontrib-websupport>=1.0.1
 iminuit>=2
 sympy>=1.4
 astropy
+pandas

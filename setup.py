@@ -72,5 +72,6 @@ setup(
         'iminuit>=2',
         'sympy',
         'astropy',
+        'pandas',
     ],
 )
