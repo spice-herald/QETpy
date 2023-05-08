@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from qetpy import calc_psd, OF1x1
-from qetpy.utils import make_template,lowpassfilter
+from qetpy.utils import make_template, lowpassfilter
 from astropy.stats import sigma_clip
 from scipy import stats, optimize
 from scipy.stats import skew
@@ -606,7 +606,7 @@ class IterCut(_PlotCut):
 
     def __init__(self, traces, fs, external_cut=None,
                  lgc_plot=False, nplot=10,
-                 lgc_diags=False):
+                 lgc_diagnostics=False):
         """
         Initialization of the IterCut class object.
 
@@ -624,7 +624,7 @@ class IterCut(_PlotCut):
         nplot : int, optional
             The number of events that should be plotted from each
             set of passing events and failing events. Default is 10.
-        lgc_diags : bool, optional
+        lgc_diagnostics : bool, optional
             If True, a pandas data frame with cut parameters is saved in dictionary, 
             which can then be accessed using get_diagnostics_data function
             Default is  False
@@ -640,7 +640,7 @@ class IterCut(_PlotCut):
         self._cutinds = np.arange(self._ntraces)
             
         # diagnostics
-        self._lgc_diags = lgc_diags
+        self._lgc_diagnostics = lgc_diagnostics
         self._diags_dict = dict()
         self._diags_dict['cuts'] = list()
         self._diags_dict['df'] = pd.DataFrame()
@@ -680,7 +680,7 @@ class IterCut(_PlotCut):
     def _run_algo(self, vals,  cut_pars,
                   outlieralgo="sigma_clip",
                   cut_name='',
-                  verbose=False,
+                  lgc_plot=None,
                   **kwargs):
         """
         Hidden function for running the outlier algorithm on a set of
@@ -777,7 +777,11 @@ class IterCut(_PlotCut):
         if sum(cout)==0:
             print('WARNING: No event left. Cuts may be too strict!')
 
-        if self._lgc_plot or verbose:
+        do_plot = self._lgc_plot
+        if lgc_plot is not None:
+            do_plot = lgc_plot
+            
+        if do_plot:
             self._plot_events(cout, cut_name=cut_name)
 
         self._cutinds = self._cutinds[cout]
@@ -790,7 +794,7 @@ class IterCut(_PlotCut):
 
         Parameters
         ----------
-        lgc_diags : bool, optional
+        lgc_diagnostics : bool, optional
             If True, a pandas data frame with cut parameters is saved in dictionary, 
             which can then be accessed using get_diagnostics_data function
             Default is  False
@@ -800,13 +804,13 @@ class IterCut(_PlotCut):
 
 
         
-    def set_lgc_diags(self, dodiags):
+    def set_lgc_diagnostics(self, dodiags):
         """
         Set logic diagnostics
         
         Parameters
         ----------     
-        lgc_diags : bool, optional
+        lgc_diagnostics : bool, optional
             If True, a pandas data frame with cut parameters is saved in dictionary, 
             which can then be accessed using get_diagnostics_data function
             Default is  False
@@ -814,7 +818,7 @@ class IterCut(_PlotCut):
 
         """
         
-        self._lgc_diags = dodiags
+        self._lgc_diagnostics = dodiags
 
         
  
@@ -905,7 +909,7 @@ class IterCut(_PlotCut):
                   outlieralgo='sigma_clip',
                   window_min_index=None,
                   window_max_index=None,
-                  verbose=False,
+                  lgc_plot=None,
                   **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -937,11 +941,11 @@ class IterCut(_PlotCut):
         window_max_index : int, optional 
             OF window upper bound defined as array index
             Default: no upper limit
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -979,7 +983,7 @@ class IterCut(_PlotCut):
             
 
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  of_amps
@@ -990,11 +994,11 @@ class IterCut(_PlotCut):
         self._run_algo(np.abs(of_amps), cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name='ofamps',
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
 
         # save cut
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df']['ofamps_cut'] = self.cmask
                     
         return self.cmask
@@ -1008,7 +1012,7 @@ class IterCut(_PlotCut):
                     window_min_index=None,
                     window_max_index=None,
                     lgc_outside_window=False,
-                    verbose=False,
+                    lgc_plot=None,
                     **kwargs):
         """
         Function to automatically cut out outliers of the baselines
@@ -1037,12 +1041,12 @@ class IterCut(_PlotCut):
         lgc_outside_window : bool, optional
             If True and window is not None, then use data outside window
             Default is False
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
-        **kwargs
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
+         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
 
@@ -1080,7 +1084,7 @@ class IterCut(_PlotCut):
                               axis=-1)
         
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  baselines
@@ -1091,11 +1095,11 @@ class IterCut(_PlotCut):
         self._run_algo(baselines,cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name='baseline',
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
            
         # save cut in dataframe
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df']['baseline_cut'] = self.cmask
 
                   
@@ -1110,7 +1114,7 @@ class IterCut(_PlotCut):
                   window_min_index=None,
                   window_max_index=None,
                   lgc_outside_window=False,
-                  verbose=False,
+                  lgc_plot=None,
                   **kwargs):
         """
         Function to automatically cut out outliers of the minmax
@@ -1141,11 +1145,11 @@ class IterCut(_PlotCut):
         lgc_outside_window : bool, optional
             If True and window is not None, then use data outside window
             Default is False
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -1191,7 +1195,7 @@ class IterCut(_PlotCut):
 
         
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  min_max
@@ -1203,11 +1207,11 @@ class IterCut(_PlotCut):
         self._run_algo(min_max, cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name='minmax',
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
         
         # diagnostics
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df']['minmax_cut'] = self.cmask
         
         return self.cmask
@@ -1220,7 +1224,7 @@ class IterCut(_PlotCut):
                  window_min_index=None,
                  window_max_index=None,
                  lgc_outside_window=True,
-                 verbose=False,
+                 lgc_plot=None,
                  **kwargs):
         """
         Function to automatically cut out outliers of the slopes of the
@@ -1250,11 +1254,11 @@ class IterCut(_PlotCut):
         lgc_outside_window : bool, optional
             If True and window is not None, then use data outside window
             Default is True
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -1307,7 +1311,7 @@ class IterCut(_PlotCut):
 
         
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  slopes
@@ -1318,11 +1322,11 @@ class IterCut(_PlotCut):
         self._run_algo(slopes, cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name='slope',
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
 
         # diagnostics
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df']['slope_cut'] = self.cmask
 
 
@@ -1334,9 +1338,10 @@ class IterCut(_PlotCut):
                   outlieralgo="sigma_clip",
                   delta_chi2=False,
                   nodelay_chi2=False,
+                  nopulse_chi2=False,
                   window_min_index=None,
                   window_max_index=None,
-                  verbose=False,
+                  lgc_plot=None,
                   **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -1372,11 +1377,11 @@ class IterCut(_PlotCut):
         window_max_index : int, optional 
             OF window upper bound defined as array index
             efault: no upper limit
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -1415,15 +1420,17 @@ class IterCut(_PlotCut):
                 amp, t0, chi2, lowchi2 = OF.get_result_nodelay()
             else:
                 amp, t0, chi2, lowchi2 = OF.get_result_withdelay()
-                
+
+            chi2_nopulse = OF.get_chisq_nopulse()
             if delta_chi2:
-                chi2_nopulse = OF.get_chisq_nopulse()
                 of_chi2s[itrace] = chi2_nopulse - lowchi2
+            elif nopulse_chi2:
+                of_chi2s[itrace] = chi2_nopulse
             else:
                 of_chi2s[itrace] = lowchi2 
             
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  of_chi2s
@@ -1435,12 +1442,12 @@ class IterCut(_PlotCut):
         self._run_algo(of_chi2s, cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name='ofchi2',
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
   
 
         # save cut in dataframe
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df']['ofchi2_cut'] = self.cmask
 
 
@@ -1449,10 +1456,10 @@ class IterCut(_PlotCut):
 
     
     def arbitrarycut(self, cutfunction,
-                     *args, cut_pars,
+                     *args, cut_pars={'sigma':2},
                      outlieralgo='sigma_clip',
                      cutname='arbitrary',
-                     verbose=False,
+                     lgc_plot=None,
                      **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -1482,11 +1489,11 @@ class IterCut(_PlotCut):
         cutname : str, optional
             name of the cut. Default is "arbitrary'.
             This is only used for diagonostics data frame (if enabled)
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `lgc_plot` is
-            True when initializing this class, then this will be
-            ignored in favor of `lgc_plot`.
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -1504,7 +1511,7 @@ class IterCut(_PlotCut):
 
 
         # save diagnostics data
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             vals = np.empty(self._ntraces)
             vals[:] = np.nan
             vals[self._cutinds] =  vals_func
@@ -1515,12 +1522,12 @@ class IterCut(_PlotCut):
         self._run_algo(vals_func, cut_pars,
                        outlieralgo=outlieralgo,
                        cut_name=cutname,
-                       verbose=verbose,
+                       lgc_plot=lgc_plot,
                        **kwargs)
   
         
         # save cut in dataframe
-        if self._lgc_diags:
+        if self._lgc_diagnostics:
             self._diags_dict['df'][cutname + '_cut'] = self.cmask
 
 
@@ -1641,7 +1648,7 @@ def autocuts_noise(traces, fs=1.25e6,
                    outlieralgo='sigma_clip', sigma=2,
                    cuts_dict=None, niter=2,
                    lgc_plot=False, nplot=10,
-                   lgc_diags=False,
+                   lgc_diagnostics=False,
                    verbose=False,
                    **kwargs):
     """
@@ -1702,7 +1709,7 @@ def autocuts_noise(traces, fs=1.25e6,
     nplot : int, optional
          The number of events that should be plotted from each
          set of passing events and failing events. Default is 10.
-    lgc_diags : bool, optional
+    lgc_diagnostics : bool, optional
          If True, a pandas data frame with cut parameters is saved in dictionary, 
          and included in the output
          Default is  False
@@ -1713,7 +1720,7 @@ def autocuts_noise(traces, fs=1.25e6,
         Boolean array giving which indices to keep or throw out based
         on the autocuts algorithm.
 
-    diags_dict : dict (if lgc_diags=True)
+    diags_dict : dict (if lgc_diagnostics=True)
        dictionary with cuts parameteres in a pandas data frame
 
     """
@@ -1751,7 +1758,7 @@ def autocuts_noise(traces, fs=1.25e6,
     # Initialize cut
     Cut = IterCut(traces, fs,
                   lgc_plot=lgc_plot, nplot=nplot,
-                  lgc_diags=lgc_diags)
+                  lgc_diagnostics=lgc_diagnostics)
 
     
     
@@ -1764,7 +1771,6 @@ def autocuts_noise(traces, fs=1.25e6,
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
                   lowpass_filter=True,
-                  verbose=verbose,
                   **kwargs)
 
     # 2. baseline
@@ -1775,7 +1781,6 @@ def autocuts_noise(traces, fs=1.25e6,
         
     Cut.baselinecut(cut_pars,
                     outlieralgo=outlieralgo,
-                    verbose=verbose,
                     **kwargs)
 
     
@@ -1787,7 +1792,6 @@ def autocuts_noise(traces, fs=1.25e6,
         
     Cut.slopecut(cut_pars,
                  outlieralgo=outlieralgo,
-                 verbose=verbose,
                  **kwargs)
 
     
@@ -1813,14 +1817,14 @@ def autocuts_noise(traces, fs=1.25e6,
         Cut.update_cutinds(cutinds=cutinds_start)
 
 
-        # disable lgc_plot and lgc_diags
+        # disable lgc_plot and lgc_diagnostics
         # if not last step
         if (istep != niter-1):
             Cut.set_lgc_plot(False)
-            Cut.set_lgc_diags(False)        
+            Cut.set_lgc_diagnostics(False)        
         else:
             Cut.set_lgc_plot(lgc_plot)
-            Cut.set_lgc_diags(lgc_diags) 
+            Cut.set_lgc_diagnostics(lgc_diagnostics) 
             
                
         # 4. OF amps 
@@ -1832,7 +1836,7 @@ def autocuts_noise(traces, fs=1.25e6,
         Cut.ofampscut(template, psd,
                       cut_pars,
                       outlieralgo=outlieralgo,
-                      verbose=verbose)
+                      **kwargs)
 
 
         # 5. Final cut chi2
@@ -1844,8 +1848,8 @@ def autocuts_noise(traces, fs=1.25e6,
         Cut.ofchi2cut(template, psd,
                       cut_pars,
                       outlieralgo=outlieralgo,
-                      nodelay_chi2=False,
-                      verbose=verbose,
+                      nodelay_chi2=True,
+                      nopulse_chi2=True,
                       **kwargs)
         
         # now re-calcute noise psd
@@ -1854,7 +1858,7 @@ def autocuts_noise(traces, fs=1.25e6,
 
 
         
-    if lgc_diags:
+    if lgc_diagnostics:
         diags_dict = Cut.get_diagnostics_data()
         diags_dict['psd'] = psd
         diags_dict['pulse_template'] = template
@@ -1871,7 +1875,7 @@ def autocuts_didv(traces, fs=1.25e6,
                   outlieralgo='sigma_clip', sigma=2,
                   cuts_dict=None, niter=2,
                   lgc_plot=False, nplot=10,
-                  lgc_diags=False,
+                  lgc_diagnostics=False,
                   verbose=False,
                   **kwargs):
     """
@@ -1933,7 +1937,7 @@ def autocuts_didv(traces, fs=1.25e6,
     nplot : int, optional
          The number of events that should be plotted from each
          set of passing events and failing events. Default is 10.
-    lgc_diags : bool, optional
+    lgc_diagnostics : bool, optional
          If True, a pandas data frame with cut parameters is saved in dictionary, 
          and included in the output
          Default is  False
@@ -1946,7 +1950,7 @@ def autocuts_didv(traces, fs=1.25e6,
         Boolean array giving which indices to keep or throw out based
         on the autocuts algorithm.
 
-    diags_dict : dict (if lgc_diags=True)
+    diags_dict : dict (if lgc_diagnostics=True)
        dictionary with cuts parameteres in a pandas data frame
 
     """
@@ -1990,7 +1994,7 @@ def autocuts_didv(traces, fs=1.25e6,
     Cut = IterCut(traces, fs,
                   lgc_plot=lgc_plot,
                   nplot=nplot,
-                  lgc_diags=lgc_diags)
+                  lgc_diagnostics=lgc_diagnostics)
 
     
     # 1. minmax cut (loose by default)
@@ -2002,7 +2006,6 @@ def autocuts_didv(traces, fs=1.25e6,
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
                   lowpass_filter=True,
-                  verbose=verbose,
                   **kwargs)
 
     # 2. baseline
@@ -2013,7 +2016,6 @@ def autocuts_didv(traces, fs=1.25e6,
         
     Cut.baselinecut(cut_pars,
                     outlieralgo=outlieralgo,
-                    verbose=verbose,
                     **kwargs)
 
 
@@ -2028,14 +2030,14 @@ def autocuts_didv(traces, fs=1.25e6,
         Cut.update_cutinds(cutinds=cutinds_start)
 
 
-        # disable lgc_plot and lgc_diags
+        # disable lgc_plot and lgc_diagnostics
         # if not last step
         if (istep != niter-1):
             Cut.set_lgc_plot(False)
-            Cut.set_lgc_diags(False)        
+            Cut.set_lgc_diagnostics(False)        
         else:
             Cut.set_lgc_plot(lgc_plot)
-            Cut.set_lgc_diags(lgc_diags) 
+            Cut.set_lgc_diagnostics(lgc_diagnostics) 
             
         
         # subtract dIdV  template
@@ -2053,7 +2055,7 @@ def autocuts_didv(traces, fs=1.25e6,
                     
         Cut.slopecut(cut_pars,
                      outlieralgo=outlieralgo,
-                     verbose=verbose)
+                     **kwargs)
         
         
         # 4. OF amps
@@ -2065,7 +2067,7 @@ def autocuts_didv(traces, fs=1.25e6,
         Cut.ofampscut(template, psd,
                       cut_pars,
                       outlieralgo=outlieralgo,
-                      verbose=verbose)
+                      **kwargs)
         
         # now re-calcute noise psd and didV template
         f, psd = calc_psd(noise_traces[Cut.cmask,:], fs=fs,
@@ -2087,7 +2089,6 @@ def autocuts_didv(traces, fs=1.25e6,
                       cut_pars,
                       outlieralgo=outlieralgo,
                       nodelay_chi2=True,
-                      verbose=verbose,
                       **kwargs)
 
         
@@ -2096,7 +2097,7 @@ def autocuts_didv(traces, fs=1.25e6,
                                 keepdims=True)
 
 
-    if lgc_diags:
+    if lgc_diagnostics:
         diags_dict = Cut.get_diagnostics_data()
         diags_dict['psd'] = psd
         diags_dict['didv_template'] = didv_template[0,:]
