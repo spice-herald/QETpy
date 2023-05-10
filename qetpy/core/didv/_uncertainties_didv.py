@@ -21,29 +21,62 @@ Hidden helper functions for calculating derivatives, smallsignal parameters etc
 #i0 terms
 
 def _get_i0(didv_result):
+    """
+    Returns the i0 (current through the TES)
+    in units of amps
+    """
     i0 = didv_result['biasparams']['i0']
     
     return i0
 
 def _ddA_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the A parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddB_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the B parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddC_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the B parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddtau1_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the tau1 parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddtau2_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the tau2 parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddtau3_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to the tau3 parameter of the dIdV fit.
+    """
     return 0.0
     
 def _ddr0_i0(didv_result):
+    """
+    Returns the derivative of i0 (current through the
+    TES) with respect to r0 (the bias resistance of the
+    TES).
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -62,29 +95,67 @@ def _ddr0_i0(didv_result):
 #r0 terms
 
 def _ddA_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the A parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddB_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the B parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddC_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the C parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau1_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the tau1 parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau2_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the tau2 parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau3_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect to the tau3 parameter 
+    of the dIdV fit.
+    """
     return 0.0
 
 def _ddr0_r0(didv_result):
+    """
+    Returns the derivative of r0 (resistance of the TES
+    at the bias point) with respect itself.
+    """
     return 1.0
     
 #inductance terms
 
 def _get_L(didv_result):
+    """
+    Returns the fit inductance of the TES + parasitics +
+    SQUID input coil, in units of Henries. 
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -101,6 +172,10 @@ def _get_L(didv_result):
     return A * tau2
 
 def _ddA_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the A parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -117,15 +192,31 @@ def _ddA_L(didv_result):
     return tau2
 
 def _ddB_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the B parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddC_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the C parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau1_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the tau1 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau2_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the tau2 parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -142,14 +233,26 @@ def _ddtau2_L(didv_result):
     return A
 
 def _ddtau3_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the tau3 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddr0_L(didv_result):
+    """
+    Returbs the derivative of the inductance with respect
+    to the resistance of the TES at the bias point.
+    """
     return 0.0
     
 #beta terms
 
 def _get_beta(didv_result):
+    """
+    Returns the dimensionless beta parameter of the TES (current
+    responsivity).
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -166,6 +269,10 @@ def _get_beta(didv_result):
     return (A - rl)/r0 - 1
 
 def _ddA_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the A parameter
+    of the dIdV fits.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -182,21 +289,45 @@ def _ddA_beta(didv_result):
     return r0**-1
 
 def _ddB_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the B parameter
+    of the dIdV fits.
+    """
     return 0.0
 
 def _ddC_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the C parameter
+    of the dIdV fits.
+    """
     return 0.0
 
 def _ddtau1_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the tau1 parameter
+    of the dIdV fits.
+    """
     return 0.0
 
 def _ddtau2_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the tau2 parameter
+    of the dIdV fits.
+    """
     return 0.0
 
 def _ddtau3_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the tau3 parameter
+    of the dIdV fits.
+    """
     return 0.0
 
 def _ddr0_beta(didv_result):
+    """
+    Returns the derivative of beta with respect to the resistance of
+    the TES at the bias point, r0.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -216,6 +347,13 @@ def _ddr0_beta(didv_result):
 #denominator, called D
 
 def _get_D(didv_result, f):
+    """
+    Returns the denominator of the equation for the dPdI, in units of 
+    ohms. Written differently than below (which is in terms of the TES
+    dIdV fit parameters), this denominator is Z_TES(omega) + r0 * (1 - beta).
+    The term is calculated this way so that we can use the linear
+    approximation to estimate the uncertainty in the dPdI correctly.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -227,9 +365,17 @@ def _get_D(didv_result, f):
     return B/bottom
 
 def _ddA_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter A.
+    """
     return 0.0
 
 def _ddB_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter B.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -242,6 +388,10 @@ def _ddB_D(didv_result, f):
     return D/B
 
 def _ddC_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter C.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -254,6 +404,10 @@ def _ddC_D(didv_result, f):
     return D/(bottom * (1 + 2.0j * np.pi * f * tau3))
 
 def _ddtau1_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter tau1.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -266,9 +420,17 @@ def _ddtau1_D(didv_result, f):
     return -1.0*(1 + 2.0j * np.pi * f)*D/(bottom)
 
 def _ddtau2_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter tau2.
+    """
     return 0.0
 
 def _ddtau3_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the dIdV fit parameter tau3.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -281,12 +443,19 @@ def _ddtau3_D(didv_result, f):
     return -1.0*D*C*(2.0j * np.pi * f)/(bottom * (1 + 2.0j * np.pi * f * tau3))
 
 def _ddr0_D(didv_result, f):
+    """
+    Returns the derivative of the denominator term (see _get_D above)
+    with respect to the TES resistance r0.
+    """
     return 0.0
 
 
 #loopgain terms
 
 def _get_loopgain(didv_result):
+    """
+    Returns the dimensionless TES loop gain parameter.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -302,6 +471,10 @@ def _get_loopgain(didv_result):
     return B/(A + B + r0 - rl)
 
 def _ddA_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the A parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -317,6 +490,10 @@ def _ddA_loopgain(didv_result):
     return -1.0 * B * (A + B + r0 - rl)**-2
     
 def _ddB_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the B parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -332,18 +509,38 @@ def _ddB_loopgain(didv_result):
     return (A + B + r0 - rl)**-1 - B * (A + B + r0 - rl)**-2
 
 def _ddC_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the C parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau1_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the tau1 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau2_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the tau2 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau3_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the tau3 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddr0_loopgain(didv_result):
+    """
+    Returns the derivative of the loopgain with respect
+    to the TES bias resistance r0.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -361,6 +558,9 @@ def _ddr0_loopgain(didv_result):
 #tau0
 
 def _get_tau0(didv_result):
+    """
+    Returns the TES tau0 (C/G) falltime in units of seconds.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -376,6 +576,10 @@ def _get_tau0(didv_result):
     return tau1 * (A + r0 - rl) * (A + B + r0 - rl)**-1
 
 def _ddA_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the A parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -394,6 +598,10 @@ def _ddA_tau0(didv_result):
     return tau1 * (term1 + term2)
 
 def _ddB_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the B parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -409,9 +617,17 @@ def _ddB_tau0(didv_result):
     return -tau1 * (A + r0 - rl) * (A + B + r0 - rl)**-2
 
 def _ddC_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the C parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau1_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the tau1 parameter of the dIdV fit.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -427,12 +643,24 @@ def _ddtau1_tau0(didv_result):
     return (A + r0 - rl)/(A + B + r0 - rl)
 
 def _ddtau2_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the tau2 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddtau3_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the tau3 parameter of the dIdV fit.
+    """
     return 0.0
 
 def _ddr0_tau0(didv_result):
+    """
+    Returns the derivative of the TES tau0 falltime with
+    respect to the TES bias resistance r0.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -453,6 +681,12 @@ def _ddr0_tau0(didv_result):
 #dVdI
 
 def _get_dVdI(didv_result, f):
+    """
+    Returns the modeled TES dVdI in units of ohms, as
+    calculate from the TES fit parameters. Note that this is
+    derived from a model rather than the true dIdV as measured.
+    The dVdI is calculated at a frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']
     C = didv_result['params']['C']
@@ -470,6 +704,10 @@ def _get_dVdI(didv_result, f):
     return term1 + term2
 
 def _ddA_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter A, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -485,6 +723,10 @@ def _ddA_dVdI(didv_result, f):
     return (1.0 +2.0j * np.pi * f * tau2)
 
 def _ddB_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter B, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -500,6 +742,10 @@ def _ddB_dVdI(didv_result, f):
     return (1.0 + 2.0j * np.pi * f * tau1 - C * (1.0 + 2.0j * np.pi * f * tau3)**-1)**-1
 
 def _ddC_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter C, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -515,6 +761,10 @@ def _ddC_dVdI(didv_result, f):
     return B*(1.0 + 2.0j * np.pi * f * tau1 - C * (1.0 + 2.0j * np.pi * f * tau3)**-1)**-2 * (1.0 + 2.0j*np.pi * f * tau3)**-1
 
 def _ddtau1_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter tau1, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -530,6 +780,10 @@ def _ddtau1_dVdI(didv_result, f):
     return -1.0*B * (1.0 + 2.0j * np.pi * f * tau1 - C *(1.0 + 2.0j * np.pi * f * tau3)**-1)**-2 * 2.0j * np.pi * f
 
 def _ddtau2_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter tau2, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -545,6 +799,10 @@ def _ddtau2_dVdI(didv_result, f):
     return 2.0j * np.pi * A * f
 
 def _ddtau3_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES fit parameter tau3, evaluated at frequency f.
+    """
     A = didv_result['params']['A']
     B = didv_result['params']['B']    
     C = didv_result['params']['C']
@@ -563,158 +821,24 @@ def _ddtau3_dVdI(didv_result, f):
     return term1 * term2**-2 * term3**-2
 
 def _ddr0_dVdI(didv_result, f):
+    """
+    Returns the derivative of the TES dVdI with respect to
+    the TES bias resistance r0, evaluated at frequency f.
+    """
     return 0.0
 
-#dPdI
-
-def _get_dPdI(didv_result, f):
-    i0 = didv_result['biasparams']['i0']
-    loopgain = _get_loopgain(didv_result)
-    tau0 = _get_tau0(didv_result)
-    dvdi = _get_dVdI(didv_result, f)
-    
-    return i0 * (1 - 1/loopgain) * (1 + 2.0j * np.pi * f * tau0/(1 - loopgain)) * dvdi
-
-def _ddi0_dPdI(didv_result, f):
-    i0 = didv_result['biasparams']['i0']
-    loopgain = _get_loopgain(didv_result)
-    tau0 = _get_tau0(didv_result)
-    dvdi = _get_dVdI(didv_result, f)
-    
-    return (1 - 1/loopgain) * (1 + 2.0j * np.pi * f * tau0/(1 - loopgain)) * dvdi
-
-def _ddloopgain_dPdI(didv_result, f):
-    i0 = didv_result['biasparams']['i0']
-    loopgain = _get_loopgain(didv_result)
-    tau0 = _get_tau0(didv_result)
-    dvdi = _get_dVdI(didv_result, f)
-    
-    term1 = loopgain**-2 * (1.0 + 2.0j * np.pi * f * tau0 / (1.0 - loopgain))
-    term2 = 2.0j * np.pi * f * tau0 * (1.0 - 1.0/loopgain) * (1.0 - loopgain)**-2
-    return i0 * dvdi * (term1 + term2) 
-
-def _ddtau0_dPdI(didv_result, f):
-    i0 = didv_result['biasparams']['i0']
-    loopgain = _get_loopgain(didv_result)
-    tau0 = _get_tau0(didv_result)
-    dvdi = _get_dVdI(didv_result, f)
-    
-    return i0 * (1.0 - 1.0/loopgain) * dvdi * 2.0j * np.pi * f/(1.0 - loopgain)
-
-def _dddVdI_dPdI(didv_result, f):
-    i0 = didv_result['biasparams']['i0']
-    loopgain = _get_loopgain(didv_result)
-    tau0 = _get_tau0(didv_result)
-    dvdi = _get_dVdI(didv_result, f)
-    
-    return i0 * (1.0 - 1.0/loopgain) * (1.0 + 2.0j * np.pi * f * tau0/(1.0 - loopgain))
-    
-
-#second iteration of dPdI terms
-#order of variables: i0, r0, dVdI, beta, L
-
-def _get_dPdI_2(didv_result, f):
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    numerator = - i0 * dVdI * r0 * (2 + beta)
-    denominator = dVdI - rl - 2.0j * f * np.pi * L - r0 * (1 + beta)
-    
-    return numerator/denominator
-
-def _ddi0_dPdI_2(didv_result, f):
-    dPdI = _get_dPdI_2(didv_result, f)
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    return i0**-1 * dPdI
-
-
-def _ddr0_dPdI_2(didv_result, f):
-    dPdI = _get_dPdI_2(didv_result, f)
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
-    
-    term1 = r0**-1
-    term2 = (1 + beta) / denominator
-    
-    return dPdI * (term1 + term2)
-
-def _dddVdI_dPdI_2(didv_result, f):
-    dPdI = _get_dPdI_2(didv_result, f)
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
-    
-    term1 = dVdI**-1
-    term2 = -1.0 / denominator
-    
-    return dPdI * (term1 + term2)
-
-def _ddbeta_dPdI_2(didv_result, f):
-    dPdI = _get_dPdI_2(didv_result, f)
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
-    
-    term1 = (2 + beta)**-1
-    term2 = r0 / denominator
-    
-    return dPdI * (term1 + term2)
-
-def _ddL_dPdI_2(didv_result, f):
-    dPdI = _get_dPdI_2(didv_result, f)
-    dVdI = _get_dVdI(didv_result, f)
-    i0 = didv_result['biasparams']['i0']
-    r0 = didv_result['biasparams']['r0']
-    rp = didv_result['smallsignalparams']['rp']
-    rsh = didv_result['smallsignalparams']['rsh']
-    rl = rp + rsh
-    beta = _get_beta(didv_result)
-    L = _get_L(didv_result)
-    
-    denominator = dVdI - rl - 2.0j * np.pi * f * L - r0 * (1 + beta)
-    
-    return dPdI * 2.0j * np.pi * f/denominator
     
     
 #third iteration of dPdI terms
 #order of variables: i0, r0, dVdI, beta, D
 def _get_dPdI_3(didv_result, f):
+    """
+    Returns the modeled TES dPdI in units of volts. Note that 
+    this dPdI is written in such a way that it is both relatively
+    ''pole agnostic'' (i.e. this code can be fairly easily rewritten
+    to accomondate 2 or 4 pole models rather than the 3 pole model
+    used here).
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -724,6 +848,11 @@ def _get_dPdI_3(didv_result, f):
     return -i0 * dVdI * r0 * (2 + beta)/D
 
 def _ddi0_dPdI_3(didv_result, f):
+    """
+    Returns the derivative of the dPdI with respect to i0 (the 
+    current through the TES at the bias point) evaluated at a
+    frequency f.
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -734,6 +863,11 @@ def _ddi0_dPdI_3(didv_result, f):
     return dPdI/i0
 
 def _ddr0_dPdI_3(didv_result, f):
+    """
+    Returns the derivative of the dPdI with respect to r0 (the 
+    resistance of the TES at the bias point) evaluated at a
+    frequency f.
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -744,6 +878,10 @@ def _ddr0_dPdI_3(didv_result, f):
     return dPdI/r0
 
 def _dddVdI_dPdI_3(didv_result, f):
+    """
+    Returns the derivative of the dPdI with respect to the dVdI
+    evaluated at a frequency f.
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -754,6 +892,11 @@ def _dddVdI_dPdI_3(didv_result, f):
     return dPdI/dVdI
 
 def _ddbeta_dPdI_3(didv_result, f):
+    """
+    Returns the derivative of the dPdI with respect to beta (the 
+    current responsivity of the TES at the bias point) evaluated at a
+    frequency f.
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -764,6 +907,13 @@ def _ddbeta_dPdI_3(didv_result, f):
     return dPdI/(2 + beta)
 
 def _ddD_dPdI_3(didv_result, f):
+    """
+    Returns the derivative of the dPdI with respect to the
+    dPdI denominator D (see the function definition above) 
+    evaluated at a frequency f. The derivative is impemented
+    this way to correctly calculate the dPdI uncercertainty using
+    a linear approximation.
+    """
     dVdI = _get_dVdI(didv_result, f)
     i0 = didv_result['biasparams']['i0']
     r0 = didv_result['biasparams']['r0']
@@ -779,6 +929,18 @@ Functions for calculating covariance matricies and Jacobians, etc.
 """
 
 def _get_full_base_cov(didv_result):
+    """
+    Returns the covariance matrix for the variables A, B, C, tau1, 
+    tau2, tau3, and r0. This is essentially an extension of the covariance
+    matrix included in the didV_fitresult dictionary to include r0 (the
+    resistance of the TES at the bias point). r0 is assumed not to be covariant
+    with the other parameters, as it's measured from the DC current through the
+    device rather than the frequency dependent response.
+    
+    A and B are in units of ohms, C is dimensionless, tau1, tau2, tau3 have
+    units of seconds, and r0 is in units of ohms.
+    """
+
     #order of variables is A, B, C, tau1, tau2, tau3, r0
     full_cov = np.zeros((7,7))
     
@@ -791,6 +953,13 @@ def _get_full_base_cov(didv_result):
     return full_cov
 
 def _get_base_jacobian(didv_result, f):
+    """
+    Returns the Jacobian matrix of the base variables used
+    when calculating the covariance for the "derived varriables"
+    (e.g. i0, beta, etc.). The Jacobian is evaluated at a
+    frequency f.
+    """
+
     #order of derived variables: i0, r0, dVdI, beta, D
     
     base_jacobian = np.zeros((5, 7), dtype = 'complex64')
@@ -831,15 +1000,6 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[3,5] = _ddtau3_beta(didv_result)
     base_jacobian[3,6] = _ddr0_beta(didv_result)
     
-    #inductance terms
-    #base_jacobian[4,0] = _ddA_L(didv_result)
-    #base_jacobian[4,1] = _ddB_L(didv_result)
-    #base_jacobian[4,2] = _ddC_L(didv_result)
-    #base_jacobian[4,3] = _ddtau1_L(didv_result)
-    #base_jacobian[4,4] = _ddtau2_L(didv_result)
-    #base_jacobian[4,5] = _ddtau3_L(didv_result)
-    #base_jacobian[4,6] = _ddr0_L(didv_result)
-    
     #denominator terms
     base_jacobian[4,0] = _ddA_D(didv_result, f)
     base_jacobian[4,1] = _ddB_D(didv_result, f)
@@ -852,6 +1012,13 @@ def _get_base_jacobian(didv_result, f):
     return base_jacobian
 
 def _get_derived_jacobian(didv_result, f):
+    """
+    Returns the Jacobian (or really gradiant, since it's 1D)
+    of dPdI when calculated in terms of the derived variables.
+    Used when calculating the uncertainty in dPdI when correctly
+    taking into account covariance. The Jacobian is evaluated
+    at a frequency f.
+    """
     #order of derived variables: i0, r0, dVdI, beta, L
     
     derived_jacobian = np.zeros(5)
@@ -865,6 +1032,11 @@ def _get_derived_jacobian(didv_result, f):
     return derived_jacobian
 
 def _get_derived_cov(didv_result, f):
+    """
+    Returns the covariance matrix for the derived variables (e.g. beta, dVdI),
+    evaluated at a frequency f.
+    """
+    
     base_cov = np.asarray(_get_full_base_cov(didv_result), dtype = 'complex64')
     base_jacobian = np.asarray(_get_base_jacobian(didv_result, f), dtype = 'complex64')
     
@@ -872,6 +1044,9 @@ def _get_derived_cov(didv_result, f):
     return derived_cov
 
 def _get_dPdI_uncertainty(didv_result, f):
+    """
+    Returns the uncertainty in the dPdI evaluated at a frequency f.
+    """
     derived_cov = _get_derived_cov(didv_result, f)
     derived_jacobian = _get_derived_jacobian(didv_result, f)
     
@@ -880,6 +1055,9 @@ def _get_dPdI_uncertainty(didv_result, f):
     return dPdI_variance**0.5
     
 def _get_dVdI_uncertainty(didv_result, f):
+    """
+    Returns the uncertainty in the dVdI evaluated at a frequency f.
+    """
     dVdI_gradiant = np.zeros(6, dtype = 'cfloat')
     
     dVdI_gradiant[0] = _ddA_dVdI(didv_result, f)
