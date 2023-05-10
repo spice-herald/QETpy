@@ -1,12 +1,13 @@
 import numpy as np
 import random
 from qetpy import calc_psd, OF1x1
-from qetpy.utils import make_template
+from qetpy.utils import make_template, lowpassfilter
 from astropy.stats import sigma_clip
 from scipy import stats, optimize
 from scipy.stats import skew
 import warnings
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 __all__ = [
@@ -504,7 +505,7 @@ class _PlotCut(object):
 
         return np.sort(fail_plot), np.sort(pass_plot)
 
-    def _plot_events(self, cout):
+    def _plot_events(self, cout, cut_name=''):
         """
         Hidden function for plotting passing events and failing events
         given some cut on the data.
@@ -516,19 +517,55 @@ class _PlotCut(object):
         fig, axes = plt.subplots(ncols=2, sharex=True)
         time = np.arange(self._nbin) / self.fs
 
+        ymax_all = None
+        ymin_all = None
+
         for temp_trace in self.traces[fail_inds]:
+            temp_trace = lowpassfilter(temp_trace,
+                                       cut_off_freq=10000,
+                                       fs=self.fs, order=2)
+
             axes[0].plot(time * 1e3, temp_trace, alpha=0.5)
 
+            # min/max
+            ymax = np.max(temp_trace, axis=-1)
+            if (ymax_all is None or ymax>ymax_all):
+                ymax_all = ymax
+
+            ymin = np.min(temp_trace, axis=-1)
+            if (ymin_all is None or ymin<ymin_all):
+                ymin_all = ymin 
+
+                
         for temp_trace in self.traces[pass_inds]:
+            temp_trace = lowpassfilter(temp_trace,
+                                       cut_off_freq=10000,
+                                       fs=self.fs, order=2)
             axes[1].plot(time * 1e3, temp_trace, alpha=0.5)
+
+            # min/max
+            ymax = np.max(temp_trace, axis=-1)
+            if (ymax_all is None or ymax>ymax_all):
+                ymax_all = ymax
+
+            ymin = np.min(temp_trace, axis=-1)
+            if (ymin_all is None or ymin<ymin_all):
+                ymin_all = ymin 
+
+            
+            
 
         axes[0].set_title('Failed Cut')
         axes[0].set_xlim(time[0] * 1e3, time[-1] * 1e3)
-
+        axes[0].set_ylim(ymin_all, ymax_all)
+        
         axes[1].set_title('Passed Cut')
         axes[1].yaxis.set_label_position("right")
         axes[1].yaxis.tick_right()
+        axes[1].set_xlim(time[0] * 1e3, time[-1] * 1e3)
+        axes[1].set_ylim(ymin_all, ymax_all)
 
+        
         for ax in axes:
             ax.tick_params(
                 which='both',
@@ -548,7 +585,7 @@ class _PlotCut(object):
             right=False,
         )
         plt.xlabel("Time [ms]")
-
+        plt.suptitle(cut_name + ' cut')
 
 class IterCut(_PlotCut):
     """
@@ -567,7 +604,9 @@ class IterCut(_PlotCut):
 
     """
 
-    def __init__(self, traces, fs, plotall=False, nplot=10):
+    def __init__(self, traces, fs, external_cut=None,
+                 lgc_plot=False, nplot=10,
+                 lgc_diagnostics=False):
         """
         Initialization of the IterCut class object.
 
@@ -577,7 +616,7 @@ class IterCut(_PlotCut):
             The traces that will be cut on, 2D [ntraces, nbins]
         fs : float
             The digitization rate of the traces.
-        plotall : bool, optional
+        lgc_plot : bool, optional
             If True, the events that pass or fail each cut will be
             plotted at each step. Default is False. To plot events that
             pass or fail specific cuts, use the `verbose` kwarg when
@@ -585,22 +624,44 @@ class IterCut(_PlotCut):
         nplot : int, optional
             The number of events that should be plotted from each
             set of passing events and failing events. Default is 10.
+        lgc_diagnostics : bool, optional
+            If True, a pandas data frame with cut parameters is saved in dictionary, 
+            which can then be accessed using get_diagnostics_data function
+            Default is  False
 
         """
 
         self.traces = traces
         self.fs = fs
-        self._plotall = plotall
+        self._lgc_plot = lgc_plot
         self._nplot = nplot
         self._ntraces = traces.shape[0]
         self._nbin = traces.shape[-1]
         self._cutinds = np.arange(self._ntraces)
+            
+        # diagnostics
+        self._lgc_diagnostics = lgc_diagnostics
+        self._diags_dict = dict()
+        self._diags_dict['cuts'] = list()
+        self._diags_dict['df'] = pd.DataFrame()
+        
+        # apply external cut
+        if external_cut is not None:
+            if len(external_cut) != traces.shape[0]:
+                raise ValueError(
+                    'ERROR: external cut length does not '
+                    + 'match trace length!')
+            self._cutinds = self._cutinds[external_cut]
+            
+
+
+        
 
     @property
     def cmask(self):
         _cmask = np.zeros(self._ntraces, dtype=bool)
         _cmask[self._cutinds] = True
-        return _cmask
+        return _cmask.copy()
 
     @cmask.setter
     def cmask(self, value):
@@ -613,67 +674,242 @@ class IterCut(_PlotCut):
 
     @property
     def cutinds(self):
-        return self._cutinds
+        return self._cutinds.copy()
 
 
-        
-
-    def _run_algo(self, vals, outlieralgo, verbose, **kwargs):
+    def _run_algo(self, vals,  cut_pars,
+                  outlieralgo="sigma_clip",
+                  cut_name='',
+                  lgc_plot=None,
+                  **kwargs):
         """
         Hidden function for running the outlier algorithm on a set of
         values.
 
         """
+                
+        # intialize
+        cout = np.ones(len(vals), dtype=bool)
 
-        if outlieralgo=="iterstat":
-            cout = iterstat(vals, **kwargs)[2]
-        elif outlieralgo=="removeoutliers": 
-            cout = removeoutliers(vals, **kwargs)
-        elif outlieralgo=="sigma_clip":
-            array = sigma_clip(vals, axis=0, masked=False,
-                               maxiters=None,
-                               **kwargs)
-            cout = ~np.isnan(array)
+        # sigma cut
+        pars =  cut_pars.keys()
+        if ('sigma' in pars
+            or 'sigma_lower' in pars
+            or 'sigma_upper' in pars):
+
+
+            if not kwargs:
+                kwargs = {}
+            kwargs.update(cut_pars)
+                  
+            # apply cut 
+            if outlieralgo=="iterstat":
+                cout = iterstat(vals, **kwargs)[2]
+            elif outlieralgo=="removeoutliers": 
+                cout = removeoutliers(vals, **kwargs)
+            elif outlieralgo=="sigma_clip":
+                array = sigma_clip(vals, axis=0, masked=False,
+                                   maxiters=None,
+                                   **kwargs)
+                cout = ~np.isnan(array)
+            else:
+                raise ValueError(
+                    "Unrecognized outlieralgo, must be a str "
+                    "of 'iterstat', 'removeoutliers', or 'sigma_clip'"
+                )
+            
         else:
-            raise ValueError(
-                "Unrecognized outlieralgo, must be a str "
-                "of 'iterstat', 'removeoutliers', or 'sigma_clip'"
-            )
+            
+            # initialize bounds
+            lower_bound = None
+            upper_bound = None
 
-        if self._plotall or verbose:
-            self._plot_events(cout)
+
+            # percent
+            if ('percent_lower' in pars
+                or 'percent_upper' in pars):
+
+                # initialize bounds
+                lower_bound = None
+                upper_bound = None
+                
+                # sort 
+                vals_sorted = np.sort(vals)
+                nevents = len(vals_sorted)
+
+                # lower bound
+                if 'percent_upper' in pars:
+                    idx_bound = int(nevents*float(cut_pars['percent_upper'])/100)
+                    upper_bound = vals_sorted[idx_bound]
+
+                # upper bound
+                if 'percent_lower' in pars:
+                    vals_sorted = vals_sorted[::-1]
+                    idx_bound = int(nevents*float(cut_pars['percent_lower'])/100)
+                    lower_bound = vals_sorted[idx_bound]
+
+            # value
+            if ('val_lower' in pars
+                or 'val_upper' in pars):
+                
+                if 'val_lower' in pars:
+                    lower_bound = float(cut_pars['val_lower'])
+
+                if 'val_upper' in pars:
+                    upper_bound = float(cut_pars['val_upper'])
+
+            # check we have a bound
+            if lower_bound is None and upper_bound is None:
+                raise ValueError('ERROR: unrecognized cut parameter(s). '
+                                 + 'Check documentation!')
+
+            # apply cut
+            if lower_bound is None or upper_bound is None:
+                if lower_bound is not None:
+                    cout = vals>lower_bound
+                if upper_bound is not None:
+                    cout = vals<upper_bound
+            else:
+                cout = (vals>lower_bound) & (vals<upper_bound)
+                
+                
+            
+        if sum(cout)==0:
+            print('WARNING: No event left. Cuts may be too strict!')
+
+        do_plot = self._lgc_plot
+        if lgc_plot is not None:
+            do_plot = lgc_plot
+            
+        if do_plot:
+            self._plot_events(cout, cut_name=cut_name)
 
         self._cutinds = self._cutinds[cout]
 
-        
-    def update_cutinds(self, cut):
+
+
+    def set_lgc_plot(self, doplot):
         """
-        Update cutinds with an external cut
+        Set logic plot:
+
+        Parameters
+        ----------
+        lgc_diagnostics : bool, optional
+            If True, a pandas data frame with cut parameters is saved in dictionary, 
+            which can then be accessed using get_diagnostics_data function
+            Default is  False
+        """
+        
+        self._lgc_plot = doplot
+
+
+        
+    def set_lgc_diagnostics(self, dodiags):
+        """
+        Set logic diagnostics
+        
+        Parameters
+        ----------     
+        lgc_diagnostics : bool, optional
+            If True, a pandas data frame with cut parameters is saved in dictionary, 
+            which can then be accessed using get_diagnostics_data function
+            Default is  False
+
+
+        """
+        
+        self._lgc_diagnostics = dodiags
+
+        
+ 
+    def get_diagnostics_data(self):
+        """
+        Get diagnostic data
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+
+        diags_dict : dict
+          dictionary with diagnostics pandas data frame
+        
+
+        """
+        return self._diags_dict
+
+    
+    def update_cutinds(self, cutinds=None, cut=None):
+        """
+        Update cutinds with either  array of indices
+        OR external cut
         
         Parameter
         ---------
-
+        cutinds : ndarray
+          indices array
+        
         cut : ndarray
-          cut array (boolean) with same length as cutinds
+          cut array (boolean) with same length as current cutinds
 
         Return
         ------
         None
         """
 
-        if self._cutinds.shape != cut.shape:
-            raise ValueError('ERROR: external cut needs to have'
-                             + ' shape = ' + str(self._cutinds.shape))
+
+        if cutinds is not None:
+            self._cutinds = cutinds
+        elif cut is not None:
+            if self._cutinds.shape != cut.shape:
+                raise ValueError('ERROR: external cut needs to have'
+                                 + ' shape = ' + str(self._cutinds.shape))
+            self._cutinds = self._cutinds[cut]
+        else:
+            raise ValueError('ERROR: "cutinds" or "cut" argument needed!')
+
         
-                
-        self._cutinds = self._cutinds[cut]
 
+    def modify_traces(self, traces, fs=None):
+        """
+        Modify input traces. Needs to have same number of 
+        events. Trace length and sample rate could be different
+        
+        Parameter
+        ---------
+        traces : ndarray
+          The traces that will be cut on, 2D [ntraces, nbins]
+          cut array (boolean) with same length as cutinds
 
+        fs : float, optional
+            The digitization rate of the traces.
+
+        Return
+        ------
+        None
+        """
+        
+        if (traces.shape[0] != self._ntraces):
+            raise ValueError('ERROR: incompatible number of '
+                             ' events!')
+        
+        self.traces = traces
+        self._nbin = traces.shape[-1]
+        
+        if fs is not None:
+            self.fs = fs
+            
 
 
         
-    def pileupcut(self, template, psd,
-                  outlieralgo="sigma_cut", verbose=False,
+    def ofampscut(self, template, psd,
+                  cut_pars,
+                  outlieralgo='sigma_clip',
+                  window_min_index=None,
+                  window_max_index=None,
+                  lgc_plot=None,
                   **kwargs):
         """
         Function to automatically cut out outliers of the optimum
@@ -687,14 +923,29 @@ class IterCut(_PlotCut):
             The two-sided PSD (units of A^2/Hz) to use for the
             optimum filter. If not passed, then all frequencies are
             weighted equally.
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by sigma
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by sigma
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
+        window_min_index : int, optional 
+            OF window lower bound defined as array index
+            Default: no lower limit
+        window_max_index : int, optional 
+            OF window upper bound defined as array index
+            Default: no upper limit
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -708,7 +959,7 @@ class IterCut(_PlotCut):
         """
 
         temp_traces = self.traces[self._cutinds,:]
-     
+
         # instantiate OF
         OF = OF1x1(template=template, psd=psd,
                    sample_rate=self.fs,
@@ -723,37 +974,79 @@ class IterCut(_PlotCut):
 
             OF.calc(signal=temp_traces[itrace,:], 
                     lowchi2_fcutoff=10000,
+                    window_min_index=window_min_index,
+                    window_max_index=window_max_index,
                     lgc_plot=False)
 
             amp, t0, chi2, lowchi2 = OF.get_result_withdelay()
-            of_amps[itrace]=amp
+            of_amps[itrace] = amp
             
 
-        self._run_algo(np.abs(of_amps), outlieralgo, verbose, **kwargs)
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  of_amps
+            self._diags_dict['cuts'].append('ofamps')
+            self._diags_dict['df']['ofamps'] = vals
 
+        # apply cut
+        self._run_algo(np.abs(of_amps), cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name='ofamps',
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+
+        # save cut
+        if self._lgc_diagnostics:
+            self._diags_dict['df']['ofamps_cut'] = self.cmask
+                    
         return self.cmask
 
-    def baselinecut(self, endindex=None, outlieralgo="sigma_cut",
-                    verbose=False, **kwargs):
+
+
+    
+    def baselinecut(self,
+                    cut_pars,
+                    outlieralgo="sigma_clip",
+                    window_min_index=None,
+                    window_max_index=None,
+                    lgc_outside_window=False,
+                    lgc_plot=None,
+                    **kwargs):
         """
         Function to automatically cut out outliers of the baselines
         of the inputted traces.
 
         Parameters
         ----------
-        endindex : int, NoneType, optional
-            The end index of the trace to average up to for the
-            basleine calculation. If not passed, the default value
-            is half of the trace length.
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by sigma
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by sigma
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
-        **kwargs
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
+        window_min_index : int, optional 
+            OF window lower bound defined as array index
+            Default: no lower limit
+        window_max_index : int, optional 
+            OF window upper bound defined as array index
+            Default: no upper limit
+        lgc_outside_window : bool, optional
+            If True and window is not None, then use data outside window
+            Default is False
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
+         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
 
@@ -764,38 +1057,99 @@ class IterCut(_PlotCut):
             based on the outlier algorithm.
 
         """
-        
+              
         temp_traces = self.traces[self._cutinds,:]
         ntemptraces = len(temp_traces)
 
-        if endindex is None:
-            endindex = self._nbin // 2
+        inds = np.arange(self._nbin)
+        if (window_min_index is not None
+            or window_max_index is not None):
+            
+            min_index = 0
+            max_index = self._nbin
 
-        baselines = np.mean(temp_traces[..., :endindex], axis=-1)
+            if window_min_index is not None:
+                min_index = window_min_index
+            if window_max_index is not None:
+                max_index = window_max_index+1
+                if max_index>self._nbin:
+                    max_index = self._nbin
 
-        self._run_algo(baselines, outlieralgo, verbose, **kwargs)
+            if lgc_outside_window:
+                inds = np.r_[0:min_index, max_index:self._nbin]
+            else:
+                inds = np.arange(min_index, max_index, 1)
+                
+        baselines = np.median(temp_traces[..., inds],
+                              axis=-1)
+        
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  baselines
+            self._diags_dict['cuts'].append('baseline')
+            self._diags_dict['df']['baseline'] = vals
 
+        # apply cut
+        self._run_algo(baselines,cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name='baseline',
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+           
+        # save cut in dataframe
+        if self._lgc_diagnostics:
+            self._diags_dict['df']['baseline_cut'] = self.cmask
+
+                  
         return self.cmask
 
 
 
     
-    def minmaxcut(self, outlieralgo="sigma_cut",
-                  verbose=False, **kwargs):
+    def minmaxcut(self, cut_pars,
+                  outlieralgo="sigma_clip",
+                  lowpass_filter=True,
+                  window_min_index=None,
+                  window_max_index=None,
+                  lgc_outside_window=False,
+                  lgc_plot=None,
+                  **kwargs):
         """
         Function to automatically cut out outliers of the minmax
         of the inputted traces.
 
         Parameters
         ----------
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by sigma
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by sigma
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
+        lowpass_filter : boolean, option
+            if True, apply 10kHz low pass filter. Default is true 
+        window_min_index : int, optional 
+            OF window lower bound defined as array index
+            Default: no lower limit
+        window_max_index : int, optional 
+            OF window upper bound defined as array index
+            Default: no upper limit
+        lgc_outside_window : bool, optional
+            If True and window is not None, then use data outside window
+            Default is False
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -807,18 +1161,71 @@ class IterCut(_PlotCut):
             based on the outlier algorithm.
 
         """
-        
         temp_traces = self.traces[self._cutinds,:]
-        min_max = temp_traces.max(axis=-1) - temp_traces.min(axis=-1)
-      
-        self._run_algo(min_max, outlieralgo, verbose, **kwargs)
 
+        if lowpass_filter:
+            temp_traces = lowpassfilter(temp_traces,
+                                        cut_off_freq=10000,
+                                        fs=self.fs, order=2)
+
+        
+        inds = np.arange(self._nbin)
+        if (window_min_index is not None
+            or window_max_index is not None):
+
+            min_index = 0
+            max_index = self._nbin
+
+            if window_min_index is not None:
+                min_index = window_min_index
+            if window_max_index is not None:
+                max_index = window_max_index+1
+                if max_index>self._nbin:
+                    max_index = self._nbin
+
+            if lgc_outside_window:
+                inds = np.r_[0:min_index, max_index:self._nbin]
+            else:
+                inds = np.arange(min_index, max_index, 1)
+
+        temp_traces = temp_traces[...,inds]
+
+        # calc min max
+        min_max = temp_traces.max(axis=-1) - temp_traces.min(axis=-1)
+
+        
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  min_max
+            self._diags_dict['cuts'].append('minmax')
+            self._diags_dict['df']['minmax'] = vals
+
+    
+        # apply cut
+        self._run_algo(min_max, cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name='minmax',
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+        
+        # diagnostics
+        if self._lgc_diagnostics:
+            self._diags_dict['df']['minmax_cut'] = self.cmask
+        
         return self.cmask
 
 
     
 
-    def slopecut(self, outlieralgo="sigma_cut", verbose=False, **kwargs):
+    def slopecut(self, cut_pars,
+                 outlieralgo="sigma_clip",
+                 window_min_index=None,
+                 window_max_index=None,
+                 lgc_outside_window=True,
+                 lgc_plot=None,
+                 **kwargs):
         """
         Function to automatically cut out outliers of the slopes of the
         inputted traces. Slopes are calculated via maximum likelihood
@@ -826,14 +1233,32 @@ class IterCut(_PlotCut):
 
         Parameters
         ----------
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by sigma
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by sigma
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
+        window_min_index : int, optional 
+            OF window lower bound defined as array index
+            Default: no lower limit
+        window_max_index : int, optional 
+            OF window upper bound defined as array index
+            Default: no upper limit
+        lgc_outside_window : bool, optional
+            If True and window is not None, then use data outside window
+            Default is True
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -849,7 +1274,32 @@ class IterCut(_PlotCut):
         temp_traces = self.traces[self._cutinds,:]
         ntemptraces = len(temp_traces)
         time = np.arange(self._nbin) / self.fs
-        ymean = np.mean(temp_traces, axis=-1, keepdims=True)
+
+        
+        inds = np.arange(self._nbin)
+        if (window_min_index is not None
+            or window_max_index is not None):
+
+            min_index = 0
+            max_index = self._nbin
+
+            if window_min_index is not None:
+                min_index = window_min_index
+            if window_max_index is not None:
+                max_index = window_max_index+1
+                if max_index>self._nbin:
+                    max_index = self._nbin
+
+            if lgc_outside_window:
+                inds = np.r_[0:min_index, max_index:self._nbin]
+            else:
+                inds = np.arange(min_index, max_index, 1)
+
+        temp_traces = temp_traces[...,inds]
+         
+        ymean = np.median(temp_traces, axis=-1,
+                          keepdims=True)
+        time = inds/self.fs
         xmean = np.mean(time)
 
         slopes = np.sum(
@@ -859,17 +1309,40 @@ class IterCut(_PlotCut):
             (time - xmean)**2,
         )
 
-        self._run_algo(slopes, outlieralgo, verbose, **kwargs)
+        
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  slopes
+            self._diags_dict['cuts'].append('slope')
+            self._diags_dict['df']['slope'] = vals
+
+
+        self._run_algo(slopes, cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name='slope',
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+
+        # diagnostics
+        if self._lgc_diagnostics:
+            self._diags_dict['df']['slope_cut'] = self.cmask
+
 
         return self.cmask
 
 
     
-    def chi2cut(self, template, psd,
-                outlieralgo="sigma_cut",
-                delta_chi2=False,
-                nodelay_chi2=False,
-                verbose=False, **kwargs):
+    def ofchi2cut(self, template, psd, cut_pars,
+                  outlieralgo="sigma_clip",
+                  delta_chi2=False,
+                  nodelay_chi2=False,
+                  nopulse_chi2=False,
+                  window_min_index=None,
+                  window_max_index=None,
+                  lgc_plot=None,
+                  **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter chi-squares of the inputted traces.
@@ -881,19 +1354,34 @@ class IterCut(_PlotCut):
         psd : ndarray, NoneType, optional
             The two-sided PSD (units of A^2/Hz) to use for the
             optimum filter. 
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by sigma
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by sigma
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
         delta_chi2 : bool, optional
             If True, use delta chi2 = no pulse chi2 - chi2
         nodelay_chi2 : bool, optional
             If True, use no-delay optimal filter algorithm
             If False, find best fit over full trace
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
+        window_min_index : int, optional 
+            OF window lower bound defined as array index
+            Default: no lower limit
+        window_max_index : int, optional 
+            OF window upper bound defined as array index
+            efault: no upper limit
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -924,28 +1412,55 @@ class IterCut(_PlotCut):
             
             OF.calc(signal=temp_traces[itrace,:], 
                     lowchi2_fcutoff=10000,
+                    window_min_index=window_min_index,
+                    window_max_index=window_max_index,
                     lgc_plot=False)
 
             if nodelay_chi2:
                 amp, t0, chi2, lowchi2 = OF.get_result_nodelay()
             else:
                 amp, t0, chi2, lowchi2 = OF.get_result_withdelay()
-                
+
+            chi2_nopulse = OF.get_chisq_nopulse()
             if delta_chi2:
-                chi2_nopulse = OF.get_chisq_nopulse()
                 of_chi2s[itrace] = chi2_nopulse - lowchi2
+            elif nopulse_chi2:
+                of_chi2s[itrace] = chi2_nopulse
             else:
                 of_chi2s[itrace] = lowchi2 
             
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  of_chi2s
+            self._diags_dict['cuts'].append('ofchi2')
+            self._diags_dict['df']['ofchi2'] = vals
+
             
         # apply cut
-        self._run_algo(of_chi2s, outlieralgo, verbose, **kwargs)
+        self._run_algo(of_chi2s, cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name='ofchi2',
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+  
 
-        
+        # save cut in dataframe
+        if self._lgc_diagnostics:
+            self._diags_dict['df']['ofchi2_cut'] = self.cmask
+
+
         return self.cmask
 
-    def arbitrarycut(self, cutfunction, *args, outlieralgo="sigma_cut",
-                     verbose=False, **kwargs):
+
+    
+    def arbitrarycut(self, cutfunction,
+                     *args, cut_pars={'sigma':2},
+                     outlieralgo='sigma_clip',
+                     cutname='arbitrary',
+                     lgc_plot=None,
+                     **kwargs):
         """
         Function to automatically cut out outliers of the optimum
         filter amplitudes of the inputted traces.
@@ -959,14 +1474,26 @@ class IterCut(_PlotCut):
         *args
             The arguments that should be passed to `cutfunction`
             beyond the traces.
+        cut_pars : dict
+            dictionary with cut parameters such as 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by nb of std
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by nb of std 
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
         outlieralgo : str, optional
             Which outlier algorithm to use: iterstat, removeoutliers,
-            or astropy's sigma_clip. Default is "iterstat".
-        verbose : bool, optional
-            If True, the events that pass or fail each cut will be
-            plotted at each step. Default is False. If `plotall` is
-            True when initializing this class, then this will be
-            ignored in favor of `plotall`.
+            or astropy's sigma_clip. Default is astropy's "sigma_clip".
+        cutname : str, optional
+            name of the cut. Default is "arbitrary'.
+            This is only used for diagonostics data frame (if enabled)
+        lgc_plot : bool, optional
+            Supersede "lgc_plot" set during instantiation
+            If True, the events that pass or fail cut will be
+            plotted for that cut only. If False, no traces displayed
+            Default is None, parameter not used. 
         **kwargs
             Keyword arguments to pass to the outlier algorithm function
             call.
@@ -980,20 +1507,47 @@ class IterCut(_PlotCut):
         """
 
         temp_traces = self.traces[self._cutinds]
-        vals = cutfunction(temp_traces, *args)
+        vals_func = cutfunction(temp_traces, *args)
 
-        self._run_algo(vals, outlieralgo, verbose, **kwargs)
+
+        # save diagnostics data
+        if self._lgc_diagnostics:
+            vals = np.empty(self._ntraces)
+            vals[:] = np.nan
+            vals[self._cutinds] =  vals_func
+            self._diags_dict['cuts'].append(cutname)
+            self._diags_dict['df'][cutname] = vals
+        
+        # apply cut
+        self._run_algo(vals_func, cut_pars,
+                       outlieralgo=outlieralgo,
+                       cut_name=cutname,
+                       lgc_plot=lgc_plot,
+                       **kwargs)
+  
+        
+        # save cut in dataframe
+        if self._lgc_diagnostics:
+            self._diags_dict['df'][cutname + '_cut'] = self.cmask
+
 
         return self.cmask
 
 
-def autocuts(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
-             psd=None, is_didv=False,
-             outlieralgo='sigma_clip', level='strict',
+def autocuts(traces, fs=1.25e6,
+             template=[1, 10e-6, 100e-6], psd=None,
+             is_didv=False,
+             didv_template=None,
+             outlieralgo='sigma_clip', sigma=2,
+             cuts_dict=None, niter=2,
+             verbose=False,
              **kwargs):
+
     """
     Function to automatically cut out bad traces based on the optimum
     filter amplitude, slope, baseline, and chi^2 of the traces.
+    This is an interface to newer functions autocuts_noise and autocuts_didv 
+    (when is_didv is True)
 
     Parameters
     ----------
@@ -1002,16 +1556,18 @@ def autocuts(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
     fs : float, optional
         Sample rate that the data was taken at (default: 1.25e6)
     template : array-like, optional
-        Pulse template numpy array (template ength should match  trace lenght)
+        Pulse template numpy array (template length should match  trace length)
         or functional form parameter list:
-           2-pole: [A, tau_r, tau_f, (optional) t0] (default)
+           2-pole: [A, tau_r, tau_f, (optional) t0]
            3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
            4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
            (t0 in sec, default 1/2 trace)
     psd : ndarray, optional
-        noise psd array (psd length should match trace length)
-    is_didv : bool, optional
-        Boolean flag on whether or not the trace is a dIdV curve
+        noise psd array (psd length should match trace length
+    is_didv : ndarray, optional
+        if True, use autocuts_didv function (for didv data)
+    didv_template : array, optional
+        didv waveform template. DEfault is None
     outlieralgo : string, optional
         Which outlier algorithm to use. If set to "removeoutliers",
         uses the removeoutliers algorithm that removes data based on
@@ -1019,10 +1575,29 @@ def autocuts(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
         iterstat algorithm to remove data based on being outside a
         certain number of standard deviations from the mean. Can also
         be set to astropy's "sigma_clip" (default)
-    level : str, optional
-       cut level: 'loose' or 'strict' 
-    **kwargs
-        Placeholder kwargs for backwards compatibility.
+    sigma : int, optional
+        Number of standard deviations from the center to be used for
+        outlier rejection. Default is 2. This parameter can be overwritten
+        by value in "cuts_dict" 
+    cuts_dict : dict, optional
+        Dictionary with  cut values for each cut 
+          cuts = "ofamps", "ofchi2", "minmax", "slope", "baseline"
+          cut type: 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by nb of stds
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by nb of stds 
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
+         Example:
+           cuts_dict = {'minmax': {'sigma': 2} 
+                        'baseline': {'sigma_lower': 4, 'sigma_upper':1.5}
+                        'ofamps':  {'val_upper': 2e-7}
+    niter : int, optional
+        Number of iteration OF algorithms are computed. 
+        PSD and didv_template are re-calculated after each iteration
+        and used for OF algorithm. Default = 2
 
     Returns
     -------
@@ -1033,70 +1608,56 @@ def autocuts(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
     """
 
 
-    # define cut level
-    niter_noise = 1
-    niter_didv = 1
-    sigma = 2.5
+    ctot = []
     
-    if level=='strict':
-        niter_noise = 2
-        niter_didv = 2
-        sigma = 2     
-
-        
-    # template
-    nbins = traces.shape[-1]
-    tlen = len(template)
-    
-    if tlen!=nbins:
-        t = np.arange(nbins) / fs
-        template = make_template(
-            t,
-            params=template,
-            fs=fs
-        )
-        
-    # PSD 
-    if psd is None:
-        psd = np.ones(nbins)
-    elif len(psd) != nbins:
-        raise ValueError('ERROR: Unrecognized psd length!')
-
-    ctot = np.zeros
     if is_didv:
         ctot = autocuts_didv(
             traces=traces,
             fs=fs,
             template=template,
             psd=psd,
+            didv_template=didv_template,
             outlieralgo=outlieralgo,
-            niter_didv=niter_didv,
-            niter_noise=niter_noise)
+            sigma=sigma,
+            cuts_dict=cuts_dict,
+            niter=niter,
+            verbose=verbose,
+            **kwargs)
+        
     else:
-        ctot,_  = autocuts_noise(
+        ctot = autocuts_noise(
             traces=traces,
             fs=fs,
             template=template,
             psd=psd,
             outlieralgo=outlieralgo,
-            niter=niter_noise,
-            sigma=sigma)
+            sigma=sigma,
+            cuts_dict=cuts_dict,
+            niter=niter,
+            verbose=verbose,
+            **kwargs)
+
         
     return ctot
 
 
-
-def autocuts_noise(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
-                   psd=None,
-                   outlieralgo='sigma_clip',
-                   niter=2, sigma=2):
+   
+    
+def autocuts_noise(traces, fs=1.25e6,
+                   template=[1, 10e-6, 100e-6], psd=None,
+                   outlieralgo='sigma_clip', sigma=2,
+                   cuts_dict=None, niter=2,
+                   lgc_plot=False, nplot=10,
+                   lgc_diagnostics=False,
+                   verbose=False,
+                   **kwargs):
     """
     Function to automatically cut out bad traces from noise data 
     based on the optimum filter amplitude, slope, baseline, 
     and chi^2 of the traces.
 
     Parameters
-    ----------
+    ----------    
     traces : ndarray
         2-dimensional array of traces to do cuts on
     fs : float, optional
@@ -1117,22 +1678,62 @@ def autocuts_noise(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
         iterstat algorithm to remove data based on being outside a
         certain number of standard deviations from the mean. Can also
         be set to astropy's "sigma_clip" (default)
-    niter : int, optional
-        Number of iteration. PSD is re-calculated after each iteration
-        and used for OF algorithm. Default = 2
-    sigma : int, optional
+    sigma : float, optional
         Number of standard deviations from the mean to be used for
-        outlier rejection 
-      
+        outlier rejection for all cuts (if outlier algorithms used).
+        Default is 2. This value can be overwritten by parameter in cut_dict.
+            
+    cuts_dict : dict, optional
+        Dictionary with  cut values for each cut 
+          cuts = "ofamps", "ofchi2", "minmax", "slope", "baseline"
+          cut type: 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by nb of stds
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by nb of stds 
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
+         Example:
+           cuts_dict = {'minmax': {'sigma': 2} 
+                        'baseline': {'sigma_lower': 4, 'sigma_upper':1.5}
+                        'ofamps':  {'val_upper': 2e-7}
+    niter : int, optional
+        Number of iteration OF algorithms are computed. 
+        PSD is re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+
+    lgc_plot : bool, optional
+          If True, the events that pass or fail each cut will be
+          plotted at each step. Default is False. 
+    nplot : int, optional
+         The number of events that should be plotted from each
+         set of passing events and failing events. Default is 10.
+    lgc_diagnostics : bool, optional
+         If True, a pandas data frame with cut parameters is saved in dictionary, 
+         and included in the output
+         Default is  False
+  
     Returns
     -------
-    ctot : ndarray
+    cut : ndarray
         Boolean array giving which indices to keep or throw out based
         on the autocuts algorithm.
 
+    diags_dict : dict (if lgc_diagnostics=True)
+       dictionary with cuts parameteres in a pandas data frame
+
     """
+
+
+
+    # ===============
+    # Initialize
+    # PSD and templates
+    # ===============
+
     
-    # template
+    # pulse template
     nbins = traces.shape[-1]
     tlen = len(template)
     
@@ -1144,112 +1745,139 @@ def autocuts_noise(traces, fs=1.25e6, template=[1, 10e-6, 100e-6],
             fs=fs
         )
         
-    # psd
+    # preliminary psd
     if psd is None:
         psd = np.ones(nbins)
     elif len(psd) != nbins:
         raise ValueError('ERROR: Unrecognized psd length!')
 
+    # ===============
+    # Cuts
+    # ===============
+    
+    # Initialize cut
+    Cut = IterCut(traces, fs,
+                  lgc_plot=lgc_plot, nplot=nplot,
+                  lgc_diagnostics=lgc_diagnostics)
 
     
-    # Loop niter times
+    
+    # 1. minmax cut (loose by default)
+    cut_pars = {'sigma':2.5}
+    if (cuts_dict is not None
+        and 'minmax' in cuts_dict.keys()):
+        cut_pars = cuts_dict['minmax']
+          
+    Cut.minmaxcut(cut_pars,
+                  outlieralgo=outlieralgo,
+                  lowpass_filter=True,
+                  **kwargs)
+
+    # 2. baseline
+    cut_pars = {'sigma':sigma}
+    if (cuts_dict is not None
+        and 'baseline' in cuts_dict.keys()):
+        cut_pars = cuts_dict['baseline']
+        
+    Cut.baselinecut(cut_pars,
+                    outlieralgo=outlieralgo,
+                    **kwargs)
+
+    
+    # 3. slope
+    cut_pars = {'sigma':sigma}
+    if (cuts_dict is not None
+        and 'slope' in cuts_dict.keys()):
+        cut_pars = cuts_dict['slope']
+        
+    Cut.slopecut(cut_pars,
+                 outlieralgo=outlieralgo,
+                 **kwargs)
+
+    
+    # save cut indices
+    cutinds = Cut.cutinds
+
+
+    # compute preliminary psd after first 3 cuts
+    f, psd = calc_psd(traces[Cut.cmask,:], fs=fs,
+                      folded_over=False)
+
+
+    
+    # iterate the next step to have a better
+    # noise psd
+
+    # save cut indices
+    cutinds_start = Cut.cutinds
+    
     for istep in range(niter):
         
-        # call core autocut
-        ctot, psd = _autocuts_noise_core(
-            traces, fs, template, psd,
-            outlieralgo, sigma
-        )
+        # retinitialize inds after each iteration
+        Cut.update_cutinds(cutinds=cutinds_start)
+
+
+        # disable lgc_plot and lgc_diagnostics
+        # if not last step
+        if (istep != niter-1):
+            Cut.set_lgc_plot(False)
+            Cut.set_lgc_diagnostics(False)        
+        else:
+            Cut.set_lgc_plot(lgc_plot)
+            Cut.set_lgc_diagnostics(lgc_diagnostics) 
             
-    # return both cut a PSD
-    return ctot, psd
+               
+        # 4. OF amps 
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'ofamps' in cuts_dict.keys()):
+            cut_pars = cuts_dict['ofamps']
+                    
+        Cut.ofampscut(template, psd,
+                      cut_pars,
+                      outlieralgo=outlieralgo,
+                      **kwargs)
 
 
-    
-def _autocuts_noise_core(traces, fs, template, psd,
-                         outlieralgo, sigma):
-    """
-    Internal function to automatically cut out bad traces from noise data 
-    based on the optimum filter amplitude, slope, baseline, 
-    and chi^2 of the traces and calculate PSD.  
-
-    This function is called iteratively by autocuts_noise
-
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float
-        Sample rate that the data was taken at 
-    template : ndarray
-        pulse template (template length should match  trace length)
-    psd : ndarray
-        the two-sided PSD 
-    outlieralgo : string
-        Which outlier algorithm to use. If set to "removeoutliers",
-        uses the removeoutliers algorithm that removes data based on
-        the skewness of the dataset. If set to "iterstat", uses the
-        iterstat algorithm to remove data based on being outside a
-        certain number of standard deviations from the mean. Can also
-        be set to astropy's "sigma_clip" (default)
-    sigma : int
-        Number of standard deviations from the mean to be used for
-        outlier rejection 
+        # 5. Final cut chi2
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'ofchi2' in cuts_dict.keys()):
+            cut_pars = cuts_dict['ofchi2']
+            
+        Cut.ofchi2cut(template, psd,
+                      cut_pars,
+                      outlieralgo=outlieralgo,
+                      nodelay_chi2=True,
+                      nopulse_chi2=True,
+                      **kwargs)
+        
+        # now re-calcute noise psd
+        f, psd = calc_psd(traces[Cut.cmask,:], fs=fs,
+                          folded_over=False)
 
 
-    Returns
-    -------
-    cut : ndarray
-        Boolean array giving which indices to keep or throw out based
-        on the autocuts algorithm.
-
-    psd : ndarray
-        psd waveform array
-
-    """
-
-    Cut = IterCut(traces, fs)
-    kwargs = {'sigma': sigma}
-    
-    # 1. OF amplitude cut
-    Cut.pileupcut(
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        **kwargs,)
-
-    # 2. Baseline  cut
-    Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
-
-
-    # 3. Slope cut
-    Cut.slopecut(outlieralgo=outlieralgo, **kwargs)
-
-
-    # 4. delta chi2 pulse - no pulse 
-    Cut.chi2cut(
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        delta_chi2=True,
-        **kwargs,
-    )
-
-  
-    # compute chi2
-    f, psd = calc_psd(traces[Cut.cmask,:], fs=fs, folded_over=False)
-
-    return Cut.cmask, psd
+        
+    if lgc_diagnostics:
+        diags_dict = Cut.get_diagnostics_data()
+        diags_dict['psd'] = psd
+        diags_dict['pulse_template'] = template
+        return Cut.cmask, diags_dict
+    else:
+        return Cut.cmask
 
 
 
 
 def autocuts_didv(traces, fs=1.25e6,
-                  template=[1, 10e-6, 100e-6],
-                  psd=None,
-                  outlieralgo='sigma_clip',
-                  niter_noise=2, niter_didv=2,
-                  sigma=2):
+                  template=[1, 10e-6, 100e-6], psd=None,
+                  didv_template=None,
+                  outlieralgo='sigma_clip', sigma=2,
+                  cuts_dict=None, niter=2,
+                  lgc_plot=False, nplot=10,
+                  lgc_diagnostics=False,
+                  verbose=False,
+                  **kwargs):
     """
     Function to automatically cut out bad traces from dIdV data 
     based on the optimum filter amplitude, slope, baseline, 
@@ -1270,6 +1898,8 @@ def autocuts_didv(traces, fs=1.25e6,
            (t0 in sec, default 1/2 trace)
     psd : ndarray, optional
         noise psd array (psd length should match trace length
+    didv_template : array, optional
+        didv waveform template. DEfault is None
     outlieralgo : string, optional
         Which outlier algorithm to use. If set to "removeoutliers",
         uses the removeoutliers algorithm that removes data based on
@@ -1277,27 +1907,61 @@ def autocuts_didv(traces, fs=1.25e6,
         iterstat algorithm to remove data based on being outside a
         certain number of standard deviations from the mean. Can also
         be set to astropy's "sigma_clip" (default)
-    niter_noise : int, optional
-        Number of iteration for noise (dIdV subtracted traces) cut.
-        PSD is re-calculated after each iteration
-        and used for OF algorithm. Default = 2
-    niter_didv : int, optional
-        Number of iteration for dIdV cut.
-        Average dIdV is re-calculated after each iteration
-        and use for OF chi2 cut and dIdV subtracted waveform (noise) 
-        Default = 2
     sigma : int, optional
-        Number of standard deviations from the mean to be used for
-        outlier rejection 
-      
+        Number of standard deviations from the center to be used for
+        outlier rejection. Default is 2. This parameter can be overwritten
+        by value in "cuts_dict" 
+    cuts_dict : dict, optional
+        Dictionary with  cut values for each cut 
+          cuts = "ofamps", "ofchi2", "minmax", "slope", "baseline"
+          cut type: 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by nb of stds
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by nb of stds 
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
+         Example:
+           cuts_dict = {'minmax': {'sigma': 2} 
+                        'baseline': {'sigma_lower': 4, 'sigma_upper':1.5}
+                        'ofamps':  {'val_upper': 2e-7}
+    niter : int, optional
+        Number of iteration OF algorithms are computed. 
+        PSD and didv_template are re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+     
+    lgc_plot : bool, optional
+          If True, the events that pass or fail each cut will be
+          plotted at each step. Default is False. 
+    nplot : int, optional
+         The number of events that should be plotted from each
+         set of passing events and failing events. Default is 10.
+    lgc_diagnostics : bool, optional
+         If True, a pandas data frame with cut parameters is saved in dictionary, 
+         and included in the output
+         Default is  False
+
+
+
     Returns
     -------
     ctot : ndarray
         Boolean array giving which indices to keep or throw out based
         on the autocuts algorithm.
 
+    diags_dict : dict (if lgc_diagnostics=True)
+       dictionary with cuts parameteres in a pandas data frame
+
     """
 
+
+    # ===============
+    # Initialize
+    # PSD and templates
+    # ===============
+
+    
     # pulse template
     nbins = traces.shape[-1]
     tlen = len(template)
@@ -1310,61 +1974,154 @@ def autocuts_didv(traces, fs=1.25e6,
             fs=fs
         )
         
-    # psd
+    # preliminary psd
     if psd is None:
         psd = np.ones(nbins)
     elif len(psd) != nbins:
         raise ValueError('ERROR: Unrecognized psd length!')
 
     
+    # preliminary dIdV
+    if didv_template is None:
+        didv_template =  _autocuts_prelim_didv(traces=traces, fs=fs)
+        
 
-    # Preliminary dIdV template
-    didv_template  = _autocuts_prelim_didv(
-        traces, fs, template, psd,
-        outlieralgo, sigma
-    )
+    # ===============
+    # Cuts
+    # ===============
     
-    # iterate
-    for istep in range(niter_didv):
+    # Initialize cut
+    Cut = IterCut(traces, fs,
+                  lgc_plot=lgc_plot,
+                  nplot=nplot,
+                  lgc_diagnostics=lgc_diagnostics)
+
+    
+    # 1. minmax cut (loose by default)
+    cut_pars = {'sigma':2.5}
+    if (cuts_dict is not None
+        and 'minmax' in cuts_dict.keys()):
+        cut_pars = cuts_dict['minmax']
+          
+    Cut.minmaxcut(cut_pars,
+                  outlieralgo=outlieralgo,
+                  lowpass_filter=True,
+                  **kwargs)
+
+    # 2. baseline
+    cut_pars = {'sigma':sigma}
+    if (cuts_dict is not None
+        and 'baseline' in cuts_dict.keys()):
+        cut_pars = cuts_dict['baseline']
         
-        ctot, didv_template, psd = _autocuts_didv_core(
-            traces, fs, template, psd, 
-            outlieralgo, niter_noise, sigma,
-            didv_template=didv_template,
-        )
-        
-    return ctot
+    Cut.baselinecut(cut_pars,
+                    outlieralgo=outlieralgo,
+                    **kwargs)
 
 
-def _autocuts_prelim_didv(traces, fs, template,
-                          psd, outlieralgo, sigma):
+    # save cut indices
+    cutinds_start = Cut.cutinds
+    
+    # iterate the next step to have a better
+    # noise and didv template    
+    for istep in range(niter):
+
+        # retinitialize inds after each iteration
+        Cut.update_cutinds(cutinds=cutinds_start)
+
+
+        # disable lgc_plot and lgc_diagnostics
+        # if not last step
+        if (istep != niter-1):
+            Cut.set_lgc_plot(False)
+            Cut.set_lgc_diagnostics(False)        
+        else:
+            Cut.set_lgc_plot(lgc_plot)
+            Cut.set_lgc_diagnostics(lgc_diagnostics) 
+            
+        
+        # subtract dIdV  template
+        noise_traces = traces - didv_template
+        
+        # modify traces with "noise" traces
+        Cut.modify_traces(noise_traces)
+
+
+        # 3. Slope
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'slope' in cuts_dict.keys()):
+            cut_pars = cuts_dict['slope']
+                    
+        Cut.slopecut(cut_pars,
+                     outlieralgo=outlieralgo,
+                     **kwargs)
+        
+        
+        # 4. OF amps
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'ofamps' in cuts_dict.keys()):
+            cut_pars = cuts_dict['ofamps']
+                    
+        Cut.ofampscut(template, psd,
+                      cut_pars,
+                      outlieralgo=outlieralgo,
+                      **kwargs)
+        
+        # now re-calcute noise psd and didV template
+        f, psd = calc_psd(noise_traces[Cut.cmask,:], fs=fs,
+                          folded_over=False)
+        didv_template = np.mean(traces[Cut.cmask], axis=0,
+                                keepdims=True)
+
+
+        # (re) modify traces with dIdV traces
+        Cut.modify_traces(traces)
+        
+        # 5. Final cut didv chi2
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'ofchi2' in cuts_dict.keys()):
+            cut_pars = cuts_dict['ofchi2']
+            
+        Cut.ofchi2cut(didv_template[0,:], psd,
+                      cut_pars,
+                      outlieralgo=outlieralgo,
+                      nodelay_chi2=True,
+                      **kwargs)
+
+        
+        # final re-calculation of didv template
+        didv_template = np.mean(traces[Cut.cmask], axis=0,
+                                keepdims=True)
+
+
+    if lgc_diagnostics:
+        diags_dict = Cut.get_diagnostics_data()
+        diags_dict['psd'] = psd
+        diags_dict['didv_template'] = didv_template[0,:]
+        diags_dict['pulse_template'] = template
+        
+        return Cut.cmask, diags_dict
+    else:
+        return Cut.cmask
+
+
+
+def _autocuts_prelim_didv(traces, fs=1.25e6):
     """
-    Internal function to automatically cut out bad traces from dIdV data 
-    based on the optimum filter amplitude, minmax, and baseline to 
-    produce a preliminary dIdV template.
+    Internal function to computer preliminary 
+    dIdV template using 2 sigma minmax and baseline
+     cuts.
 
 
     Parameters
     ----------
     traces : ndarray
         2-dimensional array of traces to do cuts on
-    fs : float
-        Sample rate that the data was taken at 
-    template : ndarray
-        Pulse template numpy array (template length should match  trace length)
-    psd : ndarray
-        noise psd array (psd length should match trace length)
-    outlieralgo : string
-        Which outlier algorithm to use. If set to "removeoutliers",
-        uses the removeoutliers algorithm that removes data based on
-        the skewness of the dataset. If set to "iterstat", uses the
-        iterstat algorithm to remove data based on being outside a
-        certain number of standard deviations from the mean. Can also
-        be set to astropy's "sigma_clip" (default)
-    sigma : int
-        Number of standard deviations from the mean to be used for
-        outlier rejection 
-      
+    fs : float, optional
+        Sample rate that the data was taken at (default: 1.25e6)
     Returns
     -------
     didv_template : ndarray
@@ -1374,22 +2131,14 @@ def _autocuts_prelim_didv(traces, fs, template,
 
     
     Cut = IterCut(traces, fs)
-    kwargs = {'sigma': sigma}
+   
 
+    # 1. minmax  cut
+    Cut.minmaxcut({'sigma':2})
     
-    # 1. OF amplitude cut
-    Cut.pileupcut(
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        **kwargs,)
-
-    # 2. minmax  cut
-    Cut.minmaxcut(outlieralgo=outlieralgo, **kwargs)
-    
-    # 3. Baseline  cut
-    Cut.baselinecut(outlieralgo=outlieralgo, **kwargs)
-    
+    # 2. Baseline  cut
+    Cut.baselinecut({'sigma':1.8})
+       
 
     # compute didv template
     didv_template = np.mean(traces[Cut.cmask], axis=0,
@@ -1398,112 +2147,6 @@ def _autocuts_prelim_didv(traces, fs, template,
     return didv_template
 
     
-    
-def _autocuts_didv_core(traces, fs, template, psd,
-                        outlieralgo, niter_noise,
-                        sigma, didv_template=None):
-    """
-    Internal function to automatically cut out bad traces from dIdV data 
-    based on the optimum filter amplitude, minmax slope, baseline, 
-    and chi^2 of the traces. This function is iteratively called by
-    autocuts_didV and call autocuts_noise to cut bad traces after dIdV template
-    subtraction.
-
-    Parameters
-    ----------
-    traces : ndarray
-        2-dimensional array of traces to do cuts on
-    fs : float
-        Sample rate that the data was taken at
-    template : ndarray
-        Pulse template numpy array (template length should match  trace length)
-    psd : ndarray
-        noise psd array (psd length should match trace length)
-    outlieralgo : string
-        Which outlier algorithm to use. If set to "removeoutliers",
-        uses the removeoutliers algorithm that removes data based on
-        the skewness of the dataset. If set to "iterstat", uses the
-        iterstat algorithm to remove data based on being outside a
-        certain number of standard deviations from the mean. Can also
-        be set to astropy's "sigma_clip" (default)
-    niter_noise : int
-        Number of iteration for noise (dIdV subtracted traces) cut.
-        PSD is re-calculated after each iteration
-        and used for OF algorithm. Default = 2
-    sigma : int
-        Number of standard deviations from the mean to be used for
-        outlier rejection 
-
-    didv_template : ndarray, optional
-        dIdV template  array
-        default: get template from _autocuts_prelim_didv
-
-      
-    Returns
-    -------
-    ctot : ndarray
-        Boolean array giving which indices to keep or throw out based
-        on the autocuts algorithm.
-    didv_template : ndarray
-        array with dIdV template (mean traces after cuts)
-    psd : ndarray
-        noise psd (after cuts from  autocuts_noise)
-
-    """
-    
-    Cut = IterCut(traces, fs)
-    kwargs = {'sigma': sigma}
-    
-
-    if didv_template is None:
-       didv_template =  _autocuts_prelim_didv(
-           traces=traces,
-           fs=fs,
-           template=template,
-           psd=psd,
-           outlieralgo=outlieralgo,
-           sigma=sigma
-       )
-
-       # compute didv template
-       didv_template = np.mean(traces[Cut.cmask,:], axis=0,
-                               keepdims=True)
-
- 
-    # noise cut
-    noise_traces = traces - didv_template
-    
-    cout, psd = autocuts_noise(
-        noise_traces,
-        fs=fs,
-        template=template,
-        psd=psd,
-        outlieralgo=outlieralgo,
-        niter=niter_noise,
-        sigma=sigma)
-
-    
-    Cut.update_cutinds(cout)
-    
-    # didv chi2 cut
-    Cut.chi2cut(
-        template=didv_template[0],
-        psd=psd,
-        outlieralgo=outlieralgo,
-        nodelay_chi2=True,
-        **kwargs,)
-
-    # compute didv template
-    didv_template = np.mean(traces[Cut.cmask,:], axis=0,
-                            keepdims=True)
-
-    return Cut.cmask, didv_template, psd
-
-
-
-
-
-
 def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
     """
     Function to help identify saturated muons from array of time series
