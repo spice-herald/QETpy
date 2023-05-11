@@ -8,6 +8,8 @@ from scipy.stats import skew
 import warnings
 import matplotlib.pyplot as plt
 import pandas as pd
+from math import ceil, floor
+
 
 
 __all__ = [
@@ -18,6 +20,7 @@ __all__ = [
     "autocuts",
     "autocuts_noise",
     "autocuts_didv",
+    "autocuts_template",
     "get_muon_cut",
 ]
 
@@ -1794,11 +1797,7 @@ def autocuts_noise(traces, fs=1.25e6,
                  outlieralgo=outlieralgo,
                  **kwargs)
 
-    
-    # save cut indices
-    cutinds = Cut.cutinds
-
-
+  
     # compute preliminary psd after first 3 cuts
     f, psd = calc_psd(traces[Cut.cmask,:], fs=fs,
                       folded_over=False)
@@ -2146,7 +2145,300 @@ def _autocuts_prelim_didv(traces, fs=1.25e6):
 
     return didv_template
 
+
+
+
+def autocuts_template(traces, fs=1.25e6,
+                      template=[1, 10e-6, 100e-6], psd=None,
+                      pretrigger_samples=None,
+                      pretrigger_msec=None,
+                      pulse_window_min_from_trig_usec=None,
+                      pulse_window_max_from_trig_usec=None,
+                      pulse_window_min_index=None,
+                      pulse_window_max_index=None,
+                      outlieralgo='sigma_clip', sigma=2,
+                      cuts_dict=None, niter=2,
+                      lgc_ampcut=False,
+                      lgc_plot=False, nplot=10,
+                      lgc_diagnostics=False,
+                      verbose=False,
+                      **kwargs):
+    """
+    Function to automatically cut out bad traces and glitches from triggered data 
+    for template generation purpose. The cuts work best if pulse window 
+    provided, othwerwise default window is [10%,90%] trace length.
+
+    Parameters
+    ----------    
+    traces : ndarray
+        2-dimensional array of traces to do cuts on
+    fs : float, optional
+        Sample rate that the data was taken at (default: 1.25e6)
+    template : array-like, optional
+        Pulse template numpy array (template length should match  trace length)
+        or functional form parameter list:
+           2-pole: [A, tau_r, tau_f, (optional) t0] (default)
+           3-pole: [A, B, tau_r, tau_f1, tau_f2, (optional) t0] 
+           4-pole: [A, B, C, tau_r, tau_f1, tau_f2, tau_f3, (optional) t0] 
+           (t0 in sec, default 1/2 trace)
+    psd : ndarray, optional
+        noise psd array (psd length should match trace length
+    pretrigger_samples : int, optional
+            Number of pretrigger samples
+            Default: None
+    pretrigger_msec : float, optional
+            Pretrigger length in ms 
+            Default: None
+    pulse_window_min_from_trig_usec : float, optional
+           Pulse window start in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+    pulse_window_max_from_trig_usec : float, optional
+           Pulse OF filter window end in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+    pulse_window_min_index: int, optional
+            Pulse  window start in ADC samples 
+    pulse_window_max_index: int, optional
+            Pulse  window end in ADC samples
+    outlieralgo : string, optional
+        Which outlier algorithm to use. If set to "removeoutliers",
+        uses the removeoutliers algorithm that removes data based on
+        the skewness of the dataset. If set to "iterstat", uses the
+        iterstat algorithm to remove data based on being outside a
+        certain number of standard deviations from the mean. Can also
+        be set to astropy's "sigma_clip" (default)
+    sigma : float, optional
+        Number of standard deviations from the mean to be used for
+        outlier rejection for all cuts (if outlier algorithms used).
+        Default is 2. This value can be overwritten by parameter in cut_dict.
+            
+    cuts_dict : dict, optional
+        Dictionary with  cut values for each cut 
+          cuts = "ofamps", "ofchi2", "minmax", "slope", "baseline"
+          cut type: 
+               - "sigma" (used for both lower/upper bounds)
+               - "sigma_lower" ("sigma_clip" only): lower bound determined by nb of stds
+               - "sigma_upper" ("sigma_clip" only): upper bound determined by nb of stds 
+               - "percent_lower": lower bound determined by percent events kept above it 
+               - "percent_upper": upper bound determined by percent events kept below it
+               - "val_lower": lower bound cut value (events above are kept)
+               - "val_upper": upper bound cut value (events below are kept)
+         Example:
+           cuts_dict = {'minmax': {'sigma': 2} 
+                        'baseline': {'sigma_lower': 4, 'sigma_upper':1.5}
+                        'ofamps':  {'val_upper': 2e-7}
+    niter : int, optional
+        Number of iteration OF algorithms are computed. 
+        PSD is re-calculated after each iteration
+        and used for OF algorithm. Default = 2
+
+    lgc_plot : bool, optional
+          If True, the events that pass or fail each cut will be
+          plotted at each step. Default is False. 
+    nplot : int, optional
+         The number of events that should be plotted from each
+         set of passing events and failing events. Default is 10.
+    lgc_diagnostics : bool, optional
+         If True, a pandas data frame with cut parameters is saved in dictionary, 
+         and included in the output
+         Default is  False
+  
+    Returns
+    -------
+    cut : ndarray
+        Boolean array giving which indices to keep or throw out based
+        on the autocuts algorithm.
+
+    diags_dict : dict (if lgc_diagnostics=True)
+       dictionary with cuts parameteres in a pandas data frame
+
+    """
+
+
+
+    # ===============
+    # Initialize
+    # PSD and templates
+    # ===============
     
+    # pulse template
+    nbins = traces.shape[-1]
+    tlen = len(template)
+    
+    if tlen!=nbins:
+        t = np.arange(nbins) / fs
+        template = make_template(
+            t,
+            params=template,
+            fs=fs
+        )
+        
+    # preliminary psd
+    if psd is None:
+        psd = np.ones(nbins)
+    elif len(psd) != nbins:
+        raise ValueError('ERROR: Unrecognized psd length!')
+
+
+
+    # ===============
+    # Window
+    # ===============
+
+    # pretrigger
+    pretrigger_index = None
+    if pretrigger_samples is not None:
+        pretrigger_index = pretrigger_samples -1
+    elif pretrigger_msec is not None:
+        pretrigger_index = int(
+            round(pretrigger_msec*1e-3*fs)-1
+        )
+        
+
+    # pulse window, default assume large pulse window
+    # 10%-90% trace 
+    window_min_index = int(round(nbins*0.1)-1)
+    window_max_index = int(round(nbins*0.9)-1)
+
+
+    # check 
+    if ((pulse_window_min_from_trig_usec is not None
+         or pulse_window_max_from_trig_usec is not None)
+        and pretrigger_index is None):
+        raise ValueError(
+            'ERROR: "pretrigger_samples" or  "pretrigger_ms" required!'
+        )
+    
+    # min window
+    if pulse_window_min_index is not None:
+        window_min_index =  pulse_window_min_index
+    elif pulse_window_min_from_trig_usec is not None:
+        window_min_index = int(floor(
+            pretrigger_index + pulse_window_min_from_trig_usec*fs*1e-6)
+        )
+        
+    # max window
+    if pulse_window_max_index is not None:
+        window_max_index =  pulse_window_max_index
+    elif pulse_window_max_from_trig_usec is not None:
+        window_max_index = int(floor(
+            pretrigger_index + pulse_window_max_from_trig_usec*fs*1e-6)
+        )
+
+    if window_max_index>nbins-1:
+        window_max_index=nbins-1
+
+
+
+        
+    # ===============
+    # Cuts
+    # ===============
+    
+    # Initialize cut
+    Cut = IterCut(traces, fs,
+                  lgc_plot=lgc_plot, nplot=nplot,
+                  lgc_diagnostics=lgc_diagnostics)
+
+    
+    
+    # 1. minmax cut (loose by default)
+    #    on pre/post pulse region
+    cut_pars = {'sigma':2.5}
+    if (cuts_dict is not None
+        and 'minmax' in cuts_dict.keys()):
+        cut_pars = cuts_dict['minmax']
+          
+    Cut.minmaxcut(cut_pars,
+                  outlieralgo=outlieralgo,
+                  lowpass_filter=True,
+                  window_min_index=window_min_index,
+                  window_max_index=window_max_index,
+                  lgc_outside_window=True,
+                  **kwargs)
+
+    # 2. baseline
+    cut_pars = {'sigma':sigma}
+    if (cuts_dict is not None
+        and 'baseline' in cuts_dict.keys()):
+        cut_pars = cuts_dict['baseline']
+        
+    Cut.baselinecut(cut_pars,
+                    outlieralgo=outlieralgo,
+                    window_min_index=0,
+                    window_max_index=window_min_index,
+                    lgc_outside_window=False,
+                    **kwargs)
+
+    
+    # 3. slope
+    cut_pars = {'sigma':sigma}
+    if (cuts_dict is not None
+        and 'slope' in cuts_dict.keys()):
+        cut_pars = cuts_dict['slope']
+        
+    Cut.slopecut(cut_pars,
+                 outlieralgo=outlieralgo,
+                 window_min_index=window_min_index,
+                 window_max_index=window_max_index,
+                 lgc_outside_window=True,
+                 **kwargs)
+
+
+
+    # 4. if lgc_ampcut: loose min/max on entire trace
+    if lgc_ampcut:
+        cut_pars = {'sigma':2.5}
+        if (cuts_dict is not None
+            and 'minmax' in cuts_dict.keys()):
+            cut_pars = cuts_dict['minmax']
+          
+        Cut.minmaxcut(cut_pars,
+                      outlieralgo=outlieralgo,
+                      lowpass_filter=True,
+                      **kwargs)
+
+        
+    # calculate template here?
+    # FIXME: Add iterative OF amps/chi2
+    cutinds_start = Cut.cutinds
+
+
+    
+
+    # Final cut if lgc_ampcut=True: amp/energy cut
+    if lgc_ampcut:
+        cut_pars = {'sigma':sigma}
+        if (cuts_dict is not None
+            and 'ofamps' in cuts_dict.keys()):
+            cut_pars = cuts_dict['ofamps']
+            
+            Cut.ofampscut(template, psd,
+                          cut_pars,
+                          outlieralgo=outlieralgo,
+                          window_min_index=window_min_index,
+                          window_max_index= window_max_index,
+                          **kwargs)
+    
+                   
+    if lgc_diagnostics:
+        diags_dict = Cut.get_diagnostics_data()
+        diags_dict['psd'] = psd
+        diags_dict['pulse_template'] = template
+        return Cut.cmask, diags_dict
+    else:
+        return Cut.cmask
+
+
+
+
+
+
+
+
+
+
+
+
 def get_muon_cut(traces, thresh_pct=0.95, nsatbins=600):
     """
     Function to help identify saturated muons from array of time series
