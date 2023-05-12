@@ -2157,8 +2157,9 @@ def autocuts_template(traces, fs=1.25e6,
                       pulse_window_min_index=None,
                       pulse_window_max_index=None,
                       outlieralgo='sigma_clip', sigma=2,
-                      cuts_dict=None, niter=2,
-                      lgc_ampcut=False,
+                      cuts_dict=None,
+                      lgc_energy_cut=False,
+                      niter=2,
                       lgc_plot=False, nplot=10,
                       lgc_diagnostics=False,
                       verbose=False,
@@ -2226,11 +2227,15 @@ def autocuts_template(traces, fs=1.25e6,
            cuts_dict = {'minmax': {'sigma': 2} 
                         'baseline': {'sigma_lower': 4, 'sigma_upper':1.5}
                         'ofamps':  {'val_upper': 2e-7}
+    lgc_energy_cut : boolean, option
+        If True, apply an OF filter amps cut. This should be only done if 
+        traces of specific energy  range have be preselected.
+        Default: False 
+
     niter : int, optional
         Number of iteration OF algorithms are computed. 
         PSD is re-calculated after each iteration
         and used for OF algorithm. Default = 2
-
     lgc_plot : bool, optional
           If True, the events that pass or fail each cut will be
           plotted at each step. Default is False. 
@@ -2252,8 +2257,6 @@ def autocuts_template(traces, fs=1.25e6,
        dictionary with cuts parameteres in a pandas data frame
 
     """
-
-
 
     # ===============
     # Initialize
@@ -2327,12 +2330,17 @@ def autocuts_template(traces, fs=1.25e6,
     if window_max_index>nbins-1:
         window_max_index=nbins-1
 
-
-
+        
         
     # ===============
     # Cuts
     # ===============
+
+    # for diagnostics, store cut
+    # parameters in dictionary
+    cuts_dict_diags = dict()
+
+
     
     # Initialize cut
     Cut = IterCut(traces, fs,
@@ -2347,7 +2355,14 @@ def autocuts_template(traces, fs=1.25e6,
     if (cuts_dict is not None
         and 'minmax' in cuts_dict.keys()):
         cut_pars = cuts_dict['minmax']
-          
+        
+    if lgc_diagnostics:
+        cuts_dict_diags['minmax'] = cut_pars.copy()
+        cuts_dict_diags['minmax']['window_min_index'] = window_min_index
+        cuts_dict_diags['minmax']['window_max_index'] = window_max_index
+        cuts_dict_diags['minmax']['log_outside_window']  = True
+
+      
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
                   lowpass_filter=True,
@@ -2361,7 +2376,14 @@ def autocuts_template(traces, fs=1.25e6,
     if (cuts_dict is not None
         and 'baseline' in cuts_dict.keys()):
         cut_pars = cuts_dict['baseline']
-        
+
+    if lgc_diagnostics:
+        cuts_dict_diags['baseline'] = cut_pars.copy()
+        cuts_dict_diags['baseline']['window_min_index'] = 0
+        cuts_dict_diags['baseline']['window_max_index'] = window_min_index
+        cuts_dict_diags['baseline']['log_outside_window']  = False
+
+    
     Cut.baselinecut(cut_pars,
                     outlieralgo=outlieralgo,
                     window_min_index=0,
@@ -2375,7 +2397,15 @@ def autocuts_template(traces, fs=1.25e6,
     if (cuts_dict is not None
         and 'slope' in cuts_dict.keys()):
         cut_pars = cuts_dict['slope']
-        
+
+
+    if lgc_diagnostics:
+        cuts_dict_diags['slope'] = cut_pars.copy()
+        cuts_dict_diags['slope']['window_min_index'] = window_min_index
+        cuts_dict_diags['slope']['window_max_index'] = window_max_index
+        cuts_dict_diags['slope']['log_outside_window']  = True
+
+
     Cut.slopecut(cut_pars,
                  outlieralgo=outlieralgo,
                  window_min_index=window_min_index,
@@ -2383,47 +2413,52 @@ def autocuts_template(traces, fs=1.25e6,
                  lgc_outside_window=True,
                  **kwargs)
 
+     
+    # calculate preliminary pulse template:
+    pulse_template = np.mean(traces[Cut.cmask], axis=0,
+                             keepdims=True)
+    
 
-
-    # 4. if lgc_ampcut: loose min/max on entire trace
-    if lgc_ampcut:
-        cut_pars = {'sigma':2.5}
-        if (cuts_dict is not None
-            and 'minmax' in cuts_dict.keys()):
-            cut_pars = cuts_dict['minmax']
-          
-        Cut.minmaxcut(cut_pars,
-                      outlieralgo=outlieralgo,
-                      lowpass_filter=True,
-                      **kwargs)
-
-        
-    # calculate template here?
-    # FIXME: Add iterative OF amps/chi2
+    
+    # FIXME: Add iterative OF amps/chi2 here
     cutinds_start = Cut.cutinds
 
 
     
 
-    # Final cut if lgc_ampcut=True: amp/energy cut
-    if lgc_ampcut:
+    # Final cut if lgc_energy_cut is True:
+    # OF amp/energy cut
+    if lgc_energy_cut:
+        
         cut_pars = {'sigma':sigma}
         if (cuts_dict is not None
             and 'ofamps' in cuts_dict.keys()):
             cut_pars = cuts_dict['ofamps']
-            
-            Cut.ofampscut(template, psd,
-                          cut_pars,
-                          outlieralgo=outlieralgo,
-                          window_min_index=window_min_index,
-                          window_max_index= window_max_index,
-                          **kwargs)
+
+        if lgc_diagnostics:
+            cuts_dict_diags['ofamps'] = cut_pars.copy()
+            cuts_dict_diags['ofamps']['window_min_index'] = window_min_index
+            cuts_dict_diags['ofamps']['window_max_index'] = window_max_index
+            cuts_dict_diags['ofamps']['log_outside_window']  = False
+
+
+        
+        Cut.ofampscut(template, psd,
+                      cut_pars,
+                      outlieralgo=outlieralgo,
+                      window_min_index=window_min_index,
+                      window_max_index= window_max_index,
+                      **kwargs)
     
                    
     if lgc_diagnostics:
         diags_dict = Cut.get_diagnostics_data()
         diags_dict['psd'] = psd
-        diags_dict['pulse_template'] = template
+        diags_dict['pulse_template'] = pulse_template 
+        diags_dict['niter'] =  niter
+        diags_dict.update(cuts_dict_diags)
+        
+        
         return Cut.cmask, diags_dict
     else:
         return Cut.cmask
