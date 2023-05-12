@@ -985,9 +985,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     'gratio': smallsignalparams[7],
                 }
                 result['ssp_light'] = {
-                    'vals' = ssp_light_vals,
-                    'cov' = ssp_light_cov,
-                    'sigmas' = ssp_light_sigmas,
+                    'vals': ssp_light_vals,
+                    'cov': ssp_light_cov,
+                    'sigmas': ssp_light_sigmas,
                 }
 
         result['offset'] = offset

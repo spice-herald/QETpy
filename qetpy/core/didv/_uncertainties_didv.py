@@ -1267,7 +1267,7 @@ Functions for calculating smallsignalparams sigmas
 (i.e. not considering covariances)
 """
 
-def _get_beta_sigma(didv_fitresult):
+def _get_beta_sigma(didv_result):
     """
     Returns the standard deviation of the beta smallsignalparam
     given the covariance matrix of the fit base variables. Note
@@ -1278,11 +1278,11 @@ def _get_beta_sigma(didv_fitresult):
     ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
     base_cov = _get_full_base_cov(didv_result)
     beta_gradiant = ssp_jacobian[0,:]
-    print("Beta gradiant: " + str(beta_gradiant))
+    #print("Beta gradiant: " + str(beta_gradiant))
     beta_variance = np.matmul(np.matmul(beta_gradiant, base_cov), np.transpose(beta_gradiant))
     return np.abs(beta_variance**0.5)
     
-def _get_loopgain_sigma(didv_fitresult):
+def _get_loopgain_sigma(didv_result):
     """
     Returns the standard deviation of the loopgain smallsignalparam
     given the covariance matrix of the fit base variables. Note
@@ -1292,12 +1292,12 @@ def _get_loopgain_sigma(didv_fitresult):
     """
     ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
     base_cov = _get_full_base_cov(didv_result)
-    loogain_gradiant = ssp_jacobian[1,:]
-    print("Loopgain gradiant: " + str(loopgain_gradiant))
+    loopgain_gradiant = ssp_jacobian[1,:]
+    #print("Loopgain gradiant: " + str(loopgain_gradiant))
     loopgain_variance = np.matmul(np.matmul(loopgain_gradiant, base_cov), np.transpose(loopgain_gradiant))
     return np.abs(loopgain_variance**0.5)
     
-def _get_L_sigma(didv_fitresult):
+def _get_L_sigma(didv_result):
     """
     Returns the standard deviation of the inductance (L) smallsignalparam
     given the covariance matrix of the fit base variables. Note
@@ -1308,11 +1308,11 @@ def _get_L_sigma(didv_fitresult):
     ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
     base_cov = _get_full_base_cov(didv_result)
     L_gradiant = ssp_jacobian[2,:]
-    print("L gradiant: " + str(loopgain_gradiant))
+    #print("L gradiant: " + str(L_gradiant))
     L_variance = np.matmul(np.matmul(L_gradiant, base_cov), np.transpose(L_gradiant))
     return np.abs(L_variance**0.5)
     
-def _get_tau0_sigma(didv_fitresult):
+def _get_tau0_sigma(didv_result):
     """
     Returns the standard deviation of the tau0 (C/G) smallsignalparam
     given the covariance matrix of the fit base variables. Note
@@ -1323,11 +1323,11 @@ def _get_tau0_sigma(didv_fitresult):
     ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
     base_cov = _get_full_base_cov(didv_result)
     tau0_gradiant = ssp_jacobian[3,:]
-    print("tau0 gradiant: " + str(loopgain_gradiant))
+    #print("tau0 gradiant: " + str(tau0_gradiant))
     tau0_variance = np.matmul(np.matmul(tau0_gradiant, base_cov), np.transpose(tau0_gradiant))
     return np.abs(tau0_variance**0.5)
     
-def _get_gratio_sigma(didv_fitresult):
+def _get_gratio_sigma(didv_result):
     """
     Returns the standard deviation of the gratio smallsignalparam
     given the covariance matrix of the fit base variables. Note
@@ -1338,7 +1338,7 @@ def _get_gratio_sigma(didv_fitresult):
     ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
     base_cov = _get_full_base_cov(didv_result)
     gratio_gradiant = ssp_jacobian[4,:]
-    print("gratio gradiant: " + str(loopgain_gradiant))
+    #print("gratio gradiant: " + str(gratio_gradiant))
     gratio_variance = np.matmul(np.matmul(gratio_gradiant, base_cov), np.transpose(gratio_gradiant))
     return np.abs(gratio_variance**0.5)
 
@@ -1360,7 +1360,7 @@ def get_smallsignalparams_cov(didv_result):
     ssp_cov = np.matmul(np.matmul(ssp_jacobian, base_cov), np.transpose(ssp_jacobian))
     return ssp_cov
     
-def get_smallsignalparams_sigmas(didv_results):
+def get_smallsignalparams_sigmas(didv_result):
     """
     Returns a dictionary of the standard deviations of the
     5 main smallsignalparams for 3 pole dIdV fits. Note that
