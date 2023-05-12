@@ -1368,11 +1368,11 @@ def get_smallsignalparams_sigmas(didv_results):
     full covariance matrix use get_smallsignalparams_cov.
     """
     
-    sigma_beta = _get_beta_sigma(didv_fitresult)
-    sigma_loopgain = _get_loopgain_sigma(didv_fitresult)
-    sigma_L = _get_L_sigma(didv_fitresult)
-    sigma_tau0 = _get_tau0_sigma(didv_fitresult)
-    sigma_gratio = _get_gratio_sigma(didv_fitresult)
+    sigma_beta = _get_beta_sigma(didv_result)
+    sigma_loopgain = _get_loopgain_sigma(didv_result)
+    sigma_L = _get_L_sigma(didv_result)
+    sigma_tau0 = _get_tau0_sigma(didv_result)
+    sigma_gratio = _get_gratio_sigma(didv_result)
     
     sigmas_dict = {
         'sigma_beta': sigma_beta,
