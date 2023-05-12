@@ -1433,22 +1433,15 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         
     if lgcplot:
         
-        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
-        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
-        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
-        
-        print("Tau1: " + str(didv_result['params']['tau1']))
-        print("Tau1 frequency: " + str(tau1_freq))
-        print("Tau2: " + str(didv_result['params']['tau2']))
-        print("Tau2 frequency: " + str(tau2_freq))
-        print("Tau3: " + str(didv_result['params']['tau3']))
-        print("Tau3 frequency: " + str(tau3_freq))
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
         
         
         plt.plot(freqs, np.abs(dVdI), label = "dVdI", color = 'C1')
         plt.fill_between(freqs, np.abs(dVdI) - np.abs(dVdI_err), np.abs(dVdI) + np.abs(dVdI_err),
                          color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1,
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
         plt.title("dVdI Magnitude vs. Frequency")
@@ -1545,22 +1538,15 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         
     if lgcplot:
         
-        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
-        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
-        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
-        
-        print("Tau1: " + str(didv_result['params']['tau1']))
-        print("Tau1 frequency: " + str(tau1_freq))
-        print("Tau2: " + str(didv_result['params']['tau2']))
-        print("Tau2 frequency: " + str(tau2_freq))
-        print("Tau3: " + str(didv_result['params']['tau3']))
-        print("Tau3 frequency: " + str(tau3_freq))
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
         
         
         plt.plot(freqs, np.abs(dPdI), label = "dPdI", color = 'C1')
         plt.fill_between(freqs, np.abs(dPdI) - np.abs(dPdI_err), np.abs(dPdI) + np.abs(dPdI_err),
                          color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1,
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
         plt.title("dPdI Magnitude vs. Frequency")
@@ -1576,7 +1562,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.real(dPdI)) - np.abs(np.real(dPdI_err)),
                          np.abs(np.real(dPdI)) + np.abs(np.real(dPdI_err)),
                          color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dPdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dPdI)))*0.9, 
                    max(np.abs(np.real(dPdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1593,7 +1579,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.imag(dPdI)) - np.abs(np.imag(dPdI_err)), 
                          np.abs(np.imag(dPdI)) + np.abs(np.real(dPdI_err)),
                          color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dPdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.imag(dPdI)))*0.9, 
                    max(np.abs(np.imag(dPdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1666,18 +1652,31 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
     power_noise_err = current_noise * dPdI_err
 
     if lgcplots:
-        plt.plot(freqs, current_noise)
+    
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
+        
+        plt.plot(freqs, current_noise, label = "Current Noise")
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(current_noise))*0.9, 
+                   max(np.abs(current_noise))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Current Noise (Amps/rt(Hz))")
         plt.grid()
         plt.title("Current Noise vs. Frequency")
+        plt.legend()
         plt.show()
 
-        plt.plot(freqs, np.abs(dPdI), label = "dPdI")
-        plt.plot(freqs, np.abs(dPdI) + np.abs(dPdI_err), label = "dPdI + 1 Sigma", color = 'C2')
-        plt.plot(freqs, np.abs(dPdI) - np.abs(dPdI_err), label = "dPdI - 1 Sigma", color = 'C2')
+        plt.plot(freqs, np.abs(dPdI), label = "dPdI", color = 'C2')
+        plt.fill_between(freqs, np.abs(dPdI) - np.abs(dPdI_err),
+                         np.abs(dPdI) + np.abs(dPdI_err),
+                         color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dPdI)))*0.9, 
+                   max(np.abs(np.real(dPdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
@@ -1688,6 +1687,9 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.show()
         
         plt.plot(freqs, np.abs(power_noise), color = 'C1')
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(power_noise))*0.9, 
+                   max(np.abs(power_noise))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
