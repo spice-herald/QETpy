@@ -5,6 +5,8 @@ from scipy.fftpack import fft, ifft, fftfreq
 from ._base_didv import _BaseDIDV, complexadmittance, get_i0, get_ibias, get_tes_bias_parameters_dict
 from ._plot_didv import _PlotDIDV
 from ._uncertainties_didv import get_power_noise_with_uncertainties, get_dPdI_with_uncertainties
+from ._uncertainties_didv import get_smallsignalparams_cov, get_smallsignalparams_sigmas
+
 
 
 __all__ = [
@@ -456,7 +458,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
               bounds=None, guess_params=None,
               guess_isloopgainsub1=None,
               biasparams_dict=None,
-              lgcfix=None,
+              lgcfix=None, lgc_ssp_light=False,
               verbose=0, max_nfev=1000,
               method='trf', loss='linear',
               ftol=1e-15, xtol=1e-15):
@@ -474,6 +476,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             the specified fitting routine. Default is `np.inf`, which
             is equivalent to no cutoff frequency.
         bounds: 
+        lgc_ssp_light : bool, optional
+            Used to tell dofit that the smallsignalparams light (only
+            beta, l, L, tau0, gratio) result dictionary including
+            uncertainties and covaraiance matrix should be calculted
 
         Raises
         ------
@@ -768,6 +774,28 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 lgcfix=lgcfix,
                 biasparams_dict=biasparams_dict,
             )
+            
+            if lgc_ssp_light:
+                ssp_light_cov = get_smallsignalparams_cov(self._3poleresult)
+                ssp_light_sigmas = get_smallsignalparams_sigmas(self._3poleresult)
+                
+                self._3poleresult = DIDV._fitresult(
+                    poles,
+                    fitparams3,
+                    fitcov3,
+                    falltimes3,
+                    fitcost3,
+                    self._rsh,
+                    self._rp,
+                    self._r0,
+                    self._offset,
+                    self._offset_err,
+                    lgcfix=lgcfix,
+                    biasparams_dict=biasparams_dict,
+                    ssp_light_cov=ssp_light_cov,
+                    ssp_light_sigmas=ssp_light_sigmas,
+                )
+            
 
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
@@ -832,14 +860,16 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         self._r0 = biasparams_dict['r0']
 
-        result3 = self.dofit(3, bounds=bounds, guess_params=guess, biasparams_dict=biasparams_dict)
+        result3 = self.dofit(3, bounds=bounds, guess_params=guess, biasparams_dict=biasparams_dict,
+                             lgc_ssp_light = True)
 
         return result3
 
     @staticmethod
     def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0,
                    offset, offset_err, 
-                   biasparams_dict=None, lgcfix=None):
+                   biasparams_dict=None, lgcfix=None,
+                   ssp_light_cov=None, ssp_light_sigmas=None):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -849,7 +879,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         result = dict()
         result['lgcfix'] = lgcfix
 
-        # errores
+        # errors
         errors = np.diag(cov)**0.5
         if lgcfix is not None:
             errors = np.zeros_like(lgcfix, dtype=float)
@@ -943,6 +973,22 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': smallsignalparams[8],
                 'dt': smallsignalparams[9],
             }
+            
+            #we only calculate the smallsignalparameters covaraiance matrix for
+            #these parameters, so this is just a container for them
+            if (ssp_light_cov is not None) and (ssp_light_sigmas is not None):
+                ssp_light_vals = {
+                    'beta': smallsignalparams[3],
+                    'l': smallsignalparams[4],
+                    'L': smallsignalparams[5],
+                    'tau0': smallsignalparams[6],
+                    'gratio': smallsignalparams[7],
+                }
+                result['ssp_light'] = {
+                    'vals' = ssp_light_vals,
+                    'cov' = ssp_light_cov,
+                    'sigmas' = ssp_light_sigmas,
+                }
 
         result['offset'] = offset
         result['offset_err'] = offset_err
