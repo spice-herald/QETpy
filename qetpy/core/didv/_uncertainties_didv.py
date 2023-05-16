@@ -1457,7 +1457,7 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.real(dVdI)) - np.abs(np.real(dVdI_err)),
                          np.abs(np.real(dVdI)) + np.abs(np.real(dVdI_err)),
                          color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dVdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dVdI)))*0.9, 
                    max(np.abs(np.real(dVdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1474,7 +1474,7 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.imag(dVdI)) - np.abs(np.imag(dVdI_err)), 
                          np.abs(np.imag(dVdI)) + np.abs(np.real(dVdI_err)),
                          color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dVdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.imag(dVdI)))*0.9, 
                    max(np.abs(np.imag(dVdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
