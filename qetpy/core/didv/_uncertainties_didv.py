@@ -10,7 +10,9 @@ from qetpy.utils import resample_data
 
 __all__ = [
     "get_dPdI_with_uncertainties",
-    "get_power_noise_with_uncertainties"
+    "get_power_noise_with_uncertainties",
+    "get_smallsignalparams_cov",
+    "get_smallsignalparams_sigmas",
 ]
 
 """
@@ -677,6 +679,138 @@ def _ddr0_tau0(didv_result):
     term2 = -1.0*(A + r0 - rl)*(A + B + r0 - rl)**-2
     
     return tau1 * (term1 + term2)
+    
+#gratio terms
+
+def _get_gratio(didv_result):
+    """
+    Returns the ratio between the thermal conductances of the two
+    thermal poles, as calculated by Sam for the smallsignalparams.
+    Dimensionless.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+
+    numerator = C * (A + r0 - rl)
+    denominator = A + B + r0 + rl
+    return numerator/denominator
+    
+def _ddA_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter A.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    term1 = C/(A + B + r0 - rl)
+    term2 = -1.0 * C * (A + r0 - rl) * (A + B  + r0 - rl)**-2.0
+    
+    return term1 + term2
+    
+def _ddB_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter B.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    term2 = -1.0 * C * (A + r0 - rl) * (A + B  + r0 - rl)**-2.0
+    
+    return term2
+    
+def _ddC_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter C.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    numerator = (A + r0 - rl)
+    denominator = A + B + r0 + rl
+    return numerator/denominator
+    
+def _ddtau1_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter tau1.
+    """
+    return 0.0
+        
+def _ddtau2_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter tau2.
+    """
+    return 0.0
+    
+def _ddtau3_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter tau3.
+    """
+    return 0.0
+    
+def _ddr0_gratio(didv_result):
+    """
+    Returns the derivative of the gratio parameter with respect
+    to the fit parameter C.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    term1 = 1/(A + B + r0 - rl)
+    term2 = -1.0 * (A + r0 - rl) * (A + B + r0 - rl)**-2.0
+    return C * (term1 + term2)
+    
+    
 
 #dVdI
 
@@ -1072,11 +1206,184 @@ def _get_dVdI_uncertainty(didv_result, f):
     variance = np.matmul(np.matmul(dVdI_gradiant, cov), np.transpose(dVdI_gradiant))
     
     return variance**0.5
+    
+def _get_smallsignalparams_jacobian(didv_result):
+    """
+    Returns the covariance matrix for a 3 pole fit dIdV.
+    Order of variables is:
+    beta, loopgain, L, tau0, gratio
+    """
+    ssp_jacobian = np.zeros((5, 7), dtype = 'complex64')
+    
+    #beta terms
+    ssp_jacobian[0,0] = _ddA_beta(didv_result)
+    ssp_jacobian[0,1] = _ddB_beta(didv_result)
+    ssp_jacobian[0,2] = _ddC_beta(didv_result)
+    ssp_jacobian[0,3] = _ddtau1_beta(didv_result)
+    ssp_jacobian[0,4] = _ddtau2_beta(didv_result)
+    ssp_jacobian[0,5] = _ddtau3_beta(didv_result)
+    ssp_jacobian[0,6] = _ddr0_beta(didv_result)
+    
+    #loopgain terms
+    ssp_jacobian[1,0] = _ddA_loopgain(didv_result)
+    ssp_jacobian[1,1] = _ddB_loopgain(didv_result)
+    ssp_jacobian[1,2] = _ddC_loopgain(didv_result)
+    ssp_jacobian[1,3] = _ddtau1_loopgain(didv_result)
+    ssp_jacobian[1,4] = _ddtau2_loopgain(didv_result)
+    ssp_jacobian[1,5] = _ddtau3_loopgain(didv_result)
+    ssp_jacobian[1,6] = _ddr0_loopgain(didv_result)
+    
+    #L terms
+    ssp_jacobian[2,0] = _ddA_L(didv_result)
+    ssp_jacobian[2,1] = _ddB_L(didv_result)
+    ssp_jacobian[2,2] = _ddC_L(didv_result)
+    ssp_jacobian[2,3] = _ddtau1_L(didv_result)
+    ssp_jacobian[2,4] = _ddtau2_L(didv_result)
+    ssp_jacobian[2,5] = _ddtau3_L(didv_result)
+    ssp_jacobian[2,6] = _ddr0_L(didv_result)
+    
+    #tau0 terms
+    ssp_jacobian[3,0] = _ddA_tau0(didv_result)
+    ssp_jacobian[3,1] = _ddB_tau0(didv_result)
+    ssp_jacobian[3,2] = _ddC_tau0(didv_result)
+    ssp_jacobian[3,3] = _ddtau1_tau0(didv_result)
+    ssp_jacobian[3,4] = _ddtau2_tau0(didv_result)
+    ssp_jacobian[3,5] = _ddtau3_tau0(didv_result)
+    ssp_jacobian[3,6] = _ddr0_tau0(didv_result)
+    
+    #gratio terms
+    ssp_jacobian[4,0] = _ddA_gratio(didv_result)
+    ssp_jacobian[4,1] = _ddB_gratio(didv_result)
+    ssp_jacobian[4,2] = _ddC_gratio(didv_result)
+    ssp_jacobian[4,3] = _ddtau1_gratio(didv_result)
+    ssp_jacobian[4,4] = _ddtau2_gratio(didv_result)
+    ssp_jacobian[4,5] = _ddtau3_gratio(didv_result)
+    ssp_jacobian[4,6] = _ddr0_gratio(didv_result)
+    
+    return ssp_jacobian
+    
+"""
+Functions for calculating smallsignalparams sigmas
+(i.e. not considering covariances)
+"""
+
+def _get_beta_sigma(didv_result):
+    """
+    Returns the standard deviation of the beta smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    beta_gradiant = ssp_jacobian[0,:]
+    #print("Beta gradiant: " + str(beta_gradiant))
+    beta_variance = np.matmul(np.matmul(beta_gradiant, base_cov), np.transpose(beta_gradiant))
+    return np.abs(beta_variance**0.5)
+    
+def _get_loopgain_sigma(didv_result):
+    """
+    Returns the standard deviation of the loopgain smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    loopgain_gradiant = ssp_jacobian[1,:]
+    #print("Loopgain gradiant: " + str(loopgain_gradiant))
+    loopgain_variance = np.matmul(np.matmul(loopgain_gradiant, base_cov), np.transpose(loopgain_gradiant))
+    return np.abs(loopgain_variance**0.5)
+    
+def _get_L_sigma(didv_result):
+    """
+    Returns the standard deviation of the inductance (L) smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    L_gradiant = ssp_jacobian[2,:]
+    #print("L gradiant: " + str(L_gradiant))
+    L_variance = np.matmul(np.matmul(L_gradiant, base_cov), np.transpose(L_gradiant))
+    return np.abs(L_variance**0.5)
+    
+def _get_tau0_sigma(didv_result):
+    """
+    Returns the standard deviation of the tau0 (C/G) smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    tau0_gradiant = ssp_jacobian[3,:]
+    #print("tau0 gradiant: " + str(tau0_gradiant))
+    tau0_variance = np.matmul(np.matmul(tau0_gradiant, base_cov), np.transpose(tau0_gradiant))
+    return np.abs(tau0_variance**0.5)
+    
+def _get_gratio_sigma(didv_result):
+    """
+    Returns the standard deviation of the gratio smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    gratio_gradiant = ssp_jacobian[4,:]
+    #print("gratio gradiant: " + str(gratio_gradiant))
+    gratio_variance = np.matmul(np.matmul(gratio_gradiant, base_cov), np.transpose(gratio_gradiant))
+    return np.abs(gratio_variance**0.5)
 
 
 """
 Functions that are for general use
 """
+
+def get_smallsignalparams_cov(didv_result):
+    """
+    Returns the covariance matrix for 3 pole dIdV fits
+    for the smallsignalparams in the order:
+    beta, loopgain, L, tau0, gratio
+    """
+    
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    
+    ssp_cov = np.matmul(np.matmul(ssp_jacobian, base_cov), np.transpose(ssp_jacobian))
+    return ssp_cov
+    
+def get_smallsignalparams_sigmas(didv_result):
+    """
+    Returns a dictionary of the standard deviations of the
+    5 main smallsignalparams for 3 pole dIdV fits. Note that
+    these don't correctly capture covariances, if you want the
+    full covariance matrix use get_smallsignalparams_cov.
+    """
+    
+    sigma_beta = _get_beta_sigma(didv_result)
+    sigma_loopgain = _get_loopgain_sigma(didv_result)
+    sigma_L = _get_L_sigma(didv_result)
+    sigma_tau0 = _get_tau0_sigma(didv_result)
+    sigma_gratio = _get_gratio_sigma(didv_result)
+    
+    sigmas_dict = {
+        'sigma_beta': sigma_beta,
+        'sigma_l': sigma_loopgain,
+        'sigma_L': sigma_L,
+        'sigma_tau0': sigma_tau0,
+        'sigma_gratio': sigma_gratio,
+    }
+    
+    return sigmas_dict
+    
 
 def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     """
@@ -1126,22 +1433,15 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         
     if lgcplot:
         
-        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
-        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
-        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
-        
-        print("Tau1: " + str(didv_result['params']['tau1']))
-        print("Tau1 frequency: " + str(tau1_freq))
-        print("Tau2: " + str(didv_result['params']['tau2']))
-        print("Tau2 frequency: " + str(tau2_freq))
-        print("Tau3: " + str(didv_result['params']['tau3']))
-        print("Tau3 frequency: " + str(tau3_freq))
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
         
         
         plt.plot(freqs, np.abs(dVdI), label = "dVdI", color = 'C1')
         plt.fill_between(freqs, np.abs(dVdI) - np.abs(dVdI_err), np.abs(dVdI) + np.abs(dVdI_err),
                          color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1,
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(dVdI))*0.9, max(np.abs(dVdI))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
         plt.title("dVdI Magnitude vs. Frequency")
@@ -1157,7 +1457,7 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.real(dVdI)) - np.abs(np.real(dVdI_err)),
                          np.abs(np.real(dVdI)) + np.abs(np.real(dVdI_err)),
                          color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dVdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dVdI)))*0.9, 
                    max(np.abs(np.real(dVdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1174,7 +1474,7 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.imag(dVdI)) - np.abs(np.imag(dVdI_err)), 
                          np.abs(np.imag(dVdI)) + np.abs(np.real(dVdI_err)),
                          color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dVdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.imag(dVdI)))*0.9, 
                    max(np.abs(np.imag(dVdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1238,22 +1538,15 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         
     if lgcplot:
         
-        tau1_freq = 1/(2 * np.pi * np.abs(didv_result['params']['tau1']))
-        tau2_freq = 1/(2 * np.pi * didv_result['params']['tau2'])
-        tau3_freq = 1/(2 * np.pi * didv_result['params']['tau3'])
-        
-        print("Tau1: " + str(didv_result['params']['tau1']))
-        print("Tau1 frequency: " + str(tau1_freq))
-        print("Tau2: " + str(didv_result['params']['tau2']))
-        print("Tau2 frequency: " + str(tau2_freq))
-        print("Tau3: " + str(didv_result['params']['tau3']))
-        print("Tau3 frequency: " + str(tau3_freq))
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
         
         
         plt.plot(freqs, np.abs(dPdI), label = "dPdI", color = 'C1')
         plt.fill_between(freqs, np.abs(dPdI) - np.abs(dPdI_err), np.abs(dPdI) + np.abs(dPdI_err),
                          color = 'C1', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1,
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(dPdI))*0.9, max(np.abs(dPdI))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
         plt.title("dPdI Magnitude vs. Frequency")
@@ -1269,7 +1562,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.real(dPdI)) - np.abs(np.real(dPdI_err)),
                          np.abs(np.real(dPdI)) + np.abs(np.real(dPdI_err)),
                          color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.real(dPdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dPdI)))*0.9, 
                    max(np.abs(np.real(dPdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1286,7 +1579,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.fill_between(freqs, np.abs(np.imag(dPdI)) - np.abs(np.imag(dPdI_err)), 
                          np.abs(np.imag(dPdI)) + np.abs(np.real(dPdI_err)),
                          color = 'C3', label = "+/- 1 Sigma", alpha = 0.3)
-        plt.vlines([tau1_freq, tau2_freq, tau3_freq], min(np.abs(np.imag(dPdI)))*0.9, 
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.imag(dPdI)))*0.9, 
                    max(np.abs(np.imag(dPdI)))*1.1,
                    label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.grid()
@@ -1359,18 +1652,31 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
     power_noise_err = current_noise * dPdI_err
 
     if lgcplots:
-        plt.plot(freqs, current_noise)
+    
+        taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
+        taum_freq = 1/(2 * np.pi * didv_result['falltimes'][1])
+        taun_freq = 1/(2 * np.pi * didv_result['falltimes'][2])
+        
+        plt.plot(freqs, current_noise, label = "Current Noise")
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(current_noise))*0.9, 
+                   max(np.abs(current_noise))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Current Noise (Amps/rt(Hz))")
         plt.grid()
         plt.title("Current Noise vs. Frequency")
+        plt.legend()
         plt.show()
 
-        plt.plot(freqs, np.abs(dPdI), label = "dPdI")
-        plt.plot(freqs, np.abs(dPdI) + np.abs(dPdI_err), label = "dPdI + 1 Sigma", color = 'C2')
-        plt.plot(freqs, np.abs(dPdI) - np.abs(dPdI_err), label = "dPdI - 1 Sigma", color = 'C2')
+        plt.plot(freqs, np.abs(dPdI), label = "dPdI", color = 'C2')
+        plt.fill_between(freqs, np.abs(dPdI) - np.abs(dPdI_err),
+                         np.abs(dPdI) + np.abs(dPdI_err),
+                         color = 'C2', label = "+/- 1 Sigma", alpha = 0.3)
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(np.real(dPdI)))*0.9, 
+                   max(np.abs(np.real(dPdI)))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
@@ -1381,6 +1687,9 @@ def get_power_noise_with_uncertainties(freqs, current_noise, didv_result,
         plt.show()
         
         plt.plot(freqs, np.abs(power_noise), color = 'C1')
+        plt.vlines([taup_freq, taum_freq, taun_freq], min(np.abs(power_noise))*0.9, 
+                   max(np.abs(power_noise))*1.1,
+                   label = "dIdV Poles", color = "black", alpha = 0.5)
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel("Frequency (Hz)")
