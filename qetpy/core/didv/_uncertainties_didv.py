@@ -701,7 +701,7 @@ def _get_gratio(didv_result):
     rl = rp + rsh
 
     numerator = C * (A + r0 - rl)
-    denominator = A + B + r0 + rl
+    denominator = A + B + r0 - rl
     return numerator/denominator
     
 def _ddA_gratio(didv_result):
@@ -765,7 +765,7 @@ def _ddC_gratio(didv_result):
     rl = rp + rsh
     
     numerator = (A + r0 - rl)
-    denominator = A + B + r0 + rl
+    denominator = A + B + r0 - rl
     return numerator/denominator
     
 def _ddtau1_gratio(didv_result):
