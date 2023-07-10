@@ -206,7 +206,8 @@ def get_phonon_template(time_arr, event_time, didv_result, phonon_fall, phonon_r
     
     return i_time
     
-def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True):
+def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
+                             lgc_plot=False, filter_freq=None):
     """
     Calculates the normalization of an OFAmp (in current units) into
     energy units using the full frequency dependent dPdI calculated from
@@ -230,6 +231,14 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True):
         If True, returns the normalization in units of eV/amp, otherwise
         returns the normalization in units of Joules/amp.
         
+    lgc_plot: bool, optional
+        If True, shows diagnostic plots
+        
+    filter_freq: float, optional
+        If not None, the frequency above which frequency components of the 
+        template are ignored. If not used with data derived templates, HF
+        noise can lead to nonsensical values for the normalization.
+        
     Returns
     -------
     normalization: float
@@ -245,8 +254,48 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True):
     i_freqs = fft(template)
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
     p_freqs = i_freqs*dpdi
+    
+    if filter_freq is not None:
+        freq_spacing=freqs[1] - freqs[0]
+        filter_index = int(filter_freq/freq_spacing)
+        print("Filter index: " + str(filter_index))
+        filter_arr = np.zeros(len(p_freqs))
+        filter_arr[:filter_index] = 1.0
+        filter_arr[-filter_index] = 1.0
+        p_freqs = p_freqs * filter_arr
+    
     p_time = ifft(p_freqs)
-    integral = one_over_fs * sum(p_time)
+    integral = one_over_fs * np.abs(sum(p_time))
+    
+    if lgc_plot:
+        plt.plot(time_arr, template)
+        plt.xlabel("Time (s)")
+        plt.title("Time Domain, Current Domain Template")
+        plt.ylabel("Template Height (current, time domain)")
+        plt.show()
+        
+        plt.plot(freqs, np.abs(i_freqs))
+        plt.xlabel("Frequency (Hz)")
+        plt.title("Frequency Domain, Current Domain Template")
+        plt.ylabel("Template Height (current, frequency domain, magnitude)")
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+        
+        plt.plot(freqs, np.abs(p_freqs))
+        plt.xlabel("Frequency (Hz)")
+        plt.title("Frequency Domain, Power Domain Template (filtered)")
+        plt.ylabel("Template Height (current, frequency domain, magnitude)")
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+        
+        plt.plot(time_arr, p_time)
+        plt.xlabel("Time (s)")
+        plt.title("Time Domain, Power Domain Template")
+        plt.ylabel("Template Height (current, time domain)")
+        plt.show()
+        
     
     if lgc_ev:
         j_to_ev = 6.242e18
