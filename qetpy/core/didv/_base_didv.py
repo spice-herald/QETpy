@@ -702,6 +702,76 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     }
     
     return bias_parameter_dict
+    
+def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibias, ibias_err, rsh, rp):
+    """
+    Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
+    using the infinte loop gain approximation, where R0 = R_l - A + B
+    
+    Parameters
+    ----------
+    
+    params : dict
+        The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
+        
+    cov : matrix
+        The covariance matrix for the params, starting with the A, B
+        components.
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    ibias: float
+        The bias current applied to the TES/shunt system
+        
+    ibias_err: float
+        The uncertainty in the bias current applied to the TES/shunt
+        system
+        
+    rsh: float
+        The shunt resistance in ohms
+        
+    rp: float
+        The parasitic resistance in ohms
+        
+    Returns
+    -------
+    bias_parameters_dict : dict
+        A dictonary of bias parameters and uncertainties, including i0, r0,
+        v0, and p0
+        
+    """
+    
+    rl = rp + rsh
+    
+    r0 = rl - params['A'] - params['B']
+    
+    r0_jac = np.asarray([1, 1, 0, 0, 0, 0, 0])
+    r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
+    
+    i0_ = ibias * rsh / (r0 + rl)
+    i0_err_ = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
+    
+    
+    v0, v0_err = _get_v0(i0_, i0_err_, ibias, ibias_err, rsh, rp)
+    p0, p0_err = _get_p0(i0_, i0_err_, v0, v0_err)
+    
+    bias_parameter_dict = {
+        'i0': i0_,
+        'i0_err': i0_err_,
+        'v0': v0,
+        'v0_err': v0_err,
+        'r0': r0,
+        'r0_err': r0_err,
+        'p0': p0,
+        'p0_err': p0_err,
+    }
+    
+    return bias_parameter_dict
 
 
 
