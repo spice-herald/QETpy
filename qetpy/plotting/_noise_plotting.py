@@ -327,13 +327,13 @@ def plot_decorrelatednoise(noise, lgcoverlay=False, lgcdata=True, lgcuncorrnoise
 
         ### Overlay plot
         if lgcoverlay:
-            plt.figure(figsize=(12, 8))
+            plt.figure(figsize=(12, 12))
             plt.xlabel('frequency [Hz]')
             plt.ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]')
             plt.grid(which='both')
-            plt.title('{} de-correlated noise'.format(noise.name))
+            #plt.title('{} de-correlated noise'.format(noise.name))
             for ichan, channel in enumerate(noise.channames):
-                    plt.loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ichan][1:]), label=channel)
+                plt.loglog(noise.freqs[1:], np.sqrt(noise.uncorrnoise[ichan][1:]), label=channel)
             lgd = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0)
 
             if lgcsave:
@@ -351,8 +351,8 @@ def plot_decorrelatednoise(noise, lgcoverlay=False, lgcdata=True, lgcuncorrnoise
             num_subplots = len(noise.channames)
             nrows = int(ceil(num_subplots / 2))
             ncolumns = 2
-            fig, axes = plt.subplots(nrows, ncolumns, figsize=(6 * num_subplots, 6 * num_subplots)) 
-            plt.suptitle('{} de-correlated noise'.format(noise.name), fontsize=40)
+            fig, axes = plt.subplots(nrows, ncolumns, figsize=(12* num_subplots, 6 * num_subplots)) 
+           #plt.suptitle('{} de-correlated noise'.format(noise.name), fontsize=40)
             for ii in range(nrows * 2):
                 if ii < nrows:
                     irow = ii
@@ -397,6 +397,8 @@ def plot_decorrelatednoise(noise, lgcoverlay=False, lgcdata=True, lgcuncorrnoise
                     axes[jcolumn].set_xlabel('Frequency [Hz]', fontsize=25)
                     axes[jcolumn].set_ylabel(r'Input Referenced Noise [A/$\sqrt{\mathrm{Hz}}$]', fontsize=25)
                     axes[jcolumn].grid(which='both')
+                    axes[jcolumn].set_xlim((1,1e4))
+                    axes[jcolumn].set_ylim((1e-14,1e-9))
                     if lgcdata:
                         axes[jcolumn].loglog(
                             noise.freqs[1:],

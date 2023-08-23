@@ -59,7 +59,7 @@ class _PlotDIDV(object):
         return ifft(filtered_trace)
 
 
-    def _plot_time_domain(self, poles, lp_cutoff=None, didv_freq_filt=False):
+    def _plot_time_domain(self, poles, lp_cutoff=None, didv_freq_filt=False,plotmean=True):
         """Helper function for plotting the fits in time domain."""
 
         if poles == "all":
@@ -69,13 +69,13 @@ class _PlotDIDV(object):
 
         ## plot the entire trace with fits
         fig, ax = plt.subplots(figsize=(10, 6))
-
-        ax.plot(
-            self._time * 1e6,
-            (self._tmean - self._offset) * 1e6,
-            color='k',
-            label='Mean',
-        )
+        if plotmean is True:
+            ax.plot(
+                self._time * 1e6,
+                (self._tmean - self._offset) * 1e6,
+                color='k',
+                label='Mean',
+            )
 
         if lp_cutoff is not None:
 
@@ -191,7 +191,7 @@ class _PlotDIDV(object):
     def plot_full_trace(self, poles="all",
                         saveplot=False, savepath="",
                         savename="",
-                        lp_cutoff=None, didv_freq_filt=False):
+                        lp_cutoff=None, didv_freq_filt=False,plotmean=True):
         """
         Function to plot the entire trace in time domain
 
@@ -217,9 +217,10 @@ class _PlotDIDV(object):
             the dIdV square wave passed.
 
         """
-
-        fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff,
-                                         didv_freq_filt = didv_freq_filt)
+        if plotmean ==False:
+            fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff,
+                                            didv_freq_filt = didv_freq_filt,plotmean=False)
+        else:             fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff, didv_freq_filt = didv_freq_filt,plotmean=True)
 
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
         ax.set_title("Full Trace of dIdV")
@@ -276,7 +277,7 @@ class _PlotDIDV(object):
 
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
                              saveplot=False, savepath="", savename="",
-                             lp_cutoff=None, didv_freq_filt=False):
+                             lp_cutoff=None, didv_freq_filt=False,plotmean=True):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -310,9 +311,10 @@ class _PlotDIDV(object):
         period = 1.0 / self._sgfreq
 
         best_time_offset = self._get_best_time_offset()
-
-        fig, ax = self._plot_time_domain(poles, lp_cutoff,
-                                         didv_freq_filt = didv_freq_filt)
+        if plotmean ==False:
+            fig, ax = self._plot_time_domain(poles, lp_cutoff,
+                                            didv_freq_filt = didv_freq_filt,plotmean=plotmean)
+        else: fig, ax = self._plot_time_domain(poles, lp_cutoff, didv_freq_filt = didv_freq_filt,plotmean=plotmean)
 
         ax.set_xlim(
             (best_time_offset + self._time[0] + (
@@ -333,7 +335,7 @@ class _PlotDIDV(object):
 
 
     def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
-                          savename="", zoomfactor=None, lp_cutoff=None):
+                          savename="", zoomfactor=None, lp_cutoff=None,plotmean=True,flippedmean=True,didv_freq_filt=False):
         """
         Function to plot the flipped trace in time domain. This
         function should be used to test if there are nonlinearities in
@@ -361,20 +363,21 @@ class _PlotDIDV(object):
             Default: None (filtered trace not displayed)
 
         """
-
-        fig, ax = self._plot_time_domain(poles, lp_cutoff)
+        if plotmean == False:
+            fig, ax = self._plot_time_domain(poles, lp_cutoff,plotmean=plotmean,didv_freq_filt=didv_freq_filt)
+        else: fig, ax = self._plot_time_domain(poles, lp_cutoff,plotmean=plotmean,didv_freq_filt=didv_freq_filt)
 
         period = 1.0 / self._sgfreq
         time_flipped = self._time - period / 2.0
         tmean_flipped = -(self._tmean - self._offset)
-
-        ax.plot(
-            time_flipped * 1e6,
-            tmean_flipped * 1e6,
-            color='blue',
-            label='Flipped Data',
-            alpha = 0.6,
-        )
+        if flippedmean == True:
+            ax.plot(
+                time_flipped * 1e6,
+                tmean_flipped * 1e6,
+                color='blue',
+                alpha = 0.6,
+                label='Flipped Data',
+            )
 
         if lp_cutoff is not None:
             
@@ -405,7 +408,8 @@ class _PlotDIDV(object):
         
 
         ax.set_title("Flipped Traces to Check Asymmetry")
-
+        ax.legend()
+        
         if saveplot:
             fig.savefig(savepath + f"flipped_trace_{savename}.png")
             plt.close(fig)

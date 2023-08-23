@@ -801,7 +801,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
     def dofit_with_true_current(self, offset_dict, output_offset, closed_loop_norm, ibias_metadata,
-                            bounds=None, guess=None, lgcdiagnostics=False):
+                            bounds=None, guess=None, lgcdiagnostics=False,fcutoff=np.inf):
         """
         Given the offset dictionary used to store the various current
         current offsets used to reconstruct the true current through the 
@@ -861,7 +861,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         self._r0 = biasparams_dict['r0']
 
         result3 = self.dofit(3, bounds=bounds, guess_params=guess, biasparams_dict=biasparams_dict,
-                             lgc_ssp_light = True)
+                             lgc_ssp_light = True,fcutoff=fcutoff)
 
         return result3
 
