@@ -401,7 +401,7 @@ def _get_current_offset(metadata, channel_name):
     return voltage_offset/close_loop_norm
 
 
-def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
+def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, output_gain,
            lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -429,6 +429,11 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
         the DAQ into a current coming into the input coil of the SQUIDs. In units of
         volts/amp = ohms.
         
+    output_gain: float, dimensionless
+        The dimensionless gain for the front end electronics. Used to translate the
+        output_offset in units of volts to the equivilant value read in the DAQ in
+        units of volts.
+        
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
@@ -445,7 +450,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
     current_didv = offset
     current_err_didv = offset_err
     
-    offset_changable = output_offset/closed_loop_norm
+    offset_changable = output_offset * output_gain/closed_loop_norm
     delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
     
     i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
@@ -686,6 +691,8 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     
     i0 = np.absolute(i0)
     
+    rl = rp + rsh
+    
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
@@ -699,6 +706,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'r0_err': r0_err,
         'p0': p0,
         'p0_err': p0_err,
+        'rp': rp,
+        'rsh': rsh,
+        'rl': rl,
+        'ibias': ibias,
     }
     
     return bias_parameter_dict
@@ -769,6 +780,10 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibi
         'r0_err': r0_err,
         'p0': p0,
         'p0_err': p0_err,
+        'rp': rp,
+        'rsh': rsh,
+        'rl': rl,
+        'ibias': ibias,
     }
     
     return bias_parameter_dict

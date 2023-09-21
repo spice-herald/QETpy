@@ -800,8 +800,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
-    def dofit_with_true_current(self, offset_dict, output_offset, closed_loop_norm, ibias_metadata,
-                            bounds=None, guess=None, inf_loop_gain_approx=False, lgcdiagnostics=False):
+    def dofit_with_true_current(self, offset_dict, output_offset, closed_loop_norm, output_gain,
+                                ibias_metadata,
+                                bounds=None, guess=None, inf_loop_gain_approx=False, lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
         current offsets used to reconstruct the true current through the 
@@ -825,6 +826,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             The constant from the metadata used to translate the voltage measured by
             the DAQ into a current coming into the input coil of the SQUIDs. In units of
             volts/amp = ohms.
+            
+        output_gain: float, dimensionless
+            The dimensionless gain used to convert the output offset in volts to the 
+            equivilant offset voltage measured by the DAQ
             
         ibias_metadata: float
             The ibias gotten from the event metadata, i.e. without correcting for
@@ -859,7 +864,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         offset = self._offset
         offset_err = self._offset_err
 
-        i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, lgcdiagnostics)
+        i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset,
+                            closed_loop_norm, output_gain, lgcdiagnostics)
         ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgcdiagnostics)
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         if inf_loop_gain_approx:
