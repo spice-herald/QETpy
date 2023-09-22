@@ -401,7 +401,7 @@ def _get_current_offset(metadata, channel_name):
     return voltage_offset/close_loop_norm
 
 
-def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
+def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, output_gain,
            lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -429,6 +429,11 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
         the DAQ into a current coming into the input coil of the SQUIDs. In units of
         volts/amp = ohms.
         
+    output_gain: float, dimensionless
+        The dimensionless gain for the front end electronics. Used to translate the
+        output_offset in units of volts to the equivilant value read in the DAQ in
+        units of volts.
+        
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
@@ -445,7 +450,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm,
     current_didv = offset
     current_err_didv = offset_err
     
-    offset_changable = output_offset/closed_loop_norm
+    offset_changable = output_offset * output_gain/closed_loop_norm
     delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
     
     i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
@@ -686,6 +691,8 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     
     i0 = np.absolute(i0)
     
+    rl = rp + rsh
+    
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
@@ -699,6 +706,84 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'r0_err': r0_err,
         'p0': p0,
         'p0_err': p0_err,
+        'rp': rp,
+        'rsh': rsh,
+        'rl': rl,
+        'ibias': ibias,
+    }
+    
+    return bias_parameter_dict
+    
+def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibias, ibias_err, rsh, rp):
+    """
+    Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
+    using the infinte loop gain approximation, where R0 = R_l - A + B
+    
+    Parameters
+    ----------
+    
+    params : dict
+        The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
+        
+    cov : matrix
+        The covariance matrix for the params, starting with the A, B
+        components.
+        
+    i0 : float
+        The current through the TES at a given bias point
+        
+    i0_err: float
+        The uncertainty in the current through the TES at a given
+        bias point
+        
+    ibias: float
+        The bias current applied to the TES/shunt system
+        
+    ibias_err: float
+        The uncertainty in the bias current applied to the TES/shunt
+        system
+        
+    rsh: float
+        The shunt resistance in ohms
+        
+    rp: float
+        The parasitic resistance in ohms
+        
+    Returns
+    -------
+    bias_parameters_dict : dict
+        A dictonary of bias parameters and uncertainties, including i0, r0,
+        v0, and p0
+        
+    """
+    
+    rl = rp + rsh
+    
+    r0 = rl - params['A'] - params['B']
+    
+    r0_jac = np.asarray([1, 1, 0, 0, 0, 0, 0])
+    r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
+    
+    i0_ = ibias * rsh / (r0 + rl)
+    i0_err_ = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
+    
+    
+    v0, v0_err = _get_v0(i0_, i0_err_, ibias, ibias_err, rsh, rp)
+    p0, p0_err = _get_p0(i0_, i0_err_, v0, v0_err)
+    
+    bias_parameter_dict = {
+        'i0': i0_,
+        'i0_err': i0_err_,
+        'v0': v0,
+        'v0_err': v0_err,
+        'r0': r0,
+        'r0_err': r0_err,
+        'p0': p0,
+        'p0_err': p0_err,
+        'rp': rp,
+        'rsh': rsh,
+        'rl': rl,
+        'ibias': ibias,
     }
     
     return bias_parameter_dict
