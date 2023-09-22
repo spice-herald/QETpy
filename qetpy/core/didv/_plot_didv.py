@@ -145,11 +145,11 @@ class _PlotDIDV(object):
             )
             
             if lp_cutoff is not None:
-                lp_pole = lowpassfilter(didvfit1_timedomain,
+                lp_1poleresult = lowpassfilter(didvfit1_timedomain,
                                          lp_cutoff, fs=self._fs, order=2)
                 ax.plot(
                     (self._time + self._1poleresult['params']['dt']) * 1e6,
-                    lp_pole * 1e6,
+                    lp_1poleresult * 1e6,
                     color='magenta',
                     alpha=0.9,
                     label='1-Pole Fit-filtered',
@@ -178,11 +178,11 @@ class _PlotDIDV(object):
             )
             
             if lp_cutoff is not None:
-                lp_pole = lowpassfilter(didvfit2_timedomain,
+                lp_2poleresult = lowpassfilter(didvfit2_timedomain,
                                          lp_cutoff, fs=self._fs, order=2)
                 ax.plot(
                     (self._time + self._2poleresult['params']['dt']) * 1e6,
-                    lp_pole * 1e6,
+                    lp_2poleresult * 1e6,
                     color='green',
                     alpha=0.9,
                     label='2-Pole Fit-filtered',
@@ -211,11 +211,11 @@ class _PlotDIDV(object):
             )
             
             if lp_cutoff is not None:
-                lp_pole = lowpassfilter(didvfit3_timedomain,
+                lp_3poleresult = lowpassfilter(didvfit3_timedomain,
                                          lp_cutoff, fs=self._fs, order=2)
                 ax.plot(
                     (self._time + self._3poleresult['params']['dt']) * 1e6,
-                    lp_pole * 1e6,
+                    lp_3poleresult * 1e6,
                     color='orange',
                     alpha=0.9,
                     label='3-Pole Fit-filtered',
