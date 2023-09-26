@@ -1490,7 +1490,8 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     return dVdI, dVdI_err
 
 
-def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
+def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
+				lgc_loopgain_diagnostics=False):
     """
     Calculates the dPdI at an array of frequencies given a
     didv_result with a biasparams dict as part of it. Note
@@ -1514,6 +1515,12 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     lgcplot: bool, optional
         If True, plots the absolute value of dVdI with the
         uncertainty in dVdI 
+
+	lgc_loopgain_diagnostics: bool, optioal
+		If True, prints out diagnostics for figuring out if there are
+		potential issues with the loopgain. Prints out the loopgain,
+		beta, and r0 with uncertainties, then r0 from the dIdV under
+		the infinite loop gain approximation.
         
     Returns
     -------
@@ -1591,6 +1598,30 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False):
         plt.ylim(min(np.abs(np.imag(dPdI)))*0.9, max(np.abs(np.imag(dPdI)))*1.1)
         plt.legend()
         plt.show()
+
+    if lgc_loopgain_diagnostics:
+        loopgain = didv_result['ssp_light']['vals']['l']
+        loopgain_err = didv_result['ssp_light']['sigmas']['sigma_l']
+        beta = didv_result['ssp_light']['vals']['beta']
+        beta_err = didv_result['ssp_light']['sigmas']['sigma_beta']
+        r0_biasparams = didv_result['biasparams']['r0']
+        r0_biasparams_err = didv_result['biasparams']['r0_err']
+
+        #uses infinite loop gain approximation
+        didv_0, didv_0_err = get_dVdI_with_uncertainties([0], didv_result)
+        didv_0 = didv_0[0]
+        didv_0_err = didv_0_err[0]
+        rl = didv_result['biasparams']['rl']
+        r0_ilga = -1/(didv_0) - rl
+        r0_ilga_err = didv_0_err * didv_0**-2
+
+        print(" ")
+        print("Loopgain diagnostics:")
+        print("---------------------")
+        print("Loopgain: " + str(loopgain) + " +/- " + str(loopgain_err))
+        print("Beta: " + str(beta) + " +/- " + str(beta_err))
+        print("R0 from offsets/IV: " + str(r0_biasparams) + " +/- " + str(r0_biasparams_err))
+        print("R0 from IV/infinite loop gain approximation: " + str(r0_ilga) + " +/- " + str(r0_ilga_err))
         
     return dPdI, dPdI_err
 
