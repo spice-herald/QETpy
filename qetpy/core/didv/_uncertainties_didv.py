@@ -1608,12 +1608,12 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
         r0_biasparams_err = didv_result['biasparams']['r0_err']
 
         #uses infinite loop gain approximation
-        didv_0, didv_0_err = get_dVdI_with_uncertainties([0], didv_result)
-        didv_0 = didv_0[0]
-        didv_0_err = didv_0_err[0]
+        dvdi0, dvdi0_err = get_dVdI_with_uncertainties([0], didv_result)
+        dvdi0 = dvdi0[0]
+        dvdi0_err = dvdi0_err[0]
         rl = didv_result['biasparams']['rl']
-        r0_ilga = -1/(didv_0) - rl
-        r0_ilga_err = didv_0_err * didv_0**-2
+        r0_ilga = np.abs(-dvdi0 - rl)
+        r0_ilga_err = np.abs(dvdi0_err)
 
         print(" ")
         print("Loopgain diagnostics:")
