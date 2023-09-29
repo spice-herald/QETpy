@@ -566,6 +566,8 @@ def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
         
     """
     
+    ibias = np.absolute(ibias)
+    i0 = np.absolute(i0)
     vb = rsh * (ibias - i0) #voltage across the shunt resistor
     vb_err = rsh * np.sqrt(i0_err**2 + ibias_err**2)
     
