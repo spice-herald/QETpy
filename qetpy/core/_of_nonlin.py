@@ -734,6 +734,9 @@ class OFnonlin(object):
             taufall2guess = 300e-6
             t0guess = maxind / self.fs
 
+            p0 = np.array((Aguess, Bguess, tauriseguess,
+                           taufall1guess, taufall2guess,
+                           t0guess))
 
             # replace by user guess
             if guess is not None:
@@ -763,9 +766,9 @@ class OFnonlin(object):
                 if t0guess_in is not None:
                     t0guess = t0guess_in
 
-            p0 = np.array((Aguess, Bguess, tauriseguess,
-                           taufall1guess, taufall2guess,
-                           t0guess))
+                p0 = np.asarray(guess)
+
+
 
             
             if bounds is None:
@@ -817,7 +820,7 @@ class OFnonlin(object):
                 if ampguess_in is not None:
                     ampguess = ampguess_in
                 if tauriseguess_in:
-                    tauriseguess =  tauriseguess
+                    tauriseguess =  tauriseguess_in
                 if taufallguess_in  is not None:
                     taufallguess = taufallguess_in
                 if t0guess_in is not None:
