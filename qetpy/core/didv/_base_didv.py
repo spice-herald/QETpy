@@ -453,6 +453,19 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
     offset_changable = output_offset * output_gain/closed_loop_norm
     delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
     
+    #alerts user when the current offset changed
+    if np.abs(delta_i_changable) > 1e-9:
+        print(" ")
+        print("----------------------------------------------------------------")
+        print("ALERT: FEB voltage offset has changed since the IV sweep used to")
+        print("generate the offsets_dict being used for this measurement!")
+        print("Biasparams, including i0, p0, and small signal parameters, including")
+        print("loopgain, are therefore suspect")
+        print("IV changable offset current: " + str(offset_dict['i0_changable_offset']))
+        print("This dataset changable offset current: " + str(offset_changable))
+        print("----------------------------------------------------------------")
+        print(" ")
+    
     i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
     
     if lgcdiagnostics:
