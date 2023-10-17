@@ -250,7 +250,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     np.array((0.0, -np.inf, -np.inf, 0.0, -np.inf)),
                     np.array((np.inf, 0.0, 0.0, np.inf, np.inf)),
                 )
-                
+
             # assume loop gain < 1, where B>0 and tauI>0
             p02 = np.array((A0, -B0, -tau10, tau20, dt),
                            dtype=float)
@@ -260,8 +260,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     np.array((0.0, 0.0, 0.0, 0.0, -np.inf)),
                     np.array((np.inf, np.inf, np.inf, np.inf, np.inf)),
                 )
-            
-            
+
+
         elif (poles==3):
             # assume loop gain > 1, where B<0 and tauI<0
             p0 = np.array((A0, B0, C0, tau10, tau20, tau30, dt),
@@ -287,18 +287,18 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         if lgcfix is not None:
 
             fix_params =  p0[lgcfix].copy()
-            
+
             p0 = p0[~lgcfix]
             bounds1 = (bounds1[0][~lgcfix],
                        bounds1[1][~lgcfix])
-            
+
             p02 = p02[~lgcfix]
             bounds2 = (bounds2[0][~lgcfix],
                        bounds2[1][~lgcfix])
 
-            
 
-            
+
+
         def _residual_calc(params):
             """
             Define a residual for the nonlinear least squares
@@ -317,7 +317,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 ci = DIDV._twopoleadmittance(
                     freq, A, B, tau1, tau2,
                 ) * np.exp(-2.0j*np.pi*freq*dt)
-                
+
             elif(poles==3):
                 A, B, C, tau1, tau2, tau3, dt = params
                 ci = DIDV._threepoleadmittance(
@@ -342,16 +342,16 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         def _residual(var_params):
             """
-            Function that is passed to nonlinear 
+            Function that is passed to nonlinear
             least_squares scipy algorithm
-            
+
             Parameters
             ----------
 
             var_params : np.array (dtype=float)
                variable fit parameters array
 
-            
+
             Return
             ------
 
@@ -366,7 +366,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 np.place(all_params, ~lgcfix, var_params)
                 return _residual_calc(all_params)
 
-        
+
 
         if (isloopgainsub1 is None):
             # res1 assumes loop gain > 1, where B<0 and tauI<0
@@ -436,7 +436,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             popt = np.zeros_like(lgcfix, dtype=float)
             np.place(popt, lgcfix, fix_params)
             np.place(popt, ~lgcfix, res['x'])
-            
+
         # cost
         cost = res['cost']
 
@@ -475,7 +475,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             The cutoff frequency in Hz, above which data is ignored in
             the specified fitting routine. Default is `np.inf`, which
             is equivalent to no cutoff frequency.
-        bounds: 
+        bounds:
         lgc_ssp_light : bool, optional
             Used to tell dofit that the smallsignalparams light (only
             beta, l, L, tau0, gratio) result dictionary including
@@ -504,7 +504,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             - note the placement of the parentheses in the last term of
               this model, such that pole related to `C` is in the
               denominator of the `B` term
-            - has the form: 
+            - has the form:
                 dV/dI = A * (1.0 + 2.0j * pi * freq * tau2)
                       + B / (1.0 + 2.0j * pi * freq * tau1
                       - C / (1.0 + 2.0j * pi * freq * tau3))
@@ -517,20 +517,20 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         fit_freqs = np.abs(self._freq) < fcutoff
 
 
-        
+
         # 1-Pole fit
         if poles==1:
-            
+
             # guess the 1 pole square wave parameters
             A0_1pole, tau20_1pole = DIDV._squarewaveguessparams(
                 self._tmean,
                 self._sgamp,
                 self._rsh,
             )
-            
+
             # time shift guess
             dt = self._dt0
-            
+
             # overrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 3:
@@ -545,7 +545,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 if indt is not None:
                     dt = indt
 
-            
+
             # 1 pole fitting
             fitparams1, fitcov1, fitcost1 = DIDV._fitdidv(
                 self._freq[fit_freqs],
@@ -567,26 +567,27 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             )
 
             # Convert to didv falltimes
-            falltimes1 = DIDV._findpolefalltimes(fitparams1)
+            falltimes1, falltimes1_error = DIDV._findpolefalltimes(fitparams1,np.diag(fitcov1)**0.5)
 
             self._1poleresult = DIDV._fitresult(
                 poles,
                 fitparams1,
                 fitcov1,
                 falltimes1,
+                falltimes1_error,
                 fitcost1,
                 self._rsh,
                 self._rp,
                 self._r0,
                 self._offset,
-                self._offset_err, 
+                self._offset_err,
                 lgcfix=lgcfix,
                 biasparams_dict=biasparams_dict,
             )
 
         elif poles==2:
-  
-            
+
+
             # Guess the starting parameters for 2 pole fitting
             A0, B0, tau10, tau20, isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
@@ -598,7 +599,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # time shift
             dt0 = self._dt0
-            
+
 
             # overrite guessed values if provided by user
             if guess_params is not None:
@@ -619,11 +620,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     dt0 = indt
 
 
-            # loopgainsub1   
+            # loopgainsub1
             if guess_isloopgainsub1 is not None:
                 isloopgainsub1 = guess_isloopgainsub1
-                
-                
+
+
 
             # 2 pole fitting
             fitparams2, fitcov2, fitcost2 = DIDV._fitdidv(
@@ -647,27 +648,28 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 xtol=xtol,
             )
 
-            
+
             # Convert to didv falltimes
-            falltimes2 = DIDV._findpolefalltimes(fitparams2)
+            falltimes2,  falltimes2_error  = DIDV._findpolefalltimes(fitparams2,np.diag(fitcov2)**0.5)
 
             self._2poleresult = DIDV._fitresult(
                 poles,
                 fitparams2,
                 fitcov2,
                 falltimes2,
+                falltimes2_error,
                 fitcost2,
                 self._rsh,
                 self._rp,
                 self._r0,
-                self._offset, 
-                self._offset_err, 
+                self._offset,
+                self._offset_err,
                 lgcfix=lgcfix,
                 biasparams_dict=biasparams_dict,
             )
 
         elif poles==3:
-            
+
             if self._2poleresult is None:
                 # Guess the 3-pole fit starting parameters from
                 # 2-pole fit guess
@@ -683,12 +685,12 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 tau10 = -abs(tau10)
                 tau30 = 1.0e-3
                 dt0 = self._dt0
-                
+
             else:
                 A0 = self._2poleresult['params']['A']
                 B0 = -abs(self._2poleresult['params']['B'])
                 C0 = -0.05
-                tau10 = -abs(self._2poleresult['params']['tau1']) 
+                tau10 = -abs(self._2poleresult['params']['tau1'])
                 tau20 = self._2poleresult['params']['tau2']
                 tau30 = 1.0e-3
                 dt0 = self._2poleresult['params']['dt']
@@ -703,7 +705,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 L0=1.0e-7,
             )[-1]
 
-        
+
             # overwrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 7:
@@ -722,17 +724,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 if intau20 is not None:
                     tau20 = intau20
                 if intau30 is not None:
-                    tau30 = intau30 
+                    tau30 = intau30
                 if indt is not None:
                     dt0 = indt
 
 
-            # loopgainsub1   
+            # loopgainsub1
             if guess_isloopgainsub1 is not None:
                 isloopgainsub1 = guess_isloopgainsub1
 
 
-            
+
             # 3 pole fitting
             fitparams3, fitcov3, fitcost3 = DIDV._fitdidv(
                 self._freq[fit_freqs],
@@ -758,13 +760,14 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             )
 
             # Convert to didv falltimes
-            falltimes3 = DIDV._findpolefalltimes(fitparams3)
+            falltimes3, falltimes3_error  = DIDV._findpolefalltimes(fitparams3,np.diag(fitcov3)**0.5)
 
             self._3poleresult = DIDV._fitresult(
                 poles,
                 fitparams3,
                 fitcov3,
                 falltimes3,
+                falltimes3_error,
                 fitcost3,
                 self._rsh,
                 self._rp,
@@ -774,16 +777,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 lgcfix=lgcfix,
                 biasparams_dict=biasparams_dict,
             )
-            
+
             if lgc_ssp_light:
                 ssp_light_cov = get_smallsignalparams_cov(self._3poleresult)
                 ssp_light_sigmas = get_smallsignalparams_sigmas(self._3poleresult)
-                
+
                 self._3poleresult = DIDV._fitresult(
                     poles,
                     fitparams3,
                     fitcov3,
                     falltimes3,
+                    falltimes3_error,
                     fitcost3,
                     self._rsh,
                     self._rp,
@@ -795,7 +799,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     ssp_light_cov=ssp_light_cov,
                     ssp_light_sigmas=ssp_light_sigmas,
                 )
-            
+
 
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
@@ -805,55 +809,55 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 bounds=None, guess=None, inf_loop_gain_approx=False, lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
-        current offsets used to reconstruct the true current through the 
+        current offsets used to reconstruct the true current through the
         TES and the trace metadata, finds the true current through the TES,
         makes a biasparams dict, and recalculates the smallsignalparams
         from the newly found true bias point.
-        
-        
+
+
         Parameters:
         ----------
-        
+
         offset_dict: dict
             Where are the relevant offsets are stored. Generated from the IV
             sweep.
-            
+
         output_offset: float, volts
             The output offset gotten from the event metadata. In units of volts,
             we correct for volts to amps conversion with the closed loop norm.
-            
+
         closed_loop_norm: float, volts/amp=ohms
             The constant from the metadata used to translate the voltage measured by
             the DAQ into a current coming into the input coil of the SQUIDs. In units of
             volts/amp = ohms.
-            
+
         output_gain: float, dimensionless
-            The dimensionless gain used to convert the output offset in volts to the 
+            The dimensionless gain used to convert the output offset in volts to the
             equivilant offset voltage measured by the DAQ
-            
+
         ibias_metadata: float
             The ibias gotten from the event metadata, i.e. without correcting for
             the ibias offset calculated from the IV curve
-            
+
         bounds: array, optional
             Passed to dofit.
-            
+
         guess: array, optional
             Passed to dofit
-            
+
         inf_loop_gain_approx : bool, optiona
             Defaults to False. If True, calculates the biasparameters and the
             rest of the fits using the infinite loop gain approximation.
-            
-        
-        
+
+
+
         Returns:
         --------
-            
+
         result3: fitresult_dict
             3 pole fit result with biasparams calculated, and the smallsignalparams
             correctly calculated from the r0 calculated for the biasparams
-        
+
         """
 
         self._rp = offset_dict['rp']
@@ -878,8 +882,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         return result3
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost, rsh, rp, r0,
-                   offset, offset_err, 
+    def _fitresult(poles, params, cov, falltimes,falltimes_error, cost, rsh, rp, r0,
+                   offset, offset_err,
                    biasparams_dict=None, lgcfix=None,
                    ssp_light_cov=None, ssp_light_sigmas=None):
         """
@@ -897,7 +901,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             errors = np.zeros_like(lgcfix, dtype=float)
             np.place(errors, lgcfix, 0.0)
             np.place(errors, ~lgcfix,  np.diag(cov)**0.5)
-        
+
         if poles == 1:
             result['params'] = {
                 'A': params[0],
@@ -985,7 +989,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': smallsignalparams[8],
                 'dt': smallsignalparams[9],
             }
-            
+
             #we only calculate the smallsignalparameters covaraiance matrix for
             #these parameters, so this is just a container for them
             if (ssp_light_cov is not None) and (ssp_light_sigmas is not None):
@@ -1004,11 +1008,12 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         result['offset'] = offset
         result['offset_err'] = offset_err
-        
+
         if biasparams_dict is not None:
             result['biasparams'] = biasparams_dict
-        
+
         result['falltimes'] = falltimes
+        result['falltimes_error']= falltimes_error
         result['cost'] = cost
         result['didv0'] = complexadmittance(0, **result['smallsignalparams']).real
 

@@ -382,20 +382,20 @@ def _get_current_offset(metadata, channel_name):
     """
     Gets and returns the changable current offset (i.e. the current offset set
     from the FEB control labview tool)
-    
+
     Parameters
-    ----------        
+    ----------
     metadata : dict
         Metadata returned when loading the dIdV traces.  Used to get
         the voltage/current offset set with the slider on the FEB controller
-        labview script, so that we can compensate for it. Can be just for 
+        labview script, so that we can compensate for it. Can be just for
         one event
-        
+
     channel_name : str
         Channel name, e.g. 'Melange025pcRight'
-    
+
     """
-    
+
     voltage_offset = metadata[0]['detector_config'][channel_name]['output_offset']
     close_loop_norm = metadata[0]['detector_config'][channel_name]['close_loop_norm']
     return voltage_offset/close_loop_norm
@@ -407,70 +407,70 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
     Gets and returns the current and uncertainty in the current
     through the TES from a didv_fitresult dictonary (which
     includes a parameter for the offset of the didv and the offset)
-    
+
     Parameters
     ----------
     offset: float
         The current offset of the dIdV as fit (i.e. as measured, without
         any corrections)
-        
+
     offset_err: float
         The uncertainty in the current offset of the dIdV fit
-        
+
     offset_dict: dict
         Dictionary of offsets gotten from the IV sweep.
-        
+
     output_offset: float, volts
         The output offset gotten from the event metadata. In units of volts,
         we correct for volts to amps conversion with the closed loop norm.
-        
+
     closed_loop_norm: float, volts/amp=ohms
         The constant from the metadata used to translate the voltage measured by
         the DAQ into a current coming into the input coil of the SQUIDs. In units of
         volts/amp = ohms.
-        
+
     output_gain: float, dimensionless
         The dimensionless gain for the front end electronics. Used to translate the
         output_offset in units of volts to the equivilant value read in the DAQ in
         units of volts.
-        
+
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
-        
+
     Returns
     -------
     i0 : float
         The calculated absolute current through the TES
     i0_err : float
         The uncertainty in the absolute current through the TES
-        
+
     """
-    
+
     current_didv = offset
     current_err_didv = offset_err
-    
+
     offset_changable = output_offset * output_gain/closed_loop_norm
     delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
-    
+
     i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
-    
+
     if lgcdiagnostics:
         print("Current as measured from dIdV: " + str(current_didv) + " amps")
         print("Changable current as meaured from metadata for this dIdV: " + str(offset_changable) + " amps")
         print(" ")
-        print("Changable current as measured during IV when offsets were measured: " + 
+        print("Changable current as measured during IV when offsets were measured: " +
               str(offset_dict['i0_changable_offset']) + " amps")
         print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
         print(" ")
-        print("Delta changable current: " + str(offset_changable) + " - " + 
+        print("Delta changable current: " + str(offset_changable) + " - " +
              str(offset_dict['i0_changable_offset']) + " = \n " + str(delta_i_changable) + " amps")
         print(" ")
-        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_changable) + " - \n" + 
+        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_changable) + " - \n" +
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
-    
+
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
-    
+
     if lgcdiagnostics:
         print(" ")
         print(" --------- ")
@@ -479,51 +479,51 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
         print("Current offset uncertainty from IV: " + str(offset_dict['i0_off_err']) + " amps")
         print(" ")
         print("Total current uncetainty: (("  + str(current_err_didv) + ")**2.0 + (" +
-             str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
+             str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" +
               str(i0_err) + " amps")
-    
+
     return i0, i0_err
 
 def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     used to bias the TES from a metadata list
-    
+
     Parameters
     ----------
-        
+
     ibias_metadata: float
         The ibias gotten from the event metadata, i.e. without correcting for
         the ibias offset calculated from the IV curve
-        
+
     offset_dict: dict
         Dictionary of offsets gotten from the IV sweep.
-        
+
     lgcdiagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
-        
+
     Returns
     -------
     ibias : float
         The calculated absolute current used to bias the TES
     ibias_err : float
         The uncertainty in the absolute current used to bias the TES
-        
+
     """
-    
+
     ibias = ibias_metadata - offset_dict['ibias_off']
     ibias_err = offset_dict['ibias_off_err']
-    
+
     if lgcdiagnostics:
         print("Bias current from metadata: " + str(ibias_metadata) + " amps")
         print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
-        print("True bias current: " + str(ibias_metadata) + " - " + str(offset_dict['ibias_off']) + 
+        print("True bias current: " + str(ibias_metadata) + " - " + str(offset_dict['ibias_off']) +
              " = \n" + str(ibias) + " amps")
         print(" ")
-        
+
         print("Bias current uncertainty from IV: " + str(offset_dict['ibias_off_err']) + " amps")
-        
+
     return np.absolute(ibias), ibias_err
 
 
@@ -531,172 +531,172 @@ def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
     """
     Gets and returns voltage and uncertainty in voltage across the
     TES at a given bias point.
-    
+
     Parameters
     ----------
-        
+
     i0 : float
         The current through the TES at a given bias point
-        
+
     i0_err: float
         The uncertainty in the current through the TES at a given
         bias point
-        
+
     ibias: float
         The bias current applied to the TES/shunt system
-        
+
     ibias_err: float
         The uncertainty in the bias current applied to the TES/shunt
         system
-        
+
     rsh: float
         The shunt resistance in ohms
-        
+
     rp: float
         The parasitic resistance in ohms
-        
+
     Returns
     -------
     v0 : float
         The calculated voltage across the TES in volts
-        
+
     v0_err : float
         The calculated uncertainty in the voltage across the TES
         in volts
-        
+
     """
-    
+
     vb = rsh * (ibias - i0) #voltage across the shunt resistor
     vb_err = rsh * np.sqrt(i0_err**2 + ibias_err**2)
-    
+
     v0 = np.absolute(vb - rp * i0) #the voltage across the shunt resistor minus
                       #the voltage across the parasitic resistance
     v0_err = np.sqrt(vb_err**2 + rp**2 * i0_err**2)
-    
+
     return v0, v0_err
 
 def _get_r0(i0, i0_err, v0, v0_err):
     """
     Gets and returns the resistance and uncertainty in resistance
     of a TES at a given bias point
-    
+
     Parameters
     ----------
-        
+
     i0 : float
         The current through the TES at a given bias point
-        
+
     i0_err: float
         The uncertainty in the current through the TES at a given
         bias point
-        
+
     v0: float
         The voltage across the TES at the bias point
-        
+
     v0_err: float
         The uncertainty in the voltage across the TES at the bias
         point
-        
+
     Returns
     -------
     r0 : float
         The calculated resistance of the TES at the bias point
         in ohms
-        
+
     r0_err : float
         The calculated uncertainty in the resistance of the TES at
         the bias point in ohms
-        
+
     """
-    
+
     r0 = np.absolute(v0/i0)
     r0_err = np.sqrt(v0_err**2 * i0**-2 + v0**2 * i0_err**2 * i0**-4)
-    
+
     return r0, r0_err
 
 def _get_p0(i0, i0_err, v0, v0_err):
     """
     Gets and returns the bias power and uncertainty in bias power
     of a TES at a given bias point
-    
+
     Parameters
     ----------
-        
+
     i0 : float
         The current through the TES at a given bias point
-        
+
     i0_err: float
         The uncertainty in the current through the TES at a given
         bias point
-        
+
     v0: float
         The voltage across the TES at the bias point
-        
+
     v0_err: float
         The uncertainty in the voltage across the TES at the bias
         point
-        
+
     Returns
     -------
     p0 : float
         The calculated bias power of the TES at the bias point
         in watts
-        
+
     p0_err : float
         The calculated uncertainty in the bias power of the TES at
         the bias point in watts
-        
+
     """
-    
+
     p0 = np.absolute(v0*i0)
     p0_err = np.sqrt(v0_err**2 * i0**2 + v0**2 * i0_err**2)
-    
+
     return p0, p0_err
 
 def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     from the measured TES bias current and i0
-    
+
     Parameters
     ----------
-        
+
     i0 : float
         The current through the TES at a given bias point
-        
+
     i0_err: float
         The uncertainty in the current through the TES at a given
         bias point
-        
+
     ibias: float
         The bias current applied to the TES/shunt system
-        
+
     ibias_err: float
         The uncertainty in the bias current applied to the TES/shunt
         system
-        
+
     rsh: float
         The shunt resistance in ohms
-        
+
     rp: float
         The parasitic resistance in ohms
-        
+
     Returns
     -------
     bias_parameters_dict : dict
         A dictonary of bias parameters and uncertainties, including i0, r0,
         v0, and p0
-        
+
     """
-    
+
     i0 = np.absolute(i0)
-    
+
     rl = rp + rsh
-    
+
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
-    
+
     bias_parameter_dict = {
         'i0': i0,
         'i0_err': i0_err,
@@ -711,66 +711,66 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'rl': rl,
         'ibias': ibias,
     }
-    
+
     return bias_parameter_dict
-    
+
 def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibias, ibias_err, rsh, rp):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     using the infinte loop gain approximation, where R0 = R_l - A + B
-    
+
     Parameters
     ----------
-    
+
     params : dict
         The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
-        
+
     cov : matrix
         The covariance matrix for the params, starting with the A, B
         components.
-        
+
     i0 : float
         The current through the TES at a given bias point
-        
+
     i0_err: float
         The uncertainty in the current through the TES at a given
         bias point
-        
+
     ibias: float
         The bias current applied to the TES/shunt system
-        
+
     ibias_err: float
         The uncertainty in the bias current applied to the TES/shunt
         system
-        
+
     rsh: float
         The shunt resistance in ohms
-        
+
     rp: float
         The parasitic resistance in ohms
-        
+
     Returns
     -------
     bias_parameters_dict : dict
         A dictonary of bias parameters and uncertainties, including i0, r0,
         v0, and p0
-        
+
     """
-    
+
     rl = rp + rsh
-    
+
     r0 = rl - params['A'] - params['B']
-    
+
     r0_jac = np.asarray([1, 1, 0, 0, 0, 0, 0])
     r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
-    
+
     i0_ = ibias * rsh / (r0 + rl)
     i0_err_ = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
-    
-    
+
+
     v0, v0_err = _get_v0(i0_, i0_err_, ibias, ibias_err, rsh, rp)
     p0, p0_err = _get_p0(i0_, i0_err_, v0, v0_err)
-    
+
     bias_parameter_dict = {
         'i0': i0_,
         'i0_err': i0_err_,
@@ -785,7 +785,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibi
         'rl': rl,
         'ibias': ibias,
     }
-    
+
     return bias_parameter_dict
 
 
@@ -1125,7 +1125,7 @@ class _BaseDIDV(object):
         """
         Function to find the fit parameters for either the 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
-        (A, B, C, tau1, tau2, tau3, dt) fit. 
+        (A, B, C, tau1, tau2, tau3, dt) fit.
 
         """
 
@@ -1173,7 +1173,7 @@ class _BaseDIDV(object):
         Function to convert the fit parameters for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
         (A, B, C, tau1, tau2, tau3, dt) fit to the corresponding TES
-        parameters: 
+        parameters:
 
             1-pole: (rsh, rp, L)
             2-pole: (rsh, rp, r0, beta, l, L, tau0)
@@ -1293,16 +1293,21 @@ class _BaseDIDV(object):
             tau2 = L / (rsh + rp + r0 * (1 + beta))
 
             popt_out = np.array([A, B, C, tau1, tau2, tau3, dt])
-            
+
         return popt_out
 
 
     @staticmethod
-    def _findpolefalltimes(params):
+    def _findpolefalltimes(params,errors):
         """
         Function for taking TES params from a 1-pole, 2-pole, or 3-pole
         didv and calculating the falltimes (i.e. the values of the
         poles in the complex plane).
+
+        parameters and errors are stored in this way:
+        #np.array([A, tau2, dt])
+        #np.array([A, B, tau1, tau2, dt])
+        #np.array([A, B, C, tau1, tau2, tau3, dt])
 
         """
 
@@ -1310,11 +1315,16 @@ class _BaseDIDV(object):
         if len(params)==3:
             # one pole fall time for didv is same as tau2=L/R
             A, tau2, dt = params
-            falltimes = np.array([tau2])
+            errorA, errortau2, errordt = errors
+            #falltimes = np.array([tau2])
+            falltimes = np.array(tau2)
+            falltimes_error = np.array([errortau2])
+            sorted_indices= np.argsort([falltimes])
 
         elif len(params)==5:
             # two pole fall times for didv is different than tau1, tau2
             A, B, tau1, tau2, dt = params
+            errorA, errorB, errortau1, errortau2, errordt = errors
 
             def twopoleequations(p):
                 taup,taum = p
@@ -1322,13 +1332,28 @@ class _BaseDIDV(object):
                 eq2 = taup*taum-A/(A+B)*tau1*tau2
                 return (eq1, eq2)
 
-            taup, taum = fsolve(twopoleequations ,(tau1, tau2))
-            falltimes = np.array([taup, taum])
+            N=10000
+            tau_p_array, tau_m_array= np.zeros(N), np.zeros(N)
+            for j in range(N):
+                A, B, tau1, tau2 =np.random.normal(A, errorA, 1)[0], \
+                            np.random.normal(B, errorB, 1)[0], \
+                            np.random.normal(tau1, errortau1, 1)[0],\
+                            np.random.normal(tau2, errortau2, 1)[0]
+
+                tau_p_array[j], tau_m_array[j] = fsolve(twopoleequations, (tau1, tau2))
+
+            falltimes = np.array([tau_p_array.mean(),  tau_m_array.mean()])
+            falltimes_error = np.array([tau_p_array.std(),  tau_m_array.std()])
+            sorted_indices= np.argsort(falltimes)
+
+            #taup, taum = fsolve(twopoleequations ,(tau1, tau2))
+            #falltimes = np.array([taup, taum])
 
         elif len(params)==7:
             # three pole fall times for didv is different
             # than tau1, tau2, tau3
             A, B, C, tau1, tau2, tau3, dt = params
+            errorA, errorB, errorC, errortau1, errortau2, errortau3, errordt = errors
 
             def threepoleequations(p):
                 taup, taum, taun = p
@@ -1341,15 +1366,31 @@ class _BaseDIDV(object):
                 eq3 = taup*taum*taun - tau1*tau2*tau3*A/(A*(1.0-C)+B)
                 return (eq1, eq2, eq3)
 
-            taup, taum, taun = fsolve(threepoleequations, (tau1, tau2, tau3))
-            falltimes = np.array([taup, taum, taun])
+            N=10000
+            tau_p_array, tau_m_array, tau_n_array = np.zeros(N), np.zeros(N), np.zeros(N)
+            for j in range(N):
+                A, B, C, tau1, tau2, tau3 =np.random.normal(A, errorA, 1)[0], \
+                                    np.random.normal(B, errorB, 1)[0], \
+                          np.random.normal(C, errorC, 1)[0], \
+                                    np.random.normal(tau1, errortau1, 1)[0],\
+                          np.random.normal(tau2, errortau2, 1)[0],\
+                                  np.random.normal(tau3, errortau3, 1)[0]
+                tau_p_array[j], tau_m_array[j], tau_n_array[j]  = fsolve(threepoleequations, (tau1, tau2, tau3))
+
+            falltimes = np.array([tau_p_array.mean(),  tau_m_array.mean(), tau_n_array.mean()])
+            falltimes_error = np.array([tau_p_array.std(),  tau_m_array.std(), tau_n_array.std()])
+            sorted_indices= np.argsort(falltimes)
+
+            #taup, taum, taun = fsolve(threepoleequations, (tau1, tau2, tau3))
+            #falltimes = np.array([taup, taum, taun])
 
         else:
             print("Wrong number of input parameters, returning zero...")
             falltimes = np.zeros(1)
 
         # return fall times sorted from shortest to longest
-        return np.sort(falltimes)
+        #return np.sort(falltimes)
+        return falltimes[sorted_indices], falltimes_error[sorted_indices]
 
 
     def processtraces(self):
@@ -1360,7 +1401,7 @@ class _BaseDIDV(object):
         """
 
         #converting sampling rate to time step
-        dt = (1.0/self._fs) 
+        dt = (1.0/self._fs)
 
         #get trace x values (i.e. time) in seconds
         nbinsraw = len(self._rawtraces[0])
@@ -1430,7 +1471,7 @@ class _BaseDIDV(object):
         #convert to numpy structure
         didvs=np.array(didvs)
 
-        # get rid of any NaNs, as these will break the fit 
+        # get rid of any NaNs, as these will break the fit
         cut = np.logical_not(np.isnan(didvs).any(axis=1))
 
         self._traces = self._traces[cut]
@@ -1449,7 +1490,7 @@ class _BaseDIDV(object):
             self._dutycycle,
         )[::2]
 
-        #get number of traces 
+        #get number of traces
         self._ntraces = len(self._traces)
 
         # divide by sqrt(N) for standard deviation of mean

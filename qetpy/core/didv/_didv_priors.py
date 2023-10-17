@@ -147,7 +147,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         return rsh * didv
 
-        
+
     @staticmethod
     def _fitdidv(freq, didv, poles, priors, invpriorscov, p0, yerr=None, bounds=None,):
         """
@@ -343,7 +343,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             the covariance matrix should be an 8-by-8 array that
             describes the known entries in the covariance matrix.
 
-            For the 2-pole model, the priors array should be a 10-entry
+            For the 3-pole model, the priors array should be a 10-entry
             array of the form (rsh, rp, r0, beta, l, L, tau0, gratio,
             tau3, dt), and the covariance matrix should be a 10-by-10
             array that describes the known entries in the covariance
@@ -371,32 +371,36 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             bounds=bounds,
         )
 
-        falltimes = DIDVPriors._findpolefalltimes(
-            DIDVPriors._convertfromtesvalues(params),
+        #np.array([A, tau2, dt])
+        #np.array([A, B, tau1, tau2, dt])
+        #np.array([A, B, C, tau1, tau2, tau3, dt])
+
+        falltimes, falltimes_error = DIDVPriors._findpolefalltimes(
+            DIDVPriors._convertfromtesvalues(params), DIDVPriors._convertfromtesvalues(np.diag(cov)**0.5),
         )
 
         if poles == 1:
             self._1poleresult = DIDVPriors._fitresult(
-                poles, params, cov, falltimes, cost,
+                poles, params, cov, falltimes,falltimes_error, cost,
             )
             self._1poleresult['priors'] = priors
             self._1poleresult['priorscov'] = priorscov
         elif poles == 2:
             self._2poleresult = DIDVPriors._fitresult(
-                poles, params, cov, falltimes, cost,
+                poles, params, cov, falltimes, falltimes_error, cost,
             )
             self._2poleresult['priors'] = priors
             self._2poleresult['priorscov'] = priorscov
         elif poles == 3:
             self._3poleresult = DIDVPriors._fitresult(
-                poles, params, cov, falltimes, cost,
+                poles, params, cov, falltimes, falltimes_error, cost,
             )
             self._3poleresult['priors'] = priors
             self._3poleresult['priorscov'] = priorscov
 
 
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost):
+    def _fitresult(poles, params, cov, falltimes, falltimes_error, cost):
         """
         Function for converting data from different fit results to a
         results dictionary.
@@ -474,6 +478,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             }
 
         result['falltimes'] = falltimes
+        result['falltimes_error'] = falltimes_error
         result['cost'] = cost
         result['didv0'] = complexadmittance(0, **result['params']).real
 
