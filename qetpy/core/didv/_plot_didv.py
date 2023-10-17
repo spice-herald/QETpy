@@ -73,7 +73,7 @@ class _PlotDIDV(object):
         ax.plot(
             self._time * 1e6,
             (self._tmean - self._offset) * 1e6,
-            color='k',
+            color='k',alpha=0.2,
             label='Mean',
         )
 
@@ -84,7 +84,7 @@ class _PlotDIDV(object):
             ax.plot(
                 self._time * 1e6,
                 lp_meantrace,
-                color='red',
+                color='red',alpha=0.2,
                 label='Mean, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
             )
 
@@ -96,7 +96,7 @@ class _PlotDIDV(object):
                 ax.plot(
                     self._time * 1e6,
                     didv_filt_trace * 1e6,
-                    color='purple',
+                    color='purple',alpha=0.2,
                     label='Mean, dIdV Frequencies Only',
                 )
 
@@ -104,7 +104,7 @@ class _PlotDIDV(object):
                 ax.plot(
                     self._time * 1e6,
                     lp_didv_filt_trace,
-                    color='lime',
+                    color='blue',
                     label='Mean, dIdV Frequencies Only +  ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
                 )
         elif didv_freq_filt:
@@ -181,7 +181,9 @@ class _PlotDIDV(object):
 
         ax.set_xlabel('Time ($\mu$s)')
         ax.set_ylabel('Amplitude ($\mu$A)')
-        ax.legend(loc='upper left')
+        #ax.legend(loc='upper left')
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.05),
+          ncol=3, fancybox=True, shadow=True)
         ax.grid(linestyle='dotted')
         ax.tick_params(which='both', direction='in', right=True, top=True)
 
@@ -191,7 +193,7 @@ class _PlotDIDV(object):
     def plot_full_trace(self, poles="all",
                         saveplot=False, savepath="",
                         savename="",
-                        lp_cutoff=None, didv_freq_filt=False):
+                        lp_cutoff=None, didv_freq_filt=False,title=""):
         """
         Function to plot the entire trace in time domain
 
@@ -222,7 +224,7 @@ class _PlotDIDV(object):
                                          didv_freq_filt = didv_freq_filt)
 
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
-        ax.set_title("Full Trace of dIdV")
+        ax.set_title("Full Trace of dIdV"+title)
 
         if saveplot:
             fig.savefig(savepath + f"full_trace_{savename}.png")
@@ -233,7 +235,7 @@ class _PlotDIDV(object):
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
                                     savepath="", savename="",
-                                    lp_cutoff=None, didv_freq_filt=False):
+                                    lp_cutoff=None, didv_freq_filt=False,title=""):
         """
         Function to plot a single period of the trace in time domain
 
@@ -265,7 +267,7 @@ class _PlotDIDV(object):
         period = 1.0/self._sgfreq
 
         ax.set_xlim([self._time[0] * 1e6, self._time[0] * 1e6 + period * 1e6])
-        ax.set_title("Single Period of Trace")
+        ax.set_title("Single Period of Trace"+title)
 
         if saveplot:
             fig.savefig(savepath + f"trace_one_period_{savename}.png")
@@ -276,7 +278,7 @@ class _PlotDIDV(object):
 
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
                              saveplot=False, savepath="", savename="",
-                             lp_cutoff=None, didv_freq_filt=False):
+                             lp_cutoff=None, didv_freq_filt=False,title=""):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -323,7 +325,7 @@ class _PlotDIDV(object):
             ) * 1e6,
         )
 
-        ax.set_title("Zoomed In Portion of Trace")
+        ax.set_title("Zoomed In Portion of Trace"+title)
 
         if saveplot:
             fig.savefig(savepath + f"zoomed_in_trace_{savename}.png")
@@ -333,7 +335,7 @@ class _PlotDIDV(object):
 
 
     def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
-                          savename="", zoomfactor=None, lp_cutoff=None):
+                          savename="", zoomfactor=None, lp_cutoff=None,title=""):
         """
         Function to plot the flipped trace in time domain. This
         function should be used to test if there are nonlinearities in
@@ -404,7 +406,7 @@ class _PlotDIDV(object):
             )
         
 
-        ax.set_title("Flipped Traces to Check Asymmetry")
+        ax.set_title("Flipped Traces to Check Asymmetry"+title)
 
         if saveplot:
             fig.savefig(savepath + f"flipped_trace_{savename}.png")
@@ -527,7 +529,7 @@ class _PlotDIDV(object):
 
 
     def plot_re_im_didv(self, poles="all", saveplot=False, savepath="",
-                        savename=""):
+                        savename="",title=""):
         """
         Function to plot the real and imaginary parts of the didv in
         frequency space. Currently creates two different plots.
@@ -551,7 +553,7 @@ class _PlotDIDV(object):
 
         fig, ax = self._plot_freq_domain(np.real, poles)
 
-        ax.set_title("Real Part of dIdV")
+        ax.set_title("Real Part of dIdV"+title)
         ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
 
         if saveplot:
@@ -563,7 +565,7 @@ class _PlotDIDV(object):
         
         fig, ax = self._plot_freq_domain(np.imag, poles)
 
-        ax.set_title("Imaginary Part of dIdV")
+        ax.set_title("Imaginary Part of dIdV"+title)
         ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
 
         if saveplot:
@@ -574,7 +576,7 @@ class _PlotDIDV(object):
 
 
     def plot_abs_phase_didv(self, poles="all", saveplot=False, savepath="",
-                            savename=""):
+                            savename="",title=""):
         """
         Function to plot the absolute value and the phase of the dIdV
         in frequency space. Currently creates two different plots.
@@ -598,7 +600,7 @@ class _PlotDIDV(object):
 
         fig, ax = self._plot_freq_domain(np.abs, poles)
 
-        ax.set_title("|dIdV|")
+        ax.set_title("|dIdV|"+title)
         ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
         ax.set_ylim(0)
 
@@ -611,7 +613,7 @@ class _PlotDIDV(object):
 
         fig, ax = self._plot_freq_domain(np.angle, poles)
 
-        ax.set_title("Phase of dIdV")
+        ax.set_title("Phase of dIdV"+title)
         ax.set_ylabel('Arg($dI/dV$)')
         ax.set_ylim(-np.pi, np.pi)
 
@@ -623,7 +625,7 @@ class _PlotDIDV(object):
 
 
     def plot_re_vs_im_dvdi(self, poles='all', saveplot=False, savepath="",
-                           savename=""):
+                           savename="",title=""):
         """
         Function to plot the real vs imaginary parts of the complex
         impedance.
@@ -716,7 +718,7 @@ class _PlotDIDV(object):
 
         ax.set_xlabel('Re($dV/dI$) ($\Omega$)')
         ax.set_ylabel('Im($dV/dI$) ($\Omega$)')
-        ax.set_title('Re($dV/dI$) vs. Im($dV/dI$)')
+        ax.set_title('Re($dV/dI$) vs. Im($dV/dI$)'+title)
 
         ax.legend(loc='upper left')
         ax.tick_params(which='both', direction='in', right=True, top=True)
