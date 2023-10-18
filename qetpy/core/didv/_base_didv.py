@@ -1342,8 +1342,8 @@ class _BaseDIDV(object):
 
                 tau_p_array[j], tau_m_array[j] = fsolve(twopoleequations, (tau1, tau2))
 
-            #falltimes = np.array([tau_p_array.mean(),  tau_m_array.mean()])
-            falltimes_error = np.array([tau_p_array.std(),  tau_m_array.std()])
+            falltimes_error = np.array([np.std(tau_p_array)/np.sqrt(np.size(tau_p_array)),  \
+                                                       np.std(tau_m_array)/np.sqrt(np.size(tau_m_array))])
             sorted_indices= np.argsort(falltimes)
 
             #taup, taum = fsolve(twopoleequations ,(tau1, tau2))
@@ -1379,8 +1379,9 @@ class _BaseDIDV(object):
                                   np.random.normal(tau3, errortau3, 1)[0]
                 tau_p_array[j], tau_m_array[j], tau_n_array[j]  = fsolve(threepoleequations, (tau1, tau2, tau3))
 
-            #falltimes = np.array([tau_p_array.mean(),  tau_m_array.mean(), tau_n_array.mean()])
-            falltimes_error = np.array([tau_p_array.std(),  tau_m_array.std(), tau_n_array.std()])
+            falltimes_error = np.array([np.std(tau_p_array)/np.sqrt(np.size(tau_p_array)),\
+                  np.std(tau_m_array)/np.sqrt(np.size(tau_m_array)),\
+                   np.std(tau_n_array)/np.sqrt(np.size(tau_n_array)) ])
             sorted_indices= np.argsort(falltimes)
 
             #taup, taum, taun = fsolve(threepoleequations, (tau1, tau2, tau3))
