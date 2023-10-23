@@ -1315,10 +1315,8 @@ class _BaseDIDV(object):
             # one pole fall time for didv is same as tau2=L/R
             A, tau2, dt = params
             errorA, errortau2, errordt = errors
-            #falltimes = np.array([tau2])
             falltimes = np.array(tau2)
             falltimes_error = np.array([errortau2])
-            sorted_indices= np.argsort([falltimes])
 
         elif len(params)==5:
             # two pole fall times for didv is different than tau1, tau2
@@ -1343,9 +1341,10 @@ class _BaseDIDV(object):
 
             falltimes_error = np.array([np.std(tau_p_array)/np.sqrt(N),  \
                                                        np.std(tau_m_array)/np.sqrt(N)])
+            # return fall times sorted from shortest to longest
             sorted_indices= np.argsort(falltimes)
-            #taup, taum = fsolve(twopoleequations ,(tau1, tau2))
-            #falltimes = np.array([taup, taum])
+            falltimes = falltimes[sorted_indices]
+            falltimes_error= falltimes_error[sorted_indices]
 
         elif len(params)==7:
             # three pole fall times for didv is different
@@ -1382,18 +1381,18 @@ class _BaseDIDV(object):
                   np.std(tau_m_array)/np.sqrt(N),\
                    np.std(tau_n_array)/np.sqrt(N) ])
 
+            # return fall times sorted from shortest to longest
             sorted_indices= np.argsort(falltimes)
+            falltimes = falltimes[sorted_indices]
+            falltimes_error= falltimes_error[sorted_indices]
 
-            #taup, taum, taun = fsolve(threepoleequations, (tau1, tau2, tau3))
-            #falltimes = np.array([taup, taum, taun])
 
         else:
             print("Wrong number of input parameters, returning zero...")
             falltimes = np.zeros(1)
 
-        # return fall times sorted from shortest to longest
-        #return np.sort(falltimes)
-        return falltimes[sorted_indices], falltimes_error[sorted_indices]
+
+        return falltimes, falltimes_error
 
 
     def processtraces(self):
