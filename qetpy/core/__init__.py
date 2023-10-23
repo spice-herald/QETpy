@@ -11,3 +11,4 @@ from ._of_base import *
 from ._of_1x1 import *
 from ._of_nonlin import *
 from ._of_1_chan_2_template import *
+from ._of_1x2 import *
