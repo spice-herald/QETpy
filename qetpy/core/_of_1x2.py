@@ -225,6 +225,7 @@ class OF1x2:
         """
         Hidden function for recalculating parameters that depend on the
         signal.
+        should be using signal_filts_td(try to match the normalisation)
         """
 
 
