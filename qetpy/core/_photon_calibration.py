@@ -3,6 +3,7 @@ import scipy as sp
 import random
 from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
+from tabulate import tabulate
 
 from qetpy.core.didv._uncertainties_didv import get_power_noise_with_uncertainties, get_dPdI_with_uncertainties
 from qetpy.core import calc_psd
@@ -1607,7 +1608,7 @@ class PhotonCalibration:
             model_template_t = self._get_twopulse_t_template(amp_1, amp_2, fall_1, fall_2, rise)
         elif self.template_model == 'threepulse':
             amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise = params
-            model_template_f = self._get_threepulse_t_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise)
+            model_template_t = self._get_threepulse_t_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise)
         elif self.template_model == 'deltapulse':  
             amp_1, amp_2, fall_2, rise = params
             model_template_t = self._get_deltapulse_t_template(amp_1, amp_2, fall_2, rise)
@@ -1650,6 +1651,32 @@ class PhotonCalibration:
             print("Fall Time 1: " + str(fall_1*1e6) + " +/- " + str(fall_1_err*1e6) + " us")
             print("Fall Time 2: " + str(fall_2*1e6) + " +/- " + str(fall_2_err*1e6) + " us")
             print("Rise Time: " + str(rise*1e6) + " +/- " + str(rise_err*1e6) + " us")
+        
+        elif self.template_model == 'threepulse':
+            popt = self.fit_vars_dict[photon_peak_number]
+            pcov = self.fit_cov_dict[photon_peak_number]
+            pstds = np.sqrt(np.diag(pcov))
+            
+            print("popt: ")
+            print(popt)
+            print(" ")
+
+            print("cov:")
+            print(pcov)
+            print(" ")
+            
+            amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise = popt
+            amp_1_err, amp_2_err, amp_3_err, fall_1_err, fall_2_err, fall_3_err, rise_err = pstds
+            
+        
+            print("Amplitude 1: " + str(amp_1) + " +/- " + str(amp_1_err))
+            print("Amplitude 2: " + str(amp_2) + " +/- " + str(amp_2_err))
+            print("Amplitude 3: " + str(amp_3) + " +/- " + str(amp_3_err))
+            print("Fall Time 1: " + str(fall_1*1e6) + " +/- " + str(fall_1_err*1e6) + " us")
+            print("Fall Time 2: " + str(fall_2*1e6) + " +/- " + str(fall_2_err*1e6) + " us")
+            print("Fall Time 3: " + str(fall_3*1e6) + " +/- " + str(fall_3_err*1e6) + " us")
+            print("Rise Time: " + str(rise*1e6) + " +/- " + str(rise_err*1e6) + " us")
+            
         elif self.template_model == 'deltapulse':
             popt = self.fit_vars_dict[photon_peak_number]
             pcov = self.fit_cov_dict[photon_peak_number]
@@ -1996,8 +2023,8 @@ class PhotonCalibration:
                                        lgc_plot=False):
         """
         Calculates the energy in the template, and calculates the uncertainty in that
-        total template energy. The uncertainty is calculated using a Monte Carlo
-        approach.
+        total template energy. The uncertainty is calculated by numerically finding the
+        Jacobian.
         
         Parameters:
         -----------
@@ -2063,14 +2090,21 @@ class PhotonCalibration:
             
         return pce, pce_std
     
-    def get_correlation_matrix_visualization(self):
+    def get_correlation_matrix_visualization(self, photon_peak_number):
         """
         Plots the correlation matrix visualization, to make it easier to understand
         the correlation between different fit components.
+        
+        Parameters:
+        -----------
+        
+        photon_peak_number : int
+            The number of the photon peak fits to use for generating the
+            correlation matrix visualization.
         """
         
-        cov = self.fit_cov_dict[1]
-        opt = self.fit_vars_dict[1]
+        cov = self.fit_cov_dict[photon_peak_number]
+        opt = self.fit_vars_dict[photon_peak_number]
 
         cor_matrix = np.zeros([len(opt), len(opt)])
 
@@ -2084,6 +2118,8 @@ class PhotonCalibration:
             
         if self.template_model == 'twopulse':
             labels = ['Amp 1', 'Amp 2', "Fall 1", "Fall 2", "Rise"]
+        elif self.template_model == 'threepulse':
+            labels = ['Amp 1', 'Amp 2', 'Amp 3', "Fall 1", "Fall 2", 'Fall 3', "Rise"]
         elif self.template_model == 'deltapulse':
             labels = ['Delta Amplitude', 'Pulse Amplitude', 'Pulse Fall', 'Pulse Rise']
         else:
@@ -2094,5 +2130,169 @@ class PhotonCalibration:
         plt.xticks(ticks=ticks, labels=labels)
         plt.yticks(ticks=ticks, labels=labels)
         plt.colorbar(label='log(cor matrix term)')
-        plt.title("Correlation Matrix")
+        plt.title("Correlation Matrix, Fits To Photon Peak " + str(photon_peak_number))
         plt.show()
+        
+    def print_fits_comparison_table(self):
+        """
+        Prints out tables of the fits to the photon peaks
+        """
+        
+        print("Tables of Template Fit Parameters")
+        print("Model: " + str(self.template_model))
+        print(" ")
+        print("------------------")
+        print(" ")
+        print(" ")
+        
+        print("Not Scaling Heights")
+        print(" ")
+        
+        height_unscaled_list = []
+        peak_keys_list = list(self.fit_vars_dict.keys())
+        peak_keys_list.sort()
+        
+        i = 0
+        while i < len(peak_keys_list):
+            photon_peak_number = peak_keys_list[i]
+            
+            height_unscaled_list_element = []
+            height_unscaled_list_element.append(photon_peak_number)
+            
+            popt = self.fit_vars_dict[photon_peak_number]
+            pcov = self.fit_cov_dict[photon_peak_number]
+            pstds = np.sqrt(np.diag(pcov))
+            
+            if self.template_model == 'twopulse':
+                amp_1, amp_2, fall_1, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_1_err, fall_2_err, rise_err = pstds
+                
+                height_unscaled_list_element.append(amp_1)
+                height_unscaled_list_element.append(amp_1_err)
+                height_unscaled_list_element.append(amp_2)
+                height_unscaled_list_element.append(amp_2_err)
+                
+                headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err']
+            
+            elif self.template_model == 'threepulse':
+                amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise = popt
+                amp_1_err, amp_2_err, amp_3_err, fall_1_err, fall_2_err, fall_3_err, rise_err = pstds
+                
+                height_unscaled_list_element.append(amp_1)
+                height_unscaled_list_element.append(amp_1_err)
+                height_unscaled_list_element.append(amp_2)
+                height_unscaled_list_element.append(amp_2_err)
+                height_unscaled_list_element.append(amp_3)
+                height_unscaled_list_element.append(amp_3_err)
+                
+                headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err', 'Height 3', 'Height 3 Err']
+            height_unscaled_list.append(height_unscaled_list_element)
+            i += 1
+                
+        print(tabulate(height_unscaled_list, headers = headers_))
+        
+        print(" ")
+        print("--------------------")
+        print(" ")
+        print("Scaling Peak Heights, Scaled To First Photon Peak")
+        print(" ")
+        
+        height_scaled_list = []
+        i = 1
+        while i < len(peak_keys_list):
+            photon_peak_number = peak_keys_list[i]
+            
+            height_scaled_list_element = []
+            height_scaled_list_element.append(photon_peak_number)
+            
+            popt = self.fit_vars_dict[photon_peak_number]
+            pcov = self.fit_cov_dict[photon_peak_number]
+            pstds = np.sqrt(np.diag(pcov))
+            
+            if self.template_model == 'twopulse':
+                amp_1, amp_2, fall_1, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_1_err, fall_2_err, rise_err = pstds
+                
+                height_scaled_list_element.append(amp_1/i)
+                height_scaled_list_element.append(amp_1_err/i)
+                height_scaled_list_element.append(amp_2/i)
+                height_scaled_list_element.append(amp_2_err/i)
+                
+                headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err']
+            
+            elif self.template_model == 'threepulse':
+                amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise = popt
+                amp_1_err, amp_2_err, amp_3_err, fall_1_err, fall_2_err, fall_3_err, rise_err = pstds
+                
+                height_scaled_list_element.append(amp_1/i)
+                height_scaled_list_element.append(amp_1_err/i)
+                height_scaled_list_element.append(amp_2/i)
+                height_scaled_list_element.append(amp_2_err/i)
+                height_scaled_list_element.append(amp_3/i)
+                height_scaled_list_element.append(amp_3_err/i)
+                
+                headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err', 'Height 3', 'Height 3 Err']
+            height_scaled_list.append(height_scaled_list_element)
+            i += 1
+                
+        print(tabulate(height_scaled_list, headers = headers_))
+        
+        print(" ")
+        print("-------------------")
+        print(" ")
+        print("Fall Times: ")
+        print(" ")
+        
+        
+        fall_times_list = []
+        i = 0
+        while i < len(peak_keys_list):
+            photon_peak_number = peak_keys_list[i]
+            
+            fall_times_list_element = []
+            fall_times_list_element.append(photon_peak_number)
+            
+            popt = self.fit_vars_dict[photon_peak_number]
+            pcov = self.fit_cov_dict[photon_peak_number]
+            pstds = np.sqrt(np.diag(pcov))
+            
+            if self.template_model == 'twopulse':
+                amp_1, amp_2, fall_1, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_1_err, fall_2_err, rise_err = pstds
+                
+                fall_times_list_element.append(fall_1*1e6)
+                fall_times_list_element.append(fall_1_err*1e6)
+                fall_times_list_element.append(fall_2*1e6)
+                fall_times_list_element.append(fall_2_err*1e6)
+                fall_times_list_element.append(rise*1e6)
+                fall_times_list_element.append(rise_err*1e6)
+                
+                headers_ = ['Photon Peak', 'Fall 1 (us)', 'Fall 1 Err (us)', 'Fall 2 (us)', 'Fall 2 Err (us)', 'Rise (us)', 'Rise Err (us)']
+            
+            elif self.template_model == 'threepulse':
+                amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise = popt
+                amp_1_err, amp_2_err, amp_3_err, fall_1_err, fall_2_err, fall_3_err, rise_err = pstds
+                
+                fall_times_list_element.append(fall_1*1e6)
+                fall_times_list_element.append(fall_1_err*1e6)
+                fall_times_list_element.append(fall_2*1e6)
+                fall_times_list_element.append(fall_2_err*1e6)
+                fall_times_list_element.append(fall_3*1e6)
+                fall_times_list_element.append(fall_3_err*1e6)
+                fall_times_list_element.append(rise*1e6)
+                fall_times_list_element.append(rise_err*1e6)
+                
+                headers_ = ['Photon Peak', 'Fall 1 (us)', 'Fall 1 Err (us)', 'Fall 2 (us)', 'Fall 2 Err (us)', 'Fall 3 (us)', 'Fall 3 Err (us)', 'Rise (us)', 'Rise Err (us)']
+            fall_times_list.append(fall_times_list_element)
+            i += 1
+                
+        print(tabulate(fall_times_list, headers = headers_))
+        
+        
+                
+                
+            
+            
+            
+            
+            
