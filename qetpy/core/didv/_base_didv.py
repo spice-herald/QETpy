@@ -378,30 +378,8 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 
 
 
-def _get_current_offset(metadata, channel_name):
-    """
-    Gets and returns the changable current offset (i.e. the current offset set
-    from the FEB control labview tool)
-    
-    Parameters
-    ----------        
-    metadata : dict
-        Metadata returned when loading the dIdV traces.  Used to get
-        the voltage/current offset set with the slider on the FEB controller
-        labview script, so that we can compensate for it. Can be just for 
-        one event
-        
-    channel_name : str
-        Channel name, e.g. 'Melange025pcRight'
-    
-    """
-    
-    voltage_offset = metadata[0]['detector_config'][channel_name]['output_offset']
-    close_loop_norm = metadata[0]['detector_config'][channel_name]['close_loop_norm']
-    return voltage_offset/close_loop_norm
-
-
-def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, output_gain,
+def get_i0(offset, offset_err, offset_dict, output_offset,
+           closed_loop_norm, output_gain,
            lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -446,40 +424,47 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
         The uncertainty in the absolute current through the TES
         
     """
+
+    # back compatibility
+    if 'i0_changable_offset' in offset_dict.keys():
+        offset_dict['i0_variable_offset'] =  (
+            offset_dict['i0_changable_offset']
+        )
+
     
     current_didv = offset
     current_err_didv = offset_err
     
-    offset_changable = output_offset * output_gain/closed_loop_norm
-    delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
+    offset_variable = output_offset * output_gain/closed_loop_norm
+    delta_i_variable = (offset_variable - offset_dict['i0_variable_offset'])
     
     #alerts user when the current offset changed
-    if np.abs(delta_i_changable) > 1e-9:
+    if np.abs(delta_i_variable) > 1e-9:
         print(" ")
         print("----------------------------------------------------------------")
         print("ALERT: FEB voltage offset has changed since the IV sweep used to")
         print("generate the offsets_dict being used for this measurement!")
         print("Biasparams, including i0, p0, and small signal parameters, including")
         print("loopgain, are therefore suspect")
-        print("IV changable offset current: " + str(offset_dict['i0_changable_offset']))
-        print("This dataset changable offset current: " + str(offset_changable))
+        print("IV variable offset current: " + str(offset_dict['i0_variable_offset']))
+        print("This dataset variable offset current: " + str(offset_variable))
         print("----------------------------------------------------------------")
         print(" ")
     
-    i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
+    i0 = current_didv - offset_dict['i0_off'] - delta_i_variable
     
     if lgcdiagnostics:
         print("Current as measured from dIdV: " + str(current_didv) + " amps")
-        print("Changable current as meaured from metadata for this dIdV: " + str(offset_changable) + " amps")
+        print("Variable current as meaured from metadata for this dIdV: " + str(offset_variable) + " amps")
         print(" ")
-        print("Changable current as measured during IV when offsets were measured: " + 
-              str(offset_dict['i0_changable_offset']) + " amps")
+        print("Variable current as measured during IV when offsets were measured: " + 
+              str(offset_dict['i0_variable_offset']) + " amps")
         print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
         print(" ")
-        print("Delta changable current: " + str(offset_changable) + " - " + 
-             str(offset_dict['i0_changable_offset']) + " = \n " + str(delta_i_changable) + " amps")
+        print("Delta variable current: " + str(offset_variable) + " - " + 
+             str(offset_dict['i0_variable_offset']) + " = \n " + str(delta_i_variable) + " amps")
         print(" ")
-        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_changable) + " - \n" + 
+        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_variable) + " - \n" + 
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
     
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
@@ -497,7 +482,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
     
     return i0, i0_err
 
-def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
+def get_ibias(tes_bias, offset_dict, lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     used to bias the TES from a metadata list
@@ -505,7 +490,7 @@ def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
     Parameters
     ----------
         
-    ibias_metadata: float
+    tes_bias: float
         The ibias gotten from the event metadata, i.e. without correcting for
         the ibias offset calculated from the IV curve
         
@@ -525,13 +510,13 @@ def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
         
     """
     
-    ibias = ibias_metadata - offset_dict['ibias_off']
+    ibias = tes_bias - offset_dict['ibias_off']
     ibias_err = offset_dict['ibias_off_err']
     
     if lgcdiagnostics:
-        print("Bias current from metadata: " + str(ibias_metadata) + " amps")
+        print("Bias current from metadata: " + str(tes_bias) + " amps")
         print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
-        print("True bias current: " + str(ibias_metadata) + " - " + str(offset_dict['ibias_off']) + 
+        print("True bias current: " + str(tes_bias) + " - " + str(offset_dict['ibias_off']) + 
              " = \n" + str(ibias) + " amps")
         print(" ")
         
