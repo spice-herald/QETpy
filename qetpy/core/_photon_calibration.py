@@ -10,8 +10,6 @@ from qetpy.core import calc_psd
 from qetpy.utils import make_template_twopole, lowpassfilter
 from qetpy.core.didv import stdcomplex
 
-import detanalysis as da
-
 from scipy.fftpack import fft, ifft, fftfreq
 
 
@@ -713,7 +711,8 @@ class PhotonCalibration:
             plt.show()
         
         cut_pars = {'val_lower': peak_center - cut_width, 'val_upper': peak_center + cut_width,}
-
+	
+        import detanalysis as da
         photon_cut = da.Semiautocut(self.calibration_df, cut_rq = cut_rq_name_mod,
                                    channel_name=self.channel_name,
                                    cut_pars=cut_pars, cut_name=cut_name)
@@ -1329,7 +1328,7 @@ class PhotonCalibration:
             
             
             
-    def _get_twopulse_t_template(self, amp_1, amp_2, fall_1, fall_2, rise):
+    def _get_twopulse_t_template(self, amp_1, amp_2, fall_1, fall_2, rise, t_arr=None, start_time=None):
         """
         Calculates the time domain two pulse template fit to the photon
         calibration data in the power domain.
@@ -1355,16 +1354,30 @@ class PhotonCalibration:
         dt : float
             The difference between the trigger time and the
             true rise time of the calibration pulses.
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
+
+        if t_arr is None:
+            t_arr = self.t_arr
+
+        if start_time is None:
+            start_time = self.pretrigger_window + self.dt
         
-        pulse_1 = make_template_twopole(self.t_arr, A = 1.0, 
+        pulse_1 = make_template_twopole(t_arr, A = 1.0, 
                                         tau_r=rise, tau_f=fall_1,
-                                        t0=self.pretrigger_window + self.dt,
+                                        t0=start_time,
                                         fs=self.fs) * amp_1
 
-        pulse_2 = make_template_twopole(self.t_arr, A = 1.0, 
+        pulse_2 = make_template_twopole(t_arr, A = 1.0, 
                                          tau_r=rise, tau_f=fall_2,
-                                         t0=self.pretrigger_window + self.dt,
+                                         t0=start_time,
                                          fs=self.fs) * amp_2
         
         if np.isnan(pulse_1).any() or np.isinf(pulse_1).all():
@@ -1374,7 +1387,7 @@ class PhotonCalibration:
         
         return pulse_1 + pulse_2
     
-    def _get_twopulse_f_template(self, amp_1, amp_2, fall_1, fall_2, rise):
+    def _get_twopulse_f_template(self, amp_1, amp_2, fall_1, fall_2, rise, t_arr=None, start_time=None):
         """
         Calculates the frequency domain two pulse template fit to the photon
         calibration data in the power domain.
@@ -1400,13 +1413,21 @@ class PhotonCalibration:
         dt : float
             The difference between the trigger time and the
             true rise time of the calibration pulses.
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
             
-        template_t = self._get_twopulse_t_template(amp_1, amp_2, fall_1, fall_2, rise)
+        template_t = self._get_twopulse_t_template(amp_1, amp_2, fall_1, fall_2, rise, t_arr, start_time)
         
-        return fft(template_t)/np.sqrt(len(self.t_arr) * self.fs)
+        return fft(template_t)/np.sqrt(len(template_t) * self.fs)
     
-    def _get_deltapulse_t_template(self, amp_1, amp_2, fall_2, rise):
+    def _get_deltapulse_t_template(self, amp_1, amp_2, fall_2, rise, t_arr=None, start_time=None):
         """
         Calculates the time domain delta function plus single exponential
         pulse template fit to the photon calibration data in the power
@@ -1430,15 +1451,29 @@ class PhotonCalibration:
         dt : float
             The difference between the trigger time and the
             true rise time of the calibration pulses.
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
+
+        if t_arr is None:
+            t_arr = self.t_arr
+
+        if start_time is None:
+            start_time = self.pretrigger_window + self.dt
         
-        pulse_1 = np.zeros(len(self.t_arr))
-        delta_start = int(self.fs*self.pretrigger_window + self.fs*self.dt)
+        pulse_1 = np.zeros(len(t_arr))
+        delta_start = int(self.fs*start_time)
         pulse_1[delta_start] = amp_1
 
-        pulse_2 = make_template_twopole(self.t_arr, A = 1.0, 
+        pulse_2 = make_template_twopole(t_arr, A = 1.0, 
                                         tau_r=rise, tau_f=fall_2,
-                                        t0=self.pretrigger_window + self.dt,
+                                        t0=start_time,
                                         fs=self.fs) * amp_2
         
         if np.isnan(pulse_1).any() or np.isinf(pulse_1).all():
@@ -1448,7 +1483,7 @@ class PhotonCalibration:
         
         return pulse_1 + pulse_2
     
-    def _get_deltapulse_f_template(self, amp_1, amp_2, fall_2, rise):
+    def _get_deltapulse_f_template(self, amp_1, amp_2, fall_2, rise, t_arr=None, start_time=None):
         """
         Calculates the time domain delta function plus single exponential
         pulse template fit to the photon calibration data in the power
@@ -1472,14 +1507,23 @@ class PhotonCalibration:
         dt : float
             The difference between the trigger time and the
             true rise time of the calibration pulses.
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
             
-        template_t = self._get_deltapulse_t_template(amp_1, amp_2, fall_2, rise)
+        template_t = self._get_deltapulse_t_template(amp_1, amp_2, fall_2, rise, t_arr, start_time)
         
-        return fft(template_t)/np.sqrt(len(self.t_arr) * self.fs)
+        return fft(template_t)/np.sqrt(len(template_t) * self.fs)
         
     def _get_threepulse_t_template(self, amp_1, amp_2, amp_3,
-                                   fall_1, fall_2, fall_3, rise):
+                                   fall_1, fall_2, fall_3, rise,
+                                   t_arr=None, start_time=None):
         """
         Calculates the time domain three exponential
         pulse template fit to the photon calibration data in the power
@@ -1508,27 +1552,43 @@ class PhotonCalibration:
             
         rise : float
             The rise time of all the pulses
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
         
-        pulse_1 = make_template_twopole(self.t_arr, A = 1.0, 
+        if t_arr is None:
+            t_arr = self.t_arr
+
+        if start_time is None:
+            start_time = self.pretrigger_window + self.dt
+
+
+        pulse_1 = make_template_twopole(t_arr, A = 1.0, 
                                         tau_r=rise, tau_f=fall_1,
-                                        t0=self.pretrigger_window + self.dt,
+                                        t0=start_time,
                                         fs=self.fs) * amp_1
 
-        pulse_2 = make_template_twopole(self.t_arr, A = 1.0, 
+        pulse_2 = make_template_twopole(t_arr, A = 1.0, 
                                         tau_r=rise, tau_f=fall_2,
-                                        t0=self.pretrigger_window + self.dt,
+                                        t0=start_time,
                                         fs=self.fs) * amp_2
                                 
-        pulse_3 = make_template_twopole(self.t_arr, A = 1.0, 
+        pulse_3 = make_template_twopole(t_arr, A = 1.0, 
                                         tau_r=rise, tau_f=fall_3,
-                                        t0=self.pretrigger_window + self.dt,
+                                        t0=start_time,
                                         fs=self.fs) * amp_3
         
         return pulse_1 + pulse_2 + pulse_3
     
     def _get_threepulse_f_template(self, amp_1, amp_2, amp_3,
-                                   fall_1, fall_2, fall_3, rise):
+                                   fall_1, fall_2, fall_3, rise,
+                                   t_arr=None, start_time=None):
         """
         Calculates the frequency domain three exponential
         pulse template fit to the photon calibration data in the power
@@ -1557,13 +1617,22 @@ class PhotonCalibration:
             
         rise : float
             The rise time of all the pulses
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
             
-        template_t = self._get_threepulse_t_template(amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise)
+        template_t = self._get_threepulse_t_template(amp_1, amp_2, amp_3, fall_1, fall_2, fall_3, rise,
+                                                     t_arr, start_time)
         
-        return fft(template_t)/np.sqrt(len(self.t_arr) * self.fs)
+        return fft(template_t)/np.sqrt(len(template_t) * self.fs)
     
-    def _get_modeled_template_f(self, params):
+    def _get_modeled_template_f(self, params, t_arr=None, start_time=None):
         """
         Calculates the frequency domain template for a generic
         template model, with self.model setting the template
@@ -1574,23 +1643,34 @@ class PhotonCalibration:
         
         params : array
             The parameters of the template model being used
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
         
         if self.template_model == 'twopulse':
             amp_1, amp_2, fall_1, fall_2, rise = params
-            model_template_f = self._get_twopulse_f_template(amp_1, amp_2, fall_1, fall_2, rise)
+            model_template_f = self._get_twopulse_f_template(amp_1, amp_2, fall_1, fall_2, rise,
+                                                             t_arr, start_time)
         elif self.template_model == 'threepulse':
             amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise = params
-            model_template_f = self._get_threepulse_f_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise)
+            model_template_f = self._get_threepulse_f_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise, 
+                                                               t_arr, start_time)
         elif self.template_model == 'deltapulse':  
             amp_1, amp_2, fall_2, rise = params
-            model_template_f = self._get_deltapulse_f_template(amp_1, amp_2, fall_2, rise)
+            model_template_f = self._get_deltapulse_f_template(amp_1, amp_2, fall_2, rise,
+                                                               t_arr, start_time)
         else:
             print("Unknown template model!")
                 
         return model_template_f
     
-    def _get_modeled_template_t(self, params):
+    def _get_modeled_template_t(self, params, t_arr=None, start_time=None):
         """
         Calculates the time domain template for a generic
         template model, with self.model setting the template
@@ -1601,17 +1681,28 @@ class PhotonCalibration:
         
         params : array
             The parameters of the template model being used
+
+        t_arr : array, optional
+            If not None, used to generate the modeled template
+            at these times.
+
+        start_time : float, optional
+            If not None, used instead of the internal start time
+            for the start time for the pulse.
         """
         
         if self.template_model == 'twopulse':
             amp_1, amp_2, fall_1, fall_2, rise = params
-            model_template_t = self._get_twopulse_t_template(amp_1, amp_2, fall_1, fall_2, rise)
+            model_template_t = self._get_twopulse_t_template(amp_1, amp_2, fall_1, fall_2, rise, 
+                                                             t_arr, start_time)
         elif self.template_model == 'threepulse':
             amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise = params
-            model_template_t = self._get_threepulse_t_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise)
+            model_template_t = self._get_threepulse_t_template(amp_1, amp_2, amp3, fall_1, fall_2, fall_3, rise, 
+                                                               t_arr, start_time)
         elif self.template_model == 'deltapulse':  
             amp_1, amp_2, fall_2, rise = params
-            model_template_t = self._get_deltapulse_t_template(amp_1, amp_2, fall_2, rise)
+            model_template_t = self._get_deltapulse_t_template(amp_1, amp_2, fall_2, rise,
+                                                               t_arr, start_time)
         else:
             print("Unknown template model!")
                 
@@ -1719,9 +1810,10 @@ class PhotonCalibration:
             dPdI evaluated at the same frequencies as the
             template.
         """
-        
+            
+
         template_i_f = temp_p_f / dpdi
-        template_i_t = -1.0 * ifft(template_i_f) * np.sqrt(len(self.t_arr) * self.fs)
+        template_i_t = -1.0 * ifft(template_i_f) * np.sqrt(len(temp_p_f) * self.fs)
         
         return np.real(template_i_t)
         
@@ -1965,7 +2057,8 @@ class PhotonCalibration:
             self._print_pulse_model_fits(photon_peak_number)
         
     
-    def get_current_template(self, photon_peak_number, didvresult=None,
+    def get_current_template(self, photon_peak_number, didvresult=None, t_arr=None, 
+                            start_time=None, 
                             lgc_plot=True):
         """
         Calculates the current domain template from the fits from one
@@ -1984,24 +2077,41 @@ class PhotonCalibration:
             If not None, used to generate a dPdI which is used to calculate
             the current domain template. If none, the dPdI used to
             deconvolve the calibration events is used.
+
+        t_arr : array, optional
+            Array of the times at which to evaluate the current template.
+            Should be ascending in even steps so we can get the FFTFreqs
+            easily. If none, uses the internal t_arr.
+
+        start_time : float, optional
+            If not None, the time at which the pulse starts in the template
+            being generated. If None, uses the default for the object.
             
         lgc_plot : bool, optional
             If True, plots diagnostic plots.
         """
         
         popt = self.fit_vars_dict[photon_peak_number]
-        template_p_f = self._get_modeled_template_f(popt)
+        template_p_f = self._get_modeled_template_f(popt, t_arr, start_time)
+
+        if t_arr is None:
+            freqs = self.freqs
+            t_arr = self.t_arr
+        else:
+            freqs = fftfreq(len(t_arr), 1/self.fs)
         
         if didvresult is None:
             dpdi = self.dpdi
         else:
             print("Calculating dPdI! This may take some time.")
-            dpdi = get_dPdI_with_uncertainties(self.freqs, didvresult)
+            dpdi, _ = get_dPdI_with_uncertainties(freqs, didvresult)
             
         template_i_t = self._get_temp_i_t_from_temp_p_f(template_p_f, dpdi)
         
         if lgc_plot:
-            plt.plot(self.t_arr, template_i_t)
+            plt.plot(t_arr*1e3, template_i_t)
+            plt.xlabel("Time (ms)")
+            plt.ylabel("Current (Amps)")
             plt.show()
             
         return template_i_t
