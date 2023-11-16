@@ -1,8 +1,16 @@
 import numpy as np
+import scipy as sp
 from scipy import interpolate, signal, constants
 from scipy import ndimage
 from sympy.ntheory import factorrat
 from sympy.core.symbol import S
+
+
+# global variable for the fft, fftfreq and
+# ifft functions
+FFT_MODULE = 'scipy'
+
+
 
 
 __all__ = [
@@ -26,6 +34,8 @@ __all__ = [
     "interpolate_parabola",
     "interpolate_of",
     "argmin_chisq",
+    "fft",
+    "energy_resolution",
 ]
 
 
@@ -1122,3 +1132,150 @@ def argmin_chisq(chisq,
                
 
     return bestind
+
+
+def fft(vals, fs, axis=-1):
+    """
+    Calculate 1D FFT and frequency array
+ 
+    Parameters
+    ----------
+    vals : nd numpy array 
+      array of values in time domain
+   
+    fs : sample rate 
+      data taking sample rate 
+
+
+    Return
+    ----------
+    
+    fft :  nd numpy array
+       Fourier transformed data
+
+    fft_freqs :  nd numpy array
+       Frequency array associated with FFT
+
+    """
+
+    # module (scipy or numpy)
+    # this is hard coded here on purpose so everyone is
+    # using same module
+  
+    
+    # check if vals are numpy array
+    if not isinstance(vals, np.ndarray):
+        raise ValueError('ERROR: first parameter should be '
+                         ' a numpy array')
+    # calculate fft
+    fft_out = []
+    fft_freqs_out = []
+    if FFT_MODULE == 'scipy':
+        fft_out = sp.fft.fft(vals, axis=axis, norm=None)
+        fft_freqs_out = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_out = np.fft.fft(vals, axis=axis, norm=None)
+        fft_freqs_out = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only module="scipy" or "numpy" supported!'
+        )
+        
+    return fft_out, fft_freqs_out
+
+
+
+def fftfreq(nbins, fs):
+    """
+    Calculate 1D FFT frequency array
+   
+ 
+    Parameters
+    ----------
+    nbins : int 
+      number of samples
+
+    fs : sample rate 
+      data taking sample rate 
+
+    Return
+    ----------
+
+    fft_freqs :  nd numpy array
+       Frequency array associated with FFT
+
+    """
+
+    fft_freqs_out = []
+    if FFT_MODULE == 'scipy':
+        fft_freqs_out = sp.fft.fftfreq(nbins, d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_freqs_out = np.fft.fftfreq(nbins, d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only FFT_MODULE="scipy" or "numpy" supported!'
+        )
+        
+    return fft_freqs_out
+
+
+
+
+
+def energy_resolution(psd, template,  dpdi, fs,
+                      collection_eff=1):
+    """
+    Calculate energy resolution based on input psd [A/sqrt(Hz)]
+    (double sided psd), template, and dpdi 
+   
+    Parameters
+    ----------
+
+    psd : numpy 1D or 2D  array [channel, samples]
+        double sided PSD in units of Amps^2/Hz
+    
+    template : numpy 1D  or 2D array[channel, samples]
+        template trace in time domain, same length as psd
+    
+    dpdi : numpy 1D or 2D array [channel, samples]
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as psd
+    
+    fs : float 
+        sample rate in units of Hz
+
+    collection_eff:
+        Efficiency (percentage) of phonon collection within the detector. Default is 1.
+  
+    returns:
+    ---------
+        energy_res : float (if single channel or 1D numpy array if multiple channels)
+             energy resolutions in units of eV. 
+    """
+    # check arrays
+    if psd.shape != template.shape:
+        raise ValueError("ERROR: psd must be same length as template. Is psd "
+                         "double sided?")
+    if psd.shape != dpdi.shape:
+        raise ValueError("ERROR: dPdI should have same length as psd and template!")
+
+    # template fft
+    nbins  = template.shape[-1]
+    df = fs/nbins
+    p_w, freqs = fft(template, fs, axis=-1)
+    p_w = (p_w/nbins/df)**2
+    p_w = p_w/p_w[0]
+
+    # convert psd in W^2/Hz
+    sp_w = psd*(np.abs(dpdi)**2)
+
+    # integrate   
+    omega = 2*np.pi*freqs
+    integrand = 2*np.abs(p_w)**2/(np.pi*sp_w)
+    sigma_square =  1/(np.trapz(integrand, x=omega)*collection_eff**2)
+
+    # convert to energy resolution in eV
+    energy_res = np.sqrt(sigma_square)/constants.e
+    
+    return energy_res
+

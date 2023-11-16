@@ -378,8 +378,8 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 
 
 
-def get_i0(offset, offset_err, offset_dict, output_offset,
-           closed_loop_norm, output_gain,
+def get_i0(offset, offset_err, offset_dict, output_offset=None,
+           closed_loop_norm=None, output_gain=1,
            lgcdiagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -425,32 +425,50 @@ def get_i0(offset, offset_err, offset_dict, output_offset,
         
     """
 
-    # back compatibility
-    if 'i0_changable_offset' in offset_dict.keys():
-        offset_dict['i0_variable_offset'] =  (
-            offset_dict['i0_changable_offset']
-        )
+    # SQUID controller variable offset
+    delta_i_variable = 0
+    if output_offset is not None:
 
-    
+        # check if "closed_loop_norm" available
+        if closed_loop_norm is None:
+            raise ValueError(
+                'ERROR: "closed_loop_norm" parameter is '
+                'required!'
+            )
+        
+        # IV sweep "i0_variable_offset" (check old names for back compatibility)
+        i0_variable_offset_sweep = None
+        if 'i0_variable_offset' in offset_dict.keys():
+            i0_variable_offset_sweep = offset_dict['i0_variable_offset']
+        elif 'i0_changable_offset' in ivsweep_result.keys():
+            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset']
+        else:
+            raise ValueError('ERROR: i0 variable offset not found in '
+                             '"ivsweep_result" dictionary!')
+
+        # current IV variable offset
+        i0_variable_offset = output_offset * output_gain/closed_loop_norm
+
+
+        # delta variable offset
+        delta_i_variable = i0_variable_offset - i0_variable_offset_sweep
+
+        #alerts user when the current offset changed
+        if np.abs(delta_i_variable) > 1e-9:
+            print(" ")
+            print("----------------------------------------------------------------")
+            print("ALERT: Voltage offset has changed since the IV sweep used to")
+            print("generate the offsets_dict being used for this measurement!")
+            print("Biasparams, including i0, p0, and small signal parameters, including")
+            print("loopgain, are therefore suspect")
+            print("IV variable offset current: " + str(i0_variable_offset_sweep))
+            print("This dataset variable offset current: " + str(i0_variable_offset))
+            print("----------------------------------------------------------------")
+            print(" ")
+
+    # calculate new i0
     current_didv = offset
     current_err_didv = offset_err
-    
-    offset_variable = output_offset * output_gain/closed_loop_norm
-    delta_i_variable = (offset_variable - offset_dict['i0_variable_offset'])
-    
-    #alerts user when the current offset changed
-    if np.abs(delta_i_variable) > 1e-9:
-        print(" ")
-        print("----------------------------------------------------------------")
-        print("ALERT: FEB voltage offset has changed since the IV sweep used to")
-        print("generate the offsets_dict being used for this measurement!")
-        print("Biasparams, including i0, p0, and small signal parameters, including")
-        print("loopgain, are therefore suspect")
-        print("IV variable offset current: " + str(offset_dict['i0_variable_offset']))
-        print("This dataset variable offset current: " + str(offset_variable))
-        print("----------------------------------------------------------------")
-        print(" ")
-    
     i0 = current_didv - offset_dict['i0_off'] - delta_i_variable
     
     if lgcdiagnostics:
@@ -477,7 +495,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset,
         print("Current offset uncertainty from IV: " + str(offset_dict['i0_off_err']) + " amps")
         print(" ")
         print("Total current uncetainty: (("  + str(current_err_didv) + ")**2.0 + (" +
-             str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
+              str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
               str(i0_err) + " amps")
     
     return i0, i0_err
@@ -1461,6 +1479,24 @@ class _BaseDIDV(object):
         self._offset_err = np.std(means)/np.sqrt(self._ntraces)
 
 
+    def get_list_fitted_poles(self):
+        """
+        Function to return a list of poles that 
+        have been fitted
+
+        """
+
+        list_of_poles = []
+        if self._1poleresult is not None:
+            list_of_poles.append(1)
+        if self._2poleresult is not None:
+            list_of_poles.append(2)
+        if self._3poleresult is not None:
+            list_of_poles.append(3)
+
+        return list_of_poles 
+
+        
     def fitresult(self, poles):
         """
         Function for returning a dictionary containing the relevant
