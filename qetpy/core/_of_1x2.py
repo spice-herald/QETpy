@@ -197,7 +197,6 @@ class OF1x2:
             self._of_base.calc_phi(template_tags=template_2_tag)
 
 
-
         if self._of_base._p_matrix is None:
             self._of_base.calc_p_and_p_inverse(len(self._of_base._templates))
 
@@ -221,22 +220,6 @@ class OF1x2:
         self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, 2)
 
 
-    def _get_q(self): #not in OF base
-        """
-        Hidden function for recalculating parameters that depend on the
-        signal.
-        should be using signal_filts_td(try to match the normalisation)
-        """
-
-
-        self._q[self._template_1_tag] = np.real(np.fft.ifft(self._of_base._signal_fft * \
-                                                        self._of_base._phis[self._template_1_tag] ) \
-                                                        * self._of_base._fs)
-
-        self._q[self._template_2_tag] = np.real(np.fft.ifft(self._of_base._signal_fft * \
-                                                        self._of_base._phis[self._template_2_tag] ) \
-                                                        * self._of_base._fs)
-
 
     def _get_amps(self, t0s): # not in OF base
         """
@@ -245,8 +228,8 @@ class OF1x2:
         """
         pmatrix_inv = self._of_base._p_inv_matrix[t0s[:,0] - t0s[:,1]]
 
-        self._q_vec = np.array([self._q[self._template_1_tag][t0s[:,0]], \
-                               self._q[self._template_2_tag][t0s[:,1]]])
+        self._q_vec = np.array([self._of_base._q_vector[self._template_1_tag][t0s[:,0]], \
+                               self._of_base._q_vector[self._template_2_tag][t0s[:,1]]])
 
         return pmatrix_inv[:,0,0]*self._q_vec[0,:] + pmatrix_inv[:,0,1]*self._q_vec[1,:],\
                pmatrix_inv[:,1,0]*self._q_vec[0, :] + pmatrix_inv[:,1,1]*self._q_vec[1,:]
@@ -283,12 +266,13 @@ class OF1x2:
         if signal is not None:
             self._of_base.update_signal(
                 signal,
-                #calc_signal_filt=True,
-                #calc_signal_filt_td=True,
+                calc_signal_filt=True, 
+                calc_signal_filt_td=True,
+                calc_q_vector=True,
                 calc_chisq_amp=True,
                 template_tags=[self._template_1_tag , self._template_2_tag ]
             )
-            self._get_q()
+            #self._get_q()
 
 
         self._get_time_combs_and_array(fit_window)

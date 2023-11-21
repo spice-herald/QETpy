@@ -94,6 +94,7 @@ class OFBase:
         self._phis = dict()
         self._norms = dict()
 
+
         #intialize the p matrices, independent of signal
         self._p_matrix  = None
         self._p_inv_matrix  = None
@@ -109,6 +110,7 @@ class OFBase:
         self._signal_filts_td = dict()
         self._template_filts = dict()
         self._template_filts_td = dict()
+        self._q_vector = dict()
 
 
 
@@ -481,6 +483,7 @@ class OFBase:
 
 
 
+
     def add_template(self, template, template_tag='default',
                      integralnorm=False):
         """
@@ -618,6 +621,7 @@ class OFBase:
 
     def update_signal(self, signal,
                       calc_signal_filt=True,
+                      calc_q_vector= True,
                       calc_signal_filt_td=True,
                       calc_chisq_amp=True,
                       template_tags=None):
@@ -691,6 +695,11 @@ class OFBase:
             # calc filtered signal time domain
             if calc_signal_filt_td:
                 self.calc_signal_filt_td(template_tags=template_tags)
+
+        # calc q_vector
+        if calc_q_vector:
+            self._calc_q_vector(template_tags=template_tags)
+
 
 
         # calc chisq no pulse
@@ -861,7 +870,7 @@ class OFBase:
         None
 
 
-        Return
+        Returnnp.fft.ifft
         ------
         None
 
@@ -872,6 +881,57 @@ class OFBase:
             np.dot(self._signal_fft.conjugate()/self._psd,
                    self._signal_fft)*self._df
         )
+
+
+    def _calc_q_vector(self, template_tags=None):
+        """
+        Convert signal filt in time domain to q_vector "terminology used in doug's notes"
+        (for the specified or all template tags)
+
+        it's almost similar to signal filt in time domain but we have to multiply the norm
+
+        q_vector = signal_filt_td * norm
+                 = norm * ifft(signal_filt)
+                 = norm* ifft(phi*signal_fft/norm)
+
+        Parameters
+        ----------
+        template_tags : NoneType or str or list of string
+                        [default=None]
+           template tags to calculate optimal filters, if None,
+           calculate optimal filter for all templates
+
+        Return
+        ------
+        None
+
+        """
+
+
+        # check if phis have been calculated
+        if not self._signal_filts_td:
+            self.calc_signal_filt_td(template_tags=template_tags)
+
+
+        if template_tags is None:
+            template_tags = self._signal_filts_td.keys()
+        elif isinstance(template_tags, str):
+            template_tags = [template_tags]
+        elif not isinstance(template_tags, list):
+            raise ValueError('"template_tags argument should be a '
+                             + ' a string or list of strings')
+
+
+        for tag in template_tags:
+
+            # calc q
+            self._q_vector[tag] = self._signal_filts_td[tag] * self._norms[tag]
+
+            # debug
+            if self._debug:
+                print('DEBUG: Calculating signal_filt_td with template "'+
+                      tag + '"')
+
 
 
     def calc_p_and_p_inverse(self, M):
@@ -891,7 +951,7 @@ class OFBase:
         template_list = list(self._templates.keys())
         template_1_tag = template_list[0]
         template_2_tag = template_list[M-1]
-        
+
         self._p_matrix = np.zeros((self._nbins, M, M))
         np.einsum('jii->ji', self._p_matrix)[:] = 1
 
