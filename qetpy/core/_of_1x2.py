@@ -11,12 +11,12 @@ __all__ = ['OF1x2']
 
 class OF1x2:
     """
-    Single trace /  single template optimal filter (1x1)
+    Single trace /  two template optimal filter (1x2)
     calculations
     """
 
-    def __init__(self, of_base=None, template_1_tag='default',
-                 template_1=None,template_2_tag='default',template_2=None,
+    def __init__(self, of_base=None, template_1_tag='Scintillation',
+                 template_1=None, template_2_tag='Evaporation', template_2=None,
                  psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
@@ -24,7 +24,7 @@ class OF1x2:
                  verbose=True):
 
         """
-        Initialize OF1x1
+        Initialize OF1x2
 
         Parameters
         ----------
@@ -33,17 +33,23 @@ class OF1x2:
            OF base with pre-calculations
            Default: instantiate base class within OF1x1
 
-        template_tag : str, optional
-           tamplate tag, default='default'
+        template_1_tag : str, optional
+           tamplate tag, default='Scintillation'
 
-        template : ndarray, optional
+        template_1 : ndarray, optional
+          template array used for OF calculation, can be
+          None if already in of_base, otherwise required
+
+        template_2_tag : str, optional
+           tamplate tag, default='Evaporation'
+
+        template_2 : ndarray, optional
           template array used for OF calculation, can be
           None if already in of_base, otherwise required
 
         psd : ndarray, optional
           psd array used for OF calculation, can be
           None if already in of_base, otherwise required
-
 
         sample_rate : float, optional if of_base is not None
           The sample rate of the data being taken (in Hz)
@@ -93,6 +99,8 @@ class OF1x2:
         self._amplitude = dict()
         self._chi2_of_1x2 = None
         self._time_diff_two_Pulses = None
+        self._time_first_pulse = None
+        self._time_second_pulse = None
 
         # Instantiate OF base (if not provided)
         self._of_base = of_base
@@ -151,7 +159,6 @@ class OF1x2:
             if self._verbose:
                 print('INFO: Adding template_2 with tag "'
                       +  template_2_tag + '" to OF base object.')
-
             self._of_base.add_template(template_2,
                                        template_tag=template_2_tag,
                                        integralnorm=integralnorm)
@@ -266,13 +273,12 @@ class OF1x2:
         if signal is not None:
             self._of_base.update_signal(
                 signal,
-                calc_signal_filt=True, 
+                calc_signal_filt=True,
                 calc_signal_filt_td=True,
                 calc_q_vector=True,
                 calc_chisq_amp=True,
                 template_tags=[self._template_1_tag , self._template_2_tag ]
             )
-            #self._get_q()
 
 
         self._get_time_combs_and_array(fit_window)
@@ -285,13 +291,18 @@ class OF1x2:
         self._chi2_of_1x2 = chi2s[min_index]
         self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
 
+
         if(self._time_diff_two_Pulses < 0):
             self._amplitude[self._template_1_tag] = amps2[min_index]
             self._amplitude[self._template_2_tag]= amps1[min_index]
             self._time_diff_two_Pulses=np.abs(self._time_diff_two_Pulses)
+            self._time_first_pulse =  self._time_combinations[min_index, 1]
+            self._time_second_pulse =  self._time_combinations[min_index, 0]
         else:
             self._amplitude[self._template_1_tag] = amps1[min_index]
             self._amplitude[self._template_2_tag]= amps2[min_index]
+            self._time_first_pulse = self._time_combinations[min_index, 0]
+            self._time_second_pulse =  self._time_combinations[min_index, 1]
 
 
         if lgc_plot:
@@ -350,7 +361,6 @@ class OF1x2:
         xtime_ms = 1e3*np.arange(-pretrigger_samples,nbins-pretrigger_samples )/fs
 
 
-
         # define figure abd plot
         fig, ax = plt.subplots(figsize=figsize)
         ax.plot(xtime_ms, signal*1e6, label='Signal', color='k', alpha=0.5)
@@ -358,14 +368,34 @@ class OF1x2:
         if lgc_plot:
 
 
-            plt.plot(xtime_ms, self._amplitude[self._template_1_tag]*template_1*1e6, color = 'magenta', label='Scintillation' )
-            plt.plot(xtime_ms, shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_diff_two_Pulses*fs) , \
+            plt.plot(xtime_ms, shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse ), color = 'magenta', label='Scintillation' )
+            plt.plot(xtime_ms, shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) , \
                                                              color= 'green', label='Evaporation' )
-            plt.plot(xtime_ms,  self._amplitude[self._template_1_tag]*template_1*1e6 + \
-                shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_diff_two_Pulses*fs) , \
+            plt.plot(xtime_ms,  shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse )  + \
+                shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse)  , \
                                   label=(r'OF_1x2, $\chi^2$'
                                    + f'/Ndof={chi2:.2f}'),
                                     color='k')
+
+        if xlim_msec is not None:
+            ax.set_xlim(xlim_msec)
+        ax.set_ylabel(r'Current [$\mu A$]')
+        ax.set_xlabel('Time [ms]')
+        ax.set_title(f'{self._of_base.channel_name} OF_1x2 Results')
+        lgd = ax.legend(loc='best')
+        ax.tick_params(which='both', direction='in', right=True, top=True)
+        ax.grid(linestyle='dotted')
+        fig.tight_layout()
+
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(xtime_ms, signal*1e6, label='Signal', color='k', alpha=0.5)
+
+        ax.plot(xtime_ms, signal*1e6-shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) , label='Signal minus delayed pulse', color='magenta', alpha=0.5)
+
+
+        ax.plot(xtime_ms, signal*1e6-shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse ), label='Signal minus prompt pulse', color='green', alpha=0.5)
+
 
         if xlim_msec is not None:
             ax.set_xlim(xlim_msec)
