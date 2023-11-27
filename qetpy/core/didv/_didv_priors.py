@@ -149,7 +149,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         
     @staticmethod
-    def _fitdidv(freq, didv, poles, priors, invpriorscov, p0, yerr=None):
+    def _fitdidv(freq, didv, poles, priors, invpriorscov, p0, yerr=None, bounds=None,):
         """
         Function to directly fit the small signal TES parameters with
         the knowledge of prior known values any number of the
@@ -225,7 +225,11 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             _neg_log_likelihood,
             p0,
         )
-        m.limits = (len(p0) - 1) * ((0, None), ) + ((None, None), )
+
+        if bounds is None:
+            m.limits = (len(p0) - 1) * ((None, None), ) + ((None, None), )
+        else:
+            m.limits = bounds
         m.errors = np.abs(p0)
         m.errordef = 0.5
 
@@ -303,7 +307,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
         return (*np.abs(p0[:-1]), p0[-1])
 
 
-    def dofit(self, poles, priors, priorscov, fcutoff=np.inf):
+    def dofit(self, poles, priors, priorscov, bounds=None, fcutoff=np.inf):
         """
         Class function to fit dIdV using the inputted priors. For best
         results, provide as many priors and corresponding prior
@@ -364,6 +368,7 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
             np.linalg.pinv(priorscov),
             p0=guess_new,
             yerr=self._didvstd[fit_freqs] * self._rsh,
+            bounds=bounds,
         )
 
         falltimes = DIDVPriors._findpolefalltimes(
