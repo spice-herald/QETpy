@@ -349,7 +349,7 @@ class OF1x2:
         nbins = len(signal)
 
         if self._of_base.pretrigger_samples==None:
-             pretrigger_samples = pretrigger_msec*fs/1e3
+             pretrigger_samples = self._of_base.pretrigger_msec*fs/1e3
 
         if self._of_base.pretrigger_samples is not None:
              pretrigger_samples = self._of_base.pretrigger_samples
