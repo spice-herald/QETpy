@@ -732,7 +732,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     
     return bias_parameter_dict
     
-def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibias, ibias_err, rsh, rp):
+def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
+                                                    i0, i0_err,
+                                                    ibias, ibias_err,
+                                                    rsh, rp):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     using the infinte loop gain approximation, where R0 = R_l - A + B
@@ -1454,7 +1457,7 @@ class _BaseDIDV(object):
         self._traces = self._traces[cut]
         didvs = didvs[cut]
 
-        means=np.mean(self._traces, axis=1)
+        means = np.mean(self._traces, axis=1)
 
         #store results
         self._tmean = np.mean(self._traces, axis=0)

@@ -1208,7 +1208,7 @@ class OFBase:
 
 
     
-    def get_energy_resolution(self,  template_tag='default'):
+    def get_amplitude_resolution(self,  template_tag='default'):
         """
         Method to return the energy resolution for the optimum filter.
         (resolution depends only on template and noise!) for a 
@@ -1236,7 +1236,15 @@ class OFBase:
         
         return sigma
 
+    def get_energy_resolution(self,  template_tag='default'):
+        """
+        Deprecated method name: point to get_amplitude_resolution
+        method
+        """
 
+        return self.get_amplitude_resolution(template_tag=template_tag)
+
+        
 
     
     def get_time_resolution(self, amp, template_tag='default'):
