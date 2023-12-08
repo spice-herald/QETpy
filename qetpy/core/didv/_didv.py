@@ -857,8 +857,15 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = None
         if calc_true_current:
 
+
+            # offset
+            offset = self._offset
+            if ('lgc_invert_offset' in ivsweep_results.keys()
+                and  ivsweep_results['lgc_invert_offset']):
+                offset = -offset
+            
             # calculate true i0
-            i0, i0_err = get_i0(self._offset, self._offset_err,
+            i0, i0_err = get_i0(offset, self._offset_err,
                                 ivsweep_results,
                                 output_variable_offset,
                                 close_loop_norm,
