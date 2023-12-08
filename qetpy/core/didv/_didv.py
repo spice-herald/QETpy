@@ -858,23 +858,24 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         if calc_true_current:
 
 
-            # offset
-            offset = self._offset
+            # was offset inverted
+            lgc_invert_offset = False
             if ('lgc_invert_offset' in ivsweep_results.keys()
                 and  ivsweep_results['lgc_invert_offset']):
-                offset = -offset
+                lgc_invert_offset = True
             
             # calculate true i0
-            i0, i0_err = get_i0(offset, self._offset_err,
+            i0, i0_err = get_i0(self._offset, self._offset_err,
                                 ivsweep_results,
                                 output_variable_offset,
                                 close_loop_norm,
                                 output_variable_gain,
-                                lgc_diagnostics)
+                                lgc_invert_offset=lgc_invert_offset,
+                                lgc_diagnostics=lgc_diagnostics)
     
             # calculate true ibias (QET bias)
             ibias, ibias_err = get_ibias(tes_bias, ivsweep_results,
-                                         lgc_diagnostics)
+                                         lgc_diagnostics=lgc_diagnostics)
 
         
             # recalculate v0, r0 with true current and store in dictionary

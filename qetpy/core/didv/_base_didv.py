@@ -380,7 +380,8 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 
 def get_i0(offset, offset_err, offset_dict, output_offset=None,
            closed_loop_norm=None, output_gain=1,
-           lgcdiagnostics=False):
+           lgc_invert_offset=False,
+           lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     through the TES from a didv_fitresult dictonary (which
@@ -412,7 +413,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         output_offset in units of volts to the equivilant value read in the DAQ in
         units of volts.
         
-    lgcdiagnostics : bool, optional
+    lgc_diagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
         
@@ -457,21 +458,21 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         if np.abs(delta_i_variable) > 1e-9:
             print(" ")
             print("----------------------------------------------------------------")
-            print("ALERT: Voltage offset has changed since the IV sweep used to")
-            print("generate the offsets_dict being used for this measurement!")
-            print("Biasparams, including i0, p0, and small signal parameters, including")
-            print("loopgain, are therefore suspect")
-            print("IV variable offset current: " + str(i0_variable_offset_sweep))
-            print("This dataset variable offset current: " + str(i0_variable_offset))
+            print("ALERT: Variable output voltage offset has changed since the IV sweep.")
+            print("Thus, it needs to be taken into account when calculating true I0!")
+            print("IV sweep variable offset [muAmps]: " + str(i0_variable_offset_sweep*1e6))
+            print("This dIdV dataset variable offset [muAmps]: " + str(i0_variable_offset*1e6))
             print("----------------------------------------------------------------")
             print(" ")
 
     # calculate new i0
-    current_didv = offset
+    current_didv = offset - delta_i_variable
+    if lgc_invert_offset:
+        current_didv = -current_didv
     current_err_didv = offset_err
-    i0 = current_didv - offset_dict['i0_off'] - delta_i_variable
+    i0 = current_didv - offset_dict['i0_off']
     
-    if lgcdiagnostics:
+    if lgc_diagnostics:
         print("Current as measured from dIdV: " + str(current_didv) + " amps")
         print("Variable current as meaured from metadata for this dIdV: " + str(offset_variable) + " amps")
         print(" ")
@@ -487,7 +488,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
     
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
     
-    if lgcdiagnostics:
+    if lgc_diagnostics:
         print(" ")
         print(" --------- ")
         print(" ")
@@ -500,7 +501,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
     
     return i0, i0_err
 
-def get_ibias(tes_bias, offset_dict, lgcdiagnostics=False):
+def get_ibias(tes_bias, offset_dict, lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     used to bias the TES from a metadata list
@@ -515,7 +516,7 @@ def get_ibias(tes_bias, offset_dict, lgcdiagnostics=False):
     offset_dict: dict
         Dictionary of offsets gotten from the IV sweep.
         
-    lgcdiagnostics : bool, optional
+    lgc_diagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
         
@@ -531,7 +532,7 @@ def get_ibias(tes_bias, offset_dict, lgcdiagnostics=False):
     ibias = tes_bias - offset_dict['ibias_off']
     ibias_err = offset_dict['ibias_off_err']
     
-    if lgcdiagnostics:
+    if lgc_diagnostics:
         print("Bias current from metadata: " + str(tes_bias) + " amps")
         print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
         print("True bias current: " + str(tes_bias) + " - " + str(offset_dict['ibias_off']) + 
