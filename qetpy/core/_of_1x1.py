@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import least_squares
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase

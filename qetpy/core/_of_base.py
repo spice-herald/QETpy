@@ -1,7 +1,7 @@
 import numpy as np
 from math import ceil, floor
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import shift, interpolate_of, argmin_chisq
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 
 __all__ = ['OFBase']
@@ -513,18 +513,16 @@ class OFBase:
         # FFT
         if  self._nbins is None:
             self._nbins = template.shape[0]
-            self._df = self._fs/self._nbins
-            self._fft_freqs = fftfreq(self._nbins, d=1.0/self._fs)
-            
         elif template.shape[0]!=self._nbins:
             raise ValueError('Inconsistent number of samples')
 
-        self._templates_fft[template_tag] = fft(template, axis=-1)/self._nbins/self._df
-      
+        self._df = self._fs/self._nbins
+        self._fft_freqs, template_fft = fft(template, self._fs, axis=-1)
+        self._templates_fft[template_tag] = template_fft/self._nbins/self._df
         
         if integralnorm:
             self._templates_fft[template_tag]  /= self._templates_fft[template_tag][0]
-
+            
         # pre-trigger
         if self._pretrigger_samples  is None:
             self._pretrigger_samples = self._nbins//2
@@ -675,7 +673,8 @@ class OFBase:
         self._signal = signal
 
         # FFT
-        self._signal_fft = fft(signal, axis=-1)/self._nbins/self._df
+        f, signal_fft = fft(signal, self._fs, axis=-1)
+        self._signal_fft = signal_fft/self._nbins/self._df
        
         
         if calc_signal_filt or calc_signal_filt_td:

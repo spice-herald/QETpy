@@ -3,9 +3,7 @@ import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
-
-from qetpy.utils import resample_data
+from qetpy.utils import resample_data, fft, fftfreq
 
 
 __all__ = [

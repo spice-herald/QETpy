@@ -13,6 +13,7 @@ __all__ = [
     "get_didv_template",
     "get_phonon_template",
     "get_energy_normalization",
+    "get_simple_energy_normalization"
 ]
 
 """
