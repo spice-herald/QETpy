@@ -2,8 +2,7 @@ import warnings
 import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
-
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import resample_data
 
 
@@ -14,7 +13,8 @@ __all__ = [
     "squarewaveresponse",
     "get_i0",
     "get_ibias",
-    "get_tes_bias_parameters_dict"
+    "get_tes_bias_parameters_dict",
+    "get_tes_bias_parameters_dict_infinite_loop_gain"
 ]
 
 
@@ -462,6 +462,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
             print("Thus, it needs to be taken into account when calculating true I0!")
             print("IV sweep variable offset [muAmps]: " + str(i0_variable_offset_sweep*1e6))
             print("This dIdV dataset variable offset [muAmps]: " + str(i0_variable_offset*1e6))
+            print("RESULTS MAY NOT BE ACCURATE IF GAIN/OFFSET NON LINEARITIES!")
             print("----------------------------------------------------------------")
             print(" ")
 
@@ -1023,7 +1024,8 @@ class _BaseDIDV(object):
 
         # get the frequencies for a DFT, based on the sample rate of the data
         dx = x[1]-x[0]
-        freq = fftfreq(len(x), d=dx)
+        fs = 1/dx
+        freq = fftfreq(len(x), fs)
 
         # didv of fit in frequency space
         ci = _BaseDIDV._threepoleadmittance(freq, A, B, C, tau1, tau2, tau3)
@@ -1078,10 +1080,10 @@ class _BaseDIDV(object):
         # get the frequencies for a DFT,
         # based on the sample rate of the data
         dx = x[1]-x[0]
-        freq = fftfreq(len(x), d=dx)
-
+        fs = 1/dx
+      
         # FFT of the trace
-        st = fft(trace)
+        freq, st = fft(trace, fs)
 
         # analytic DFT of a duty cycled square wave
         sf = np.zeros_like(freq)*0.0j

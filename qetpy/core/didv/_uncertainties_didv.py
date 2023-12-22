@@ -1514,7 +1514,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
         If True, plots the absolute value of dVdI with the
         uncertainty in dVdI 
 
-	lgc_loopgain_diagnostics: bool, optioal
+     lgc_loopgain_diagnostics: bool, optioal
 		If True, prints out diagnostics for figuring out if there are
 		potential issues with the loopgain. Prints out the loopgain,
 		beta, and r0 with uncertainties, then r0 from the dIdV under

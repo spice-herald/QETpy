@@ -1,12 +1,10 @@
 import numpy as np
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
-
 from ._base_didv import _BaseDIDV, complexadmittance, get_i0, get_ibias
 from ._base_didv import get_tes_bias_parameters_dict, get_tes_bias_parameters_dict_infinite_loop_gain
 from ._plot_didv import _PlotDIDV
 from ._uncertainties_didv import get_smallsignalparams_cov, get_smallsignalparams_sigmas
-
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 
 __all__ = [
@@ -101,8 +99,8 @@ def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
         didvobj._dt0 = didvobj._dt0 + 1 / (2 * didvobj._sgfreq)
 
     didvobj._time = np.arange(len(tmean)) / fs - didvobj._dt0
-    didvobj._freq = np.fft.fftfreq(len(tmean), d=1.0 / fs)
-
+    didvobj._freq = fftfreq(len(tmean), fs)
+    
     nbins = len(didvobj._tmean)
     nperiods = np.floor(nbins*didvobj._sgfreq/didvobj._fs)
 
@@ -515,9 +513,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             self.processtraces()
 
         fit_freqs = np.abs(self._freq) < fcutoff
-
-
-        
+             
         # 1-Pole fit
         if poles==1:
             
@@ -569,6 +565,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # Convert to didv falltimes
             falltimes1 = DIDV._findpolefalltimes(fitparams1)
 
+            # cost: divide by NDOF
+            fitcost1 /= (np.sum(fit_freqs)-len(fitparams1))
+            
             # store as dictionary
             self._1poleresult = DIDV._fitresult(
                 poles,
@@ -652,6 +651,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 xtol=xtol,
             )
 
+            # cost: divide by NDOF
+            fitcost2 /= (np.sum(fit_freqs)-len(fitparams2))
             
             # Convert to didv falltimes
             falltimes2 = DIDV._findpolefalltimes(fitparams2)
@@ -765,6 +766,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 xtol=xtol,
             )
 
+            # cost: divide by NDOF
+            fitcost3 /= (np.sum(fit_freqs)-len(fitparams3))
+            
+
+            
             # Convert to didv falltimes
             falltimes3 = DIDV._findpolefalltimes(fitparams3)
 
@@ -857,7 +863,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = None
         if calc_true_current:
 
-
             # was offset inverted
             lgc_invert_offset = False
             if ('lgc_invert_offset' in ivsweep_results.keys()
@@ -896,7 +901,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
                 params =  self._3poleresult['params']
                 cov =  self._3poleresult['cov']
-                
+
                 biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(
                     params, cov,
                     i0, i0_err, ibias, ibias_err, self._rsh, rp

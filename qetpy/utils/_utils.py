@@ -35,6 +35,9 @@ __all__ = [
     "interpolate_of",
     "argmin_chisq",
     "fft",
+    "ifft",
+    "fftfreq",
+    "rfftfreq",
     "energy_resolution",
 ]
 
@@ -1150,11 +1153,11 @@ def fft(vals, fs, axis=-1):
     Return
     ----------
     
+    freqs :  nd numpy array
+       Frequency array associated with FFT
+
     fft :  nd numpy array
        Fourier transformed data
-
-    fft_freqs :  nd numpy array
-       Frequency array associated with FFT
 
     """
 
@@ -1169,25 +1172,73 @@ def fft(vals, fs, axis=-1):
                          ' a numpy array')
     # calculate fft
     fft_out = []
-    fft_freqs_out = []
+    freqs = []
     if FFT_MODULE == 'scipy':
         fft_out = sp.fft.fft(vals, axis=axis, norm=None)
-        fft_freqs_out = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+        freqs = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     elif FFT_MODULE == 'numpy':
         fft_out = np.fft.fft(vals, axis=axis, norm=None)
-        fft_freqs_out = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+        freqs = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     else:
         raise ValueError(
             'ERROR: only module="scipy" or "numpy" supported!'
         )
         
-    return fft_out, fft_freqs_out
+    return freqs, fft_out
+
+
+
+def ifft(vals, axis=-1):
+    """
+    Compute the 1-D inverse discrete Fourier Transform.
+ 
+    Parameters
+    ----------
+    vals : nd numpy array 
+      array of values frequency domain, 2-sides
+   
+    axis : int
+     axis over which to compute the inverse DFT. If not given, 
+     the last axis is used.
+
+
+    Return
+    ----------
+    
+    arr :  nd numpy array
+     The truncated or zero-padded input, transformed along the axis indicated by axis, 
+     or the last one if axis is not specified.
+ 
+    
+    """
+
+    # module (scipy or numpy)
+    # this is hard coded here on purpose so everyone is
+    # using same module
+  
+    
+    # check if vals are numpy array
+    if not isinstance(vals, np.ndarray):
+        raise ValueError('ERROR: first parameter should be '
+                         ' a numpy array')
+    # calculate ifft
+    arr_out = []
+    if FFT_MODULE == 'scipy':
+        arr_out = sp.fft.ifft(vals, axis=axis, norm=None)
+    elif FFT_MODULE == 'numpy':
+        arr_out = np.fft.ifft(vals, axis=axis, norm=None)
+    else:
+        raise ValueError(
+            'ERROR: only module="scipy" or "numpy" supported!'
+        )
+        
+    return arr_out
 
 
 
 def fftfreq(nbins, fs):
     """
-    Calculate 1D FFT frequency array
+    Calculate 1D FFT frequency array two-sided
    
  
     Parameters
@@ -1202,7 +1253,7 @@ def fftfreq(nbins, fs):
     ----------
 
     fft_freqs :  nd numpy array
-       Frequency array associated with FFT
+       Frequency array associated with FFT (two-sided)
 
     """
 
@@ -1219,13 +1270,45 @@ def fftfreq(nbins, fs):
     return fft_freqs_out
 
 
+def rfftfreq(nbins, fs):
+    """
+    Calculate 1D FFT frequency array one-sided
+   
+ 
+    Parameters
+    ----------
+    nbins : int 
+      number of samples
+
+    fs : sample rate 
+      data taking sample rate 
+
+    Return
+    ----------
+
+    fft_freqs :  nd numpy array
+       Frequency array associated with FFT (one-sided)
+
+    """
+
+    fft_freqs_out = []
+    if FFT_MODULE == 'scipy':
+        fft_freqs_out = sp.fft.rfftfreq(nbins, d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_freqs_out = np.fft.rfftfreq(nbins, d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only FFT_MODULE="scipy" or "numpy" supported!'
+        )
+        
+    return fft_freqs_out
 
 
 
 def energy_resolution(psd, template,  dpdi, fs,
                       collection_eff=1):
     """
-    Calculate energy resolution based on input psd [A/sqrt(Hz)]
+    Calculate energy resolution based on input psd [Amps^2/Hz]
     (double sided psd), template, and dpdi 
    
     Parameters
@@ -1259,19 +1342,27 @@ def energy_resolution(psd, template,  dpdi, fs,
     if psd.shape != dpdi.shape:
         raise ValueError("ERROR: dPdI should have same length as psd and template!")
 
+    # normalize template
+    template = template/np.max(template)
+
+    
     # template fft
     nbins  = template.shape[-1]
     df = fs/nbins
-    p_w, freqs = fft(template, fs, axis=-1)
-    p_w = (p_w/nbins/df)**2
+    f, p_w = fft(template, fs, axis=-1)
+    p_w = p_w/nbins/df
     p_w = p_w/p_w[0]
 
+
+    # set zero frequency bin of the be ignored (i.e. set to infinity)
+    psd[0] = np.inf
+    
     # convert psd in W^2/Hz
     sp_w = psd*(np.abs(dpdi)**2)
 
-    # integrate   
-    omega = 2*np.pi*freqs
-    integrand = 2*np.abs(p_w)**2/(np.pi*sp_w)
+    # integrate
+    omega = 2*np.pi*f
+    integrand = 4*np.abs(p_w)**2/(2*np.pi*sp_w)
     sigma_square =  1/(np.trapz(integrand, x=omega)*collection_eff**2)
 
     # convert to energy resolution in eV

@@ -507,6 +507,10 @@ class OFBase:
 
         """
 
+        # normalize template
+        template = template/np.max(template)
+
+        
         # add to dictionary
         self._templates[template_tag] = template
 

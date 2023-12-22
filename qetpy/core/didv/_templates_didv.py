@@ -3,7 +3,7 @@ import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 from qetpy.utils import resample_data
 from qetpy.core.didv._uncertainties_didv import _get_dPdI_3, get_dPdI_with_uncertainties
@@ -121,7 +121,8 @@ def get_didv_template(time_arr, event_time, didv_result, lgcplot=False):
         The calculated dIdV template.
     
     """
-    freqs = fftfreq(len(time_arr)*2, time_arr[1] - time_arr[0])
+    fs = 1/(time_arr[1] - time_arr[0])
+    freqs = fftfreq(len(time_arr)*2, fs)
     p_frequency = _p_delta_frequency(freqs, event_time)
     
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=lgcplot)
@@ -181,8 +182,8 @@ def get_phonon_template(time_arr, event_time, didv_result, phonon_fall, phonon_r
         The calculated dIdV template.
         
     """
-    
-    freqs = fftfreq(len(time_arr)*2, time_arr[1] - time_arr[0])
+    fs = 1/(time_arr[1] - time_arr[0])
+    freqs = fftfreq(len(time_arr)*2, fs)
     p_frequency = _p_pulse_frequency(freqs, event_time, phonon_rise, phonon_fall, lgcplot=lgcplot)
     
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=lgcplot)
@@ -249,15 +250,13 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
         of eV/amp or Joules/amp.
         
     """
-    one_over_fs = time_arr[1] - time_arr[0]
-    freqs = fftfreq(len(time_arr), one_over_fs)
-    
-    i_freqs = fft(template)
+    fs = 1/(time_arr[1]-time_arr[0])
+    freqs, i_freqs = fft(template, fs)
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
     p_freqs = i_freqs*dpdi
     
     if filter_freq is not None:
-        freq_spacing=freqs[1] - freqs[0]
+        freq_spacing = freqs[1] - freqs[0]
         filter_index = int(filter_freq/freq_spacing)
         print("Filter index: " + str(filter_index))
         filter_arr = np.zeros(len(p_freqs))
@@ -266,7 +265,7 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
         p_freqs = p_freqs * filter_arr
     
     p_time = ifft(p_freqs)
-    integral = one_over_fs * np.abs(sum(p_time))
+    integral = np.abs(sum(p_time))/fs
     
     if lgc_plot:
         plt.plot(time_arr, template)
