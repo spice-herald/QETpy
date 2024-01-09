@@ -369,11 +369,12 @@ class Noise(object):
             raise ValueError("Need more than one channel to calculate csd")
 
         lencsd = traceshape[2]
+        nfreqs = lencsd
       
-        if lencsd % 2 != 0:
-            nfreqs = int((lencsd + 1)/2)
-        else:
-            nfreqs = int(lencsd/2 + 1)
+        #if lencsd % 2 != 0:
+        #    nfreqs = int((lencsd + 1)/2)
+        #else:
+        #    nfreqs = int(lencsd/2 + 1)
        
         nrows = traceshape[1]
         ntraces = traceshape[0]
@@ -389,7 +390,8 @@ class Noise(object):
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
                 _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
-                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd )            
+                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,
+                                            return_onesided=False)            
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
