@@ -98,12 +98,14 @@ class PhotonCalibration:
         self.freqs = None
         self.mean_i_t_dict = {}
         self.mean_i_f_dict = {}
+        self.psd_i_dict = {}
         self.std_i_f_dict = {}
         
         self.dpdi = None
         self.dpdi_err = None
         self.mean_p_t_dict = {}
         self.mean_p_f_dict = {}
+        self.psd_p_dict = {}
         self.std_p_f_dict = {}
         
         self.fixed_vars_dict = {}
@@ -1217,7 +1219,7 @@ class PhotonCalibration:
         while k < len(photon_peak_numbers):
             photon_peak_number = photon_peak_numbers[k]
             
-            traces_i_t = self.photon_traces_dict[photon_peak_number]
+            traces_i_t = np.asarray(self.photon_traces_dict[photon_peak_number])
             
             traces_i_f = []
             i = 0
@@ -1227,7 +1229,8 @@ class PhotonCalibration:
                 i += 1
             traces_i_f = np.asarray(traces_i_f)
             
-            means_arr = []
+            means_arr_real = []
+            means_arr_imag = []
             stds_arr = []
             i = 0
             while i < len(traces_i_f[0]):
@@ -1236,17 +1239,21 @@ class PhotonCalibration:
                 while j < len(traces_i_f):
                     values_arr.append(traces_i_f[j][i])
                     j += 1
-                means_arr.append(np.mean(values_arr))
+                values_arr = np.asarray(values_arr)
+                means_arr_real.append(np.mean((values_arr.real)))
+                means_arr_imag.append(np.mean((values_arr.imag)))
                 stds_arr.append(stdcomplex(values_arr)/np.sqrt(len(traces_i_f)))
                 i += 1
             
-            means_arr = np.asarray(means_arr)
+            means_arr = np.asarray(means_arr_real) + 1.0j * np.asarray(means_arr_imag)
             stds_arr = np.asarray(stds_arr)
             stds_arr_real = stds_arr.real
             stds_arr_imag = stds_arr.imag
             
             
             self.mean_i_f_dict[photon_peak_number] = means_arr
+            #self.mean_i_f_dict[photon_peak_number] = fft(self.mean_i_t_dict[photon_peak_number])/np.sqrt(len(self.mean_i_t_dict[photon_peak_number]) * self.fs)
+            self.psd_i_dict[photon_peak_number] = np.sqrt(np.mean(np.abs(fft(traces_i_t))**2.0, axis=0))/np.sqrt(len(traces_i_t[0]) * self.fs)
             self.std_i_f_dict[photon_peak_number] = stds_arr_real + 1.0j*stds_arr_imag
             
             mean_p_f = means_arr * self.dpdi
@@ -1261,6 +1268,7 @@ class PhotonCalibration:
             
             self.mean_p_t_dict[photon_peak_number] = -1*mean_p_t
             self.mean_p_f_dict[photon_peak_number] = -1*mean_p_f
+            self.psd_p_dict[photon_peak_number] = self.dpdi*np.abs(self.psd_i_dict[photon_peak_number])
             self.std_p_f_dict[photon_peak_number] = std_p_f
         
             k += 1
@@ -1282,7 +1290,7 @@ class PhotonCalibration:
             plt.xscale('log')
             plt.yscale('log')
             plt.xlabel('Frequency (Hz)')
-            plt.ylabel("Mean Trace Current PSD (A/rt(Hz))")
+            plt.ylabel("Mean Trace Current PSD (A/rt(Hz)), Unfolded")
             plt.legend()
             plt.grid()
             plt.title("Current Domain Calibration Pulse PSDs")
@@ -1303,7 +1311,7 @@ class PhotonCalibration:
             plt.xscale('log')
             plt.yscale('log')
             plt.xlabel('Frequency (Hz)')
-            plt.ylabel("Mean Trace Power PSD (W/rt(Hz))")
+            plt.ylabel("Mean Trace Power PSD (W/rt(Hz)), Unfolded")
             plt.legend()
             plt.grid()
             plt.title("Power Domain Calibration Pulse PSDs")
@@ -2296,6 +2304,16 @@ class PhotonCalibration:
                 height_unscaled_list_element.append(amp_3_err)
                 
                 headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err', 'Height 3', 'Height 3 Err']
+            elif self.template_model == 'deltapulse':
+                amp_1, amp_2, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_2_err, rise_err = pstds
+                
+                height_unscaled_list_element.append(amp_1)
+                height_unscaled_list_element.append(amp_1_err)
+                height_unscaled_list_element.append(amp_2)
+                height_unscaled_list_element.append(amp_2_err)
+                
+                headers_ = ['Photon Peak', 'Height 1 (Delta)', 'Height 1 Err (Pulse)', 'Height 2', 'Height 2 Err']
             height_unscaled_list.append(height_unscaled_list_element)
             i += 1
                 
@@ -2342,6 +2360,17 @@ class PhotonCalibration:
                 height_scaled_list_element.append(amp_3_err/i)
                 
                 headers_ = ['Photon Peak', 'Height 1', 'Height 1 Err', 'Height 2', 'Height 2 Err', 'Height 3', 'Height 3 Err']
+
+            elif self.template_model == 'deltapulse':
+                amp_1, amp_2, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_2_err, rise_err = pstds
+                
+                height_scaled_list_element.append(amp_1/i)
+                height_scaled_list_element.append(amp_1_err/i)
+                height_scaled_list_element.append(amp_2/i)
+                height_scaled_list_element.append(amp_2_err/i)
+                
+                headers_ = ['Photon Peak', 'Height 1 (Delta)', 'Height 1 Err', 'Height 2 (Pulse)', 'Height 2 Err']
             height_scaled_list.append(height_scaled_list_element)
             i += 1
                 
@@ -2393,6 +2422,17 @@ class PhotonCalibration:
                 fall_times_list_element.append(rise_err*1e6)
                 
                 headers_ = ['Photon Peak', 'Fall 1 (us)', 'Fall 1 Err (us)', 'Fall 2 (us)', 'Fall 2 Err (us)', 'Fall 3 (us)', 'Fall 3 Err (us)', 'Rise (us)', 'Rise Err (us)']
+
+            elif self.template_model == 'deltapulse':
+                amp_1, amp_2, fall_2, rise = popt
+                amp_1_err, amp_2_err, fall_2_err, rise_err = pstds
+                
+                fall_times_list_element.append(fall_2*1e6)
+                fall_times_list_element.append(fall_2_err*1e6)
+                fall_times_list_element.append(rise*1e6)
+                fall_times_list_element.append(rise_err*1e6)
+                
+                headers_ = ['Photon Peak', 'Fall 2 (us)', 'Fall 2 Err (us)', 'Rise (us)', 'Rise Err (us)']
             fall_times_list.append(fall_times_list_element)
             i += 1
                 
