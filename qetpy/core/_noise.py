@@ -359,9 +359,15 @@ class Noise(object):
         self.corrnoise = corrnoise
         self.uncorrnoise = uncorrnoise
         
-    def calculate_csd(self):
+    def calculate_csd(self, twosided=False):
         """
         Calculates the csd for each channel in traces. Stores csd in self.csd
+        
+        Parameters
+        ----------
+        twosided : boolean, optional
+            If True, calculates the twosided CSD, otherwise defaults to the onesided
+            calculation that Sam's code expects.
         """
         
         traceshape = self.traces.shape
@@ -391,7 +397,7 @@ class Noise(object):
             for n in range(ntraces):
                 _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
                                            , nperseg = lencsd, fs = self.fs, nfft = lencsd,
-                                            return_onesided=False)            
+                                            return_onesided=(not twosided)            
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
