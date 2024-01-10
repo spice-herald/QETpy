@@ -26,6 +26,7 @@ __all__ = [
     "shift",
     "make_template",
     "make_template_twopole",
+    "make_template_sum_twopoles",
     "make_template_threepole",
     "make_template_fourpole",
     "estimate_g",
@@ -364,7 +365,72 @@ def make_template_twopole(t, A=None, tau_r=None, tau_f=None,
         pulse = pulse/pulse.max()
 
     return pulse
+
+
+def make_template_sum_twopoles(t, amplitudes, rise_times, fall_times,
+                               t0=None, fs=None,
+                               normalize=True):
+    """
+    Functional form of pulse in time domain as sum of "twopole"
+    template. The number of twopole templates is determined by length of list.
+
+    
+    Parameters
+    ----------
+    t : ndarray
+        Array of time values to make the pulse with
+    amplitudes : array like of float
+        Amplitude parameters of each two-pole pulses.
+    rise_times : array like of float
+        Rise time of each two-pole pulses
+    fall_times : array like of float
+        Fall time of each two-pole pulses
+    t0 : float, optional
+        Time offset of two pole pulse
+            default: 1/2 trace
+    fs :  float, required if t0 not None
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
+
+    Returns
+    -------
+    pulse : ndarray
+        Array of amplitude valuse
+
+    """
+
+    # check 
+
+    if (len(amplitudes) != len(rise_times)
+        or len(amplitudes) != len(fall_times)):
+        raise ValueError('ERROR: array of two-pole pulse parameters '
+                         'should be same length!')
+    
+    
+    nb_twopoles = len(amplitudes)
+    pulse = np.zeros(len(t))
+
+    for ipulse in range(nb_twopoles):
+
+        pulse_ind = make_template_twopole(
+            t,
+            A=1.0,
+            tau_r=rise_times[ipulse],
+            tau_f=fall_times[ipulse],
+            t0=t0, fs=fs) * amplitudes[ipulse]
+
+        pulse = pulse + pulse_ind
         
+    # normalize
+    if normalize:
+        pulse = pulse/pulse.max()
+
+    
+    return pulse
+    
+    
+
 
 def make_template_threepole(t, A, B, tau_r, tau_f1, tau_f2,
                             t0=None, fs=None,
