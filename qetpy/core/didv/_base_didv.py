@@ -449,11 +449,10 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
 
         # current IV variable offset
         i0_variable_offset = output_offset * output_gain/closed_loop_norm
-
-
+       
         # delta variable offset
         delta_i_variable = i0_variable_offset - i0_variable_offset_sweep
-
+       
         #alerts user when the current offset changed
         if np.abs(delta_i_variable) > 1e-9:
             print(" ")
@@ -734,30 +733,25 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     
     return bias_parameter_dict
     
-def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
-                                                    i0, i0_err,
+def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
                                                     ibias, ibias_err,
                                                     rsh, rp):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
-    using the infinte loop gain approximation, where R0 = R_l - A + B
+    using the infinte loop gain approximation
     
     Parameters
     ----------
     
+    poles : int 
+        the number of poles of the dIdV fit
+
     params : dict
         The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
-        
+               
     cov : matrix
         The covariance matrix for the params, starting with the A, B
         components.
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
         
     ibias: float
         The bias current applied to the TES/shunt system
@@ -779,12 +773,24 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
         v0, and p0
         
     """
-    
+
+    if (poles !=2 and poles !=3):
+        raise ValueError('ERROR: Number of poles should be 2 or 3!')
+
+    # Rload
     rl = rp + rsh
-    
-    r0 = rl - params['A'] - params['B']
-    
-    r0_jac = np.asarray([1, 1, 0, 0, 0, 0, 0])
+
+    # r0
+    dvdi0 = None
+    r0_jac = None
+    if poles == 2:
+        dvdi0 =  params['A'] +  params['B']
+        r0_jac = np.asarray([1, 1, 0, 0, 0])
+    else:
+        dvdi0 =  params['A'] + params['B']/(1-params['C'])
+        r0_jac = np.asarray([1, 1, 1, 0, 0, 0, 0])
+        
+    r0 = abs(dvdi0) + rl
     r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
     
     i0_ = ibias * rsh / (r0 + rl)
@@ -965,7 +971,6 @@ class _BaseDIDV(object):
         2-pole fit.
 
         """
-
         dvdi = (A*(1.0+2.0j*pi*freq*tau2))+(B/(1.0+2.0j*pi*freq*tau1))
         return dvdi
 
