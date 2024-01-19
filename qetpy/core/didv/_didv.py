@@ -805,6 +805,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 output_variable_gain=None,
                                 output_variable_offset=None,
                                 inf_loop_gain_approx='auto',
+                                lgc_verbose=True,
                                 lgc_diagnostics=False):
         """
         Calculate small signal parametres and their uncertainties 
@@ -845,7 +846,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
  
         # check other parameterts if calc_true_current is True
         if calc_true_current:
-            
+
             # variable offset (check other name for back compatibility)
             if ('i0_variable_offset' not in ivsweep_results
                 and 'i0_changable_offset' not in ivsweep_results):
@@ -870,7 +871,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         ibias_err = 0
         
         if calc_true_current:
+            
+            if lgc_verbose:
+                print(f'INFO: Calculating true current!')
 
+                      
             # was offset inverted
             lgc_invert_offset = False
             if ('lgc_invert_offset' in ivsweep_results.keys()
@@ -926,13 +931,23 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             biasparams_dict_2poles =  biasparams_dict.copy()
         
             # check if infinite loop gain needs to be done
-            set_infinite_loop_gain = False
-            if (inf_loop_gain_approx == 'auto'
-                and self._2poleresult['smallsignalparams']['l'] < 0):
-                set_infinite_loop_gain = True
+            set_infinite_loop_gain = inf_loop_gain_approx
+            if inf_loop_gain_approx == 'auto':
                 
+                if self._2poleresult['smallsignalparams']['l'] < 0:
+                    if lgc_verbose:
+                        print('INFO: Loop gain is negative for 2-poles fit. '
+                              'Will use infinite loop gain approximation!')
+                    set_infinite_loop_gain = True
+                else:
+                    set_infinite_loop_gain = False
+                    
             if set_infinite_loop_gain:
-                
+
+                if lgc_verbose:
+                    print('INFO: Calculating bias parameters with infinite loop gain '
+                          'approximation for 2-poles fit!')
+                                
                 params =  self._2poleresult['params']
                 cov =  self._2poleresult['cov']
 
@@ -957,13 +972,24 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             biasparams_dict_3poles =  biasparams_dict.copy()
             
             # check if infinite loop gain needs to be done
-            set_infinite_loop_gain = False
-            if (inf_loop_gain_approx == 'auto'
-                and self._3poleresult['smallsignalparams']['l'] < 0):
-                set_infinite_loop_gain = True
+            set_infinite_loop_gain = inf_loop_gain_approx
+            if inf_loop_gain_approx == 'auto':
                 
+                if self._3poleresult['smallsignalparams']['l'] < 0:
+                    if lgc_verbose:
+                        print('INFO: Loop gain is negative for 3-poles fit. '
+                              'Will use infinite loop gain approximation!')
+                    set_infinite_loop_gain = True
+                else:
+                    set_infinite_loop_gain = False
+                    
             if set_infinite_loop_gain:
-            
+                
+                if lgc_verbose:
+                    print('INFO: Calculating bias parameters with infinite loop gain '
+                          'approximation for 3-poles fit!')
+                
+                
                 params =  self._3poleresult['params']
                 cov =  self._3poleresult['cov']
 

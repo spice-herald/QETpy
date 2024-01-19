@@ -793,16 +793,16 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
     r0 = abs(dvdi0) + rl
     r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
     
-    i0_ = ibias * rsh / (r0 + rl)
-    i0_err_ = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
+    i0 = ibias * rsh / (r0 + rl)
+    i0_err = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
     
     
-    v0, v0_err = _get_v0(i0_, i0_err_, ibias, ibias_err, rsh, rp)
-    p0, p0_err = _get_p0(i0_, i0_err_, v0, v0_err)
+    v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
+    p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
     
     bias_parameter_dict = {
-        'i0': i0_,
-        'i0_err': i0_err_,
+        'i0': i0,
+        'i0_err': i0_err,
         'v0': v0,
         'v0_err': v0_err,
         'r0': r0,
