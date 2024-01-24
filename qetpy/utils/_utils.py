@@ -1375,7 +1375,7 @@ def energy_resolution(psd, template,  dpdi, fs,
                       collection_eff=1):
     """
     Calculate energy resolution based on input psd [Amps^2/Hz]
-    (double sided psd), template, and dpdi 
+    (two-sided psd), template, and dpdi 
    
     Parameters
     ----------
@@ -1427,9 +1427,10 @@ def energy_resolution(psd, template,  dpdi, fs,
     sp_w = psd*(np.abs(dpdi)**2)
 
     # integrate
-    omega = 2*np.pi*f
-    integrand = 4*np.abs(p_w)**2/(2*np.pi*sp_w)
-    sigma_square =  1/(np.trapz(integrand, x=omega)*collection_eff**2)
+    domega = 2*np.pi*df
+    integrand = np.abs(p_w)**2/(2*np.pi*sp_w)
+    sigma_square = 1/(np.sum(integrand*domega)*collection_eff**2)
+    
 
     # convert to energy resolution in eV
     energy_res = np.sqrt(sigma_square)/constants.e
