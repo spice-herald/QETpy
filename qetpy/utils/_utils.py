@@ -1203,7 +1203,7 @@ def argmin_chisq(chisq,
     return bestind
 
 
-def fft(vals, fs, axis=-1):
+def fft(vals, fs=None, axis=-1):
     """
     Calculate 1D FFT and frequency array
  
@@ -1212,15 +1212,16 @@ def fft(vals, fs, axis=-1):
     vals : nd numpy array 
       array of values in time domain
    
-    fs : sample rate 
-      data taking sample rate 
-
+    fs : float  (optional)
+      data taking sample rate
+      if not None: freqs are returned
 
     Return
     ----------
     
     freqs :  nd numpy array
-       Frequency array associated with FFT
+       Frequency array associated with FFT (if fs
+       argument is not None)
 
     fft :  nd numpy array
        Fourier transformed data
@@ -1238,19 +1239,24 @@ def fft(vals, fs, axis=-1):
                          ' a numpy array')
     # calculate fft
     fft_out = []
-    freqs = []
+    freqs = None
     if FFT_MODULE == 'scipy':
         fft_out = sp.fft.fft(vals, axis=axis, norm=None)
-        freqs = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+        if fs is not None:
+            freqs = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     elif FFT_MODULE == 'numpy':
         fft_out = np.fft.fft(vals, axis=axis, norm=None)
-        freqs = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+        if fs is not None:
+            freqs = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     else:
         raise ValueError(
             'ERROR: only module="scipy" or "numpy" supported!'
         )
-        
-    return freqs, fft_out
+
+    if freqs is  None:
+        return fft_out
+    else:
+        return freqs, fft_out
 
 
 
@@ -1372,7 +1378,8 @@ def rfftfreq(nbins, fs):
 
 
 def energy_resolution(psd, template,  dpdi, fs,
-                      collection_eff=1):
+                      collection_eff=1,
+                      lgc_current_template=False):
     """
     Calculate energy resolution based on input psd [Amps^2/Hz]
     (two-sided psd), template, and dpdi 
@@ -1385,6 +1392,9 @@ def energy_resolution(psd, template,  dpdi, fs,
     
     template : numpy 1D  or 2D array[channel, samples]
         template trace in time domain, same length as psd
+        if lgc_current_template is False (default) it is 
+        considered a power template, if lgc_current_template is 
+        True then it is a current template.
     
     dpdi : numpy 1D or 2D array [channel, samples]
         dPdI evaluated at the frequencies passed to the dPdI function
@@ -1395,6 +1405,12 @@ def energy_resolution(psd, template,  dpdi, fs,
 
     collection_eff:
         Efficiency (percentage) of phonon collection within the detector. Default is 1.
+
+    lgc_current_template : bool (optional)
+        If True, the template is in current rather than than power and is converted to 
+        power using dpdi
+        Default: False (power template so no conversion needed)
+
   
     returns:
     ---------
@@ -1407,6 +1423,11 @@ def energy_resolution(psd, template,  dpdi, fs,
                          "double sided?")
     if psd.shape != dpdi.shape:
         raise ValueError("ERROR: dPdI should have same length as psd and template!")
+
+
+    # convert template to power template
+    if lgc_current_template:
+        template  = convert_template_to_power(template, dpdi)
 
     # normalize template
     template = template/np.max(template)
