@@ -5,7 +5,6 @@ from scipy import ndimage
 from sympy.ntheory import factorrat
 from sympy.core.symbol import S
 
-
 # global variable for the fft, fftfreq and
 # ifft functions
 FFT_MODULE = 'scipy'
@@ -39,7 +38,7 @@ __all__ = [
     "ifft",
     "fftfreq",
     "rfftfreq",
-    "energy_resolution",
+    "energy_resolution"
 ]
 
 
@@ -1391,7 +1390,7 @@ def energy_resolution(psd, template,  dpdi, fs,
         double sided PSD in units of Amps^2/Hz
     
     template : numpy 1D  or 2D array[channel, samples]
-        template trace in time domain, same length as psd
+        (power) template trace in time domain, same length as psd
         if lgc_current_template is False (default) it is 
         considered a power template, if lgc_current_template is 
         True then it is a current template.
@@ -1424,10 +1423,14 @@ def energy_resolution(psd, template,  dpdi, fs,
     if psd.shape != dpdi.shape:
         raise ValueError("ERROR: dPdI should have same length as psd and template!")
 
+    # number of bins
+    nbins = template.shape[-1]
+
 
     # convert template to power template
     if lgc_current_template:
-        template  = convert_template_to_power(template, dpdi)
+        template_power_fft = fft(template)*dpdi
+        template = -1.0*ifft(template_power_fft)
 
     # normalize template
     template = template/np.max(template)

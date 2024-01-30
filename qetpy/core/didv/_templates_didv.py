@@ -3,6 +3,8 @@ import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
+from scipy.signal import unit_impulse
+
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 from qetpy.utils import resample_data
@@ -211,7 +213,10 @@ def get_phonon_template(time_arr, event_time, didv_result, phonon_fall,
     
     return i_time
     
-def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
+
+def get_energy_normalization(time_arr, template,
+                             didv_result=None, dpdi=None,
+                             lgc_ev=True,
                              lgc_plot=False, filter_freq=None):
     """
     Calculates the normalization of an OFAmp (in current units) into
@@ -226,12 +231,17 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
     template: array
         The time domain template used with the optimuim filter.
         
-    didv_result
+    didv_result (optional)
         A result gotten from a dIdV fit that includes a biasparams 
         dict calculated from didvfit.dofit_with_true_current which 
         in turn requires having calculated an offset_dict from an
         IV sweep, a metadata array, and a channel name string.
-        
+   
+    dpdi : 1D numpy array (optional)
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as template
+        Argument required if didv_result is None
+   
     lgc_ev: bool, optional
         If True, returns the normalization in units of eV/amp, otherwise
         returns the normalization in units of Joules/amp.
@@ -253,9 +263,17 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
         of eV/amp or Joules/amp.
         
     """
+
+    # check arguement
+    if (dpdi is None and didv_result is None):
+        raise ValueError('ERROR: "dpdi" or "didv_result" required!')
+    
     fs = 1/(time_arr[1]-time_arr[0])
     freqs, i_freqs = fft(template, fs)
-    dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+
+    if dpdi is None:
+        dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+        
     p_freqs = i_freqs*dpdi
     
     if filter_freq is not None:
@@ -424,9 +442,9 @@ def convert_template_to_current(template,  dpdi=None, didv_result=None,
         
 
     # fft then convert to current
-    template_fft = fft(template)
+    template_fft = np.copy(fft(template))
     template_current_fft = template_fft/dpdi
-    template_current = -1.0 * ifft(template_current_fft)
+    template_current = -1.0*ifft(template_current_fft)
     
     if  lgc_norm_max:
         template_current /= np.max(template_current)
@@ -498,9 +516,9 @@ def convert_template_to_power(template,  dpdi=None,
         
 
     # convert to power 
-    template_fft = fft(template)
+    template_fft = np.copy(fft(template))
     template_power_fft = template_fft*dpdi
-    template_power = -1.0 * ifft(template_power_fft)
+    template_power = -1.0*ifft(template_power_fft)
        
     if  lgc_norm_max:
         template_power /= np.max(template_power)
