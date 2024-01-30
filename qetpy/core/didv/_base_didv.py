@@ -474,14 +474,14 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
     
     if lgc_diagnostics:
         print("Current as measured from dIdV: " + str(current_didv) + " amps")
-        print("Variable current as meaured from metadata for this dIdV: " + str(offset_variable) + " amps")
+        print("Variable current as meaured from metadata for this dIdV: " + str(i0_variable_offset) + " amps")
         print(" ")
         print("Variable current as measured during IV when offsets were measured: " + 
-              str(offset_dict['i0_variable_offset']) + " amps")
+              str(i0_variable_offset_sweep) + " amps")
         print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
         print(" ")
-        print("Delta variable current: " + str(offset_variable) + " - " + 
-             str(offset_dict['i0_variable_offset']) + " = \n " + str(delta_i_variable) + " amps")
+        print("Delta variable current: " + str(i0_variable_offset) + " - " + 
+             str(i0_variable_offset_sweep) + " = \n " + str(delta_i_variable) + " amps")
         print(" ")
         print("True current through TES: " + str(current_didv) + " - " + str(delta_i_variable) + " - \n" + 
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
