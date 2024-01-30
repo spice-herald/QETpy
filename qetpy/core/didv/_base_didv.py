@@ -441,7 +441,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         i0_variable_offset_sweep = None
         if 'i0_variable_offset' in offset_dict.keys():
             i0_variable_offset_sweep = offset_dict['i0_variable_offset']
-        elif 'i0_changable_offset' in ivsweep_result.keys():
+        elif 'i0_changable_offset' in offset_dict.keys():
             i0_variable_offset_sweep  =  offset_dict['i0_changable_offset']
         else:
             raise ValueError('ERROR: i0 variable offset not found in '
