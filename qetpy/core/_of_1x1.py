@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import least_squares
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase
@@ -495,7 +494,7 @@ class OF1x1:
 
     
     
-    def get_energy_resolution(self):
+    def get_amplitude_resolution(self):
         """
         Method to return the energy resolution for the optimum filter.
         (resolution depends only on template and noise!) 
@@ -511,11 +510,20 @@ class OF1x1:
             The energy resolution of the optimum filter.
 
         """
-        sigma = self._of_base.get_energy_resolution(
+        sigma = self._of_base.get_amplitude_resolution(
             self._template_tag
         )
 
         return sigma
+
+    
+    def get_energy_resolution(self):
+        """
+        Deprecated method name: point to get_amplitude_resolution
+        method
+        """
+
+        return self.get_amplitude_resolution()
 
     
     def get_time_resolution(self, amp):

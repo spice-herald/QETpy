@@ -3,16 +3,21 @@ import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
+from scipy.signal import unit_impulse
+
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 from qetpy.utils import resample_data
-from qetpy.core.didv._uncertainties_didv import _get_dPdI_3, get_dPdI_with_uncertainties
+from qetpy.core.didv._uncertainties_didv import get_dPdI_with_uncertainties
 
 
 __all__ = [
     "get_didv_template",
     "get_phonon_template",
     "get_energy_normalization",
+    "get_simple_energy_normalization",
+    "convert_template_to_power",
+    "convert_template_to_current",
 ]
 
 """
@@ -120,7 +125,8 @@ def get_didv_template(time_arr, event_time, didv_result, lgcplot=False):
         The calculated dIdV template.
     
     """
-    freqs = fftfreq(len(time_arr)*2, time_arr[1] - time_arr[0])
+    fs = 1/(time_arr[1] - time_arr[0])
+    freqs = fftfreq(len(time_arr)*2, fs)
     p_frequency = _p_delta_frequency(freqs, event_time)
     
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=lgcplot)
@@ -145,7 +151,8 @@ def get_didv_template(time_arr, event_time, didv_result, lgcplot=False):
     
     return i_time
     
-def get_phonon_template(time_arr, event_time, didv_result, phonon_fall, phonon_rise=1.0e-6, lgcplot=False):
+def get_phonon_template(time_arr, event_time, didv_result, phonon_fall,
+                        phonon_rise=1.0e-6, lgcplot=False):
     """
     Calculates the phonon mediated event template (i.e. the response of the
     TES to a two pole pulse of energy from phonons being absorbed into the QET
@@ -180,8 +187,8 @@ def get_phonon_template(time_arr, event_time, didv_result, phonon_fall, phonon_r
         The calculated dIdV template.
         
     """
-    
-    freqs = fftfreq(len(time_arr)*2, time_arr[1] - time_arr[0])
+    fs = 1/(time_arr[1] - time_arr[0])
+    freqs = fftfreq(len(time_arr)*2, fs)
     p_frequency = _p_pulse_frequency(freqs, event_time, phonon_rise, phonon_fall, lgcplot=lgcplot)
     
     dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=lgcplot)
@@ -206,7 +213,10 @@ def get_phonon_template(time_arr, event_time, didv_result, phonon_fall, phonon_r
     
     return i_time
     
-def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
+
+def get_energy_normalization(time_arr, template,
+                             didv_result=None, dpdi=None,
+                             lgc_ev=True,
                              lgc_plot=False, filter_freq=None):
     """
     Calculates the normalization of an OFAmp (in current units) into
@@ -221,12 +231,17 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
     template: array
         The time domain template used with the optimuim filter.
         
-    didv_result
+    didv_result (optional)
         A result gotten from a dIdV fit that includes a biasparams 
         dict calculated from didvfit.dofit_with_true_current which 
         in turn requires having calculated an offset_dict from an
         IV sweep, a metadata array, and a channel name string.
-        
+   
+    dpdi : 1D numpy array (optional)
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as template
+        Argument required if didv_result is None
+   
     lgc_ev: bool, optional
         If True, returns the normalization in units of eV/amp, otherwise
         returns the normalization in units of Joules/amp.
@@ -248,15 +263,21 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
         of eV/amp or Joules/amp.
         
     """
-    one_over_fs = time_arr[1] - time_arr[0]
-    freqs = fftfreq(len(time_arr), one_over_fs)
+
+    # check arguement
+    if (dpdi is None and didv_result is None):
+        raise ValueError('ERROR: "dpdi" or "didv_result" required!')
     
-    i_freqs = fft(template)
-    dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+    fs = 1/(time_arr[1]-time_arr[0])
+    freqs, i_freqs = fft(template, fs)
+
+    if dpdi is None:
+        dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+        
     p_freqs = i_freqs*dpdi
     
     if filter_freq is not None:
-        freq_spacing=freqs[1] - freqs[0]
+        freq_spacing = freqs[1] - freqs[0]
         filter_index = int(filter_freq/freq_spacing)
         print("Filter index: " + str(filter_index))
         filter_arr = np.zeros(len(p_freqs))
@@ -265,7 +286,7 @@ def get_energy_normalization(time_arr, template, didv_result, lgc_ev=True,
         p_freqs = p_freqs * filter_arr
     
     p_time = ifft(p_freqs)
-    integral = one_over_fs * np.abs(sum(p_time))
+    integral = np.abs(sum(p_time))/fs
     
     if lgc_plot:
         plt.plot(time_arr, template)
@@ -355,3 +376,155 @@ def get_simple_energy_normalization(time_arr, template, didv_result, lgc_ev=True
     
     else:
         return np.abs(time_integral * dPdI_zero)
+
+
+
+
+
+def convert_template_to_current(template,  dpdi=None, didv_result=None,
+                                lgc_norm_max=True, fs=None):
+    """
+    Convert template from power to current usign dpdi 
+    dpdi is either calculated (if didv_result is not None)  or provided
+    as argument
+
+
+    Parameter
+    ---------
+
+    template : numpy 1D  or 2D array[channel, samples]
+        template trace in time domain, same length as psd
+        if lgc_current_template is False (default) it is 
+
+
+    dpdi : numpy 1D or 2D array [channel, samples] (optional)
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as template
+        Argument required if didv_result is None
+
+    didv_result : dictionary (optional)
+        A result gotten from a dIdV fit that includes a biasparams 
+        dict calculated from didvfit.dofit_with_true_current which 
+        in turn requires having calculated an offset_dict from an
+        IV sweep, a metadata array, and a channel name string.
+
+
+    lgc_norm_max : bool (optional)
+        If True, normalize to maximum amplitude
+        IF False, proper normalization, fs is required
+   
+    fs : float (optional)
+        required if lgc_norm_max = False
+        sample rate in units of Hz
+
+    
+    returns:
+    ---------
+
+    current_template : numpy 1D  or 2D array[channel, samples]
+      template converted from power to current
+
+    """
+
+    # check arguments
+    if (dpdi is None and didv_result is None):
+        raise ValueError('ERROR: "dpdi" or "didv_result" required!')
+    
+    if (fs is None and (not lgc_norm_max or dpdi is None)):
+        raise ValueError('ERROR: fs argument is required!')
+    
+    # number of bins
+    nbins = template.shape[-1]
+
+    if dpdi is None:
+        freqs = fftfreq(nbins, fs)
+        dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+        
+
+    # fft then convert to current
+    template_fft = np.copy(fft(template))
+    template_current_fft = template_fft/dpdi
+    template_current = -1.0*ifft(template_current_fft)
+    
+    if  lgc_norm_max:
+        template_current /= np.max(template_current)
+    else:
+        template_current *= np.sqrt(nbins) * fs
+
+        
+    return template_current
+
+
+
+def convert_template_to_power(template,  dpdi=None,
+                              didv_result=None,
+                              lgc_norm_max=True, fs=None):
+    """
+    Convert template fron current to power 
+    using dpdi
+
+    Parameter
+    ---------
+
+    template : numpy 1D  or 2D array[channel, samples]
+        template trace in time domain, same length as psd
+        if lgc_current_template is False (default) it is 
+     
+    
+    dpdi : numpy 1D or 2D array [channel, samples] (optional)
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as template
+        Argument required if didv_result is None
+
+    didv_result : dictionary (optional)
+        A result gotten from a dIdV fit that includes a biasparams 
+        dict calculated from didvfit.dofit_with_true_current which 
+        in turn requires having calculated an offset_dict from an
+        IV sweep, a metadata array, and a channel name string.
+ 
+    lgc_norm_max : bool (optional)
+        If True, normalize to maximum amplitude
+        IF False, proper normalization, fs is required
+   
+    fs : float (optional)
+        required if lgc_norm_max = False
+        sample rate in units of Hz
+
+ 
+    
+    returns:
+    ---------
+
+    current_template : numpy 1D  or 2D array[channel, samples]
+      template converted from power to current
+
+    """
+
+    # check arguments
+    if (dpdi is None and didv_result is None):
+        raise ValueError('ERROR: "dpdi" or "didv_result" required!')
+    
+    if (fs is None and (not lgc_norm_max or dpdi is None)):
+        raise ValueError('ERROR: fs argument is required!')
+    
+    # number of bins
+    nbins = template.shape[-1]
+
+    if dpdi is None:
+        freqs = fftfreq(nbins, fs)
+        dpdi, _ = get_dPdI_with_uncertainties(freqs, didv_result)
+        
+
+    # convert to power 
+    template_fft = np.copy(fft(template))
+    template_power_fft = template_fft*dpdi
+    template_power = -1.0*ifft(template_power_fft)
+       
+    if  lgc_norm_max:
+        template_power /= np.max(template_power)
+    else:
+        template_power *= np.sqrt(nbins) * fs
+
+
+    return template_power
+

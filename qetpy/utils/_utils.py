@@ -1,8 +1,15 @@
 import numpy as np
+import scipy as sp
 from scipy import interpolate, signal, constants
 from scipy import ndimage
 from sympy.ntheory import factorrat
 from sympy.core.symbol import S
+
+# global variable for the fft, fftfreq and
+# ifft functions
+FFT_MODULE = 'scipy'
+
+
 
 
 __all__ = [
@@ -18,6 +25,7 @@ __all__ = [
     "shift",
     "make_template",
     "make_template_twopole",
+    "make_template_sum_twopoles",
     "make_template_threepole",
     "make_template_fourpole",
     "estimate_g",
@@ -26,6 +34,11 @@ __all__ = [
     "interpolate_parabola",
     "interpolate_of",
     "argmin_chisq",
+    "fft",
+    "ifft",
+    "fftfreq",
+    "rfftfreq",
+    "energy_resolution"
 ]
 
 
@@ -351,7 +364,72 @@ def make_template_twopole(t, A=None, tau_r=None, tau_f=None,
         pulse = pulse/pulse.max()
 
     return pulse
+
+
+def make_template_sum_twopoles(t, amplitudes, rise_times, fall_times,
+                               t0=None, fs=None,
+                               normalize=True):
+    """
+    Functional form of pulse in time domain as sum of "twopole"
+    template. The number of twopole templates is determined by length of list.
+
+    
+    Parameters
+    ----------
+    t : ndarray
+        Array of time values to make the pulse with
+    amplitudes : array like of float
+        Amplitude parameters of each two-pole pulses.
+    rise_times : array like of float
+        Rise time of each two-pole pulses
+    fall_times : array like of float
+        Fall time of each two-pole pulses
+    t0 : float, optional
+        Time offset of two pole pulse
+            default: 1/2 trace
+    fs :  float, required if t0 not None
+        sample rate
+    normalize : boolean, optional
+        if True, normalize pulse with maximum pulse
+
+    Returns
+    -------
+    pulse : ndarray
+        Array of amplitude valuse
+
+    """
+
+    # check 
+
+    if (len(amplitudes) != len(rise_times)
+        or len(amplitudes) != len(fall_times)):
+        raise ValueError('ERROR: array of two-pole pulse parameters '
+                         'should be same length!')
+    
+    
+    nb_twopoles = len(amplitudes)
+    pulse = np.zeros(len(t))
+
+    for ipulse in range(nb_twopoles):
+
+        pulse_ind = make_template_twopole(
+            t,
+            A=1.0,
+            tau_r=rise_times[ipulse],
+            tau_f=fall_times[ipulse],
+            t0=t0, fs=fs) * amplitudes[ipulse]
+
+        pulse = pulse + pulse_ind
         
+    # normalize
+    if normalize:
+        pulse = pulse/pulse.max()
+
+    
+    return pulse
+    
+    
+
 
 def make_template_threepole(t, A, B, tau_r, tau_f1, tau_f2,
                             t0=None, fs=None,
@@ -1122,3 +1200,264 @@ def argmin_chisq(chisq,
                
 
     return bestind
+
+
+def fft(vals, fs=None, axis=-1):
+    """
+    Calculate 1D FFT and frequency array
+ 
+    Parameters
+    ----------
+    vals : nd numpy array 
+      array of values in time domain
+   
+    fs : float  (optional)
+      data taking sample rate
+      if not None: freqs are returned
+
+    Return
+    ----------
+    
+    freqs :  nd numpy array
+       Frequency array associated with FFT (if fs
+       argument is not None)
+
+    fft :  nd numpy array
+       Fourier transformed data
+
+    """
+
+    # module (scipy or numpy)
+    # this is hard coded here on purpose so everyone is
+    # using same module
+  
+    
+    # check if vals are numpy array
+    if not isinstance(vals, np.ndarray):
+        raise ValueError('ERROR: first parameter should be '
+                         ' a numpy array')
+    # calculate fft
+    fft_out = []
+    freqs = None
+    if FFT_MODULE == 'scipy':
+        fft_out = sp.fft.fft(vals, axis=axis, norm=None)
+        if fs is not None:
+            freqs = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_out = np.fft.fft(vals, axis=axis, norm=None)
+        if fs is not None:
+            freqs = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only module="scipy" or "numpy" supported!'
+        )
+
+    if freqs is  None:
+        return fft_out
+    else:
+        return freqs, fft_out
+
+
+
+def ifft(vals, axis=-1):
+    """
+    Compute the 1-D inverse discrete Fourier Transform.
+ 
+    Parameters
+    ----------
+    vals : nd numpy array 
+      array of values frequency domain, 2-sides
+   
+    axis : int
+     axis over which to compute the inverse DFT. If not given, 
+     the last axis is used.
+
+
+    Return
+    ----------
+    
+    arr :  nd numpy array
+     The truncated or zero-padded input, transformed along the axis indicated by axis, 
+     or the last one if axis is not specified.
+ 
+    
+    """
+
+    # module (scipy or numpy)
+    # this is hard coded here on purpose so everyone is
+    # using same module
+  
+    
+    # check if vals are numpy array
+    if not isinstance(vals, np.ndarray):
+        raise ValueError('ERROR: first parameter should be '
+                         ' a numpy array')
+    # calculate ifft
+    arr_out = []
+    if FFT_MODULE == 'scipy':
+        arr_out = sp.fft.ifft(vals, axis=axis, norm=None)
+    elif FFT_MODULE == 'numpy':
+        arr_out = np.fft.ifft(vals, axis=axis, norm=None)
+    else:
+        raise ValueError(
+            'ERROR: only module="scipy" or "numpy" supported!'
+        )
+        
+    return arr_out
+
+
+
+def fftfreq(nbins, fs):
+    """
+    Calculate 1D FFT frequency array two-sided
+   
+ 
+    Parameters
+    ----------
+    nbins : int 
+      number of samples
+
+    fs : sample rate 
+      data taking sample rate 
+
+    Return
+    ----------
+
+    fft_freqs :  nd numpy array
+       Frequency array associated with FFT (two-sided)
+
+    """
+
+    fft_freqs_out = []
+    if FFT_MODULE == 'scipy':
+        fft_freqs_out = sp.fft.fftfreq(nbins, d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_freqs_out = np.fft.fftfreq(nbins, d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only FFT_MODULE="scipy" or "numpy" supported!'
+        )
+        
+    return fft_freqs_out
+
+
+def rfftfreq(nbins, fs):
+    """
+    Calculate 1D FFT frequency array one-sided
+   
+ 
+    Parameters
+    ----------
+    nbins : int 
+      number of samples
+
+    fs : sample rate 
+      data taking sample rate 
+
+    Return
+    ----------
+
+    fft_freqs :  nd numpy array
+       Frequency array associated with FFT (one-sided)
+
+    """
+
+    fft_freqs_out = []
+    if FFT_MODULE == 'scipy':
+        fft_freqs_out = sp.fft.rfftfreq(nbins, d=1.0/fs)
+    elif FFT_MODULE == 'numpy':
+        fft_freqs_out = np.fft.rfftfreq(nbins, d=1.0/fs)
+    else:
+        raise ValueError(
+            'ERROR: only FFT_MODULE="scipy" or "numpy" supported!'
+        )
+        
+    return fft_freqs_out
+
+
+
+def energy_resolution(psd, template,  dpdi, fs,
+                      collection_eff=1,
+                      lgc_current_template=False):
+    """
+    Calculate energy resolution based on input psd [Amps^2/Hz]
+    (two-sided psd), template, and dpdi 
+   
+    Parameters
+    ----------
+
+    psd : numpy 1D or 2D  array [channel, samples]
+        double sided PSD in units of Amps^2/Hz
+    
+    template : numpy 1D  or 2D array[channel, samples]
+        (power) template trace in time domain, same length as psd
+        if lgc_current_template is False (default) it is 
+        considered a power template, if lgc_current_template is 
+        True then it is a current template.
+    
+    dpdi : numpy 1D or 2D array [channel, samples]
+        dPdI evaluated at the frequencies passed to the dPdI function
+        in units of Volts, same length as psd
+    
+    fs : float 
+        sample rate in units of Hz
+
+    collection_eff:
+        Efficiency (percentage) of phonon collection within the detector. Default is 1.
+
+    lgc_current_template : bool (optional)
+        If True, the template is in current rather than than power and is converted to 
+        power using dpdi
+        Default: False (power template so no conversion needed)
+
+  
+    returns:
+    ---------
+        energy_res : float (if single channel or 1D numpy array if multiple channels)
+             energy resolutions in units of eV. 
+    """
+    # check arrays
+    if psd.shape != template.shape:
+        raise ValueError("ERROR: psd must be same length as template. Is psd "
+                         "double sided?")
+    if psd.shape != dpdi.shape:
+        raise ValueError("ERROR: dPdI should have same length as psd and template!")
+
+    # number of bins
+    nbins = template.shape[-1]
+
+
+    # convert template to power template
+    if lgc_current_template:
+        template_power_fft = fft(template)*dpdi
+        template = -1.0*ifft(template_power_fft)
+
+    # normalize template
+    template = template/np.max(template)
+
+    
+    # template fft
+    nbins  = template.shape[-1]
+    df = fs/nbins
+    f, p_w = fft(template, fs, axis=-1)
+    p_w = p_w/nbins/df
+    p_w = p_w/p_w[0]
+
+
+    # set zero frequency bin of the be ignored (i.e. set to infinity)
+    psd[0] = np.inf
+    
+    # convert psd in W^2/Hz
+    sp_w = psd*(np.abs(dpdi)**2)
+
+    # integrate
+    domega = 2*np.pi*df
+    integrand = np.abs(p_w)**2/(2*np.pi*sp_w)
+    sigma_square = 1/(np.sum(integrand*domega)*collection_eff**2)
+    
+
+    # convert to energy resolution in eV
+    energy_res = np.sqrt(sigma_square)/constants.e
+    
+    return energy_res
+

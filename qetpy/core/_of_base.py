@@ -1,7 +1,7 @@
 import numpy as np
 from math import ceil, floor
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import shift, interpolate_of, argmin_chisq
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 
 __all__ = ['OFBase']
@@ -16,7 +16,6 @@ class OFBase:
     samples
 
     """
-
     def __init__(self, sample_rate,
                  pretrigger_samples=None,
                  pretrigger_msec=None,
@@ -56,8 +55,6 @@ class OFBase:
         None
 
         """
-
-
         self._debug = False
         self._verbose = verbose
         self._channel_name = channel_name
@@ -67,9 +64,6 @@ class OFBase:
             self._pretrigger_samples = (
                 int(round(pretrigger_msec*1e-3*self._fs))
             )
-
-
-        # Initialize some parameters
 
         # initialize nb samples
         self._nbins = None
@@ -112,20 +106,15 @@ class OFBase:
         self._template_filts_td = dict()
         self._q_vector = dict()
 
-
-
         # initialize amplitudes and chi2 (for all times)
         # dict key = template tag
         self._chisq0 = None # "no pulse" chisq (independent of template)
         self._chisqs_alltimes_rolled = dict() # chisq all times
         self._amps_alltimes_rolled = dict() # amps all times
 
-
         if self._debug:
             print('DEBUG: Instantiate OF base for channel '
                   + channel_name)
-
-
 
     @property
     def verbose(self):
@@ -135,7 +124,6 @@ class OFBase:
     def channel_name(self):
         return self._channel_name
 
-
     @property
     def sample_rate(self):
         return self._fs
@@ -143,10 +131,6 @@ class OFBase:
     @property
     def pretrigger_samples(self):
         return self._pretrigger_samples
-
-
-
-
 
     def template_tags(self):
         """
@@ -168,7 +152,6 @@ class OFBase:
             return list(self._templates.keys())
         else:
             return []
-
 
 
     def template(self, template_tag='default'):
@@ -195,8 +178,6 @@ class OFBase:
             return self._templates[template_tag]
         else:
             return None
-
-
 
 
     def template_fft(self, template_tag='default'):
@@ -282,8 +263,6 @@ class OFBase:
 
         return self._signal
 
-
-
     def signal_fft(self):
         """
         Get current signal trace FFT
@@ -301,8 +280,6 @@ class OFBase:
         """
 
         return self._signal_fft
-
-
 
     def phi(self, template_tag='default'):
         """
@@ -417,9 +394,6 @@ class OFBase:
             return None
 
 
-
-
-
     def template_filt(self, template_tag='default'):
         """
         FIXME: no implemented yet
@@ -447,8 +421,6 @@ class OFBase:
             return self._template_filts[template_tag]
         else:
             return None
-
-
 
 
     def template_filt_td(self, template_tag='default'):
@@ -479,9 +451,6 @@ class OFBase:
             return self._template_filts_td[template_tag]
         else:
             return None
-
-
-
 
 
     def add_template(self, template, template_tag='default',
@@ -515,24 +484,27 @@ class OFBase:
 
         """
 
+        # normalize template
+        template = template/np.max(template)
+
+        
         # add to dictionary
         self._templates[template_tag] = template
 
         # FFT
         if  self._nbins is None:
             self._nbins = template.shape[0]
-            self._df = self._fs/self._nbins
-            self._fft_freqs = fftfreq(self._nbins, d=1.0/self._fs)
-
         elif template.shape[0]!=self._nbins:
             raise ValueError('Inconsistent number of samples')
 
-        self._templates_fft[template_tag] = fft(template, axis=-1)/self._nbins/self._df
-
+        self._df = self._fs/self._nbins
+        self._fft_freqs, template_fft = fft(template, self._fs, axis=-1)
+        self._templates_fft[template_tag] = template_fft/self._nbins/self._df
+        
 
         if integralnorm:
             self._templates_fft[template_tag]  /= self._templates_fft[template_tag][0]
-
+            
         # pre-trigger
         if self._pretrigger_samples  is None:
             self._pretrigger_samples = self._nbins//2
@@ -581,8 +553,6 @@ class OFBase:
 
         # tag
         self._psd_tag = psd_tag
-
-
 
 
     def clear_signal(self):
@@ -684,9 +654,10 @@ class OFBase:
         self._signal = signal
 
         # FFT
-        self._signal_fft = fft(signal, axis=-1)/self._nbins/self._df
+        f, signal_fft = fft(signal, self._fs, axis=-1)
+        self._signal_fft = signal_fft/self._nbins/self._df
 
-
+        
         if calc_signal_filt or calc_signal_filt_td:
 
             # calculate filtered signal
@@ -847,7 +818,6 @@ class OFBase:
             raise ValueError('"template_tags argument should be a '
                              + ' a string or list of strings')
 
-
         for tag in template_tags:
 
             # calc signal filt ifft
@@ -906,8 +876,6 @@ class OFBase:
         None
 
         """
-
-
         # check if phis have been calculated
         if not self._signal_filts_td:
             self.calc_signal_filt_td(template_tags=template_tags)
@@ -920,7 +888,6 @@ class OFBase:
         elif not isinstance(template_tags, list):
             raise ValueError('"template_tags argument should be a '
                              + ' a string or list of strings')
-
 
         for tag in template_tags:
 
@@ -989,7 +956,6 @@ class OFBase:
         # "no pulse chisq" (doesn't depend on template)
         self.calc_chisq0()
 
-
         # time dependent chisq + sum of the two
 
         # check if filtered signal (ifft) available
@@ -999,7 +965,6 @@ class OFBase:
                 template_tags=template_tags
             )
 
-
         # find tags
         if template_tags is None:
             template_tags = self._signal_filts_td.keys()
@@ -1008,8 +973,6 @@ class OFBase:
         elif not isinstance(template_tags, list):
             raise ValueError('"template_tags argument should be a '
                              + ' a string or list of strings')
-
-
 
         # loop tags
         for tag in template_tags:
@@ -1141,13 +1104,7 @@ class OFBase:
             # total chisq
             chisq = self._chisq0 - (amp**2)*self._norms[template_tag]
 
-
-
         return amp, t0, chisq
-
-
-
-
 
 
     def get_fit_withdelay(self, template_tag='default',
@@ -1230,18 +1187,13 @@ class OFBase:
             or template_tag not in self._chisqs_alltimes_rolled.keys()):
             self.calc_chisq_amp(template_tags=template_tag)
 
-
-
         # check pre-trigger
         if self._pretrigger_samples  is None:
             self._pretrigger_samples = self._nbins//2
 
-
         # get chisq and amp for all times
         chisqs_all = self._chisqs_alltimes_rolled[template_tag]
         amps_all = self._amps_alltimes_rolled[template_tag]
-
-
 
         # mask pulse direction
         constraint_mask = None
@@ -1263,8 +1215,6 @@ class OFBase:
         if window_min is not None and window_min<0:
             window_min = 0
 
-
-
         window_max = None
         if window_max_from_trig_usec is not None:
             window_max = ceil(self._pretrigger_samples
@@ -1275,7 +1225,6 @@ class OFBase:
         if window_max is not None and window_max>self._nbins:
             window_max = self._nbins
 
-
         bestind = argmin_chisq(
             chisqs_all,
             window_min=window_min,
@@ -1283,7 +1232,6 @@ class OFBase:
             lgc_outside_window=lgc_outside_window,
             constraint_mask=constraint_mask
         )
-
 
         # extract chisq/amp (interpolate if requested)
         if np.isnan(bestind):
@@ -1300,12 +1248,10 @@ class OFBase:
             t0 = (bestind-self._pretrigger_samples)/self._fs
             chisq = chisqs_all[bestind]
 
-
         return amp, t0, chisq
 
-
-
-    def get_energy_resolution(self,  template_tag='default'):
+    
+    def get_amplitude_resolution(self,  template_tag='default'):
         """
         Method to return the energy resolution for the optimum filter.
         (resolution depends only on template and noise!) for a
@@ -1333,9 +1279,14 @@ class OFBase:
 
         return sigma
 
+    def get_energy_resolution(self,  template_tag='default'):
+        """
+        Deprecated method name: point to get_amplitude_resolution
+        method
+        """
+        return self.get_amplitude_resolution(template_tag=template_tag)
 
-
-
+    
     def get_time_resolution(self, amp, template_tag='default'):
         """
         Method to return the time resolution for the optimum filter.

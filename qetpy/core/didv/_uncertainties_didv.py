@@ -3,9 +3,7 @@ import numpy as np
 from numpy import pi
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
-
-from qetpy.utils import resample_data
+from qetpy.utils import resample_data, fft, fftfreq
 
 
 __all__ = [
@@ -1516,7 +1514,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
         If True, plots the absolute value of dVdI with the
         uncertainty in dVdI 
 
-	lgc_loopgain_diagnostics: bool, optioal
+     lgc_loopgain_diagnostics: bool, optioal
 		If True, prints out diagnostics for figuring out if there are
 		potential issues with the loopgain. Prints out the loopgain,
 		beta, and r0 with uncertainties, then r0 from the dIdV under
