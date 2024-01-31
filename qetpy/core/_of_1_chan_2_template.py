@@ -6,7 +6,6 @@ from scipy import optimize
 from scipy import __version__ as SCIPY_VERSION
 import qetpy as qp
 from math import floor
-from tqdm.notebook import tqdm
 import pytesdaq.io.hdf5 as h5io
 import time
 
