@@ -9,7 +9,7 @@ import pickle
 import matplotlib.pyplot as plt
 import qetpy.plotting as utils
 from qetpy.utils import slope, fill_negatives, make_decreasing
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 __all__ = ["foldpsd", "calc_psd", "smooth_psd", "gen_noise", "Noise"]
 
@@ -21,7 +21,7 @@ def foldpsd(psd, fs):
     Parameters
     ----------
     psd : ndarray
-        A two-sided psd to be converted to one-sided
+        A two-sided psd in Amps^2/Hz to be converted to one-sided
     fs : float
         The sample rate used for the psd
             
@@ -31,23 +31,25 @@ def foldpsd(psd, fs):
         The frequencies corresponding to the outputted one-sided psd
     psd_folded : ndarray
         The one-sided (folded over) psd corresponding to the inputted two-sided psd
+        in Amps^2/Hz
             
     """
     
     psd_folded = np.copy(psd[:len(psd)//2+1])
     psd_folded[1:len(psd)//2+(len(psd))%2] *= 2.0
-    f = rfftfreq(len(psd),d=1.0/fs)
+    f = rfftfreq(len(psd), fs)
     
     return f, psd_folded
 
 
 def calc_psd(x, fs=1.0, folded_over=True):
-    """Return the PSD of an n-dimensional array, assuming that we want the PSD of the last axis.
+    """Return the PSD of an n-dimensional array in Amps^2/Hz, 
+       assuming that we want the PSD of the last axis.
     
     Parameters
     ----------
     x : array_like
-        Array to calculate PSD of.
+        Array to calculate PSD of (it should be in Amps)
     fs : float, optional
         Sample rate of the data being taken, assumed to be in units of Hz.
     folded_over : bool, optional
@@ -62,33 +64,27 @@ def calc_psd(x, fs=1.0, folded_over=True):
     f : ndarray
         Array of sample frequencies
     psd : ndarray
-        Power spectral density of 'x'
+        Power spectral density of 'x' in units of Amps^2/Hz
         
     """
     
     # calculate normalization for correct units
     norm = fs * x.shape[-1]
     
-    if folded_over:
-        # if folded_over = True, we calculate the Fourier Transform for only the positive frequencies
-        if len(x.shape)==1:
-            psd = (np.abs(rfft(x))**2.0)/norm
-        else:
-            psd = np.mean(np.abs(rfft(x))**2.0, axis=0)/norm
-            
-        # multiply the necessary frequencies by two (zeroth frequency should be the same, as
-        # should the last frequency when x.shape[-1] is odd)
-        psd[1:x.shape[-1]//2+1 - (x.shape[-1]+1)%2] *= 2.0
-        f = rfftfreq(x.shape[-1], d=1.0/fs)
+    
+    # FFT for all frequencies
+    f, x_fft  = fft(x, fs)
+    if len(x.shape)==1:
+        psd = (np.abs(x_fft)**2.0)/norm
     else:
-        # if folded_over = False, we calculate the Fourier Transform for all frequencies
-        if len(x.shape)==1:
-            psd = (np.abs(fft(x))**2.0)/norm
-        else:
-            psd = np.mean(np.abs(fft(x))**2.0, axis=0)/norm
-            
-        f = fftfreq(x.shape[-1], d=1.0/fs)
+        psd = np.mean(np.abs(x_fft)**2.0, axis=0)/norm
+
+    # fold 
+    if folded_over:
+        f, psd = foldpsd(psd, fs)
+    
     return f, psd
+
 
 def smooth_psd(psd):
     """
@@ -152,7 +148,8 @@ def gen_noise(psd, fs=1.0, ntraces=1):
     
     traces = np.zeros((ntraces, len(psd)))
     vals = np.random.randn(ntraces, len(psd))
-    noisefft = fft(vals) * np.sqrt(psd*fs)
+    f, vals_fft = fft(vals, fs)
+    noisefft = vals_fft * np.sqrt(psd*fs)
     noise = ifft(noisefft).real
     
     return noise
@@ -299,10 +296,10 @@ class Noise(object):
         real_psd = np.empty(shape = (traceshape[1], lenpsd))
         imag_psd = np.empty(shape = (traceshape[1], lenpsd))
  
-        fft = np.fft.rfft(self.traces)
-        psd_chan = np.abs(fft)**2
-        real_psd_chan = np.real(fft)**2
-        imag_psd_chan = np.imag(fft)**2
+        traces_fft = np.fft.rfft(self.traces)
+        psd_chan = np.abs(traces_fft)**2
+        real_psd_chan = np.real(traces_fft)**2
+        imag_psd_chan = np.imag(traces_fft)**2
         # take the average of the psd's for each trace, normalize, and fold over the 
         # negative frequencies since they are symmetric
         psd = np.mean(psd_chan, axis = 0)*2.0/(traceshape[2]*self.fs) 
@@ -359,9 +356,15 @@ class Noise(object):
         self.corrnoise = corrnoise
         self.uncorrnoise = uncorrnoise
         
-    def calculate_csd(self):
+    def calculate_csd(self, twosided=False):
         """
         Calculates the csd for each channel in traces. Stores csd in self.csd
+        
+        Parameters
+        ----------
+        twosided : boolean, optional
+            If True, calculates the twosided CSD, otherwise defaults to the onesided
+            calculation that Sam's code expects.
         """
         
         traceshape = self.traces.shape
@@ -371,10 +374,13 @@ class Noise(object):
         lencsd = traceshape[2]
         nfreqs = lencsd
       
-        #if lencsd % 2 != 0:
-        #    nfreqs = int((lencsd + 1)/2)
-        #else:
-        #    nfreqs = int(lencsd/2 + 1)
+        if twosided==False:
+            if lencsd % 2 != 0:
+                nfreqs = int((lencsd + 1)/2)
+            else:
+                nfreqs = int(lencsd/2 + 1)
+        else:
+            nfreqs = lencsd
        
         nrows = traceshape[1]
         ntraces = traceshape[0]
@@ -390,8 +396,7 @@ class Noise(object):
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
                 _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
-                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,
-                                            return_onesided=False)            
+                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,)
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
