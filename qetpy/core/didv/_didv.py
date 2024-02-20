@@ -1083,7 +1083,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 ibias_metadata,
                                 bounds=None, guess=None,
                                 inf_loop_gain_approx=False,
-                                inf_loop_gain_limit=False, 
+                                inf_loop_gain_limit=False,
+                                lgc_calibration_on=True, calibration_dict=None, 
                                 lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
@@ -1131,6 +1132,15 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             Defaults to False. If True, calculates the biasparameters and the
             rest of the fits using the infinite loop gain approximation only if
             the fit loopgain is negative.
+
+        lgc_calibration_on : bool, optional
+            By default True (i.e. using the calibration). If True, uses the calibration_dict
+            to more closely approximate how changing the output_offset changes the current
+            measured.
+            
+        calibration_dict : dict, optional
+            A dictonary of data used to more closely model the relationship between the
+            output_offset and the change in the measured current in the device. 
         
         Returns:
         --------
@@ -1150,7 +1160,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         offset_err = self._offset_err
 
         i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset,
-                            closed_loop_norm, output_gain, lgcdiagnostics)
+                            closed_loop_norm, output_gain, lgcdiagnostics,
+                            lgc_calibration_on=lgc_calibration_on, calibration_dict=calibration_dict)
         ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgcdiagnostics)
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         

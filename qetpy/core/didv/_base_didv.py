@@ -381,6 +381,7 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 def get_i0(offset, offset_err, offset_dict, output_offset=None,
            closed_loop_norm=None, output_gain=1,
            lgc_invert_offset=False,
+           lgc_calibration_on=True, calibration_dict=None, 
            lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -412,6 +413,15 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         The dimensionless gain for the front end electronics. Used to translate the
         output_offset in units of volts to the equivilant value read in the DAQ in
         units of volts.
+        
+    lgc_calibration_on : bool, optional
+        By default True (i.e. using the calibration). If True, uses the calibration_dict
+        to more closely approximate how changing the output_offset changes the current
+        measured.
+        
+    calibration_dict : dict, optional
+        A dictonary of data used to more closely model the relationship between the
+        output_offset and the change in the measured current in the device. 
         
     lgc_diagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
@@ -448,7 +458,21 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
                              '"ivsweep_result" dictionary!')
 
         # current IV variable offset
-        i0_variable_offset = output_offset * output_gain/closed_loop_norm
+        if lgc_calibration_on is False:
+            i0_variable_offset = output_offset * output_gain/closed_loop_norm
+        else:
+            if calibration_dict is None:
+                raise ValueError('ERROR: must include calibration_dict if '
+                                 'lgc_calibration_on is True (i.e. being used)!')
+            elif (calibration_dict['model'] == 'twopartlinear'):
+                m1, m2, b1, b2 = calibration_dict['params']
+                if output_offset > 0.0:
+                    i0_variable_offset = output_offset * m1 + b1
+                else:
+                    i0_variable_offset = output_offset * m2 + b2
+            else:
+                raise ValueError('ERROR: unknown calibration_dict model')
+            
        
         # delta variable offset
         delta_i_variable = i0_variable_offset - i0_variable_offset_sweep
