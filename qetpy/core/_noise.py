@@ -396,8 +396,7 @@ class Noise(object):
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
                 _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
-                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,
-                                            return_onesided=(not twosided))           
+                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,)
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
