@@ -672,7 +672,8 @@ def _get_p0(i0, i0_err, v0, v0_err):
     
     return p0, p0_err
 
-def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
+def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
+                                 rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     from the measured TES bias current and i0
@@ -699,6 +700,9 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         
     rp: float
         The parasitic resistance in ohms
+
+    rn: float (optional) 
+        The normal resistance in ohms
         
     Returns
     -------
@@ -727,8 +731,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict
@@ -811,6 +817,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
     }

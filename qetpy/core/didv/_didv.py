@@ -864,6 +864,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = ivsweep_results.copy()
         biasparams_dict['true_bias_parameters'] = False
         rp = ivsweep_results['rp']
+        rn = None
+        if 'rn' in  ivsweep_results:
+            rn = ivsweep_results['rn']
 
         
         # calculate true i0 and true tes bias
@@ -898,7 +901,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         
             # recalculate v0, r0 with true current and store in dictionary
             biasparams_dict = get_tes_bias_parameters_dict(
-                i0, i0_err, ibias, ibias_err, self._rsh, rp
+                i0, i0_err, ibias, ibias_err, self._rsh, rp, rn=rn
             )
             
             biasparams_dict['true_bias_parameters'] = True
