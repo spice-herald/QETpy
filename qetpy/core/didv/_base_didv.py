@@ -451,8 +451,10 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         i0_variable_offset_sweep = None
         if 'i0_variable_offset' in offset_dict.keys():
             i0_variable_offset_sweep = offset_dict['i0_variable_offset']
-        elif 'i0_changable_offset' in offset_dict.keys():
-            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset']
+        elif ('i0_changable_offset_cal' in offset_dict.keys()) and (lgc_calibration_on is True):
+            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_cal']
+        elif ('i0_changable_offset_uncal' in offset_dict.keys()) and (lgc_calibration_on is False):
+            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_uncal']
         else:
             raise ValueError('ERROR: i0 variable offset not found in '
                              '"ivsweep_result" dictionary!')
@@ -460,16 +462,39 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         # current IV variable offset
         if lgc_calibration_on is False:
             i0_variable_offset = output_offset * output_gain/closed_loop_norm
+            
         else:
             if calibration_dict is None:
                 raise ValueError('ERROR: must include calibration_dict if '
-                                 'lgc_calibration_on is True (i.e. being used)!')
+                                 'lgc_calibration_on is True (i.e. being used)!'
+                                 'Check offset dicts')
+                                 
+            elif (output_gain != 50):
+                raise ValueError('ERROR: calibration only done for a gain of 50')
+                
             elif (calibration_dict['model'] == 'twopartlinear'):
                 m1, m2, b1, b2 = calibration_dict['params']
                 if output_offset > 0.0:
                     i0_variable_offset = output_offset * m1 + b1
                 else:
                     i0_variable_offset = output_offset * m2 + b2
+                    
+            elif (calibration_dict['model'] == 'lookup_extrapolated'):
+                offsets_arr = calibration_dict['params']['lookup_x']
+                currents_arr = calibration_dict['params']['lookup_y']
+                params_low = calibration_dict['params']['params_low']
+                params_high = calibration_dict['params']['params_high']
+                
+                def linear(x, m, b):
+                    return x*m + b
+                
+                if output_offset in offsets_arr:
+                    i0_variable_offset = currents_arr[list(offsets_arr).index(offset)]
+                elif output_offset > 0.0:
+                    i0_variable_offset = linear(output_offset, *params_high)
+                else:
+                    i0_variable_offset = linear(output_offset, *params_low)
+                    
             else:
                 raise ValueError('ERROR: unknown calibration_dict model')
             
@@ -490,11 +515,11 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
             print(" ")
 
     # calculate new i0
-    current_didv = offset - delta_i_variable
+    current_didv = offset
     if lgc_invert_offset:
         current_didv = -current_didv
     current_err_didv = offset_err
-    i0 = current_didv - offset_dict['i0_off']
+    i0 = current_didv - delta_i_variable - offset_dict['i0_off']
     
     if lgc_diagnostics:
         print("Current as measured from dIdV: " + str(current_didv) + " amps")

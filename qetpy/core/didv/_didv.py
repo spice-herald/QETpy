@@ -1084,7 +1084,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 bounds=None, guess=None,
                                 inf_loop_gain_approx=False,
                                 inf_loop_gain_limit=False,
-                                lgc_calibration_on=True, calibration_dict=None, 
+                                lgc_calibration_on=True,
                                 lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
@@ -1137,10 +1137,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             By default True (i.e. using the calibration). If True, uses the calibration_dict
             to more closely approximate how changing the output_offset changes the current
             measured.
-            
-        calibration_dict : dict, optional
-            A dictonary of data used to more closely model the relationship between the
-            output_offset and the change in the measured current in the device. 
         
         Returns:
         --------
@@ -1158,15 +1154,20 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         offset = self._offset
         offset_err = self._offset_err
+        
+        if 'calibration_dict' in offset_dict:
+            calibration_dict = offset_dict['calibration_dict']
+        else:
+            calibration_dict = None
 
         i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset,
-                            closed_loop_norm, output_gain, lgcdiagnostics,
+                            closed_loop_norm, output_gain, lgc_diagnostics=lgcdiagnostics,
                             lgc_calibration_on=lgc_calibration_on, calibration_dict=calibration_dict)
-        ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgcdiagnostics)
+        ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgc_diagnostics=lgcdiagnostics)
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         
         if inf_loop_gain_approx:
-            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(
+            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
                 self._3poleresult['params'], self._3poleresult['cov'],
                 ibias, ibias_err, rsh, rp)
         
@@ -1178,7 +1179,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                              
         if inf_loop_gain_limit:
             if self._3poleresult['smallsignalparams']['l'] < 0:
-                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(
+                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
                     self._3poleresult['params'], 
                     self._3poleresult['cov'], i0, 
                     i0_err, ibias, ibias_err, 
