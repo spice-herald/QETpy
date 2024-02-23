@@ -1084,7 +1084,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 bounds=None, guess=None,
                                 inf_loop_gain_approx=False,
                                 inf_loop_gain_limit=False,
-                                lgc_calibration_on=True,
+                                lgc_calibration_on=False,
                                 lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
@@ -1134,7 +1134,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             the fit loopgain is negative.
 
         lgc_calibration_on : bool, optional
-            By default True (i.e. using the calibration). If True, uses the calibration_dict
+            By default False (i.e. not using the calibration). If True, uses the calibration_dict
             to more closely approximate how changing the output_offset changes the current
             measured.
         

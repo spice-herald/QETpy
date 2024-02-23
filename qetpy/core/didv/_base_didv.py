@@ -381,7 +381,7 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 def get_i0(offset, offset_err, offset_dict, output_offset=None,
            closed_loop_norm=None, output_gain=1,
            lgc_invert_offset=False,
-           lgc_calibration_on=True, calibration_dict=None, 
+           lgc_calibration_on=False, calibration_dict=None, 
            lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
@@ -415,7 +415,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         units of volts.
         
     lgc_calibration_on : bool, optional
-        By default True (i.e. using the calibration). If True, uses the calibration_dict
+        By default False (i.e. not using the calibration). If True, uses the calibration_dict
         to more closely approximate how changing the output_offset changes the current
         measured.
         
