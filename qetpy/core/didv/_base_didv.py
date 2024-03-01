@@ -719,6 +719,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+
+    if rn is None:
+        rn = np.nan
+
     
     bias_parameter_dict = {
         'i0': i0,
@@ -741,7 +745,7 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
     
 def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
                                                     ibias, ibias_err,
-                                                    rsh, rp):
+                                                    rsh, rp, rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     using the infinte loop gain approximation
@@ -805,6 +809,11 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
     
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+
+    
+    if rn is None:
+        rn = np.nan
+
     
     bias_parameter_dict = {
         'i0': i0,
@@ -820,6 +829,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
         'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict

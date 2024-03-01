@@ -862,7 +862,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         # initialize  bias parameters dict
         biasparams_dict = ivsweep_results.copy()
-        biasparams_dict['true_bias_parameters'] = False
+        biasparams_dict['biasparams_type'] = 'ivsweep_current'
+        
         rp = ivsweep_results['rp']
         rn = None
         if 'rn' in  ivsweep_results:
@@ -904,9 +905,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 i0, i0_err, ibias, ibias_err, self._rsh, rp, rn=rn
             )
             
-            biasparams_dict['true_bias_parameters'] = True
-
-        biasparams_dict['infinite_loop_gain'] = False
+            biasparams_dict['biasparams_type'] = 'true_current'
+       
         self._r0 = biasparams_dict['r0']
         self._rp = biasparams_dict['rp']
 
@@ -931,8 +931,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         # 2-poles
         if calc_2poles:
 
-            biasparams_dict_2poles =  biasparams_dict.copy()
-        
             # check if infinite loop gain needs to be done
             set_infinite_loop_gain = inf_loop_gain_approx
             if inf_loop_gain_approx == 'auto':
@@ -955,11 +953,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 cov =  self._2poleresult['cov']
 
                 biasparams_dict_2poles = get_tes_bias_parameters_dict_infinite_loop_gain(
-                    2, params, cov, ibias, ibias_err, self._rsh, rp
+                    2, params, cov, ibias, ibias_err, self._rsh, rp, rn=rn
                 )
-                
-                biasparams_dict_2poles['infinite_loop_gain'] = True
 
+                biasparams_dict_2poles['biasparams_type'] = 'infinite_lgain_current'
+                
                 # re-assign r0
                 self._r0 = biasparams_dict_2poles['r0']
 
@@ -971,8 +969,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         # 3-poles
         if calc_3poles:
-
-            biasparams_dict_3poles =  biasparams_dict.copy()
             
             # check if infinite loop gain needs to be done
             set_infinite_loop_gain = inf_loop_gain_approx
@@ -997,10 +993,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 cov =  self._3poleresult['cov']
 
                 biasparams_dict_3poles = get_tes_bias_parameters_dict_infinite_loop_gain(
-                    3, params, cov, ibias, ibias_err, self._rsh, rp
+                    3, params, cov, ibias, ibias_err, self._rsh, rp, rn=rn
                 )
                 
-                biasparams_dict_3poles['infinite_loop_gain'] = True
+                biasparams_dict_3poles['biasparams_type'] = 'infinite_lgain_current'
                 
                 # re-assign r0 (overwrite 2-poles)
                 self._r0 = biasparams_dict_3poles['r0']
