@@ -358,7 +358,8 @@ class Noise(object):
         
     def calculate_csd(self, twosided=False):
         """
-        Calculates the csd for each channel in traces. Stores csd in self.csd
+        Calculates the csd for each channel in traces in A^2/Hz. 
+        Stores csd in self.csd
         
         Parameters
         ----------
@@ -374,7 +375,7 @@ class Noise(object):
         lencsd = traceshape[2]
         nfreqs = lencsd
       
-        if twosided==False:
+        if not twosided:
             if lencsd % 2 != 0:
                 nfreqs = int((lencsd + 1)/2)
             else:
@@ -395,8 +396,9 @@ class Noise(object):
         
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
-                _ ,temp_csd = csd(self.traces[n,irow,:],self.traces[n,jcolumn,:] \
-                                           , nperseg = lencsd, fs = self.fs, nfft = lencsd,)
+                _ ,temp_csd = csd(self.traces[n,irow,:], self.traces[n,jcolumn,:],
+                                  nperseg=lencsd, fs=self.fs, nfft=lencsd,
+                                  return_onesided=not twosided)
                 trace_csd[irow][jcolumn][n] = temp_csd  
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
