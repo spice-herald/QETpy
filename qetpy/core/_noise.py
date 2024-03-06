@@ -11,7 +11,7 @@ import qetpy.plotting as utils
 from qetpy.utils import slope, fill_negatives, make_decreasing
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "calc_psd", "smooth_psd", "gen_noise", "Noise"]
+__all__ = ["foldpsd", "calc_psd",  "calc_csd", "smooth_psd", "gen_noise", "Noise"]
 
 
 def foldpsd(psd, fs):
@@ -84,6 +84,50 @@ def calc_psd(x, fs=1.0, folded_over=True):
         f, psd = foldpsd(psd, fs)
     
     return f, psd
+
+
+def calc_csd(channels, array, fs=1.0, folded_over=False):
+    """Return the CSD of in Amps^2/Hz
+
+    Parameters
+    ----------
+    channels : array_like
+        List of channels, same order as channels_array
+    array : 2D numpy array [chan, samples] 
+        Array to calculate PSD of (it should be in Amps)
+    fs : float, optional
+        Sample rate of the data being taken, assumed to be in units of Hz.
+    folded_over : bool, optional
+        Boolean value specifying whether or not the CSD is two-sided or 
+        folder
+            
+    Returns
+    -------
+    f : ndarray
+        Array of sample frequencies
+    csd : 2D= ndarray
+        cross power spectral density of 'array' in units of Amps^2/Hz
+        
+    """
+
+
+    # intantiate noise
+    noise_inst =  Noise(array, fs, channels)
+
+    # calculate csd
+    twosided = not folded_over
+    noise_inst.calculate_csd(twosided=twosided)
+
+    # get calues
+    f = noise_inst.csd_freqs
+    csd = noise_inst.csd
+
+    return f, csd
+
+
+
+
+
 
 
 def smooth_psd(psd):
@@ -259,7 +303,8 @@ class Noise(object):
         self.real_csd_std = None
         self.imag_csd_std = None
         self.csd = None
-
+        self.csd_freqs = None
+        
         temp_dict = {}
         for ind, chann in enumerate(channames):
             temp_dict[chann] = ind
@@ -393,13 +438,15 @@ class Noise(object):
         imag_csd_mean = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
         real_csd_std = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
         imag_csd_std = np.zeros(shape=(nrows,nrows,nfreqs),dtype = np.float64)
-        
+
+        csd_freqs = None
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
-                _ ,temp_csd = csd(self.traces[n,irow,:], self.traces[n,jcolumn,:],
-                                  nperseg=lencsd, fs=self.fs, nfft=lencsd,
-                                  return_onesided=not twosided)
-                trace_csd[irow][jcolumn][n] = temp_csd  
+                csd_freqs ,temp_csd = csd(self.traces[n,irow,:], self.traces[n,jcolumn,:],
+                                          nperseg=lencsd, fs=self.fs, nfft=lencsd,
+                                          return_onesided=not twosided)
+                trace_csd[irow][jcolumn][n] = temp_csd
+                
             csd_mean[irow][jcolumn] =  np.mean(trace_csd[irow][jcolumn],axis = 0)
             # we use fill_negatives() because there are many missing data points in the calculation of csd
             real_csd_mean[irow][jcolumn] = fill_negatives(np.mean(np.real(trace_csd[irow][jcolumn]),axis = 0))
@@ -413,6 +460,7 @@ class Noise(object):
         self.imag_csd = imag_csd_mean
         self.real_csd_std = real_csd_std
         self.imag_csd_std = imag_csd_std
+        self.csd_freqs = csd_freqs
         
     def plot_psd(self, lgcoverlay = True, lgcsave = False, savepath = None):
         """

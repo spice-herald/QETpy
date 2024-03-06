@@ -515,14 +515,14 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
             print(" ")
 
     # calculate new i0
-    current_didv = offset
+    current_didv = offset - delta_i_variable 
     if lgc_invert_offset:
         current_didv = -current_didv
     current_err_didv = offset_err
-    i0 = current_didv - delta_i_variable - offset_dict['i0_off']
+    i0 = current_didv - offset_dict['i0_off']
     
     if lgc_diagnostics:
-        print("Current as measured from dIdV: " + str(current_didv) + " amps")
+        print("Current as measured from dIdV: " + str(offset) + " amps")
         print("Variable current as meaured from metadata for this dIdV: " + str(i0_variable_offset) + " amps")
         print(" ")
         print("Variable current as measured during IV when offsets were measured: " + 
@@ -532,7 +532,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         print("Delta variable current: " + str(i0_variable_offset) + " - " + 
              str(i0_variable_offset_sweep) + " = \n " + str(delta_i_variable) + " amps")
         print(" ")
-        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_variable) + " - \n" + 
+        print("True current through TES: " + str(offset) + " - " + str(delta_i_variable) + " - \n" + 
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
     
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
