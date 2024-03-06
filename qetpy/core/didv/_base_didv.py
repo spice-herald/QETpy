@@ -515,14 +515,14 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
             print(" ")
 
     # calculate new i0
-    current_didv = offset
+    current_didv = offset - delta_i_variable 
     if lgc_invert_offset:
         current_didv = -current_didv
     current_err_didv = offset_err
-    i0 = current_didv - delta_i_variable - offset_dict['i0_off']
+    i0 = current_didv - offset_dict['i0_off']
     
     if lgc_diagnostics:
-        print("Current as measured from dIdV: " + str(current_didv) + " amps")
+        print("Current as measured from dIdV: " + str(offset) + " amps")
         print("Variable current as meaured from metadata for this dIdV: " + str(i0_variable_offset) + " amps")
         print(" ")
         print("Variable current as measured during IV when offsets were measured: " + 
@@ -532,7 +532,7 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         print("Delta variable current: " + str(i0_variable_offset) + " - " + 
              str(i0_variable_offset_sweep) + " = \n " + str(delta_i_variable) + " amps")
         print(" ")
-        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_variable) + " - \n" + 
+        print("True current through TES: " + str(offset) + " - " + str(delta_i_variable) + " - \n" + 
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
     
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
@@ -721,7 +721,8 @@ def _get_p0(i0, i0_err, v0, v0_err):
     
     return p0, p0_err
 
-def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
+def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
+                                 rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     from the measured TES bias current and i0
@@ -748,6 +749,9 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         
     rp: float
         The parasitic resistance in ohms
+
+    rn: float (optional) 
+        The normal resistance in ohms
         
     Returns
     -------
@@ -764,6 +768,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+
+    if rn is None:
+        rn = np.nan
+
     
     bias_parameter_dict = {
         'i0': i0,
@@ -776,15 +784,17 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict
     
 def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
                                                     ibias, ibias_err,
-                                                    rsh, rp):
+                                                    rsh, rp, rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     using the infinte loop gain approximation
@@ -848,6 +858,11 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
     
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+
+    
+    if rn is None:
+        rn = np.nan
+
     
     bias_parameter_dict = {
         'i0': i0,
@@ -860,8 +875,10 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict
