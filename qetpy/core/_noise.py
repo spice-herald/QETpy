@@ -121,14 +121,8 @@ def calc_csd(channels, array, fs=1.0, folded_over=False):
     # get calues
     f = noise_inst.csd_freqs
     csd = noise_inst.csd
-
+    
     return f, csd
-
-
-
-
-
-
 
 def smooth_psd(psd):
     """
@@ -293,6 +287,7 @@ class Noise(object):
         self.tracegain = tracegain #conversion of trace amplitude from ADC bins to Amps 
         self.freqs = np.fft.rfftfreq(self.traces.shape[2],d = 1/fs)
         self.psd = None
+        self.psd_freqs = None 
         self.real_psd = None
         self.imag_psd = None
         self.corrcoeff = None
@@ -442,7 +437,7 @@ class Noise(object):
         csd_freqs = None
         for irow, jcolumn in product(list(range(nrows)),repeat = 2):
             for n in range(ntraces):
-                csd_freqs ,temp_csd = csd(self.traces[n,irow,:], self.traces[n,jcolumn,:],
+                csd_freqs, temp_csd = csd(self.traces[n,irow,:], self.traces[n,jcolumn,:],
                                           nperseg=lencsd, fs=self.fs, nfft=lencsd,
                                           return_onesided=not twosided)
                 trace_csd[irow][jcolumn][n] = temp_csd
@@ -495,7 +490,8 @@ class Noise(object):
         
         utils.plot_reim_psd(self, lgcsave = False, savepath = None)
         
-    def plot_corrcoeff(self, lgcsmooth = True, nwindow = 7,lgcsave = False, savepath = None):
+    def plot_corrcoeff(self, lgcsmooth=True, nwindow=7, lgcsave=False, savepath=None,
+                       figsize=(8,5)):
         """
         Function to plot the cross channel correlation coefficients. Since there are typically few traces,
         the correlations are often noisy. a savgol_filter is used to smooth out some of the noise
@@ -512,9 +508,10 @@ class Noise(object):
             Absolute path for the figure to be saved
         """
 
-        utils.plot_corrcoeff(self,lgcsmooth, nwindow, lgcsave, savepath)
+        utils.plot_corrcoeff(self,lgcsmooth, nwindow, lgcsave, savepath, figsize=figsize)
         
-    def plot_csd(self, whichcsd = ['01'],lgcreal = True,lgcsave = False, savepath = None):
+    def plot_csd(self, whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None,
+                 figsize=(8,5)):
         """
         Function to plot the cross channel noise spectrum referenced to the TES line in
         units of Amperes^2/Hz
@@ -532,10 +529,12 @@ class Noise(object):
             Absolute path for the figure to be saved
         """
         
-        utils.plot_csd(self, whichcsd, lgcreal, lgcsave, savepath)
+        utils.plot_csd(self, whichcsd, lgcreal, lgcsave, savepath, figsize=figsize)
         
-    def plot_decorrelatednoise(self, lgcoverlay = False, lgcdata = True, lgcuncorrnoise = True, lgccorrelated = False,
-                               lgcsum = False,lgcsave = False, savepath = None):
+    def plot_decorrelatednoise(self, lgcoverlay=False, lgcdata=True,
+                               lgcuncorrnoise=True, lgccorrelated=False,
+                               lgcsum=False, lgcsave=False, savepath=None,
+                               figsize=(8,5)):
         """
         Function to plot the de-correlated noise spectrum referenced to the TES line in units of Amperes/sqrt(Hz) 
         from fitted parameters calculated calculate_deCorrelated_noise
@@ -562,7 +561,7 @@ class Noise(object):
         """  
         
         utils.plot_decorrelatednoise(self, lgcoverlay, lgcdata, lgcuncorrnoise, lgccorrelated,
-                                           lgcsum,lgcsave, savepath)
+                                           lgcsum,lgcsave, savepath,figsize=figsize)
 
     def save(self, path):
         """
