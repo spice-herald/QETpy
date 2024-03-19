@@ -258,7 +258,7 @@ def plot_csd(noise, whichcsd=['02'], lgcreal=True, lgcsave=False, savepath=None,
     """
 
     if noise.csd is None:
-        print('Must calculate the csd first')
+        print('ERROR: Must calculate the csd first')
         return
     else:
         x_plt_label = []
