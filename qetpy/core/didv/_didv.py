@@ -1084,7 +1084,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 bounds=None, guess=None,
                                 inf_loop_gain_approx=False,
                                 inf_loop_gain_limit=False,
+                                ilg_poles=3, 
                                 lgc_calibration_on=False,
+                                manual_i0=None, manual_i0_err=None, 
                                 lgcdiagnostics=False):
         """
         Given the offset dictionary used to store the various current
@@ -1132,11 +1134,25 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             Defaults to False. If True, calculates the biasparameters and the
             rest of the fits using the infinite loop gain approximation only if
             the fit loopgain is negative.
+            
+        ilg_poles : float, optional
+            Defaults to 3, number of poles used in the infiite loop gain approximation
+            calculation.
 
         lgc_calibration_on : bool, optional
             By default False (i.e. not using the calibration). If True, uses the calibration_dict
             to more closely approximate how changing the output_offset changes the current
             measured.
+        
+        manual_i0 : float, optional
+            Active if set to anything except for None. Allows you to manually set i0 for the
+            purpose of generating dIdV fit results for when i0 is measured through e.g. saturated
+            events.
+            
+        manual_i0_err : float, optional
+            Active if set to anything except for None. Allows you to manually set the i0 
+            uncertainty for the purpose of generating dIdV fit results for when i0 is measured
+            through e.g. saturated events.
         
         Returns:
         --------
@@ -1160,15 +1176,26 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         else:
             calibration_dict = None
 
-        i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset,
-                            closed_loop_norm, output_gain, lgc_diagnostics=lgcdiagnostics,
-                            lgc_calibration_on=lgc_calibration_on, calibration_dict=calibration_dict)
+        if manual_i0 is None:
+            i0, i0_err = get_i0(offset, offset_err, offset_dict, output_offset,
+                                closed_loop_norm, output_gain, lgc_diagnostics=lgcdiagnostics,
+                                lgc_calibration_on=lgc_calibration_on, calibration_dict=calibration_dict)
+        else:
+            i0 = manual_i0
+            i0_err = manual_i0_err
+            
         ibias, ibias_err = get_ibias(ibias_metadata, offset_dict, lgc_diagnostics=lgcdiagnostics)
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         
         if inf_loop_gain_approx:
-            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
-                self._3poleresult['params'], self._3poleresult['cov'],
+            if ilg_poles == 3:
+                params = self._3poleresult['params']
+                cov = self._3poleresult['cov']
+            elif ilg_poles == 2:
+                params = self._2poleresult['params']
+                cov = self._2poleresult['cov']
+            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(ilg_poles, 
+                params, cov,
                 ibias, ibias_err, rsh, rp)
         
         self._r0 = biasparams_dict['r0']
@@ -1179,9 +1206,16 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                              
         if inf_loop_gain_limit:
             if self._3poleresult['smallsignalparams']['l'] < 0:
-                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
-                    self._3poleresult['params'], 
-                    self._3poleresult['cov'], i0, 
+                if ilg_poles == 3:
+                    params = self._3poleresult['params']
+                    cov = self._3poleresult['cov']
+                elif ilg_poles == 2:
+                    params = self._2poleresult['params']
+                    cov = self._2poleresult['cov']
+                    
+                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(ilg_poles, 
+                    params, 
+                    cov, i0, 
                     i0_err, ibias, ibias_err, 
                     rsh, rp)
                 result3 = self.dofit(3, bounds=bounds,

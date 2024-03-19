@@ -839,7 +839,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
         dvdi0 =  params['A'] + params['B']/(1-params['C'])
         r0_jac = np.asarray([1, 1, 1, 0, 0, 0, 0])
         
-    r0 = abs(dvdi0) + rl
+    r0 = rl - dvdi0
     r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
     
     i0 = ibias * rsh / (r0 + rl)
