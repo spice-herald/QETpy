@@ -578,7 +578,7 @@ def _get_inverse_loopgain(didv_result):
     
     return (A + B + r0 - rl)/B
     
-    def _ddA_inverse_loopgain(didv_result):
+def _ddA_inverse_loopgain(didv_result):
     """
     Returns the derivative of the inverse loopgain with respect
     to the A parameter of the dIdV fit.
@@ -1092,7 +1092,7 @@ def _get_r0ilg(didv_result):
     
     return rl - (A + B)
     
-def _get_ddA_r0ilg(didv_result):
+def _ddA_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to A.
@@ -1100,7 +1100,7 @@ def _get_ddA_r0ilg(didv_result):
     
     return -1.0
     
-def _get_ddB_r0ilg(didv_result):
+def _ddB_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to B.
@@ -1108,7 +1108,7 @@ def _get_ddB_r0ilg(didv_result):
     
     return -1.0
     
-def _get_ddC_r0ilg(didv_result):
+def _ddC_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to C.
@@ -1116,7 +1116,7 @@ def _get_ddC_r0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau1_r0ilg(didv_result):
+def _ddtau1_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to tau1.
@@ -1124,7 +1124,7 @@ def _get_ddtau1_r0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau2_r0ilg(didv_result):
+def _ddtau2_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to tau2.
@@ -1132,7 +1132,7 @@ def _get_ddtau2_r0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau3_r0ilg(didv_result):
+def _ddtau3_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to tau3.
@@ -1157,12 +1157,12 @@ def _get_i0ilg(didv_result):
     
     rp = didv_result['smallsignalparams']['rp']
     rsh = didv_result['smallsignalparams']['rsh']
-    ibias = didv_result['biasparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
     return ibias * rsh / (2*rl - A - B)
     
-def _get_ddA_i0ilg(didv_result):
+def _ddA_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to A.
@@ -1176,12 +1176,12 @@ def _get_ddA_i0ilg(didv_result):
     
     rp = didv_result['smallsignalparams']['rp']
     rsh = didv_result['smallsignalparams']['rsh']
-    ibias = didv_result['biasparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
     return ibias * rsh * (2*rl - A - B)**-2
     
-def _get_ddB_i0ilg(didv_result):
+def _ddB_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to B.
@@ -1195,12 +1195,12 @@ def _get_ddB_i0ilg(didv_result):
     
     rp = didv_result['smallsignalparams']['rp']
     rsh = didv_result['smallsignalparams']['rsh']
-    ibias = didv_result['biasparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
     return ibias * rsh * (2*rl - A - B)**-2
     
-def _get_ddC_i0ilg(didv_result):
+def _ddC_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to C.
@@ -1208,7 +1208,7 @@ def _get_ddC_i0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau1_i0ilg(didv_result):
+def _ddtau1_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to tau1.
@@ -1216,7 +1216,7 @@ def _get_ddtau1_i0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau2_i0ilg(didv_result):
+def _ddtau2_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to tau2.
@@ -1224,7 +1224,7 @@ def _get_ddtau2_i0ilg(didv_result):
     
     return 0.0
     
-def _get_ddtau3_i0ilg(didv_result):
+def _ddtau3_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to tau3.
@@ -1252,7 +1252,7 @@ def _get_betailg(didv_result):
     
     return (A - rl)/(rl - A - B) - 1
     
-def _get_ddA_betailg(didv_result):
+def _ddA_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to A.
@@ -1271,7 +1271,7 @@ def _get_ddA_betailg(didv_result):
     
     return (rl - A - B)**-1 + (A - rl)*(rl - A - B)**-2
     
-def _get_ddB_betailg(didv_result):
+def _ddB_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to B.
@@ -1290,7 +1290,7 @@ def _get_ddB_betailg(didv_result):
     
     return (A - rl)*(rl - A - B)**-2
     
-def _get_ddC_betailg(didv_result):
+def _ddC_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to C.
@@ -1298,7 +1298,7 @@ def _get_ddC_betailg(didv_result):
     
     return 0.0
     
-def _get_ddtau1_betailg(didv_result):
+def _ddtau1_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to tau1.
@@ -1306,7 +1306,7 @@ def _get_ddtau1_betailg(didv_result):
     
     return 0.0
     
-def _get_ddtau2_betailg(didv_result):
+def _ddtau2_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to tau2.
@@ -1314,7 +1314,7 @@ def _get_ddtau2_betailg(didv_result):
     
     return 0.0
     
-def _get_ddtau3_betailg(didv_result):
+def _ddtau3_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to tau3.
@@ -2143,14 +2143,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
     dPdI = np.zeros(len(freqs), dtype = 'complex64')
     dPdI_err = np.zeros(len(freqs), dtype = 'complex64')
     
-    if lgc_infinite_loopgain_approx:
-        dPdI = _get_dPdI_ilg(didv_result, freqs)
-        dPdI_err = _get_dPdI_uncertainty_ilg(didv_result, freqs)
-    else:
-        dPdI = _get_dPdI_3(didv_result, freqs)
-        dPdI_err = _get_dPdI_uncertainty(didv_result, freqs)
-    
-    '''i = 0
+    i = 0
     while i < len(freqs):
         if lgc_infinite_loopgain_approx:
             dPdI[i] = _get_dPdI_ilg(didv_result, freqs[i])
@@ -2159,7 +2152,7 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
             dPdI[i] = _get_dPdI_3(didv_result, freqs[i])
             dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
         i += 1
-    '''
+    
         
     if lgcplot:
         
