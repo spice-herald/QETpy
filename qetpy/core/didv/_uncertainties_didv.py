@@ -1090,7 +1090,7 @@ def _get_r0ilg(didv_result):
     rsh = didv_result['smallsignalparams']['rsh']
     rl = rp + rsh
     
-    return rl - (A + B)
+    return rl - (A + B/(1 - C))
     
 def _ddA_r0ilg(didv_result):
     """
@@ -1105,16 +1105,36 @@ def _ddB_r0ilg(didv_result):
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to B.
     """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
     
-    return -1.0
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -1.0/(1 - C)
     
 def _ddC_r0ilg(didv_result):
     """
     Returns the derivative of the device r0 calculated with
     the infinite loop gain approximation with respect to C.
     """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
     
-    return 0.0
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -1.0*B * (1 - C)**-2
     
 def _ddtau1_r0ilg(didv_result):
     """
@@ -1160,7 +1180,7 @@ def _get_i0ilg(didv_result):
     ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
-    return ibias * rsh / (2*rl - A - B)
+    return ibias * rsh / (2*rl - A - B/(1 - C))
     
 def _ddA_i0ilg(didv_result):
     """
@@ -1179,7 +1199,7 @@ def _ddA_i0ilg(didv_result):
     ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
-    return ibias * rsh * (2*rl - A - B)**-2
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2
     
 def _ddB_i0ilg(didv_result):
     """
@@ -1198,15 +1218,26 @@ def _ddB_i0ilg(didv_result):
     ibias = didv_result['biasparams']['ibias']
     rl = rp + rsh
     
-    return ibias * rsh * (2*rl - A - B)**-2
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2 * (1.0/(1 - C))
     
 def _ddC_i0ilg(didv_result):
     """
     Returns the derivative of the device i0 calculated with
     the infinite loop gain approximation with respect to C.
     """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
     
-    return 0.0
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
+    rl = rp + rsh
+    
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2 * B * (1 - C)**-2
     
 def _ddtau1_i0ilg(didv_result):
     """
@@ -1250,7 +1281,7 @@ def _get_betailg(didv_result):
     rsh = didv_result['smallsignalparams']['rsh']
     rl = rp + rsh
     
-    return (A - rl)/(rl - A - B) - 1
+    return (A - rl)/(rl - A - B/(1 - C)) - 1
     
 def _ddA_betailg(didv_result):
     """
@@ -1269,7 +1300,7 @@ def _ddA_betailg(didv_result):
     ibias = didv_result['biasparams']['rsh']
     rl = rp + rsh
     
-    return (rl - A - B)**-1 + (A - rl)*(rl - A - B)**-2
+    return (rl - A - B/(1 - C))**-1 + (A - rl)*(rl - A - B/(1 - C))**-2
     
 def _ddB_betailg(didv_result):
     """
@@ -1288,15 +1319,26 @@ def _ddB_betailg(didv_result):
     ibias = didv_result['biasparams']['rsh']
     rl = rp + rsh
     
-    return (A - rl)*(rl - A - B)**-2
+    return (A - rl)*(rl - A - B/(1 - C))**-2 * 1/(1 - C)
     
 def _ddC_betailg(didv_result):
     """
     Returns the derivative of the device beta calculated with
     the infinite loop gain approximation with respect to C.
     """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
     
-    return 0.0
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['rsh']
+    rl = rp + rsh
+    
+    return (A - rl)*(rl - A - B/(1 - C))**-2 * B * (1 - C)**-2
     
 def _ddtau1_betailg(didv_result):
     """
