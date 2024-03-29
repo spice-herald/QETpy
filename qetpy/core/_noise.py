@@ -8,10 +8,12 @@ import scipy.constants as constants
 import pickle 
 import matplotlib.pyplot as plt
 import qetpy.plotting as utils
-from qetpy.utils import slope, fill_negatives, make_decreasing
+from qetpy.utils import slope, fill_negatives, make_decreasing, fold_spectrum
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "calc_psd",  "calc_csd", "smooth_psd", "gen_noise", "Noise"]
+__all__ = ["foldpsd", "calc_psd", 
+           "calc_csd","calc_corrcoeff_from_csd",
+           "smooth_psd", "gen_noise", "Noise"]
 
 
 def foldpsd(psd, fs):
@@ -22,6 +24,8 @@ def foldpsd(psd, fs):
     ----------
     psd : ndarray
         A two-sided psd in Amps^2/Hz to be converted to one-sided
+        1D array: [num_freqs]
+        2D array: [num_channels, num_freqs]
     fs : float
         The sample rate used for the psd
             
@@ -34,22 +38,26 @@ def foldpsd(psd, fs):
         in Amps^2/Hz
             
     """
-    
-    psd_folded = np.copy(psd[:len(psd)//2+1])
-    psd_folded[1:len(psd)//2+(len(psd))%2] *= 2.0
-    f = rfftfreq(len(psd), fs)
-    
-    return f, psd_folded
 
+    # use utils function
+    return fold_spectrum(psd, fs)
+    
 
-def calc_psd(x, fs=1.0, folded_over=True):
-    """Return the PSD of an n-dimensional array in Amps^2/Hz, 
-       assuming that we want the PSD of the last axis.
+def calc_psd(array, fs=1.0, folded_over=False):
+    """
+    calculate PSD in Amps^2/Hz for an array of the 
+    following dimension:
+      1D [Num_samples]
+      2D [num_traces, num_samples]  
+      3D [num_traces, num_channels, num_samples]  
     
     Parameters
     ----------
-    x : array_like
-        Array to calculate PSD of (it should be in Amps)
+    array : 1D or 2D numpy array
+        Array to calculate PSD of in unit of Amps
+        1D [Num_samples]
+        2D [num_traces, num_samples]  
+        3D [num_traces, num_channels, num_samples]  
     fs : float, optional
         Sample rate of the data being taken, assumed to be in units of Hz.
     folded_over : bool, optional
@@ -64,39 +72,90 @@ def calc_psd(x, fs=1.0, folded_over=True):
     f : ndarray
         Array of sample frequencies
     psd : ndarray
-        Power spectral density of 'x' in units of Amps^2/Hz
+        Power spectral density of 'array' in units of Amps^2/Hz
         
     """
     
     # calculate normalization for correct units
-    norm = fs * x.shape[-1]
-    
+    norm = fs * array.shape[-1]
     
     # FFT for all frequencies
-    f, x_fft  = fft(x, fs)
-    if len(x.shape)==1:
-        psd = (np.abs(x_fft)**2.0)/norm
+    f, array_fft  = fft(array, fs)
+  
+    if array.ndim == 1:
+        psd = (np.abs(array_fft)**2.0)/norm
     else:
-        psd = np.mean(np.abs(x_fft)**2.0, axis=0)/norm
-
+        psd = np.mean(np.abs(array_fft)**2.0, axis=0)/norm
+        
     # fold 
     if folded_over:
-        f, psd = foldpsd(psd, fs)
+        f, psd = fold_spectrum(psd, fs)
     
     return f, psd
 
 
-def calc_csd(channels, array, fs=1.0, folded_over=False):
+def foldcsd(csd, fs):
+    """
+    Return the one-sided version of the inputted two-sided csd.
+    
+    Parameters
+    ----------
+    csd : ndarray
+        A two-sided psd in Amps^2/Hz to be converted to one-sided
+    fs : float
+        The sample rate used for the psd
+            
+    Returns
+    -------
+    f : ndarray
+        The frequencies corresponding to the outputted one-sided psd
+    csd_folded : ndarray
+        The one-sided (folded over) csd corresponding to the inputted two-sided csd
+        in Amps^2/Hz
+            
+    """
+
+    if (not isinstance(csd, np.ndarray)
+        or csd.ndim != 3):
+        raise ValueError('ERROR: csd should be a numpy 3D array!')
+
+    # csd has shape [nchannels, nchannels, nfreqs]
+    nchannels, _, nfreqs = csd.shape
+
+    # number of positive frequencies
+    nposfreqs = nfreqs // 2 + 1
+
+    # Initialize a new matrix to hold the one-sided CSD
+    csd_folded = np.zeros((nchannels, nchannels, nposfreqs), dtype=complex)
+
+    # Copy over the DC and positive frequencies
+    csd_folded[:, :, :nposfreqs] = csd[:, :, :nposfreqs]
+
+    # Double the power of the positive frequencies except for the DC component
+    # and Nyquist frequency if nfreqs is even (i.e., if there's a Nyquist component)
+    if nfreqs % 2 == 0:  # If even, there is a Nyquist frequency
+        csd_folded[:, :, 1:nposfreqs-1] *= 2
+    else:  # If odd, no Nyquist frequency, so double everything except DC
+        csd_folded[:, :, 1:] *= 2
+
+    # frequency array
+    f = rfftfreq(nposfreqs, fs)
+    
+    return f, csd_folded
+
+
+def calc_csd(array, fs=1.0, folded_over=False):
     """Return the CSD of in Amps^2/Hz
 
     Parameters
     ----------
-    channels : array_like
-        List of channels, same order as channels_array
-    array : 2D numpy array [chan, samples] 
-        Array to calculate PSD of (it should be in Amps)
+    array : 2D numpy array [channels, samples]  
+         or 3D array [traces, channels, samples]
+        Array to calculate CSD of in unit of Amps
+
     fs : float, optional
         Sample rate of the data being taken, assumed to be in units of Hz.
+  
     folded_over : bool, optional
         Boolean value specifying whether or not the CSD is two-sided or 
         folder
@@ -105,25 +164,83 @@ def calc_csd(channels, array, fs=1.0, folded_over=False):
     -------
     f : ndarray
         Array of sample frequencies
-    csd : 2D= ndarray
+    csd : 3darray
         cross power spectral density of 'array' in units of Amps^2/Hz
+        (return mean csd if multiple traces)
         
     """
 
+    # check array
+    if (not isinstance(array, np.ndarray)
+        or (array.ndim != 2 and array.ndim != 3)):
+        raise ValueError(
+            'ERROR: The input array should be a numpy 2D or 3D array!'
+        )
 
-    # intantiate noise
-    noise_inst =  Noise(array, fs, channels)
+    # convert to 3D if 2D array
+    if array.ndim == 2:
+        array = array[np.newaxis, :, :]
 
-    # calculate csd
-    twosided = not folded_over
-    noise_inst.calculate_csd(twosided=twosided)
+    # shape
+    ntraces=  array.shape[0]
+    nchannels = array.shape[1]
+    nsamples = array.shape[2]
+    if nchannels == 1:
+        raise ValueError('ERROR: Need more than one channel to calculate csd')
 
-    # get calues
-    f = noise_inst.csd_freqs
-    csd = noise_inst.csd
+    # number of frequencies
+    nfreqs = nsamples
+    if folded_over:
+        if nsamples % 2 != 0:
+            nfreqs = int((nsamples + 1)/2)
+        else:
+            nfreqs = int(nsamples/2 + 1)
+      
+    # initialize output
+    traces_csd = np.zeros(shape=(nchannels, nchannels, ntraces, nfreqs), dtype=np.complex128)
+    csd_mean = np.zeros(shape=(nchannels, nchannels, nfreqs), dtype=np.complex128)
+        
+    csd_freqs = None
+    for irow, jcolumn in product(list(range(nchannels)),repeat=2):
+        for n in range(ntraces):
+            csd_freqs, temp_csd = csd(array[n, irow, :], array[n, jcolumn, :],
+                                      nperseg=nsamples, fs=fs, nfft=nsamples,
+                                      return_onesided=folded_over)
+
+            traces_csd[irow][jcolumn][n] = temp_csd
+                
+        csd_mean[irow][jcolumn] =  np.mean(traces_csd[irow][jcolumn], axis=0)
+           
+    return  csd_freqs, csd_mean
+
+
+def calc_corrcoeff_from_csd(csd):
+    """
+    """
+
+    # check csd
+    if (not isinstance(csd, np.ndarray) or csd.ndim != 3):
+        raise ValueError('ERROR: csd should be a numpy 3D array!')
+
+    nchannels = csd.shape[0]
+    nfreqs =  csd.shape[2]
     
-    return f, csd
+    # PSDs
+    psds = np.abs(np.diagonal(csd, axis1=0, axis2=1))
+  
+    # initialize coherence matrix
+    coherence_matrix = np.zeros((nchannels, nchannels, nfreqs))
 
+    # calculate
+    for i in range(nchannels):
+        for j in range(nchannels):
+            coherence_matrix[i, j, :] = (
+                np.abs(csd[i, j, :])**2 / (psds[:, i]*psds[:, j])
+            )
+
+    return coherence_matrix
+            
+    
 def smooth_psd(psd):
     """
     Function that uses `make_decreasing` to smooth a PSD. Useful for removing spikes 
@@ -472,7 +589,8 @@ class Noise(object):
             Absolute path for the figure to be saved
         """
 
-        utils.plot_psd(self,lgcoverlay, lgcsave, savepath)
+        utils.plot_psd(noise=self, lgcoverlay=lgcoverlay, lgcsave=lgcsave,
+                       savepath=savepath)
         
     def plot_reim_psd(self, lgcsave = False, savepath = None):
         """
@@ -488,7 +606,7 @@ class Noise(object):
 
         """
         
-        utils.plot_reim_psd(self, lgcsave = False, savepath = None)
+        utils.plot_reim_psd(self, lgcsave=False, savepath=None)
         
     def plot_corrcoeff(self, lgcsmooth=True, nwindow=7, lgcsave=False, savepath=None,
                        figsize=(8,5)):
@@ -508,7 +626,9 @@ class Noise(object):
             Absolute path for the figure to be saved
         """
 
-        utils.plot_corrcoeff(self,lgcsmooth, nwindow, lgcsave, savepath, figsize=figsize)
+        utils.plot_corrcoeff(noise=self, lgcsmooth=lgcsmooth,
+                             nwindow=nwindow, lgcsave=lgcsave,
+                             savepath=savepath, figsize=figsize)
         
     def plot_csd(self, whichcsd=['01'], lgcreal=True, lgcsave=False, savepath=None,
                  figsize=(8,5)):
@@ -529,7 +649,8 @@ class Noise(object):
             Absolute path for the figure to be saved
         """
         
-        utils.plot_csd(self, whichcsd, lgcreal, lgcsave, savepath, figsize=figsize)
+        utils.plot_csd(noise=self, whichcsd=whichcsd, lgcreal=lgcreal, lgcsave=lgcsave,
+                       savepath=savepath, figsize=figsize)
         
     def plot_decorrelatednoise(self, lgcoverlay=False, lgcdata=True,
                                lgcuncorrnoise=True, lgccorrelated=False,
@@ -558,10 +679,10 @@ class Noise(object):
             If True, the figure is saved in the user provided directory
         savepath : str, optional
             Absolute path for the figure to be saved
-        """  
-        
+        """
+
         utils.plot_decorrelatednoise(self, lgcoverlay, lgcdata, lgcuncorrnoise, lgccorrelated,
-                                           lgcsum,lgcsave, savepath,figsize=figsize)
+                                     lgcsum,lgcsave, savepath)
 
     def save(self, path):
         """
