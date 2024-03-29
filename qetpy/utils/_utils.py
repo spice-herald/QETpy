@@ -38,7 +38,8 @@ __all__ = [
     "ifft",
     "fftfreq",
     "rfftfreq",
-    "energy_resolution"
+    "energy_resolution",
+    "fold_spectrum"
 ]
 
 
@@ -1461,3 +1462,60 @@ def energy_resolution(psd, template,  dpdi, fs,
     
     return energy_res
 
+        
+def fold_spectrum(spectrum, fs):
+    """
+    Folds over the spectrum to keep only positive frequencies, applies a factor of 2 
+    to all but the DC and Nyquist components (if applicable).
+
+    Parameters:
+    - spectrum: numpy array, the PSD or CSD array to fold. 
+          PSD can be 1D [num_freqs] or 2D with [num_channels, num_freqs]
+          CSD is 3D [num_channels, num_channels, num_freqs]
+    
+    Returns:
+    - folded_spectrum: numpy array, the folded spectrum with only positive frequencies.
+    """
+
+    # check if 1D array (allowed for PSD)
+    is_1d_array = False
+    if spectrum.ndim == 1:
+        is_1d_array = True
+        spectrum = spectrum[np.newaxis, :]
+    
+    # Determine if the input is PSD or CSD based on its shape
+    is_psd = spectrum.ndim == 2
+    
+    # Calculate the number of positive frequencies (including DC and possibly Nyquist)
+    num_freqs = spectrum.shape[-1]
+    num_positive_freqs = num_freqs // 2 + 1
+
+    if is_psd:
+        folded_spectrum = np.copy(spectrum[:, :num_positive_freqs])
+    else:
+        folded_spectrum = np.copy(spectrum[:, :, :num_positive_freqs])
+
+    # Double the power of the positive frequencies except for the DC component
+    # and Nyquist frequency if num_freqs is even (i.e., if there's a Nyquist component)
+    if num_freqs % 2 == 0:
+        # If even, there is a Nyquist frequency
+        if is_psd:
+            folded_spectrum[:, 1:num_positive_freqs-1] *= 2
+        else:
+            folded_spectrum[:, :, 1:num_positive_freqs-1] *= 2
+    else:
+        # If odd, no Nyquist frequency, so double everything except DC
+        if is_psd:
+            folded_spectrum[:, 1:] *= 2
+        else:
+            folded_spectrum[:, :, 1:] *= 2
+
+    if is_1d_array:
+        folded_spectrum = folded_spectrum[0,:]
+
+            
+    # frequencies
+    f = rfftfreq(num_freqs, fs)
+            
+
+    return f, folded_spectrum

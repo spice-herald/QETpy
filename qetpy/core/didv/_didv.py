@@ -862,7 +862,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         # initialize  bias parameters dict
         biasparams_dict = ivsweep_results.copy()
-        biasparams_dict['biasparams_type'] = 'ivsweep_current'
+        biasparams_dict['biasparams_type'] = 'external_current'
         
         rp = ivsweep_results['rp']
         rn = None
