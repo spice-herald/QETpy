@@ -11,19 +11,21 @@ import qetpy.plotting as utils
 from qetpy.utils import slope, fill_negatives, make_decreasing, fold_spectrum
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "calc_psd", 
+__all__ = ["foldpsd", "foldcsd", "calc_psd", 
            "calc_csd","calc_corrcoeff_from_csd",
            "smooth_psd", "gen_noise", "Noise"]
 
 
 def foldpsd(psd, fs):
     """
-    Return the one-sided version of the inputted two-sided psd.
+    Return the one-sided version of the input two-sided psd.
+    in unit if Amps^2/Hz
     
     Parameters
     ----------
     psd : ndarray
         A two-sided psd in Amps^2/Hz to be converted to one-sided
+
         1D array: [num_freqs]
         2D array: [num_channels, num_freqs]
     fs : float
@@ -96,7 +98,8 @@ def calc_psd(array, fs=1.0, folded_over=False):
 
 def foldcsd(csd, fs):
     """
-    Return the one-sided version of the inputted two-sided csd.
+    Return the one-sided version of the input two-sided csd.
+    in unit if Amps^2/Hz
     
     Parameters
     ----------
@@ -115,42 +118,18 @@ def foldcsd(csd, fs):
             
     """
 
-    if (not isinstance(csd, np.ndarray)
-        or csd.ndim != 3):
-        raise ValueError('ERROR: csd should be a numpy 3D array!')
-
-    # csd has shape [nchannels, nchannels, nfreqs]
-    nchannels, _, nfreqs = csd.shape
-
-    # number of positive frequencies
-    nposfreqs = nfreqs // 2 + 1
-
-    # Initialize a new matrix to hold the one-sided CSD
-    csd_folded = np.zeros((nchannels, nchannels, nposfreqs), dtype=complex)
-
-    # Copy over the DC and positive frequencies
-    csd_folded[:, :, :nposfreqs] = csd[:, :, :nposfreqs]
-
-    # Double the power of the positive frequencies except for the DC component
-    # and Nyquist frequency if nfreqs is even (i.e., if there's a Nyquist component)
-    if nfreqs % 2 == 0:  # If even, there is a Nyquist frequency
-        csd_folded[:, :, 1:nposfreqs-1] *= 2
-    else:  # If odd, no Nyquist frequency, so double everything except DC
-        csd_folded[:, :, 1:] *= 2
-
-    # frequency array
-    f = rfftfreq(nposfreqs, fs)
-    
-    return f, csd_folded
+    return fold_spectrum(csd, fs)
 
 
 def calc_csd(array, fs=1.0, folded_over=False):
-    """Return the CSD of in Amps^2/Hz
+    """
+    Calculate and return the CSD of in Amps^2/Hz
 
     Parameters
     ----------
     array : 2D numpy array [channels, samples]  
          or 3D array [traces, channels, samples]
+
         Array to calculate CSD of in unit of Amps
 
     fs : float, optional
@@ -216,6 +195,19 @@ def calc_csd(array, fs=1.0, folded_over=False):
 
 def calc_corrcoeff_from_csd(csd):
     """
+    Calculate the correlation coefficient from a csd
+     
+    Parameters
+    ----------
+    csd: 3D array [channels, channels, samples]
+        CSD of in unit of Amps^2/Hz (one sided or twho-sided)
+
+    Return
+    ------
+   
+    corrcoeff : 3D array
+       correlation coefficients same shape as csd
+
     """
 
     # check csd

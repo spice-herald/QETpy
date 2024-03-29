@@ -25,8 +25,17 @@ def plot_psd(noise=None,
 
     Parameters
     ----------
-    noise : Object
+    noise : Object, optional
         Noise object to be plotted
+    psd : 1D or 2D numpy array 
+         psd in unit of Amps^2/Hz
+    psd_freqs : 1D numpy array
+        frequency array
+    channels : list of string (optional)
+        channel names, 
+       If None, default names are "channel1", "channel2", etc
+    title : str 
+        title of the figure   
     lgcoverlay : boolean, optional
         If True, psd's for all channels are overlayed in a single plot,
         If False, each psd for each channel is plotted in a seperate subplot
@@ -34,7 +43,8 @@ def plot_psd(noise=None,
         If True, the figure is saved in the user provided directory
     savepath : str, optional
         Absolute path for the figure to be saved
-
+    figsize : tuple
+        matplotlib figure size
     """
 
     # get correlation coefficient
@@ -321,8 +331,17 @@ def plot_csd(noise=None,
 
     Parameters
     ----------
-    noise : Object
+    noise : Object, optional
         Noise object to be plotted
+    csd : 3D numpy array 
+         csd in unit of Amps^2/Hz
+    csd_freqs : 1D numpy array
+        frequency array
+    channels : list of string (optional)
+        channel names, 
+       If None, default names are "channel1", "channel2", etc
+    title : str 
+        title of the figure   
     whichcsd : list, optional
         a list of strings, where each element of the list refers to the pair of 
         indices of the desired csd plot
