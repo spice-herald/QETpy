@@ -11,7 +11,7 @@ import qetpy.plotting as utils
 from qetpy.utils import slope, fill_negatives, make_decreasing, fold_spectrum
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "foldcsd", "calc_psd", 
+__all__ = ["foldpsd", "foldcsd", "calc_psd", "foldcsd",
            "calc_csd","calc_corrcoeff_from_csd",
            "smooth_psd", "gen_noise", "Noise"]
 
