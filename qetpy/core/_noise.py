@@ -11,7 +11,7 @@ import qetpy.plotting as utils
 from qetpy.utils import slope, fill_negatives, make_decreasing, fold_spectrum
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
-__all__ = ["foldpsd", "foldcsd", "calc_psd", "foldcsd",
+__all__ = ["foldpsd", "foldcsd", "calc_psd",
            "calc_csd","calc_corrcoeff_from_csd",
            "smooth_psd", "gen_noise", "Noise"]
 
@@ -176,8 +176,10 @@ def calc_csd(array, fs=1.0, folded_over=False):
             nfreqs = int(nsamples/2 + 1)
       
     # initialize output
-    traces_csd = np.zeros(shape=(nchannels, nchannels, ntraces, nfreqs), dtype=np.complex128)
-    csd_mean = np.zeros(shape=(nchannels, nchannels, nfreqs), dtype=np.complex128)
+    traces_csd = np.zeros(shape=(nchannels, nchannels, ntraces, nfreqs),
+                          dtype=np.complex128)
+    csd_mean = np.zeros(shape=(nchannels, nchannels, nfreqs),
+                        dtype=np.complex128)
         
     csd_freqs = None
     for irow, jcolumn in product(list(range(nchannels)),repeat=2):
