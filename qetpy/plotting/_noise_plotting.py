@@ -424,7 +424,7 @@ def plot_csd(noise=None,
                 channels[y_plt_label[ii]],
             )
 
-            plt.loglog(csd_freqs[1:], imag_csd[x_plt_label[ii]][y_plt_label[ii]][1:])
+            plt.loglog(csd_freqs[1:], img_csd[x_plt_label[ii]][y_plt_label[ii]][1:])
 
         plt.title(title, fontweight='bold')
         plt.tick_params(which='both', direction='in', right=True, top=True)
