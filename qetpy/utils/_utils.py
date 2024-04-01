@@ -9,9 +9,6 @@ from sympy.core.symbol import S
 # ifft functions
 FFT_MODULE = 'scipy'
 
-
-
-
 __all__ = [
     "make_decreasing",
     "calc_offset",
