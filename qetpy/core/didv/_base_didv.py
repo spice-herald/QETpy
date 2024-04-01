@@ -1564,7 +1564,12 @@ class _BaseDIDV(object):
         have been fitted
 
         """
-        list_of_poles = list(self._fit_results.keys())
+        keys = list(self._fit_results.keys())
+        list_of_poles = list()
+        for poles in keys:
+            if self._fit_results[poles] is not None:
+                list_of_poles.append(poles)
+                
         return list_of_poles 
 
         
