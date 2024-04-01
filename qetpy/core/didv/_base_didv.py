@@ -832,7 +832,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
     # check dimension
     num_params = cov.shape[0]
     if len(params.keys()) != num_params:
-        raise ValueERROR('ERROR: inconsistent number of '
+        raise ValueError('ERROR: inconsistent number of '
                          'parameters with covariance '
                          'matrix shape')
     
