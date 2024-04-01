@@ -6,6 +6,8 @@ from ._plot_didv import _PlotDIDV
 from ._uncertainties_didv import get_smallsignalparams_cov, get_smallsignalparams_sigmas
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 import copy
+import warnings
+warnings.simplefilter('default')
 
 
 __all__ = [
@@ -834,8 +836,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 lgc_diagnostics=False):
         """
         Calculate small signal parametres and their uncertainties 
-        using results from  ivsweep.  If calc_true_current=True, 
-        I0 is recalculated using the measured offset  
+        using results from  ivsweep (I0 or Ioffset).  
+        If calc_true_current=True, I0 is recalculated using the measured offset  
         """
 
         # check which models have been fitted (2 and/or 3 poles)
@@ -931,7 +933,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 output_variable_gain,
                                 lgc_invert_offset=lgc_invert_offset,
                                 lgc_diagnostics=lgc_diagnostics)
-    
+
             # calculate true ibias (QET bias)
             ibias, ibias_err = get_ibias(tes_bias, ivsweep_results,
                                          lgc_diagnostics=lgc_diagnostics)
@@ -949,10 +951,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
         # calculate small signal parameters
-
+        
         # loop poles
         for model_poles in model_list:
 
+            print(f'INFO: Calculating small signal parameters '
+                  f'for {model_poles}-poles model ')
+            
             # calc
             self._calc_ssp(model_poles,
                            biasparams_dict=biasparams_dict.copy(),
@@ -1147,6 +1152,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         
         """
 
+        warnings.warn(
+            'WARNING: "dofit_with_true_current(..)" function is deprecated. '
+            'Use "calc_smallsignal_params(.., calc_true_current=True,...)" '
+            'instead.')
+  
         self._rp = offset_dict['rp']
 
         rsh = self._rsh

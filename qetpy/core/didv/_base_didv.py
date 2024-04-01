@@ -462,7 +462,6 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         # current IV variable offset
         if lgc_calibration_on is False:
             i0_variable_offset = output_offset * output_gain/closed_loop_norm
-            
         else:
             if calibration_dict is None:
                 raise ValueError('ERROR: must include calibration_dict if '
@@ -1442,8 +1441,12 @@ class _BaseDIDV(object):
             print("Wrong number of input parameters, returning zero...")
             falltimes = np.zeros(1)
 
-        # return fall times sorted from shortest to longest
-        return np.sort(falltimes)
+        # fall times sorted from shortest to longest
+        falltimes = np.sort(falltimes)
+        if falltimes[0] == 0:
+            falltimes = np.concatenate((falltimes[1:], [0]))
+
+        return falltimes
 
 
     def processtraces(self):
