@@ -7,7 +7,8 @@ __all__ = [
     "create_example_data",
     "create_example_muontail",
     "create_example_pulseplusmuontail",
-    "create_example_ttl_leakage_pulses",
+    "create_example_ttl_leakage_pulses"
+    "make_gaussian_psd",
 ]
 
 PULSE_AMP = -4e-8
@@ -73,11 +74,7 @@ def create_example_data(lgcpileup=False, lgcbaseline=False):
     tau_rise = 20e-6
     tau_fall = 66e-6
 
-    f = np.fft.fftfreq(32500, d=1/fs)
-    noisesim = qp.sim.TESnoise(r0=0.03)
-
-    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
-
+    f, psd_sim = make_gaussian_psd(32500,fs=fs)
     t = np.arange(len(psd_sim))/fs
     
     
@@ -121,11 +118,7 @@ def create_example_muontail():
     tau_fall = 20e-3
     pulse_amp = 0.5e-6
 
-    f = np.fft.fftfreq(32500, d=1/fs)
-    noisesim = qp.sim.TESnoise(r0=0.03)
-
-    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
-
+    f, psd_sim = make_gaussian_psd(32500,fs=fs)
     t = np.arange(len(psd_sim))/fs
     
     pulse = np.exp(-t/tau_fall)
@@ -165,12 +158,7 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
 
     fs = 625e3
     baseline_shift = 0.2e-6
-
-    f = np.fft.fftfreq(32500, d=1/fs)
-    noisesim = qp.sim.TESnoise(r0=0.03)
-
-    psd_sim = noisesim.s_iload(freqs=f) + noisesim.s_ites(freqs=f) + noisesim.s_itfn(freqs=f)
-
+    f, psd_sim = make_gaussian_psd(32500,fs=fs)
     t = np.arange(len(psd_sim))/fs
 
     pulse = np.exp(-t/TAU_FALL) - np.exp(-t/TAU_RISE)
@@ -233,14 +221,7 @@ def create_example_ttl_leakage_pulses(
     bkgampscale = -4e-8
     baseline_shift = 0.2e-6
     nbin = 6250
-
-    f = np.fft.fftfreq(nbin, d=1/fs)
-    noisesim = qp.sim.TESnoise(r0=0.03)
-
-    psd_sim = noisesim.s_iload(freqs=f) + \
-        noisesim.s_ites(freqs=f) + \
-        noisesim.s_itfn(freqs=f)
-
+    f, psd_sim = make_gaussian_psd(nbin, fs=fs)
     t = np.arange(len(psd_sim))/fs
 
     template = np.exp(-t/TAU_FALL)-np.exp(-t/TAU_RISE)
@@ -285,3 +266,13 @@ def create_example_ttl_leakage_pulses(
         signal += baseline_shift
 
     return signal, template, psd_sim
+
+
+def make_gaussian_psd(nb_samples, fs=625e3, noise_std=20e-12):
+    """
+    make a psd
+    """
+
+    gaussian_noise = np.random.normal(0, noise_std, nb_samples)
+    freqs, psd = qp.calc_psd(gaussian_noise , fs=fs, folded_over=True)
+    return freqs, psd
