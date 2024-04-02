@@ -1986,6 +1986,29 @@ def _get_inverse_loopgain_sigma(didv_result):
 Functions that are for general use
 """
 
+def get_smallsignalparams_vals(didv_result):
+    """
+    Returns the values of the smallsignalparams in the order:
+    beta, loopgain, L, tau0, gratio
+    """
+    val_beta = _get_beta(didv_result)
+    val_loopgain = _get_loopgain(didv_result)
+    val_L = _get_L(didv_result)
+    val_tau0 = _get_tau0(didv_result)
+    val_gratio = _get_gratio(didv_result)
+    val_inverse_loopgain = _get_inverse_loopgain(didv_result)
+    
+    ssp_vals = {
+        'beta': val_beta,
+        'l': val_loopgain,
+        'L': val_L,
+        'tau0': val_tau0,
+        'gratio': val_gratio,
+        'inverse_loopgain': val_inverse_loopgain,
+    }
+    
+    return ssp_vals
+
 def get_smallsignalparams_cov(didv_result):
     """
     Returns the covariance matrix for 3 pole dIdV fits
