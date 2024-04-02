@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft, fftfreq
 
-
 from ._base_didv import squarewaveresponse, complexadmittance
 from qetpy.utils import lowpassfilter
 
@@ -21,14 +20,14 @@ class _PlotDIDV(object):
         dt_lambda = lambda x: x['params']['dt'] if x is not None else None
 
         cost_vals = [
-            cost_lambda(self._1poleresult),
-            cost_lambda(self._2poleresult),
-            cost_lambda(self._3poleresult),
+            cost_lambda(self._fit_results[1]),
+            cost_lambda(self._fit_results[2]),
+            cost_lambda(self._fit_results[3]),
         ]
         dt_vals = [
-            dt_lambda(self._1poleresult),
-            dt_lambda(self._2poleresult),
-            dt_lambda(self._3poleresult),
+            dt_lambda(self._fit_results[1]),
+            dt_lambda(self._fit_results[2]),
+            dt_lambda(self._fit_results[3]),
         ]
         if all(fv is None for fv in cost_vals):
             best_time_offset = 0
@@ -59,7 +58,7 @@ class _PlotDIDV(object):
         return ifft(filtered_trace)
 
 
-    def _plot_time_domain(self, poles, lp_cutoff=None, didv_freq_filt=False):
+    def _plot_time_domain(self, poles, lp_cutoff=None, didv_freq_filt=False, gray_mean=False):
         """Helper function for plotting the fits in time domain."""
 
         if poles == "all":
@@ -70,12 +69,22 @@ class _PlotDIDV(object):
         ## plot the entire trace with fits
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        ax.plot(
-            self._time * 1e6,
-            (self._tmean - self._offset) * 1e6,
-            color='k',
-            label='Mean',
-        )
+        if gray_mean:
+            ax.plot(
+                self._time * 1e6,
+                (self._tmean - self._offset) * 1e6,
+                color='gray',
+                alpha=0.2,
+                label='Mean',
+            )
+            
+        else:
+            ax.plot(
+                self._time * 1e6,
+                (self._tmean - self._offset) * 1e6,
+                color='k',
+                label='Mean',
+            )
 
         if lp_cutoff is not None:
 
@@ -85,6 +94,7 @@ class _PlotDIDV(object):
                 self._time * 1e6,
                 lp_meantrace,
                 color='red',
+                alpha=0.7,
                 label='Mean, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
             )
 
@@ -114,13 +124,14 @@ class _PlotDIDV(object):
                 self._time * 1e6,
                 didv_filt_trace,
                 color='purple',
+                alpha=0.7,
                 label='Mean, dIdV Frequencies Only',
             )
 
                 
 
-        if (self._1poleresult is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._1poleresult:
+        if (self._fit_results[1] is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._fit_results[1]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
@@ -129,18 +140,31 @@ class _PlotDIDV(object):
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._1poleresult[key],
+                **self._fit_results[1][key],
             )
-            ax.plot(
-                (self._time + self._1poleresult['params']['dt']) * 1e6,
-                didvfit1_timedomain * 1e6,
-                color='magenta',
-                alpha=0.9,
-                label='1-Pole Fit',
-            )
-
-        if (self._2poleresult is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._2poleresult:
+            
+            if lp_cutoff is not None:
+                lp_1poleresult = lowpassfilter(didvfit1_timedomain,
+                                         lp_cutoff, fs=self._fs, order=2)
+                ax.plot(
+                    (self._time + self._fit_results[1]['params']['dt']) * 1e6,
+                    lp_1poleresult * 1e6,
+                    color='magenta',
+                    alpha=0.9,
+                    label='1-Pole Fit-filtered',
+                )
+            
+            elif lp_cutoff is None:
+                ax.plot(
+                    (self._time + self._fit_results[1]['params']['dt']) * 1e6,
+                    didvfit1_timedomain * 1e6,
+                    color='magenta',
+                    alpha=0.9,
+                    label='1-Pole Fit',
+                )    
+            
+        if (self._fit_results[2] is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._fit_results[2]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
@@ -149,18 +173,32 @@ class _PlotDIDV(object):
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._2poleresult[key],
+                **self._fit_results[2][key],
             )
-            ax.plot(
-                (self._time + self._2poleresult['params']['dt']) * 1e6,
-                didvfit2_timedomain * 1e6,
-                color='green',
-                alpha=0.9,
-                label='2-Pole Fit',
-            )
+            
+            if lp_cutoff is not None:
+                lp_2poleresult = lowpassfilter(didvfit2_timedomain,
+                                               lp_cutoff, fs=self._fs,
+                                               order=2)
+                ax.plot(
+                    (self._time + self._fit_results[2]['params']['dt']) * 1e6,
+                    lp_2poleresult * 1e6,
+                    color='green',
+                    alpha=0.9,
+                    label='2-Pole Fit-filtered',
+                )
+                
+            elif lp_cutoff is None:
+                ax.plot(
+                    (self._time + self._fit_results[2]['params']['dt']) * 1e6,
+                    didvfit2_timedomain * 1e6,
+                    color='green',
+                    alpha=0.9,
+                    label='2-Pole Fit',
+                )
 
-        if (self._3poleresult is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._3poleresult:
+        if (self._fit_results[3] is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._fit_results[3]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
@@ -169,15 +207,29 @@ class _PlotDIDV(object):
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
-                **self._3poleresult[key],
+                **self._fit_results[3][key],
             )
-            ax.plot(
-                (self._time + self._3poleresult['params']['dt']) * 1e6,
-                didvfit3_timedomain * 1e6,
-                color='orange',
-                alpha=0.9,
-                label='3-Pole Fit',
-            )
+            
+            if lp_cutoff is not None:
+                lp_3poleresult = lowpassfilter(didvfit3_timedomain,
+                                               lp_cutoff, fs=self._fs,
+                                               order=2)
+                ax.plot(
+                    (self._time + self._fit_results[3]['params']['dt']) * 1e6,
+                    lp_3poleresult * 1e6,
+                    color='orange',
+                    alpha=0.9,
+                    label='3-Pole Fit-filtered',
+                )
+                
+            elif lp_cutoff is None:
+                ax.plot(
+                    (self._time + self._fit_results[3]['params']['dt']) * 1e6,
+                    didvfit3_timedomain * 1e6,
+                    color='orange',
+                    alpha=0.9,
+                    label='3-Pole Fit',
+                )
 
         ax.set_xlabel('Time ($\mu$s)')
         ax.set_ylabel('Amplitude ($\mu$A)')
@@ -191,7 +243,7 @@ class _PlotDIDV(object):
     def plot_full_trace(self, poles="all",
                         saveplot=False, savepath="",
                         savename="",
-                        lp_cutoff=None, didv_freq_filt=False):
+                        lp_cutoff=None, didv_freq_filt=False, gray_mean=False):
         """
         Function to plot the entire trace in time domain
 
@@ -215,11 +267,14 @@ class _PlotDIDV(object):
         didv_freq_filt : bool, optional
             If true, plots an additional trace with only frequencies in 
             the dIdV square wave passed.
+        gray_mean : bool, optional
+            If true, changes the alpha value of the mean trace to be more transparent.
+
 
         """
 
         fig, ax = self._plot_time_domain(poles, lp_cutoff = lp_cutoff,
-                                         didv_freq_filt = didv_freq_filt)
+                                         didv_freq_filt = didv_freq_filt, gray_mean=gray_mean)
 
         ax.set_xlim([self._time[0] * 1e6, self._time[-1] * 1e6])
         ax.set_title("Full Trace of dIdV")
@@ -233,7 +288,7 @@ class _PlotDIDV(object):
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
                                     savepath="", savename="",
-                                    lp_cutoff=None, didv_freq_filt=False):
+                                    lp_cutoff=None, didv_freq_filt=False, gray_mean=False):
         """
         Function to plot a single period of the trace in time domain
 
@@ -257,10 +312,12 @@ class _PlotDIDV(object):
         didv_freq_filt : bool, optional
             If true, plots an additional trace with only frequencies in 
             the dIdV square wave passed.
+        gray_mean : bool, optional
+            If true, changes the alpha value of the mean trace to be more transparent.
 
         """
 
-        fig, ax = self._plot_time_domain(poles, lp_cutoff, didv_freq_filt)
+        fig, ax = self._plot_time_domain(poles, lp_cutoff, didv_freq_filt, gray_mean=gray_mean)
 
         period = 1.0/self._sgfreq
 
@@ -459,13 +516,13 @@ class _PlotDIDV(object):
             alpha=0.1,
         )
 
-        if (self._1poleresult is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._1poleresult:
+        if (self._fit_results[1] is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._fit_results[1]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit1_freqdomain = complexadmittance(
-                self._freq, **self._1poleresult[key],
+                self._freq, **self._fit_results[1][key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -474,13 +531,13 @@ class _PlotDIDV(object):
                 label='1-Pole Fit',
             )
 
-        if (self._2poleresult is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._2poleresult:
+        if (self._fit_results[2] is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._fit_results[2]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit2_freqdomain = complexadmittance(
-                self._freq, **self._2poleresult[key],
+                self._freq, **self._fit_results[2][key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -489,13 +546,13 @@ class _PlotDIDV(object):
                 label='2-Pole Fit',
             )
 
-        if (self._3poleresult is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._3poleresult:
+        if (self._fit_results[3] is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._fit_results[3]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit3_freqdomain = complexadmittance(
-                self._freq, **self._3poleresult[key],
+                self._freq, **self._fit_results[3][key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -669,13 +726,13 @@ class _PlotDIDV(object):
             s=5,
         )
 
-        if (self._1poleresult is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._1poleresult:
+        if (self._fit_results[1] is not None) and (1 in poleslist):
+            if 'smallsignalparams' in self._fit_results[1]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit1_freqdomain = complexadmittance(
-                self._freq, **self._1poleresult[key],
+                self._freq, **self._fit_results[1][key],
             )
             ax.plot(
                 np.real(1 / didvfit1_freqdomain)[fitinds],
@@ -684,13 +741,13 @@ class _PlotDIDV(object):
                 label='1-Pole Fit',
             )
 
-        if (self._2poleresult is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._2poleresult:
+        if (self._fit_results[2] is not None) and (2 in poleslist):
+            if 'smallsignalparams' in self._fit_results[2]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit2_freqdomain = complexadmittance(
-                self._freq, **self._2poleresult[key],
+                self._freq, **self._fit_results[2][key],
             )
             ax.plot(
                 np.real(1 / didvfit2_freqdomain)[fitinds],
@@ -699,13 +756,13 @@ class _PlotDIDV(object):
                 label='2-Pole Fit',
             )
 
-        if (self._3poleresult is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._3poleresult:
+        if (self._fit_results[3] is not None) and (3 in poleslist):
+            if 'smallsignalparams' in self._fit_results[3]:
                 key = 'smallsignalparams'
             else:
                 key = 'params'
             didvfit3_freqdomain = complexadmittance(
-                self._freq, **self._3poleresult[key],
+                self._freq, **self._fit_results[3][key],
             )
             ax.plot(
                 np.real(1 / didvfit3_freqdomain)[fitinds],

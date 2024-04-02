@@ -53,8 +53,10 @@ def _plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sa
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
+            channel_name = chan_names[ch]
+            channel_name = channel_name.split(' ')[0]
             if ntemps > 1:
-                label_str="Temp {}, Channel {}".format(t,chan_names[ch])
+                label_str="Temp {}, Channel {}".format(t, chan_names[ch])
             else:
                 label_str="Channel {}".format(chan_names[ch])
             ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ites[t, ch]*1e6,label=label_str ,
@@ -74,12 +76,12 @@ def _plot_iv(IVobject, temps="all", chans="all", showfit=True, lgcsave=False, sa
                     
                 ax.plot(vbfit, 1.0/(IVobject.rfit[t, ch])*vbfit, color=ch_colors[it*len(chrange) + ich], alpha=0.1)
 
-    ax.legend(loc='best')
-    ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
-    ax.set_ylabel(r'Current through TES [$\mu A$]', fontsize=14)
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both',direction='in',right=True,top=True)
-    ax.set_title("$I_0$ vs. $V_b$", fontsize=16)
+            ax.legend(loc='best')
+            ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
+            ax.set_ylabel(r'Current through TES [$\mu A$]', fontsize=14)
+            ax.grid(linestyle='dotted')
+            ax.tick_params(which='both',direction='in',right=True,top=True)
+            ax.set_title(f"{channel_name}  $I_0$ vs. $V_b$", fontsize=16)
     
     if lgcsave:
         fig.savefig(savepath+"iv_curve_{}.png".format(savename))
@@ -134,6 +136,10 @@ def _plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", sav
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
+            
+            channel_name = chan_names[ch]
+            channel_name = channel_name.split(' ')[0]
+            
             if ntemps > 1:
                 label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
@@ -146,12 +152,12 @@ def _plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", sav
                         xerr=IVobject.vb_err[t, ch]*1e6,
                          linestyle='None', color='k')
 
-    ax.legend(loc='best')
-    ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
-    ax.set_ylabel(r'Resistance of TES [$m \Omega$]', fontsize=14)
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both',direction='in',right=True,top=True)
-    ax.set_title(r"$R_0$ vs. $V_b$", fontsize=16)
+            ax.legend(loc='best')
+            ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
+            ax.set_ylabel(r'Resistance of TES [$m \Omega$]', fontsize=14)
+            ax.grid(linestyle='dotted')
+            ax.tick_params(which='both',direction='in',right=True,top=True)
+            ax.set_title(f"{channel_name}  $R_0$ vs. $V_b$", fontsize=16)
     
     if lgcsave:
         fig.savefig(savepath+"rv_curve_{}.png".format(savename))
@@ -206,6 +212,10 @@ def _plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sa
     
     for it, t in enumerate(trange):
         for ich, ch in enumerate(chrange):
+
+            channel_name = chan_names[ch]
+            channel_name = channel_name.split(' ')[0]
+            
             if ntemps > 1:
                 label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
@@ -218,12 +228,12 @@ def _plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sa
                         xerr=IVobject.vb_err[t, ch]*1e6,
                          linestyle='None', color='k')
 
-    ax.legend(loc='best')
-    ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
-    ax.set_ylabel(r'Power [$pW$]', fontsize=14)
-    ax.grid(linestyle='dotted')
-    ax.tick_params(which='both',direction='in',right=True,top=True)
-    ax.set_title("$P_0$ vs. $V_b$", fontsize=16)
+            ax.legend(loc='best')
+            ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
+            ax.set_ylabel(r'Power [$pW$]', fontsize=14)
+            ax.grid(linestyle='dotted')
+            ax.tick_params(which='both',direction='in',right=True,top=True)
+            ax.set_title(f"{channel_name}  $P_0$ vs. $V_b$", fontsize=16)
     
     if lgcsave:
         fig.savefig(savepath+"pv_curve_{}.png".format(savename))

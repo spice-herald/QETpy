@@ -376,23 +376,24 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
         )
 
         if poles == 1:
-            self._1poleresult = DIDVPriors._fitresult(
+            self._fit_results[1] = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
-            self._1poleresult['priors'] = priors
-            self._1poleresult['priorscov'] = priorscov
+            self._fit_results[1]['priors'] = priors
+            self._fit_results[1]['priorscov'] = priorscov
+            
         elif poles == 2:
-            self._2poleresult = DIDVPriors._fitresult(
+            self._fit_results[2] = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
-            self._2poleresult['priors'] = priors
-            self._2poleresult['priorscov'] = priorscov
+            self._fit_results[2]['priors'] = priors
+            self._fit_results[2]['priorscov'] = priorscov
         elif poles == 3:
-            self._3poleresult = DIDVPriors._fitresult(
+            self._fit_results[3] = DIDVPriors._fitresult(
                 poles, params, cov, falltimes, cost,
             )
-            self._3poleresult['priors'] = priors
-            self._3poleresult['priorscov'] = priorscov
+            self._fit_results[3]['priors'] = priors
+            self._fit_results[3]['priorscov'] = priorscov
 
 
     @staticmethod

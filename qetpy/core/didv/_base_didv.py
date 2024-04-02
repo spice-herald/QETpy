@@ -2,10 +2,9 @@ import warnings
 import numpy as np
 from numpy import pi
 from scipy.optimize import least_squares, fsolve
-from scipy.fftpack import fft, ifft, fftfreq
-
+from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import resample_data
-
+import copy
 
 __all__ = [
     "stdcomplex",
@@ -14,7 +13,8 @@ __all__ = [
     "squarewaveresponse",
     "get_i0",
     "get_ibias",
-    "get_tes_bias_parameters_dict"
+    "get_tes_bias_parameters_dict",
+    "get_tes_bias_parameters_dict_infinite_loop_gain"
 ]
 
 
@@ -378,31 +378,11 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
 
 
 
-def _get_current_offset(metadata, channel_name):
-    """
-    Gets and returns the changable current offset (i.e. the current offset set
-    from the FEB control labview tool)
-    
-    Parameters
-    ----------        
-    metadata : dict
-        Metadata returned when loading the dIdV traces.  Used to get
-        the voltage/current offset set with the slider on the FEB controller
-        labview script, so that we can compensate for it. Can be just for 
-        one event
-        
-    channel_name : str
-        Channel name, e.g. 'Melange025pcRight'
-    
-    """
-    
-    voltage_offset = metadata[0]['detector_config'][channel_name]['output_offset']
-    close_loop_norm = metadata[0]['detector_config'][channel_name]['close_loop_norm']
-    return voltage_offset/close_loop_norm
-
-
-def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, output_gain,
-           lgcdiagnostics=False):
+def get_i0(offset, offset_err, offset_dict, output_offset=None,
+           closed_loop_norm=None, output_gain=1,
+           lgc_invert_offset=False,
+           lgc_calibration_on=False, calibration_dict=None, 
+           lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     through the TES from a didv_fitresult dictonary (which
@@ -434,7 +414,16 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
         output_offset in units of volts to the equivilant value read in the DAQ in
         units of volts.
         
-    lgcdiagnostics : bool, optional
+    lgc_calibration_on : bool, optional
+        By default False (i.e. not using the calibration). If True, uses the calibration_dict
+        to more closely approximate how changing the output_offset changes the current
+        measured.
+        
+    calibration_dict : dict, optional
+        A dictonary of data used to more closely model the relationship between the
+        output_offset and the change in the measured current in the device. 
+        
+    lgc_diagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
         
@@ -446,45 +435,108 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
         The uncertainty in the absolute current through the TES
         
     """
-    
-    current_didv = offset
+
+    # SQUID controller variable offset
+    delta_i_variable = 0
+    if output_offset is not None:
+
+        # check if "closed_loop_norm" available
+        if closed_loop_norm is None:
+            raise ValueError(
+                'ERROR: "closed_loop_norm" parameter is '
+                'required!'
+            )
+        
+        # IV sweep "i0_variable_offset" (check old names for back compatibility)
+        i0_variable_offset_sweep = None
+        if 'i0_variable_offset' in offset_dict.keys():
+            i0_variable_offset_sweep = offset_dict['i0_variable_offset']
+        elif ('i0_changable_offset_cal' in offset_dict.keys()) and (lgc_calibration_on is True):
+            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_cal']
+        elif ('i0_changable_offset_uncal' in offset_dict.keys()) and (lgc_calibration_on is False):
+            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_uncal']
+        else:
+            raise ValueError('ERROR: i0 variable offset not found in '
+                             '"ivsweep_result" dictionary!')
+
+        # current IV variable offset
+        if lgc_calibration_on is False:
+            i0_variable_offset = output_offset * output_gain/closed_loop_norm
+        else:
+            if calibration_dict is None:
+                raise ValueError('ERROR: must include calibration_dict if '
+                                 'lgc_calibration_on is True (i.e. being used)!'
+                                 'Check offset dicts')
+                                 
+            elif (output_gain != 50):
+                raise ValueError('ERROR: calibration only done for a gain of 50')
+                
+            elif (calibration_dict['model'] == 'twopartlinear'):
+                m1, m2, b1, b2 = calibration_dict['params']
+                if output_offset > 0.0:
+                    i0_variable_offset = output_offset * m1 + b1
+                else:
+                    i0_variable_offset = output_offset * m2 + b2
+                    
+            elif (calibration_dict['model'] == 'lookup_extrapolated'):
+                offsets_arr = calibration_dict['params']['lookup_x']
+                currents_arr = calibration_dict['params']['lookup_y']
+                params_low = calibration_dict['params']['params_low']
+                params_high = calibration_dict['params']['params_high']
+                
+                def linear(x, m, b):
+                    return x*m + b
+                
+                if output_offset in offsets_arr:
+                    i0_variable_offset = currents_arr[list(offsets_arr).index(offset)]
+                elif output_offset > 0.0:
+                    i0_variable_offset = linear(output_offset, *params_high)
+                else:
+                    i0_variable_offset = linear(output_offset, *params_low)
+                    
+            else:
+                raise ValueError('ERROR: unknown calibration_dict model')
+            
+       
+        # delta variable offset
+        delta_i_variable = i0_variable_offset - i0_variable_offset_sweep
+       
+        #alerts user when the current offset changed
+        if np.abs(delta_i_variable) > 1e-9:
+            print(" ")
+            print("----------------------------------------------------------------")
+            print("ALERT: Variable output voltage offset has changed since the IV sweep.")
+            print("Thus, it needs to be taken into account when calculating true I0!")
+            print("IV sweep variable offset [muAmps]: " + str(i0_variable_offset_sweep*1e6))
+            print("This dIdV dataset variable offset [muAmps]: " + str(i0_variable_offset*1e6))
+            print("RESULTS MAY NOT BE ACCURATE IF GAIN/OFFSET NON LINEARITIES!")
+            print("----------------------------------------------------------------")
+            print(" ")
+
+    # calculate new i0
+    current_didv = offset - delta_i_variable 
+    if lgc_invert_offset:
+        current_didv = -current_didv
     current_err_didv = offset_err
+    i0 = current_didv - offset_dict['i0_off']
     
-    offset_changable = output_offset * output_gain/closed_loop_norm
-    delta_i_changable = (offset_changable - offset_dict['i0_changable_offset'])
-    
-    #alerts user when the current offset changed
-    if np.abs(delta_i_changable) > 1e-9:
+    if lgc_diagnostics:
+        print("Current as measured from dIdV: " + str(offset) + " amps")
+        print("Variable current as meaured from metadata for this dIdV: " + str(i0_variable_offset) + " amps")
         print(" ")
-        print("----------------------------------------------------------------")
-        print("ALERT: FEB voltage offset has changed since the IV sweep used to")
-        print("generate the offsets_dict being used for this measurement!")
-        print("Biasparams, including i0, p0, and small signal parameters, including")
-        print("loopgain, are therefore suspect")
-        print("IV changable offset current: " + str(offset_dict['i0_changable_offset']))
-        print("This dataset changable offset current: " + str(offset_changable))
-        print("----------------------------------------------------------------")
-        print(" ")
-    
-    i0 = current_didv - offset_dict['i0_off'] - delta_i_changable
-    
-    if lgcdiagnostics:
-        print("Current as measured from dIdV: " + str(current_didv) + " amps")
-        print("Changable current as meaured from metadata for this dIdV: " + str(offset_changable) + " amps")
-        print(" ")
-        print("Changable current as measured during IV when offsets were measured: " + 
-              str(offset_dict['i0_changable_offset']) + " amps")
+        print("Variable current as measured during IV when offsets were measured: " + 
+              str(i0_variable_offset_sweep) + " amps")
         print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
         print(" ")
-        print("Delta changable current: " + str(offset_changable) + " - " + 
-             str(offset_dict['i0_changable_offset']) + " = \n " + str(delta_i_changable) + " amps")
+        print("Delta variable current: " + str(i0_variable_offset) + " - " + 
+             str(i0_variable_offset_sweep) + " = \n " + str(delta_i_variable) + " amps")
         print(" ")
-        print("True current through TES: " + str(current_didv) + " - " + str(delta_i_changable) + " - \n" + 
+        print("True current through TES: " + str(offset) + " - " + str(delta_i_variable) + " - \n" + 
              str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
     
     i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
     
-    if lgcdiagnostics:
+    if lgc_diagnostics:
         print(" ")
         print(" --------- ")
         print(" ")
@@ -492,12 +544,12 @@ def get_i0(offset, offset_err, offset_dict, output_offset, closed_loop_norm, out
         print("Current offset uncertainty from IV: " + str(offset_dict['i0_off_err']) + " amps")
         print(" ")
         print("Total current uncetainty: (("  + str(current_err_didv) + ")**2.0 + (" +
-             str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
+              str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
               str(i0_err) + " amps")
     
     return i0, i0_err
 
-def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
+def get_ibias(tes_bias, offset_dict, lgc_diagnostics=False):
     """
     Gets and returns the current and uncertainty in the current
     used to bias the TES from a metadata list
@@ -505,14 +557,14 @@ def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
     Parameters
     ----------
         
-    ibias_metadata: float
+    tes_bias: float
         The ibias gotten from the event metadata, i.e. without correcting for
         the ibias offset calculated from the IV curve
         
     offset_dict: dict
         Dictionary of offsets gotten from the IV sweep.
         
-    lgcdiagnostics : bool, optional
+    lgc_diagnostics : bool, optional
         Used if you want to see the raw currents and offsets and how they're
         added together. Prints these out
         
@@ -525,13 +577,13 @@ def get_ibias(ibias_metadata, offset_dict, lgcdiagnostics=False):
         
     """
     
-    ibias = ibias_metadata - offset_dict['ibias_off']
+    ibias = tes_bias - offset_dict['ibias_off']
     ibias_err = offset_dict['ibias_off_err']
     
-    if lgcdiagnostics:
-        print("Bias current from metadata: " + str(ibias_metadata) + " amps")
+    if lgc_diagnostics:
+        print("Bias current from metadata: " + str(tes_bias) + " amps")
         print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
-        print("True bias current: " + str(ibias_metadata) + " - " + str(offset_dict['ibias_off']) + 
+        print("True bias current: " + str(tes_bias) + " - " + str(offset_dict['ibias_off']) + 
              " = \n" + str(ibias) + " amps")
         print(" ")
         
@@ -668,7 +720,8 @@ def _get_p0(i0, i0_err, v0, v0_err):
     
     return p0, p0_err
 
-def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
+def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
+                                 rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
     from the measured TES bias current and i0
@@ -695,6 +748,9 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         
     rp: float
         The parasitic resistance in ohms
+
+    rn: float (optional) 
+        The normal resistance in ohms
         
     Returns
     -------
@@ -711,6 +767,10 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
+
+    if rn is None:
+        rn = np.nan
+
     
     bias_parameter_dict = {
         'i0': i0,
@@ -723,33 +783,30 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp):
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict
     
-def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibias, ibias_err, rsh, rp):
+def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
+                                                    ibias, ibias_err,
+                                                    rsh, rp, rn=None):
     """
     Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
-    using the infinte loop gain approximation, where R0 = R_l - A + B
+    using the infinte loop gain approximation
     
     Parameters
     ----------
-    
+  
     params : dict
         The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
-        
+               
     cov : matrix
         The covariance matrix for the params, starting with the A, B
         components.
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
         
     ibias: float
         The bias current applied to the TES/shunt system
@@ -771,24 +828,43 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibi
         v0, and p0
         
     """
+
+    # check dimension
+    num_params = cov.shape[0]
+    if len(params.keys()) != num_params:
+        raise ValueError('ERROR: inconsistent number of '
+                         'parameters with covariance '
+                         'matrix shape')
     
+    # Rload
     rl = rp + rsh
-    
-    r0 = rl - params['A'] - params['B']
-    
-    r0_jac = np.asarray([1, 1, 0, 0, 0, 0, 0])
+
+    # r0
+    dvdi0 = None
+    r0_jac = None
+    if num_params == 5:
+        dvdi0 =  params['A'] +  params['B']
+        r0_jac = np.asarray([1, 1, 0, 0, 0])
+    else:
+        dvdi0 =  params['A'] + params['B']/(1-params['C'])
+        r0_jac = np.asarray([1, 1, 1, 0, 0, 0, 0])
+        
+    r0 = abs(dvdi0) + rl
     r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
     
-    i0_ = ibias * rsh / (r0 + rl)
-    i0_err_ = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
+    i0 = ibias * rsh / (r0 + rl)
+    i0_err = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
     
     
-    v0, v0_err = _get_v0(i0_, i0_err_, ibias, ibias_err, rsh, rp)
-    p0, p0_err = _get_p0(i0_, i0_err_, v0, v0_err)
+    v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
+    p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
     
+    if rn is None:
+        rn = np.nan
+ 
     bias_parameter_dict = {
-        'i0': i0_,
-        'i0_err': i0_err_,
+        'i0': i0,
+        'i0_err': i0_err,
         'v0': v0,
         'v0_err': v0_err,
         'r0': r0,
@@ -797,8 +873,10 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov, i0, i0_err, ibi
         'p0_err': p0_err,
         'rp': rp,
         'rsh': rsh,
+        'rshunt': rsh,
         'rl': rl,
         'ibias': ibias,
+        'rn': rn,
     }
     
     return bias_parameter_dict
@@ -921,11 +999,11 @@ class _BaseDIDV(object):
         self._offset = None
         self._offset_err = None
 
-        self._1poleresult = None
-        self._2poleresult = None
-        self._3poleresult = None
 
-
+        # container to store all the results
+        # key = model poles (1, 2, 3) 
+        self._fit_results = {1:None, 2:None, 3:None}
+        
     @staticmethod
     def _onepoleimpedance(freq, A, tau2):
         """
@@ -957,7 +1035,6 @@ class _BaseDIDV(object):
         2-pole fit.
 
         """
-
         dvdi = (A*(1.0+2.0j*pi*freq*tau2))+(B/(1.0+2.0j*pi*freq*tau1))
         return dvdi
 
@@ -1016,7 +1093,8 @@ class _BaseDIDV(object):
 
         # get the frequencies for a DFT, based on the sample rate of the data
         dx = x[1]-x[0]
-        freq = fftfreq(len(x), d=dx)
+        fs = 1/dx
+        freq = fftfreq(len(x), fs)
 
         # didv of fit in frequency space
         ci = _BaseDIDV._threepoleadmittance(freq, A, B, C, tau1, tau2, tau3)
@@ -1071,10 +1149,10 @@ class _BaseDIDV(object):
         # get the frequencies for a DFT,
         # based on the sample rate of the data
         dx = x[1]-x[0]
-        freq = fftfreq(len(x), d=dx)
-
+        fs = 1/dx
+      
         # FFT of the trace
-        st = fft(trace)
+        freq, st = fft(trace, fs)
 
         # analytic DFT of a duty cycled square wave
         sf = np.zeros_like(freq)*0.0j
@@ -1363,8 +1441,12 @@ class _BaseDIDV(object):
             print("Wrong number of input parameters, returning zero...")
             falltimes = np.zeros(1)
 
-        # return fall times sorted from shortest to longest
-        return np.sort(falltimes)
+        # fall times sorted from shortest to longest
+        falltimes = np.sort(falltimes)
+        if falltimes[0] == 0:
+            falltimes = np.concatenate((falltimes[1:], [0]))
+
+        return falltimes
 
 
     def processtraces(self):
@@ -1443,7 +1525,7 @@ class _BaseDIDV(object):
             didvs.append(didvi)
 
         #convert to numpy structure
-        didvs=np.array(didvs)
+        didvs = np.array(didvs)
 
         # get rid of any NaNs, as these will break the fit 
         cut = np.logical_not(np.isnan(didvs).any(axis=1))
@@ -1451,7 +1533,7 @@ class _BaseDIDV(object):
         self._traces = self._traces[cut]
         didvs = didvs[cut]
 
-        means=np.mean(self._traces, axis=1)
+        means = np.mean(self._traces, axis=1)
 
         #store results
         self._tmean = np.mean(self._traces, axis=0)
@@ -1476,16 +1558,32 @@ class _BaseDIDV(object):
         self._offset_err = np.std(means)/np.sqrt(self._ntraces)
 
 
-    def fitresult(self, poles):
+    def get_list_fitted_poles(self):
+        """
+        Function to return a list of poles that 
+        have been fitted
+
+        """
+        keys = list(self._fit_results.keys())
+        list_of_poles = list()
+        for poles in keys:
+            if self._fit_results[poles] is not None:
+                list_of_poles.append(poles)
+                
+        return list_of_poles 
+
+        
+    def fitresult(self, poles=None):
         """
         Function for returning a dictionary containing the relevant
         results from the specified fit.
 
         Parameters
         ----------
-        poles : int
+        poles : int, optional
             The number of poles (fall times) in the fit, from which the
             results will be returned. Should be 1, 2, or 3.
+            if None, return all models (dictionary with keys = poles)
 
         Returns
         -------
@@ -1497,32 +1595,15 @@ class _BaseDIDV(object):
 
         """
 
-        if poles == 1:
-            if self._1poleresult is None:
+        if poles is None:
+            return copy.deepcopy(self._fit_results)
+        else:
+            if poles not in self._fit_results:
                 warnings.warn(
-                    "The 1-pole fit has not been run, "
-                    "returning an empty dict."
+                    f'The {poles}-pole fit has not been run, '
+                    f'returning an empty dict.'
                 )
                 return dict()
-
-            return self._1poleresult
-
-        if poles == 2:
-            if self._2poleresult is None:
-                warnings.warn(
-                    "The 2-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._2poleresult
-
-        if poles == 3:
-            if self._3poleresult is None:
-                warnings.warn(
-                    "The 3-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._3poleresult
+            else :
+                return copy.deepcopy(self._fit_results[poles])
+            
