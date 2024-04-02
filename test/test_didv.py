@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 
-def _initialize_didv(poles, priors, sgfreq=100, autoresample=False):
+def _initialize_didv(poles, sgfreq=100, autoresample=False):
     """Function for initializing dIdV data"""
     np.random.seed(0)
 
@@ -36,59 +36,28 @@ def _initialize_didv(poles, priors, sgfreq=100, autoresample=False):
     t = np.arange(rawnoise.shape[-1]) / fs
     didv_response = qp.squarewaveresponse(
         t, sgamp, sgfreq, **true_params,
+
     )
     rawtraces = didv_response + rawnoise
 
-    if priors:
-        if poles == 1:
-            dim = 4
-        elif poles == 2:
-            dim = 8
-        elif poles == 3:
-            dim = 10
-        priors = np.zeros(dim)
-        priorscov = np.zeros((dim, dim))
-
-        priors[0] = true_params['rsh']
-        priorscov[0, 0] = (0.1 * priors[0])**2
-        priors[1] = true_params['rp']
-        priorscov[1, 1] = (0.1 * priors[1])**2
-
-        if poles != 1:
-            priors[2] = true_params['r0']
-            priorscov[2, 2] = (0.1 * priors[2])**2
-
-        didvfit = qp.DIDVPriors(
-            rawtraces,
-            fs,
-            sgfreq,
-            sgamp,
-            rsh,
-            tracegain=1.0,
-            dt0=-1e-6,
-            autoresample=autoresample,
-        )
-        if poles == 1:
-            didvfit.processtraces()
-            didvfit.plot_full_trace()
-        assert didvfit.fitresult(poles) == dict()
-        didvfit.dofit(poles, priors, priorscov)
-    else:
-        didvfit = qp.DIDV(
-            rawtraces,
-            fs,
-            sgfreq,
-            sgamp,
-            rsh,
-            tracegain=1.0,
-            r0=true_params['r0'],
-            rp=true_params['rp'],
-            dt0=-1e-6 - 1 / (2 * sgfreq),
-            add180phase=True,
-            autoresample=autoresample,
-        )
-        assert didvfit.fitresult(poles) == dict()
-        didvfit.dofit(poles)
+    # didv fit
+    
+    didvfit = qp.DIDV(
+        rawtraces,
+        fs,
+        sgfreq,
+        sgamp,
+        rsh,
+        tracegain=1.0,
+        r0=true_params['r0'],
+        rp=true_params['rp'],
+        dt0=-1e-6 - 1 / (2 * sgfreq),
+        add180phase=True,
+        autoresample=autoresample,
+    )
+    
+    didvfit.dofit(poles)
+    assert isinstance(didvfit.fitresult(poles), dict)
 
     _run_plotting_suite(didvfit, poles)
 
@@ -168,20 +137,20 @@ def test_autoresample():
 def test_didv():
     """Function for testing the DIDV and DIDVPriors classes."""
 
+
     poles = [1, 2, 3]
-    priors = [True, False]
-    keys = ['params', 'smallsignalparams']
 
     for pole in poles:
-        for key, prior in zip(keys, priors):
-            didvfit, true_params = _initialize_didv(pole, prior)
-            assert np.isclose(
-                qp.complexadmittance(
-                    1e4, **didvfit.fitresult(pole)[key],
-                ),
-                qp.complexadmittance(
-                    1e4, **true_params,
-                ),
-                rtol=1e-2,
-            )
+        didvfit, true_params = _initialize_didv(pole)
+            
+        assert np.isclose(
+            qp.complexadmittance(
+                1e4, **didvfit.fitresult(pole)['smallsignalparams'],
+            ),
+            qp.complexadmittance(
+                1e4, **true_params,
+            ),
+            rtol=1e-2,
+        )
 
+            

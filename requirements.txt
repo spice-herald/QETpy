@@ -11,3 +11,4 @@ iminuit>=2
 sympy>=1.4
 astropy
 pandas
+packaging

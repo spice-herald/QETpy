@@ -73,5 +73,6 @@ setup(
         'sympy',
         'astropy',
         'pandas',
+        'packaging',
     ],
 )
