@@ -7,7 +7,7 @@ __all__ = [
     "create_example_data",
     "create_example_muontail",
     "create_example_pulseplusmuontail",
-    "create_example_ttl_leakage_pulses"
+    "create_example_ttl_leakage_pulses",
     "make_gaussian_psd",
 ]
 
