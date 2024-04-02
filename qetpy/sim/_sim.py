@@ -197,7 +197,7 @@ class TESnoise:
             if lgc_diagnostics:
                 print("Manually setting G")
                 print("P0 = " + str(p0_manual*1e15) + " fW")
-                print("G = " +str(self.G) + " W/K") 
+                print("G = " +str(self.G) + " W/K")
         self.lgc_ballistic = lgc_ballistic
         
         self.squid_noise_current = squid_noise_current
