@@ -1,168 +1,73 @@
 import numpy as np
 import scipy.constants as constants
+from qetpy.core.didv._uncertainties_didv import get_dPdI_with_uncertainties, get_dVdI_with_uncertainties
 
 
 __all__ = [
-    "energy_res_estimate",
-    "loadfromdidv",
+    "get_squid_noise_from_normal_noise", 
     "TESnoise",
 ]
 
-
-def energy_res_estimate(freqs, tau_collect, Sp, collection_eff):
+def get_squid_noise_from_normal_noise(freqs=None, normal_noise=None,
+                                      tload=0.1, tc=0.04, rload=0.01, rn=0.1, inductance=4e-7):
     """
-    Function to estimate the energy resolution based on given noise and
-    ideal pulse shape
-
-    Parameters
+    Takes UNFOLDED normal noise, a known temperature for the Rn and Rl, and
+    generates the SQUID noise with the normal noise removed.
+    
+    If this is being used with the TESnoise class, you should us a normal noise
+    that's from a trace that's an integer number of times longer than the noise
+    trace being used to generate the noise being modeled by the TESnoise class, such
+    that that class can get the frequencies it needs of the SQUID noise.
+    
+    Attributes
     ----------
-    freqs : array,
-        Array of frequency values to integrate over
-    tau_collect : float
-        The collection time of the sensor
-    Sp : array 
-        Power spectral density (must be one-sided, see qetpy.foldpsd)
-    collection_eff : float
-        The collection efficiency of the detector
-
-    Returns
-    -------
-    energy_res : float
-        The estimated energy resolution in eV
-
+    freqs: numpy array
+        The frequencies at which the normal noise was measured
+        
+    normal_noise: numpy array
+        The UNFOLDED normal TES noise, in units of Amps^2/Hz.
+        
+    tload: float
+        The fit temperature of the load resistor in K.
+        
+    tc: float
+        The tc of the device in K.
+        
+    rload : float
+        The load resistance (rp + rsh) of the device in ohms.
+        
+    rn : float
+        The normal resitance of the device in ohms.
+        
+    inductance : float
+        The inductance of the device in Henries.
     """
+    
+    #rload = didv_result['biasparams']['rp'] + didv_result['biasparams']['rsh']
+    #r0 = didv_result['biasparams']['r0']
+    #inductance = didv_result['ssp_light']['vals']['L']
+    r0 = rn
+    
+    omega = 2.0*np.pi*freqs
+    dIdVnormal = 1.0/(rload + r0+1.0j*omega*inductance)
+        
+    s_vload = 2.0*constants.k*tload*rload * np.ones_like(freqs)
+    
+    s_iloadnormal = s_vload*np.abs(dIdVnormal)**2.0
+   
+    s_vtesnormal = 2.0*constants.k*tc*r0 * np.ones_like(freqs)
+    
+    s_itesnormal = s_vtesnormal*np.abs(dIdVnormal)**2.0
+    
+    
+    s_itot = s_itesnormal + s_iloadnormal
+    
+    
+    s_squid = normal_noise - s_itot
+    return s_squid
+    
+                                      
 
-    omega = 2*np.pi*freqs
-    single_pole = collection_eff/(1.+ omega*tau_collect*1j)
-    integrand = 2*np.abs(single_pole)**2/(np.pi*Sp)
-    energy_res = np.sqrt(1/np.trapz(integrand, x = omega))/constants.e
-
-    return energy_res
-
-
-def loadfromdidv(DIDVobj, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9,
-                 tbath=0.020, squiddc=2.5e-12, squidpole=0.0, squidn=1.0,
-                 rnormal=None, noisetype="transition"):
-    """
-    Function for loading the parameters from a DIDV class object.
-
-    Parameters
-    ----------
-    DIDVobj : Object
-        A DIDV class object after a fit has been run, such that there
-        are Irwin parameters that can be used to model the noise.
-    G : float, optional
-        The thermal conductance of the TES in W/K
-    qetbias : float, optional
-        The QET bias in Amps
-    tc : float
-        The critical temperature of the TES in K
-    tload : float
-        The effective temperature of the load resistor in K
-    tbath : float
-        The bath temperature in K
-    squiddc : float, optional
-        The DC value of the SQUID and downstream electronics noise, in
-        Amps/rtHz. The SQUID/electronics noise should have been fit
-        beforehand, using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-    squidpole : float, optional
-        The frequency pole for the SQUID and downstream electronics
-        noise, in Hz. The SQUID/electronics oise should have been fit
-        beforehand, using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-    squidn : float, optional
-        The power of the SQUID and downstream electronics noise, in Hz.
-        The SQUID/electronics noise should have been fit beforehand,
-        using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-    rnormal : float, optional
-        The normal resistance of the TES in Ohms, only used if
-        `noisetype` is 'normal'. Must be passed explicitly, as the dIdV
-        fitting code does not fit it.
-    noisetype : str, optional
-        The type of the noise that is to be loaded. The options are
-        transition : Use the Irwin parameters from the two pole fit as
-            the transition noise model
-        superconducting : Use the Irwin parameters from the one pole
-            fit as the superconducting noise model
-        normal : Use the Irwin parameters from the one pole fit as the
-            normal noise model
-
-    Returns
-    -------
-    TESobj : Object
-        A TESnoise class object with all of the fit parameters loaded.
-
-    """
-
-    if noisetype == "superconducting":
-        fitresult = DIDVobj.fitresult(1)
-        if 'smallsignalparams' in fitresult:
-            key = 'smallsignalparams'
-        else:
-            key = 'params'
-        didv_dict = fitresult[key]
-        rshunt = didv_dict['rsh']
-        rload = didv_dict['rsh'] + didv_dict['rp']
-        inductance = didv_dict['L']
-        r0 = 0
-        beta = 0
-        loopgain = 0
-        tau0 = 0
-        G = 0
-    elif noisetype == "normal":
-        raise ValueError('Please specify rnormal.')
-        fitresult = DIDVobj.fitresult(1)
-        if 'smallsignalparams' in fitresult:
-            key = 'smallsignalparams'
-        else:
-            key = 'params'
-        didv_dict = fitresult[key]
-        rshunt = didv_dict['rsh']
-        rload = didv_dict['rsh'] + didv_dict['rp'] - rnormal
-        inductance = didv_dict['L']
-        r0 = rnormal
-        beta = 0
-        loopgain = 0
-        tau0 = 0
-        G = 0
-    elif noisetype == "transition":
-        fitresult = DIDVobj.fitresult(2)
-        if 'smallsignalparams' in fitresult:
-            key = 'smallsignalparams'
-        else:
-            key = 'params'
-        didv_dict = fitresult[key]
-        rshunt = didv_dict['rsh']
-        rload = didv_dict['rsh'] + didv_dict['rp']
-        inductance = didv_dict['L']
-        r0 = didv_dict['r0']
-        beta = didv_dict['beta']
-        loopgain = didv_dict['l']
-        tau0 = didv_dict['tau0']
-    else:
-        raise ValueError("Unrecognized noisetype")
-
-    TESobj = TESnoise(
-        rload=rload,
-        r0=r0,
-        rshunt=rshunt,
-        inductance=inductance,
-        beta=beta,
-        loopgain=loopgain,
-        tau0=tau0,
-        G=G,
-        qetbias=qetbias,
-        tc=tc,
-        tload=tload,
-        tbath=tbath,
-        squiddc=squiddc,
-        squidpole=squidpole,
-        squidn=squidn,
-    )
-
-    return TESobj
 
 
 class TESnoise:
@@ -170,61 +75,49 @@ class TESnoise:
     Class for the simulation of the TES noise using the simple Irwin theory. Supports noise simulation for 
     in transition, superconducting, and normal.
     
+    IMPORTANT NOTE:
+    ALL NOISE MODELS WERE RECENTLY CHANGED TO BEING "UNFOLDED" BY ROGER, THEY WERE FOLDED IN SAM'S
+    IMPLEMENTATION. THIS MEANS THAT THE NOISE COULD DIFFER BY A FACTOR OF 2 FROM WHAT YOU EXPECT!
+    
     Attributes
     ----------
     freqs : float, array_like
         The frequencies for which we will calculate the noise simulation
-    rload : float
-        The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
-    r0 : float
-        The bias resistance of the TES in Ohms
-    rshunt : float
-        The shunt resistance of the TES circuit in Ohms
-    beta : float
-        The current sensitivity of the TES (dlogR/dlogI), unitless
-    loopgain : float
-        The Irwin loop gain of the TES, unitless
-    inductance : float
-        The inductance of the TES circuit in Henries
-    tau0 : float
-        The thermal time constant (equals C/G) in s
-    G : float
-        The thermal conductance of the TES in W/K
-    qetbias : float
-        The QET bias in Amps
+        
+    didv_result : 
+        The dIdV fit result object generated using a QETpy dIdV fit
+        
     tc : float
         The critical temperature of the TES in K
+        
     tload : float
         The effective temperature of the load resistor in K
+        
     tbath : float
         The bath temperature in K
+        
     n : float
         The power-law dependence of the power flow to the heat bath
-    lgcb : boolean
+        
+    lgc_ballistic : boolean
         Boolean flag that determines whether we use the ballistic (True) or
         diffusive limit when calculating TFN power noise
-    squiddc : float
-        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-    squidpole : float
-        The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-    squidn : float
-        The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-        noise should have been fit beforehand, using the following model:
-            (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+        
     f_tfn : float
         Function that estimates the noise suppression of the thermal fluctuation noise due
         to the difference in temperature between the bath and the TES. Supports the ballistic
-        and diffusive limits, which is chosen via lgcb
+        and diffusive limits, which is chosen via lgc_ballistic
+        
+    squid_noise_current : numpy array
+        An array of the unfolded measured SQUID noise in units of amps^2 / Hz, measured from e.g. the
+        normal noise with the normal TES noise subtracted out.
         
     """
 
-    def __init__(self, freqs=None, rload=0.012, r0=0.150, rshunt=0.005, beta=1.0, loopgain=10.0, 
-                 inductance=400.0e-9, tau0=500.0e-6, G=5.0e-10, qetbias=160e-6, tc=0.040, tload=0.9, 
-                 tbath=0.020, n=5.0, lgcb=True, squiddc=2.5e-12, squidpole=0.0, squidn=1.0):
+    def __init__(self, freqs=None, didv_result=None, tc=0.040, tload=0.9, 
+                 tbath=0.020, p0_manual=None, n=5.0, lgc_ballistic=True,
+                 squid_noise_current=None, squid_noise_current_freqs=None,
+                 lgc_diagnostics=True):
         """
         Initialization of the TES noise class.
 
@@ -232,47 +125,44 @@ class TESnoise:
         ----------
         freqs : float, ndarray, optional
             The frequencies for which we will calculate the noise simulation
-        rload : float, optional
-            The load resistance of the TES (sum of shunt and parasitic resistances) in Ohms
-        r0 : float, optional
-            The bias resistance of the TES in Ohms
-        rshunt : float, optional
-            The shunt resistance of the TES circuit in Ohms
-        beta : float, optional
-            The current sensitivity of the TES (dlogR/dlogI), unitless
-        loopgain : float, optional
-            The Irwin loop gain of the TES, unitless
-        inductance : float, optional
-            The inductance of the TES circuit in Henries
-        tau0 : float, optional
-            The thermal time constant (equals C/G) in s
-        G : float, optional
-            The thermal conductance of the TES in W/K
-        qetbias : float, optional
-            The QET bias in Amps
+        
+        didv_result : 
+            The dIdV fit result object generated using a QETpy dIdV fit
+        
         tc : float, optional
             The critical temperature of the TES in K
+            
         tload : float, optional
             The effective temperature of the load resistor in K
+            
         tbath : float, optional
             The bath temperature in K
+            
+        p0_manual : float, optiona
+            The TFN noise uses G, which is calculated from the tc and from the
+            supplied bias power of the device. If 
+            
         n : float, optional
             The power-law dependence of the power flow to the heat bath
-        lgcb : boolean, optional
+            
+        lgc_ballistic : boolean, optional
             Boolean flag that determines whether we use the ballistic (True) or
             diffusive limit when calculating TFN power noise
-        squiddc : float, optional
-            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidpole : float, optional
-            The frequency pole for the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
-        squidn : float, optional
-            The power of the SQUID and downstream electronics noise, in Hz. The SQUID/electronics
-            noise should have been fit beforehand, using the following model:
-                (squiddc*(1.0+(squidpole/f)**squidn))**2.0
+        
+        squid_noise_current : numpy array
+            An array of the unfolded measured SQUID noise in units of amps^2 / Hz, measured
+            from e.g. the normal noise with the normal TES noise subtracted out. 
+            Should be evaluated at the frequencies in squid_noise_current_freqs.
+        
+        squid_noise_current_freqs : numpy array
+            The unfolded frequencies at which the SQUID noise was measured. Should include
+            the frequencies which are in freqs (i.e. based on a SQUID noise measurement
+            that's done from a trace that's an integer number of times the length of
+            the trace which gives the frequencies at which the simulation is evaluated)
+            
+        lgc_diagnostics : bool, optional
+            If True, prints out diagnostic messages.
+            
 
         """
     
@@ -280,80 +170,63 @@ class TESnoise:
             self.freqs = np.logspace(0, 5.5, 10000)
         else:
             self.freqs = freqs
-        self.rload = rload
-        self.r0 = r0
-        self.rshunt = rshunt
-        self.beta = beta
-        self.loopgain = loopgain
-        self.inductance = inductance
-        self.tau0 = tau0
-        self.qetbias = qetbias
-        self.i0 = self.qetbias*self.rshunt/(self.r0+self.rload)
+            
+        if didv_result is None:
+            print("Must input a dIdV fit to use this noise simulation package class")
+            
+        self.didv_result = didv_result
+            
+        self.rload = didv_result['biasparams']['rp'] + didv_result['biasparams']['rsh']
+        self.r0 = didv_result['biasparams']['r0']
+        self.i0 = didv_result['biasparams']['i0']
+        self.rshunt = didv_result['biasparams']['rsh']
+        self.beta = didv_result['ssp_light']['vals']['beta']
+        self.inductance = didv_result['ssp_light']['vals']['L']
+        self.n = n
         self.tc = tc
         self.tload = tload
-        self.G = G
         self.tbath = tbath
-        self.n = n
-        self.lgcb = lgcb
-        self.squiddc = squiddc
-        self.squidpole = squidpole
-        self.squidn = squidn
+        if p0_manual is None:
+            self.G = self.n * didv_result['biasparams']['p0'] / self.tc
+            if lgc_diagnostics:
+                print("Automatically determining G")
+                print("P0 = " + str(didv_result['biasparams']['p0']*1e15) + " fW")
+                print("G = " +str(self.G) + " W/K") 
+        else:
+            self.G = self.n * p0_manual / self.tc
+            if lgc_diagnostics:
+                print("Manually setting G")
+                print("P0 = " + str(p0_manual*1e15) + " fW")
+                print("G = " +str(self.G) + " W/K")
+        self.lgc_ballistic = lgc_ballistic
         
-        if self.lgcb: # ballistic limit
+        self.squid_noise_current = squid_noise_current
+        self.squid_noise_current_freqs = squid_noise_current_freqs
+        
+        if self.lgc_ballistic: # ballistic limit
             self.f_tfn = ((self.tbath/self.tc)**(self.n+1.0)+1.0)/2.0
-        else:         # diffusive limit
+        else:                  # diffusive limit
             self.f_tfn = self.n/(2.0*self.n+1.0) * ((self.tbath/self.tc)**(2.0*self.n+1.0)-1.0)/((self.tbath/self.tc)**(self.n)-1.0)
-
-    def dIdV(self, freqs=None):
-        """
-        The two-pole dIdV function determined from the TES parameters.
+            
+            
+        if lgc_diagnostics:
+            print("Calculating dVdI")
+        self.dVdI, self.dVdI_err = get_dVdI_with_uncertainties(self.freqs, self.didv_result)
+        self.dIdV = 1.0/self.dVdI
+        if lgc_diagnostics:
+            print("Calculating dPdI")
+        self.dPdI, self.dPdI_err = get_dPdI_with_uncertainties(self.freqs, self.didv_result)
+        self.dIdP = 1.0/self.dPdI
+        if lgc_diagnostics:
+            print("Done calculating dVdI and dPdI")
+            
+        self.lgc_diagnostics = lgc_diagnostics
         
-        Parameters
-        ----------
-        freqs : float, ndarray, optional
-            The frequencies for which we will calculate the noise simulation. If left as None, the 
-            function will use the values from the initialization.
-                
-        Returns
-        -------
-        dIdV : float, ndarray
-            The two-pole dIdV function
-                
-        """
-        
-        if freqs is None:
-            freqs = self.freqs
-        omega = 2.0*np.pi*freqs
-        dVdI = self.rload+self.r0*(1.0+self.beta)+1.0j*omega*self.inductance+self.r0*self.loopgain/(1.0-self.loopgain)*(2.0+self.beta)/(1.0+1.0j*omega*self.tau0/(1.0-self.loopgain))
-        return 1.0/dVdI
-
-    def dIdP(self, freqs=None):
-        """
-        The two-pole dIdP function determined from the TES parameters.
-        
-        Parameters
-        ----------
-        freqs : float, ndarray, optional
-            The frequencies for which we will calculate the noise simulation. If left as None, the 
-            function will use the values from the initialization.
-                
-        Returns
-        -------
-        dIdP : float, ndarray
-            The two-pole dIdP function
-                
-        """
-        
-        if freqs is None:
-            freqs = self.freqs
-        omega = 2.0*np.pi*freqs
-        # return -self.G*self.loopgain/(self.i0*self.inductance*self.tau0*self.G) / ((1.0/(self.inductance/(self.rload+(1.0+self.beta)*self.r0))+1.0j*omega)*(1.0/(self.tau0/(1.0-self.loopgain))+1.0j*omega)+self.loopgain*self.G/(self.inductance*self.tau0*self.G) * self.r0*(2.0+self.beta))
-        return 1.0/self.i0 * 1.0/(1.0-1.0/self.loopgain) * 1.0/(1.0+1.0j*omega*self.tau0/(1.0-self.loopgain))*self.dIdV(freqs)
 
     def s_vload(self, freqs=None):
         """
-        The Johnson load voltage noise determined from the TES parameters. This formula holds no
-        matter where we are in transition.
+        The Johnson load voltage noise determined from the TES parameters, calculated for an
+        UNFOLDED psd. This formula holds no matter where we are in transition.
         
         Parameters
         ----------
@@ -364,17 +237,17 @@ class TESnoise:
         Returns
         -------
         s_vload : float, ndarray
-            The Johnson load voltage noise at the specified frequencies
+            The UNFOLDED Johnson load voltage noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return 4.0*constants.k*self.tload*self.rload * np.ones_like(freqs)
+        return 2.0*constants.k*self.tload*self.rload * np.ones_like(freqs)
 
     def s_iload(self, freqs=None):
         """
-        The Johnson load current noise determined from the TES parameters for in transition.
+        The UNFOLDED Johnson load current noise determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -385,18 +258,22 @@ class TESnoise:
         Returns
         -------
         s_iload : float, ndarray
-            The Johnson load current noise at the specified frequencies
+            The UNFOLDED Johnson load current noise at the specified frequencies
              
              
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_vload(freqs)*np.abs(self.dIdV(freqs))**2.0
+            dVdI = self.dVdI
+        else:
+            dVdI, _ = get_dVdI_with_uncertainties(freqs, self.didv_result)
+            
+        return self.s_vload(freqs)*np.abs(dVdI)**-2.0
 
     def s_pload(self, freqs=None):
         """
-        The Johnson load power noise determined from the TES parameters for in transition.
+        The UNFOLDED Johnson load power noise determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -407,17 +284,21 @@ class TESnoise:
         Returns
         -------
         s_pload : float, ndarray
-            The Johnson load power noise at the specified frequencies
+            The UNFOLDED Johnson load power noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_iload(freqs)/np.abs(self.dIdP(freqs))**2.0
+            dPdI = self.dPdI
+        else:
+            dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+            
+        return self.s_iload(freqs) * np.abs(dPdI)**2.0
 
     def s_vtes(self, freqs=None):
         """
-        The Johnson TES voltage noise determined from the TES parameters for in transition.
+        The UNFOLDED Johnson TES voltage noise determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -434,11 +315,11 @@ class TESnoise:
         
         if freqs is None:
             freqs = self.freqs
-        return 4.0*constants.k*self.tc*self.r0*(1.0+self.beta)**2.0 * np.ones_like(freqs)
+        return 2.0*constants.k*self.tc*self.r0*(1.0+self.beta)**2.0 * np.ones(len(freqs), dtype='complex128')
 
     def s_ites(self, freqs=None):
         """
-        The Johnson TES current noise determined from the TES parameters for in transition. 
+        The UNFOLDED Johnson TES current noise determined from the TES parameters for in transition. 
         This noise has both an electronic and thermal component.
         
         Parameters
@@ -450,17 +331,25 @@ class TESnoise:
         Returns
         -------
         s_ites : float, ndarray
-            The Johnson TES current noise at the specified frequencies
+            The UNFOLDED Johnson TES current noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_vtes(freqs)*np.abs(self.dIdV(freqs)-self.i0*self.dIdP(freqs))**2.0
+            dIdV = self.dIdV
+            dIdP = self.dIdP
+        else:
+            dVdI, _ = get_dVdI_with_uncertainties(freqs, self.didv_result)
+            dIdV = 1.0/dVdI
+            dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+            dIdP = 1.0/dPdI
+            
+        return self.s_vtes(freqs)*np.abs(dIdV-self.i0*dIdP)**2.0
 
     def s_ptes(self, freqs=None):
         """
-        The Johnson TES power noise determined from the TES parameters for in transition.
+        The UNFOLDED Johnson TES power noise determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -471,17 +360,21 @@ class TESnoise:
         Returns
         -------
         s_ptes : float, ndarray
-            The Johnson TES power noise at the specified frequencies
+            The UNFOLDED Johnson TES power noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_ites(freqs)/np.abs(self.dIdP(freqs))**2.0
+            dPdI = self.dPdI
+        else:
+            dPdi, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+            
+        return self.s_ites(freqs) * np.abs(dPdI)**2.0
 
     def s_ptfn(self, freqs=None):
         """
-        The thermal fluctuation noise in power determined from the TES parameters for in transition.
+        The UNFOLDED thermal fluctuation noise in power determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -492,17 +385,17 @@ class TESnoise:
         Returns
         -------
         s_ptfn : float, ndarray
-            The thermal fluctuation noise in power at the specified frequencies
+            The UNFOLDED thermal fluctuation noise in power at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return 4.0*constants.k*self.tc**2.0 * self.G * self.f_tfn * np.ones_like(freqs)
+        return 2.0*constants.k*self.tc**2.0 * self.G * self.f_tfn * np.ones(len(freqs), dtype='complex128')
 
     def s_itfn(self, freqs=None):
         """
-        The thermal fluctuation noise in current determined from the TES parameters for in transition.
+        The UNFOLDED thermal fluctuation noise in current determined from the TES parameters for in transition.
         
         Parameters
         ----------
@@ -513,18 +406,23 @@ class TESnoise:
         Returns
         -------
         s_itfn : float, ndarray
-            The thermal fluctuation noise in current at the specified frequencies
+            The UNFOLDED thermal fluctuation noise in current at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_ptfn(freqs)*np.abs(self.dIdP(freqs))**2.0
+            dIdP = self.dIdP
+        else:
+            dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+            dIdP = 1.0/dPdI
+
+        return self.s_ptfn(freqs)*np.abs(dIdP)**2.0
 
     def s_isquid(self, freqs=None):
         """
-        The SQUID and downstream electronics current noise, currently is using a 1/f model that
-        must be specified when initializing the class.
+        The UNFOLDED SQUID and downstream electronics current noise, derived from the real SQUID
+        noise measured while normal.
         
         Parameters
         ----------
@@ -541,13 +439,50 @@ class TESnoise:
         
         if freqs is None:
             freqs = self.freqs
-        return (self.squiddc*(1.0+(self.squidpole/freqs)**self.squidn))**2.0
+            
+        if set(freqs).issubset(self.squid_noise_current_freqs):
+            if self.lgc_diagnostics:
+                print("SQUID noise over-sampled")
+            #all noise freqs are in the squid noise frequencies
+            inds = np.zeros_like(freqs)
+            i = 0
+            while i < len(inds):
+                where_arr = np.where(self.squid_noise_current_freqs == freqs[i])
+                if len(where_arr) > 0:
+                    inds[i] = where_arr[0]
+                else:
+                    inds[i] = 0.0
+                i += 1
+
+            print(self.squid_noise_current[inds])
+
+        elif set(self.squid_noise_current_freqs).issubset(freqs):
+            if self.lgc_diagnostics:
+                print("SQUID noise under-sampled")
+            #we'll use a squid noise for multiple frequencies in freqs
+            squid_noise = np.zeros_like(freqs)
+
+            i = 0
+            j = 0
+            while i < len(squid_noise)/2:
+                while (self.squid_noise_current_freqs[j] < freqs[i]) & (j < len(self.squid_noise_current_freqs)/2):
+                    j += 1
+                
+                squid_noise[i] = self.squid_noise_current[j]
+                squid_noise[-i] = self.squid_noise_current[j]
+                i += 1
+            return squid_noise
+        
+        else:
+            if self.lgc_diagnostics:
+                print("INTERPOLATION FAILED! SQUID noise frequencies and")
+                print("noise frequencies do not match.")
+        
 
     def s_psquid(self, freqs=None):
         """
-        The SQUID and downstream electronics power noise, currently is using a 1/f model that
-        must be specified when initializing the class. This is only used for when the TES is
-        in transition.
+        The UNFOLDED SQUID and downstream electronics power noise, derived from the real SQUID
+        noise measured while normal. This is only used for when the TES is in transition.
         
         Parameters
         ----------
@@ -558,17 +493,21 @@ class TESnoise:
         Returns
         -------
         s_psquid : float, ndarray
-            The SQUID and downstream electronics power noise at the specified frequencies
+            The UNFOLDED SQUID and downstream electronics power noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_isquid(freqs)/np.abs(self.dIdP(freqs))**2.0
+            dPdI = self.dPdI
+        else:
+            dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+        
+        return self.s_isquid(freqs=freqs) * dPdI**2
 
     def s_itot(self, freqs=None):
         """
-        The total current noise for the TES in transition. This is calculated by summing each of
+        The total UNFOLDED current noise for the TES in transition. This is calculated by summing each of
         the current noise sources together. Units are [A^2/Hz].
         
         Parameters
@@ -580,7 +519,7 @@ class TESnoise:
         Returns
         -------
         s_itot : float, ndarray
-            The total current noise at the specified frequencies
+            The total UNFOLDED current noise at the specified frequencies
                 
         """
         
@@ -590,7 +529,7 @@ class TESnoise:
 
     def s_ptot(self, freqs=None): # total power noise [W^2/Hz]
         """
-        The total power noise for the TES in transition. This is calculated by summing each of
+        The total UNFOLDED power noise for the TES in transition. This is calculated by summing each of
         the current noise sources together and using dIdP to convert to power noise. Units are [W^2/Hz].
         
         Parameters
@@ -602,13 +541,17 @@ class TESnoise:
         Returns
         -------
         s_ptot : float, ndarray
-            The total power noise at the specified frequencies
+            The total UNFOLDED power noise at the specified frequencies
                 
         """
         
         if freqs is None:
             freqs = self.freqs
-        return self.s_itot(freqs)/np.abs(self.dIdP(freqs))**2.0
+            dPdI = self.dPdI
+        else:
+            dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
+            
+        return self.s_itot(freqs) * np.abs(dPdI)**2.0
     
     def dIdVnormal(self, freqs=None):
         """
@@ -673,7 +616,7 @@ class TESnoise:
         
         if freqs is None:
             freqs = self.freqs
-        return 4.0*constants.k*self.tc*self.r0 * np.ones_like(freqs)
+        return 2.0*constants.k*self.tc*self.r0 * np.ones_like(freqs)
 
     def s_itesnormal(self, freqs=None):
         """
