@@ -219,6 +219,8 @@ class TESnoise:
         self.dIdP = 1.0/self.dPdI
         if lgc_diagnostics:
             print("Done calculating dVdI and dPdI")
+            
+        self.lgc_diagnostics = lgc_diagnostics
         
 
     def s_vload(self, freqs=None):
@@ -437,16 +439,45 @@ class TESnoise:
         
         if freqs is None:
             freqs = self.freqs
+            
+        if set(freqs).issubset(self.squid_noise_current_freqs):
+            if self.lgc_diagnostics:
+                print("SQUID noise over-sampled")
+            #all noise freqs are in the squid noise frequencies
+            inds = np.zeros_like(freqs)
+            i = 0
+            while i < len(inds):
+                where_arr = np.where(self.squid_noise_current_freqs == freqs[i])
+                if len(where_arr) > 0:
+                    inds[i] = where_arr[0]
+                else:
+                    inds[i] = 0.0
+                i += 1
+
+            print(self.squid_noise_current[inds])
+
+        elif set(self.squid_noise_current_freqs).issubset(freqs):
+            if self.lgc_diagnostics:
+                print("SQUID noise under-sampled")
+            #we'll use a squid noise for multiple frequencies in freqs
+            squid_noise = np.zeros_like(freqs)
+
+            i = 0
+            j = 0
+            while i < len(squid_noise)/2:
+                while (self.squid_noise_current_freqs[j] < freqs[i]) & (j < len(self.squid_noise_current_freqs)/2):
+                    j += 1
+                
+                squid_noise[i] = self.squid_noise_current[j]
+                squid_noise[-i] = self.squid_noise_current[j]
+                i += 1
+            return squid_noise
         
-        inds = np.zeros_like(freqs)
-        i = 0
-        while i < len(inds):
-            inds[i] = np.where(self.squid_noise_current_freqs == freqs[i])
-            i += 1
+        else:
+            if self.lgc_diagnostics:
+                print("INTERPOLATION FAILED! SQUID noise frequencies and")
+                print("noise frequencies do not match.")
         
-        
-        
-        return self.squid_noise_current[inds]
 
     def s_psquid(self, freqs=None):
         """
@@ -472,13 +503,7 @@ class TESnoise:
         else:
             dPdI, _ = get_dPdI_with_uncertainties(freqs, self.didv_result)
         
-        inds = np.zeros_like(freqs)
-        i = 0
-        while i < len(inds):
-            inds[i] = np.where(self.squid_noise_current_freqs == freqs[i])
-            i += 1
-            
-        return self.squid_noise_current[inds] * dPdI**2
+        return self.s_isquid(freqs=freqs) * dPdI**2
 
     def s_itot(self, freqs=None):
         """
