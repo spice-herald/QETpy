@@ -1028,12 +1028,12 @@ class OFBase:
         #need to add instantiate of self.ntmp self.nchan etc via build_template_mat and 
         #build_signal_mat
         for tag in template_tags:
-            temp_sign_mat = np.zeros((self._nbins, self._ntmp), dtype='complex_')
-            temp_phi_mat = phi_mat(channels)[channels][tag]
+            temp_sign_mat = np.zeros((self._ntmp, self._nbins), dtype='complex_')
+            temp_phi_mat = phi_mat(channels)
             signal_fft = self._signal_mat[channels][tag] #needs to be built still 
             for itmp in range(self._ntmp):
                 for jchan in range(self._nchan):
-                    temp_sign_mat[:,itmp]+= temp_phi_mat[:,itmp,jchan]*signal_fft[:,jchan] #filtered signal
+                    temp_sign_mat[itmp,:]+= temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:] #filtered signal
             self._signal_filts_mat[channels][tag] = temp_sign_mat
 
             
@@ -1102,7 +1102,7 @@ class OFBase:
         #add instance catching
         for tag in template_tags:
             sign_f_mat = self._signal_filts_mat[channels][tag]
-            temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins, axis=0))
+            temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
             self._signal_filts_mat_td[channels][tag] = temp_sign_t_mat
 
             
