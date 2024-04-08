@@ -250,6 +250,8 @@ class OFBase:
 
     def icovf(self, channels):
         '''
+        FIXME
+        #add docstrings and dimensions
         '''
         if isinstance(channels, str):
             if '|' not in channels:
@@ -377,6 +379,7 @@ class OFBase:
     def iw_mat():
         '''
         FIXME
+        add docstrings and dimensions
         '''
         if (channels in self._iw_mat.keys()
             and template_tag in self._iw_mat[channels].keys()):
@@ -691,7 +694,7 @@ class OFBase:
     def clear_signal(self):
         """
         Method to intialize calculated signal
-        parameters
+        parameters  
 
         Parameters
         ----------
@@ -886,16 +889,18 @@ class OFBase:
         '''
         FIXME
         '''
+        channels_list = channels.split(sep='|')
         # check channel
-        #if channel not in self._templates_fft:
-        #    raise ValueError(f'ERROR: Missing template fft for '
-        #                     f'channel {channel}')
+        for channel in channels_list:
             
-        #if channel not in self._csd:
-        #    raise ValueError(f'ERROR: Missing csd for '
-        #                     f'channel {channel}')
+            if channel not in self._templates_fft:
+                raise ValueError(f'ERROR: Missing template fft for '
+                                 f'channel {channel}')
+            
+        if channels not in self._csd:
+            raise ValueError(f'ERROR: Missing csd for '
+                             f'channels {channels}')
 
-            
         #if template_tags is None:
         #    template_tags = list(self._templates_fft[channel].keys())
         #elif isinstance(template_tags, str):
@@ -903,12 +908,24 @@ class OFBase:
         #elif not isinstance(template_tags, list):
         #    raise ValueError(f'ERROR "template_tags" argument should be '
         #                     f'a string or list of strings')
+        
+        # initialize
+        if channels not in self._phi_mat:
+            self._phi_mat[channels] = dict()
+        if channels not in self._iw_mat:
+            self._iw_mat[channels] = dict()
+        if icovf(channels) is None:
+            # calculate the inverted csd matrix
+            # this only needs to be done once, (no need for template tags)
+            calc_icovf(channels)
+            
         for tag in template_tags:
-            #add error catching
+            #add error catching to make sure template matrix is built for 
+            #the channel combination + signal/noise callouts in the template tag
             template_fft = self._template_mat[channels][tag] #needs to be built still 
             temp_icovf = icovf(channels)
-            self._phi_mat[channels][tag] = np.array([(template_fft[jnu,:,:].T).conjugate()
-                                                     @ temp_icovf[jnu,:,:] for jnu in range(self._nbins)
+            self._phi_mat[channels][tag] = np.array([(template_fft[:,:,jnu].T).conjugate()
+                                                     @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
                                                     ],dtype='complex_')
             
             
@@ -919,13 +936,17 @@ class OFBase:
         #need to add instantiate of self.ntmp self.nchan etc via build_template_mat and 
         #build_signal_mat
         for tag in template_tags:
+            
+            if phi_mat(channels, template_tag=tag) is None:
+                calc_phi_mat(channels, template_tags)
+                
             temp_w = np.zeros((self._ntmp,self._ntmp),dtype='complex_')
-            temp_phi_mat = phi_mat(channels)[channels][tag]
+            temp_phi_mat = phi_mat(channels)
             template_fft = self._template_mat[channels][tag] #needs to be built still
             for itmp in range(self._ntmp):
                 for jtmp in range(self._ntmp):
                     for jchan in range(self._nchan):
-                        temp_w[itmp,jtmp] += np.sum(temp_phi_mat[:,itmp,jchan]*template_fft[:,jchan,jtmp])
+                        temp_w[itmp,jtmp] += np.sum(temp_phi_mat[:,itmp,jchan]*template_fft[jchan,jtmp,:])
             temp_w = np.real(temp_w)
             temp_iw = pinv(temp_w)
             self._iw_mat[channels][tag] = temp_iw 
