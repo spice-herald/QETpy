@@ -47,18 +47,23 @@ class OFBase:
 
         # number of samples
         self._nbins = None
+        
+        self._ntmp = None #will need to be grabbed from build_temp_mat etc (which is not written yet)
+        self._nchan = None
 
 
         # initialize templates (time domain and FFT)
         self._templates = dict()
         self._templates_fft = dict()
-
+        self._template_mat = dict()
         # initialize two-sided noise psd (in Amps^2/Hz)
         self._psd = dict()
              
         # initialize two-sided noise csd (in Amps^2/Hz)
         self._csd = dict()
-             
+        
+        # initialize the inverted covariance matrix (csd)
+        self._icovf = dict()     
         # pretrigger length (can be different between
         # templates)
         self._pretrigger_samples = dict()
@@ -67,6 +72,8 @@ class OFBase:
         # (independent of signal)
         self._phis = dict()
         self._norms = dict()
+        self._phi_mat = dict()
+        self._iw_mat = dict()
 
         #intialize the p matrices, independent of signal
         self._p_matrix  = dict()
@@ -75,12 +82,15 @@ class OFBase:
         # initialize signal
         self._signal = dict()
         self._signal_fft = dict()
+        self._signal_mat = dict()
 
         # initialize (optimal) filtered  signals and templates
         # (frequency domain and  converted back to time domain)
         # dict key = template tag
         self._signal_filts = dict()
+        self._signal_filts_mat = dict()
         self._signal_filts_td = dict()
+        self._signal_filts_mat_td = dict()
         self._template_filts = dict()
         self._template_filts_td = dict()
         self._q_vector = dict()
@@ -238,7 +248,22 @@ class OFBase:
         else:
             return None
 
-        
+    def icovf(self, channels):
+        '''
+        FIXME
+        #add docstrings and dimensions
+        '''
+        if isinstance(channels, str):
+            if '|' not in channels:
+                raise ValueError(
+                    'ERROR: format is wrong. There should be '
+                    'at least one "|" separation')
+        else:
+            channels = '|'.join(channels)
+        if channels in self._icovf.keys():
+            return self._icovf[channels]
+        else:
+            return None
 
     def signal(self, channel):
         """
@@ -314,7 +339,14 @@ class OFBase:
         else:
             return None
 
-
+    def phi_mat(self, channels, template_tag='default'):
+        '''
+        '''
+        if (channels in self._phi_mat.keys()
+            and template_tag in self._phi_mat[channels].keys()):
+            return self._phi_mat[channels][template_tag]
+        else:
+            return None
 
     def norm(self, channel, template_tag='default'):
 
@@ -342,8 +374,20 @@ class OFBase:
             return self._norms[channel][template_tag]
         else:
             return None
-        
+    
+    
+    def iw_mat():
+        '''
+        FIXME
+        add docstrings and dimensions
+        '''
+        if (channels in self._iw_mat.keys()
+            and template_tag in self._iw_mat[channels].keys()):
+            return self._iw_mat[channels][template_tag]
+        else:
+            return None
 
+        
     def signal_filt(self, channel, template_tag='default'):
         """
         Get (optimal) filtered signal in frequency domain
@@ -554,8 +598,8 @@ class OFBase:
         if self._debug:
             print(f'DEBUG: Add template "{template_tag}" for '
                   f'channel {channel}!')
-            
 
+            
     def set_csd(self, channels, csd):
         """
         Add csd
@@ -650,7 +694,7 @@ class OFBase:
     def clear_signal(self):
         """
         Method to intialize calculated signal
-        parameters
+        parameters  
 
         Parameters
         ----------
@@ -839,9 +883,89 @@ class OFBase:
                 np.real(np.dot(self._phis[channel][tag],
                                self._templates_fft[channel][tag]))*self._df
             )
+            
+            
+    def calc_phi_mat(self, channels, template_tags=None):
+        '''
+        FIXME
+        '''
+        channels_list = channels.split(sep='|')
+        # check channel
+        for channel in channels_list:
+            
+            if channel not in self._templates_fft:
+                raise ValueError(f'ERROR: Missing template fft for '
+                                 f'channel {channel}')
+            
+        if channels not in self._csd:
+            raise ValueError(f'ERROR: Missing csd for '
+                             f'channels {channels}')
 
+        #if template_tags is None:
+        #    template_tags = list(self._templates_fft[channel].keys())
+        #elif isinstance(template_tags, str):
+        #    template_tags = [template_tags]
+        #elif not isinstance(template_tags, list):
+        #    raise ValueError(f'ERROR "template_tags" argument should be '
+        #                     f'a string or list of strings')
         
+        # initialize
+        if channels not in self._phi_mat:
+            self._phi_mat[channels] = dict()
+        if channels not in self._iw_mat:
+            self._iw_mat[channels] = dict()
+        if icovf(channels) is None:
+            # calculate the inverted csd matrix
+            # this only needs to be done once, (no need for template tags)
+            calc_icovf(channels)
+            
+        for tag in template_tags:
+            #add error catching to make sure template matrix is built for 
+            #the channel combination + signal/noise callouts in the template tag
+            template_fft = self._template_mat[channels][tag] #needs to be built still 
+            temp_icovf = icovf(channels)
+            self._phi_mat[channels][tag] = np.array([(template_fft[:,:,jnu].T).conjugate()
+                                                     @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
+                                                    ],dtype='complex_')
+            
+            
+    def calc_weight_mat(self, channels, template_tags=None):
+        '''
+        FIXME
+        '''
+        #need to add instantiate of self.ntmp self.nchan etc via build_template_mat and 
+        #build_signal_mat
+        for tag in template_tags:
+            
+            if phi_mat(channels, template_tag=tag) is None:
+                calc_phi_mat(channels, template_tags)
+                
+            temp_w = np.zeros((self._ntmp,self._ntmp),dtype='complex_')
+            temp_phi_mat = phi_mat(channels)
+            template_fft = self._template_mat[channels][tag] #needs to be built still
+            for itmp in range(self._ntmp):
+                for jtmp in range(self._ntmp):
+                    for jchan in range(self._nchan):
+                        temp_w[itmp,jtmp] += np.sum(temp_phi_mat[:,itmp,jchan]*template_fft[jchan,jtmp,:])
+            temp_w = np.real(temp_w)
+            temp_iw = pinv(temp_w)
+            self._iw_mat[channels][tag] = temp_iw 
+            
+            
+    def calc_icovf(self, channels):
+        '''
+        FIXME
+        '''
+        #I should add lines that make sure csd is instantiated first
+        covf = csd(channels) #an ndarray for a combination of channels
+        covf *= self._df #[A^2/Hz] -> [A^2]
+        
+        temp_icovf = np.zeros_like(covf, dtype='complex')
+        for ii in range(self._nbins):
+            temp_icovf[:,:,ii] = pinv(covf[:,:,ii]) #1/A^2
+        self._icovf[channels] = temp_icovf
 
+    
     def calc_signal_filt(self, channel, template_tags=None):
         """
         Calculate filtered signal (for the specified
@@ -894,8 +1018,25 @@ class OFBase:
             if self._debug:
                 print('DEBUG: Calculating signal_filt with template "'+
                       tag + '"')
-                
+    
+    
+    def calc_signal_filt_mat(self, channels, template_tags=None):
+        '''
+        FIXME
+        '''
+        #add instance catching
+        #need to add instantiate of self.ntmp self.nchan etc via build_template_mat and 
+        #build_signal_mat
+        for tag in template_tags:
+            temp_sign_mat = np.zeros((self._ntmp, self._nbins), dtype='complex_')
+            temp_phi_mat = phi_mat(channels)
+            signal_fft = self._signal_mat[channels][tag] #needs to be built still 
+            for itmp in range(self._ntmp):
+                for jchan in range(self._nchan):
+                    temp_sign_mat[itmp,:]+= temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:] #filtered signal
+            self._signal_filts_mat[channels][tag] = temp_sign_mat
 
+            
     def calc_signal_filt_td(self, channel, template_tags=None):
         """
         Convert signal filt to time domain (for the specified
@@ -953,6 +1094,18 @@ class OFBase:
                 print('DEBUG: Calculating signal_filt_td with template "'+
                       tag + '"')
 
+    
+    def calc_signal_filt_mat_td(self, channels, template_tags=None):
+        '''
+        FIXME
+        '''
+        #add instance catching
+        for tag in template_tags:
+            sign_f_mat = self._signal_filts_mat[channels][tag]
+            temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
+            self._signal_filts_mat_td[channels][tag] = temp_sign_t_mat
+
+            
     def calc_chisq0(self, channel):
         """
         Calculate part of chi2 that doesn't depend
