@@ -14,11 +14,12 @@ class OF1x1:
     calculations
     """
 
-    def __init__(self, of_base=None, template_tag='default', 
-                 template=None, psd=None, sample_rate=None,
+    def __init__(self, of_base=None,
+                 channel='unknown',
+                 template_tag='default', template=None,
+                 psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
-                 channel_name='unknown',
                  verbose=True):
         
         """
@@ -30,7 +31,10 @@ class OF1x1:
         of_base : OFBase object, optional 
            OF base with pre-calculations
            Default: instantiate base class within OF1x1
-
+        
+        channel : str, optional
+            channel name
+        
         template_tag : str, optional 
            tamplate tag, default='default'
         
@@ -91,49 +95,53 @@ class OF1x1:
         # tag
         self._template_tag = template_tag
 
+        # channel name
+        self._channel_name = channel
+
         # Instantiate OF base (if not provided)
         self._of_base = of_base
+        
         if of_base is None:
 
             # check parameters
             if sample_rate is None:
                 raise ValueError('ERROR in OF1x1: sample rate required!')
-             
-            if (pretrigger_msec is None
-                and pretrigger_samples is None):
-                raise ValueError('ERROR in OF1x1: '
-                                 + 'pretrigger (msec or samples) required!')
-                        
+                                     
             # instantiate
             self._of_base = OFBase(sample_rate, 
-                                   pretrigger_msec=pretrigger_msec,
-                                   pretrigger_samples=pretrigger_samples,
-                                   channel_name=channel_name,
                                    verbose=verbose)
             
-
         # add template to base object
         if template is not None:
 
             if self._verbose:
                 print('INFO: Adding template with tag "'
                       +  template_tag + '" to OF base object.')
+
+            fs = self._of_base.sample_rate
                 
-            self._of_base.add_template(template,
+            if pretrigger_msec is not None:
+                pretrigger_samples = int(round(fs*pretrigger_msec/1000))
+            elif pretrigger_samples is None:
+                raise ValueError('ERROR in OF1x1: pretrigger '
+                                 '(msec or samples) required!')
+                
+            self._of_base.add_template(channel,
+                                       template,
                                        template_tag=template_tag,
+                                       pretrigger_samples=pretrigger_samples,
                                        integralnorm=integralnorm)
-            
         else:
             
             # check if template exist already
-            tags =  self._of_base.template_tags()
+            tags =  self._of_base.template_tags(channel)
         
             if (tags is None
                 or template_tag not in tags):
 
-                print('ERROR: No template with tag "'
-                      + template_tag + ' found in OF base object.'
-                      + ' Modify template tag or add template argument!')
+                print(f'ERROR: No template with tag "{template_tag}" '
+                      f'for channel {channel} found in OF base object. '
+                      f'Modify template tag or add template argument!')
                 return
                             
          # add noise to base object
@@ -143,25 +151,20 @@ class OF1x1:
                 print('INFO: Adding noise PSD '
                       + 'to OF base object')
             
-            self._of_base.set_psd(psd,
+            self._of_base.set_psd(channel,
+                                  psd,
                                   coupling=coupling)
             
         else:
-
-            if self._of_base.psd() is None:
-                
-                print('ERROR: No psd found in OF base object.'
-                      + ' Add psd argument!')
+            if self._of_base.psd(channel) is None:
+                print(f'ERROR: No psd found in OF base object.'
+                      f'for channel {channel}. Add psd argument!')
                 return
         
-            
-            
-
         #  template/noise pre-calculation
-        if self._of_base.phi(template_tag) is None:
-            self._of_base.calc_phi(template_tags=template_tag)
-
-
+        if self._of_base.phi(channel, template_tag) is None:
+            self._of_base.calc_phi(channel,
+                                   template_tags=template_tag)
 
         # initialize fit results
 
@@ -260,13 +263,14 @@ class OF1x1:
         None
 
         """
-
         
         # update signal and do preliminary
         # calculations
         if signal is not None:   
             self._of_base.update_signal(
+                self._channel_name,
                 signal,
+                calc_q_vector=False,
                 calc_signal_filt=True,
                 calc_signal_filt_td=True,
                 calc_chisq_amp=True,
@@ -275,6 +279,7 @@ class OF1x1:
             
         # get fit results
         amp,t0,chi2 = self._of_base.get_fit_withdelay(
+            self._channel_name,
             self._template_tag,
             window_min_from_trig_usec=window_min_from_trig_usec,
             window_max_from_trig_usec=window_max_from_trig_usec,
@@ -286,6 +291,7 @@ class OF1x1:
         )
         
         lowchi2 = self._of_base.get_chisq_lowfreq(
+            self._channel_name,
             template_tag=self._template_tag,
             amp=amp,
             t0=t0,
@@ -297,21 +303,19 @@ class OF1x1:
         self._of_t0_withdelay = t0
         self._of_chi2low_withdelay = lowchi2
 
-
         # chisq no pulse
-        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse()
-        
-
-
+        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse(self._channel_name)
         
         # add nodelay fit
         if lgc_fit_nodelay:
             amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
+                self._channel_name,
                 template_tag=self._template_tag,
                 shift_usec=None,
                 use_chisq_alltimes=True
             )
             lowchi2_0 = self._of_base.get_chisq_lowfreq(
+                self._channel_name,
                 template_tag=self._template_tag,
                 amp=amp_0,
                 t0=t0_0,
@@ -367,11 +371,11 @@ class OF1x1:
 
         """
 
-
         # update signal and do preliminary
         # calculations
         if signal is not None:   
             self._of_base.update_signal(
+                self._channel_name,
                 signal,
                 calc_signal_filt=True,
                 calc_signal_filt_td=True,
@@ -381,12 +385,14 @@ class OF1x1:
         
         # nodelay fit
         amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
+            self._channel_name,
             template_tag=self._template_tag,
             shift_usec=shift_usec,
             use_chisq_alltimes=use_chisq_alltimes
         )
         
         lowchi2_0 = self._of_base.get_chisq_lowfreq(
+            self._channel_name,
             template_tag=self._template_tag,
             amp=amp_0,
             t0=t0_0,
@@ -400,7 +406,7 @@ class OF1x1:
 
 
         # chisq no pulse
-        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse()
+        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse(self._channel_name)
         
             
 
@@ -511,6 +517,7 @@ class OF1x1:
 
         """
         sigma = self._of_base.get_amplitude_resolution(
+            self._channel_name,
             self._template_tag
         )
 
@@ -546,13 +553,12 @@ class OF1x1:
         """
 
         sigma =  self._of_base.get_time_resolution(
+            self._channel_name,
             amp,
             self._template_tag
         )
 
         return sigma
-
-
 
     
     def plot(self, lgc_plot_withdelay=True,
@@ -596,16 +602,14 @@ class OF1x1:
             return
         
         # signal
-        signal = self._of_base.signal()
-        template = self._of_base.template()
+        signal = self._of_base.signal(self._channel_name)
+        template = self._of_base.template(self._channel_name)
         fs = self._of_base.sample_rate
         nbins = len(signal)
         chi2 = self._of_chi2_withdelay/len(signal)
         
         # time axis
         xtime_ms = 1e3*np.arange(nbins)/fs
-
-
         
         # define figure abd plot
         fig, ax = plt.subplots(figsize=figsize)   
@@ -635,14 +639,12 @@ class OF1x1:
                            + f'/Ndof={chi2:.2f}'),
                     color='green',
                     linestyle='dotted')
-            
-
-
+       
         if xlim_msec is not None:
             ax.set_xlim(xlim_msec)
         ax.set_ylabel(r'Current [$\mu A$]')
         ax.set_xlabel('Time [ms]')
-        ax.set_title(f'{self._of_base.channel_name} OF Results')
+        ax.set_title(f'{self._channel_name} OF Results')
         lgd = ax.legend(loc='best')
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(linestyle='dotted')
