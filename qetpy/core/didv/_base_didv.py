@@ -4,7 +4,7 @@ from numpy import pi
 from scipy.optimize import least_squares, fsolve
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 from qetpy.utils import resample_data
-
+import copy
 
 __all__ = [
     "stdcomplex",
@@ -462,7 +462,6 @@ def get_i0(offset, offset_err, offset_dict, output_offset=None,
         # current IV variable offset
         if lgc_calibration_on is False:
             i0_variable_offset = output_offset * output_gain/closed_loop_norm
-            
         else:
             if calibration_dict is None:
                 raise ValueError('ERROR: must include calibration_dict if '
@@ -792,7 +791,7 @@ def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
     
     return bias_parameter_dict
     
-def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
+def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
                                                     ibias, ibias_err,
                                                     rsh, rp, rn=None):
     """
@@ -801,10 +800,7 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
     
     Parameters
     ----------
-    
-    poles : int 
-        the number of poles of the dIdV fit
-
+  
     params : dict
         The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
                
@@ -833,16 +829,20 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
         
     """
 
-    if (poles !=2 and poles !=3):
-        raise ValueError('ERROR: Number of poles should be 2 or 3!')
-
+    # check dimension
+    num_params = cov.shape[0]
+    if len(params.keys()) != num_params:
+        raise ValueError('ERROR: inconsistent number of '
+                         'parameters with covariance '
+                         'matrix shape')
+    
     # Rload
     rl = rp + rsh
 
     # r0
     dvdi0 = None
     r0_jac = None
-    if poles == 2:
+    if num_params == 5:
         dvdi0 =  params['A'] +  params['B']
         r0_jac = np.asarray([1, 1, 0, 0, 0])
     else:
@@ -858,12 +858,10 @@ def get_tes_bias_parameters_dict_infinite_loop_gain(poles, params, cov,
     
     v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
     p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
-
     
     if rn is None:
         rn = np.nan
-
-    
+ 
     bias_parameter_dict = {
         'i0': i0,
         'i0_err': i0_err,
@@ -1001,11 +999,11 @@ class _BaseDIDV(object):
         self._offset = None
         self._offset_err = None
 
-        self._1poleresult = None
-        self._2poleresult = None
-        self._3poleresult = None
 
-
+        # container to store all the results
+        # key = model poles (1, 2, 3) 
+        self._fit_results = {1:None, 2:None, 3:None}
+        
     @staticmethod
     def _onepoleimpedance(freq, A, tau2):
         """
@@ -1443,8 +1441,12 @@ class _BaseDIDV(object):
             print("Wrong number of input parameters, returning zero...")
             falltimes = np.zeros(1)
 
-        # return fall times sorted from shortest to longest
-        return np.sort(falltimes)
+        # fall times sorted from shortest to longest
+        falltimes = np.sort(falltimes)
+        if falltimes[0] == 0:
+            falltimes = np.concatenate((falltimes[1:], [0]))
+
+        return falltimes
 
 
     def processtraces(self):
@@ -1523,7 +1525,7 @@ class _BaseDIDV(object):
             didvs.append(didvi)
 
         #convert to numpy structure
-        didvs=np.array(didvs)
+        didvs = np.array(didvs)
 
         # get rid of any NaNs, as these will break the fit 
         cut = np.logical_not(np.isnan(didvs).any(axis=1))
@@ -1562,28 +1564,26 @@ class _BaseDIDV(object):
         have been fitted
 
         """
-
-        list_of_poles = []
-        if self._1poleresult is not None:
-            list_of_poles.append(1)
-        if self._2poleresult is not None:
-            list_of_poles.append(2)
-        if self._3poleresult is not None:
-            list_of_poles.append(3)
-
+        keys = list(self._fit_results.keys())
+        list_of_poles = list()
+        for poles in keys:
+            if self._fit_results[poles] is not None:
+                list_of_poles.append(poles)
+                
         return list_of_poles 
 
         
-    def fitresult(self, poles):
+    def fitresult(self, poles=None):
         """
         Function for returning a dictionary containing the relevant
         results from the specified fit.
 
         Parameters
         ----------
-        poles : int
+        poles : int, optional
             The number of poles (fall times) in the fit, from which the
             results will be returned. Should be 1, 2, or 3.
+            if None, return all models (dictionary with keys = poles)
 
         Returns
         -------
@@ -1595,32 +1595,15 @@ class _BaseDIDV(object):
 
         """
 
-        if poles == 1:
-            if self._1poleresult is None:
+        if poles is None:
+            return copy.deepcopy(self._fit_results)
+        else:
+            if poles not in self._fit_results:
                 warnings.warn(
-                    "The 1-pole fit has not been run, "
-                    "returning an empty dict."
+                    f'The {poles}-pole fit has not been run, '
+                    f'returning an empty dict.'
                 )
                 return dict()
-
-            return self._1poleresult
-
-        if poles == 2:
-            if self._2poleresult is None:
-                warnings.warn(
-                    "The 2-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._2poleresult
-
-        if poles == 3:
-            if self._3poleresult is None:
-                warnings.warn(
-                    "The 3-pole fit has not been run, "
-                    "returning an empty dict."
-                )
-                return dict()
-
-            return self._3poleresult
+            else :
+                return copy.deepcopy(self._fit_results[poles])
+            

@@ -5,6 +5,9 @@ from ._base_didv import get_tes_bias_parameters_dict, get_tes_bias_parameters_di
 from ._plot_didv import _PlotDIDV
 from ._uncertainties_didv import get_smallsignalparams_cov, get_smallsignalparams_sigmas
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
+import copy
+import warnings
+warnings.simplefilter('default')
 
 
 __all__ = [
@@ -569,7 +572,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             fitcost1 /= (np.sum(fit_freqs)-len(fitparams1))
             
             # store as dictionary
-            self._1poleresult = DIDV._fitresult(
+            self._fit_results[1] = DIDV._fitresult(
                 poles,
                 fitparams1,
                 fitcov1,
@@ -579,8 +582,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             )
 
             # store offset 
-            self._1poleresult['offset'] = self._offset
-            self._1poleresult['offset_err'] = self._offset_err
+            self._fit_results[1]['offset'] = self._offset
+            self._fit_results[1]['offset_err'] = self._offset_err
 
             # calculate small signal parameters
             # (lgc_ssp_light only used for 3-poles)
@@ -622,13 +625,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 if indt is not None:
                     dt0 = indt
 
-
             # loopgainsub1   
             if guess_isloopgainsub1 is not None:
                 isloopgainsub1 = guess_isloopgainsub1
-                
-                
-
+       
             # 2 pole fitting
             fitparams2, fitcov2, fitcost2 = DIDV._fitdidv(
                 self._freq[fit_freqs],
@@ -653,31 +653,61 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # cost: divide by NDOF
             fitcost2 = fitcost2/(np.sum(fit_freqs)-len(fitparams2))
-           
+
+            # Convert to a 3-pole model with  C=0  and tau3=0
+
+            # 1)  fit parameters
+            indices = [2, 4]
+            fitparams2 = np.insert(fitparams2, [2,4], 0)
+            
+            if lgcfix is not None:
+                if isinstance(lgcfix, list):
+                    lgcfix.insert(2, True)
+                    lgcfix.insert(5, True)
+                elif isinstance(lgcfix, np.ndarray):
+                    lgcfix = np.insert(lgcfix, [2,4], 0)
+                    
+            # 2) cov
+                
+            # Insert a row of zeros at index 2
+            intermediate_cov2 = np.insert(fitcov2, 2, 0, axis=0)
+            # Insert a column of zeros at index 2
+            intermediate_cov2 = np.insert(intermediate_cov2, 2, 0, axis=1) 
+
+            # For tau3, insert zeros at index 5
+            # Now index 5 for rows
+            final_cov2 = np.insert(intermediate_cov2, 5, 0, axis=0)
+            # And index 5 for columns
+            final_cov2 = np.insert(final_cov2, 5, 0, axis=1) 
+
+
             # Convert to didv falltimes
             falltimes2 = DIDV._findpolefalltimes(fitparams2)
-
+                     
             # store as dictionary
-            self._2poleresult = DIDV._fitresult(
+            self._fit_results[2] = DIDV._fitresult(
                 poles,
                 fitparams2,
-                fitcov2,
+                final_cov2,
                 falltimes2,
                 fitcost2,
                 lgcfix=lgcfix)
 
             # store a few more parameters
-            self._2poleresult['offset'] = self._offset
-            self._2poleresult['offset_err'] = self._offset_err
+            self._fit_results[2]['offset'] = self._offset
+            self._fit_results[2]['offset_err'] = self._offset_err
 
             # calculate small signal parameter
             # (lgc_ssp_light only used for 3-poles)
-            self._calc_ssp(2)
-                            
+            self._calc_ssp(2,
+                           biasparams_dict=biasparams_dict,
+                           lgc_ssp_light=lgc_ssp_light)
 
         elif poles==3:
-            
-            if self._2poleresult is None:
+
+            if (self._fit_results[2] is None
+                or 'param' not in self._fit_results[2]):
+                
                 # Guess the 3-pole fit starting parameters from
                 # 2-pole fit guess
                 A0, B0, tau10, tau20 = DIDV._guessdidvparams(
@@ -694,13 +724,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 dt0 = self._dt0
                 
             else:
-                A0 = self._2poleresult['params']['A']
-                B0 = -abs(self._2poleresult['params']['B'])
+                A0 = self._fit_results[2]['params']['A']
+                B0 = -abs(self._fit_results[2]['params']['B'])
                 C0 = -0.05
-                tau10 = -abs(self._2poleresult['params']['tau1']) 
-                tau20 = self._2poleresult['params']['tau2']
+                tau10 = -abs(self._fit_results[2]['params']['tau1']) 
+                tau20 = self._fit_results[2]['params']['tau2']
                 tau30 = 1.0e-3
-                dt0 = self._2poleresult['params']['dt']
+                dt0 = self._fit_results[2]['params']['dt']
 
 
             # is loop gain < 1
@@ -735,12 +765,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 if indt is not None:
                     dt0 = indt
 
-
             # loopgainsub1   
             if guess_isloopgainsub1 is not None:
                 isloopgainsub1 = guess_isloopgainsub1
-
-
             
             # 3 pole fitting
             fitparams3, fitcov3, fitcost3 = DIDV._fitdidv(
@@ -769,12 +796,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # cost: divide by NDOF
             fitcost3 = fitcost3/(np.sum(fit_freqs)-len(fitparams3))
             
-
-            
             # Convert to didv falltimes
             falltimes3 = DIDV._findpolefalltimes(fitparams3)
 
-            self._3poleresult = DIDV._fitresult(
+            # store results
+            self._fit_results[3] = DIDV._fitresult(
                 poles,
                 fitparams3,
                 fitcov3,
@@ -783,10 +809,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 lgcfix=lgcfix,
             )
 
-             # store offset 
-            self._3poleresult['offset'] = self._offset
-            self._3poleresult['offset_err'] = self._offset_err
-
+            # store offset 
+            self._fit_results[3]['offset'] = self._offset
+            self._fit_results[3]['offset_err'] = self._offset_err
+            
             # small signal parameters
             self._calc_ssp(
                 3,
@@ -799,6 +825,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
 
     def calc_smallsignal_params(self, ivsweep_results,
+                                poles=None,
                                 calc_true_current=False,
                                 tes_bias=None,
                                 close_loop_norm=None,
@@ -809,24 +836,38 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 lgc_diagnostics=False):
         """
         Calculate small signal parametres and their uncertainties 
-        using results from  ivsweep.  If calc_true_current=True, 
-        I0 is recalculated using the measured offset  
+        using results from  ivsweep (I0 or Ioffset).  
+        If calc_true_current=True, I0 is recalculated using the measured offset  
         """
 
-        
-        # 3 poles
-        calc_3poles = False
-        if self._3poleresult is not None:
-            if  'params' not in  self._3poleresult.keys():
-                raise ValueError(f'ERROR: 3-poles fit needs to be done first!')
-            calc_3poles = True
-        
-        calc_2poles = False
-        if self._2poleresult is not None:
-            if  'params' not in  self._2poleresult.keys():
-                raise ValueError(f'ERROR: 2-poles fit needs to be done first!')
-            calc_2poles = True
-        
+        # check which models have been fitted (2 and/or 3 poles)
+        model_list  = list()
+
+        if poles is not None:
+            if (self._fit_results[poles] is None
+                or 'params' not in  self._fit_results[poles]):
+                raise ValueError(f'ERROR: {poles}-poles fit needs to be done first!')
+            else:
+                model_list.append(poles)
+        else:
+            if self._fit_results[2] is not None:
+                if  'params' not in  self._fit_results[2]:
+                    raise ValueError(f'ERROR: 2-poles fit needs to be done first!')
+                else:
+                    model_list.append(2)
+              
+            if self._fit_results[3] is not None:
+                if  'params' not in self._fit_results[3]:
+                    raise ValueError(f'ERROR: 3-poles fit needs to be done first!')
+                else:
+                    model_list.append(3)
+
+        if not model_list:
+            print('WARNING: No fit have been done. Doing nothing...')
+            return
+                
+
+        # True bias calculation
         
         # check ivsweep results and convert to dictionary
         if not isinstance(ivsweep_results, dict):
@@ -858,11 +899,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 raise ValueError(f'ERROR: "tes_bias" parameter (QET bias) '
                                  'required when calculating true current')
 
-
-
         # initialize  bias parameters dict
         biasparams_dict = ivsweep_results.copy()
-        biasparams_dict['biasparams_type'] = 'ivsweep_current'
+        biasparams_dict['biasparams_type'] = 'external_current'
         
         rp = ivsweep_results['rp']
         rn = None
@@ -894,7 +933,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                                 output_variable_gain,
                                 lgc_invert_offset=lgc_invert_offset,
                                 lgc_diagnostics=lgc_diagnostics)
-    
+
             # calculate true ibias (QET bias)
             ibias, ibias_err = get_ibias(tes_bias, ivsweep_results,
                                          lgc_diagnostics=lgc_diagnostics)
@@ -911,34 +950,35 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         self._rp = biasparams_dict['rp']
 
 
-        # calculate small signal parameters with proper bias parameters
-        if calc_2poles:
-            self._calc_ssp(2,
-                           biasparams_dict=biasparams_dict.copy(),
-                           lgc_ssp_light=False)
+        # calculate small signal parameters
+        
+        # loop poles
+        for model_poles in model_list:
 
-        if calc_3poles:
-            self._calc_ssp(3,
+            print(f'INFO: Calculating small signal parameters '
+                  f'for {model_poles}-poles model ')
+            
+            # calc
+            self._calc_ssp(model_poles,
                            biasparams_dict=biasparams_dict.copy(),
                            lgc_ssp_light=True)
-
-
-        # Check if infinite loop gain needs to be done
-        # if inf_loop_gain_approx == 'auto' AND lopp gain negative
-        #     -> automatically make approximation that loop gain infinite 
             
+            # Check if infinite loop gain needs to be done
+            # if inf_loop_gain_approx == 'auto' AND lopp gain negative
+            #     -> automatically make approximation that loop gain infinite 
 
-        # 2-poles
-        if calc_2poles:
-
+            results = copy.deepcopy(self._fit_results[model_poles])
+                            
             # check if infinite loop gain needs to be done
             set_infinite_loop_gain = inf_loop_gain_approx
             if inf_loop_gain_approx == 'auto':
                 
-                if self._2poleresult['smallsignalparams']['l'] < 0:
+                if results['smallsignalparams']['l'] < 0:
                     if lgc_verbose:
-                        print('INFO: Loop gain is negative for 2-poles fit. '
-                              'Will use infinite loop gain approximation!')
+                        print(f'INFO: Loop gain is negative '
+                              f'for {model_poles}-poles fit. Will '
+                              f'use infinite loop gain approximation!')
+                        
                     set_infinite_loop_gain = True
                 else:
                     set_infinite_loop_gain = False
@@ -946,72 +986,30 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             if set_infinite_loop_gain:
 
                 if lgc_verbose:
-                    print('INFO: Calculating bias parameters with infinite loop gain '
-                          'approximation for 2-poles fit!')
-                                
-                params =  self._2poleresult['params']
-                cov =  self._2poleresult['cov']
+                    print(f'INFO: Calculating bias parameters '
+                          f'with infinite loop gain approximation '
+                          f'for {model_poles}-poles fit!')
 
-                biasparams_dict_2poles = get_tes_bias_parameters_dict_infinite_loop_gain(
-                    2, params, cov, ibias, ibias_err, self._rsh, rp, rn=rn
+                params =  results['params']
+                cov =  results['cov']
+                
+                biasparams_dict_inf = get_tes_bias_parameters_dict_infinite_loop_gain(
+                    params, cov, ibias, ibias_err, self._rsh, rp, rn=rn
                 )
 
-                biasparams_dict_2poles['biasparams_type'] = 'infinite_lgain_current'
+                biasparams_dict_inf['biasparams_type'] = 'infinite_lgain_current'
                 
-                # re-assign r0
-                self._r0 = biasparams_dict_2poles['r0']
+                # re-assign r0 
+                self._r0 = biasparams_dict_inf['r0']
 
                 # re-calculate small signal parameters
                 # with proper bias paramaters
-                self._calc_ssp(2,
-                               biasparams_dict=biasparams_dict_2poles,
-                               lgc_ssp_light=False)
-
-        # 3-poles
-        if calc_3poles:
-            
-            # check if infinite loop gain needs to be done
-            set_infinite_loop_gain = inf_loop_gain_approx
-            if inf_loop_gain_approx == 'auto':
-                
-                if self._3poleresult['smallsignalparams']['l'] < 0:
-                    if lgc_verbose:
-                        print('INFO: Loop gain is negative for 3-poles fit. '
-                              'Will use infinite loop gain approximation!')
-                    set_infinite_loop_gain = True
-                else:
-                    set_infinite_loop_gain = False
-                    
-            if set_infinite_loop_gain:
-                
-                if lgc_verbose:
-                    print('INFO: Calculating bias parameters with infinite loop gain '
-                          'approximation for 3-poles fit!')
-                
-                
-                params =  self._3poleresult['params']
-                cov =  self._3poleresult['cov']
-
-                biasparams_dict_3poles = get_tes_bias_parameters_dict_infinite_loop_gain(
-                    3, params, cov, ibias, ibias_err, self._rsh, rp, rn=rn
-                )
-                
-                biasparams_dict_3poles['biasparams_type'] = 'infinite_lgain_current'
-                
-                # re-assign r0 (overwrite 2-poles)
-                self._r0 = biasparams_dict_3poles['r0']
-
-                # calculate small signal parameters
-                # with proper bias paramaters
-                self._calc_ssp(3,
-                               biasparams_dict=biasparams_dict_3poles,
+                self._calc_ssp(model_poles,
+                               biasparams_dict=biasparams_dict_inf,
                                lgc_ssp_light=True)
-
                 
-
-
         
-    def calc_bias_params_infinite_loop_gain(self, poles=3,
+    def calc_bias_params_infinite_loop_gain(self, poles=None,
                                             tes_bias=None,
                                             tes_bias_err=0,
                                             rp=None):
@@ -1020,63 +1018,71 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         approximation and store in fit result
         """
 
+        model_list  = list()
 
-        # get fit results
-        if poles == 2:
-            if self._2poleresult is None:
-                raise ValueError(
-                    'ERROR: The 2-pole fit has not been run'
-                )
-            results = self._2poleresult
+        if poles is not None:
+            if (self._fit_results[poles] is None
+                or 'params' not in  self._fit_results[poles]):
+                raise ValueError(f'ERROR: {poles}-poles fit needs to be done first!')
+            else:
+                model_list.append(poles)
+        else:
+            if self._fit_results[2] is not None:
+                if  'params' not in  self._fit_results[2]:
+                    raise ValueError(f'ERROR: 2-poles fit needs to be done first!')
+                else:
+                    model_list.append(2)
+              
+            if self._fit_results[3] is not None:
+                if  'params' not in self._fit_results[3]:
+                    raise ValueError(f'ERROR: 3-poles fit needs to be done first!')
+                else:
+                    model_list.append(3)
+                    
+        if not model_list:
+            print('WARNING: No fit have been done. Doing nothing...')
+            return
+        
+        # loop poles
+        for model_poles in model_list:
             
-        elif  poles == 3:
-            if self._3poleresult is None:
-                raise ValueError(
-                    'ERROR: The 2-pole fit has not been run'
-                )
-            results = self._3poleresult
-
-
-        # check if ibias available
-        if tes_bias is None:
-
-            if ('biasparams' not in results.keys()
-                or 'ibias' not in results['biasparams']):
-                raise ValueError(
-                    'ERROR: Unable to find tes bias (ibias)!'
-                    ' It needs to be provided.'
-                )
+            results = copy.deepcopy(self._fit_results[model_poles])
             
-            tes_bias = results['biasparams']['ibias']
-            if 'ibias_err' in results['biasparams']:
-                tes_bias_err = results['biasparams']['ibias_err']
+            # check if ibias available
+            if tes_bias is None:
+
+                if ('biasparams' not in results.keys()
+                    or 'ibias' not in results['biasparams']):
+                    raise ValueError(
+                        'ERROR: Unable to find tes bias (ibias)!'
+                        ' It needs to be provided.'
+                    )
+            
+                tes_bias = results['biasparams']['ibias']
+                if 'ibias_err' in results['biasparams']:
+                    tes_bias_err = results['biasparams']['ibias_err']
           
 
-        # Rp
-        if rp is None:
-            if self._rp is None:
-                raise ValueError(
-                    'ERROR: Unable to find rp!'
-                    ' It needs to be provided.'
-                )
-            rp = self._rp
+            # Rp
+            if rp is None:
+                if self._rp is None:
+                    raise ValueError(
+                        'ERROR: Unable to find rp!'
+                        ' It needs to be provided.'
+                    )
+                rp = self._rp
 
             
-        results['biasparams_infinite_lgain'] = (
-            get_tes_bias_parameters_dict_infinite_loop_gain(
-                poles,
-                results['params'], results['cov'],
-                tes_bias, tes_bias_err,
-                self._rsh, rp
+            results['biasparams_infinite_lgain'] = (
+                get_tes_bias_parameters_dict_infinite_loop_gain(
+                    results['params'], results['cov'],
+                    tes_bias, tes_bias_err,
+                    self._rsh, rp
+                )
             )
-        )
-            
-        # replace results
-        if poles == 2:
-            self._2poleresult  = results
-        elif  poles == 3:
-            self._3poleresult = results
-                      
+
+            self._fit_results[model_poles] = results
+                                  
     def dofit_with_true_current(self, offset_dict,
                                 output_offset, closed_loop_norm, output_gain,
                                 ibias_metadata,
@@ -1146,6 +1152,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         
         """
 
+        warnings.warn(
+            'WARNING: "dofit_with_true_current(..)" function is deprecated. '
+            'Use "calc_smallsignal_params(.., calc_true_current=True,...)" '
+            'instead.')
+  
         self._rp = offset_dict['rp']
 
         rsh = self._rsh
@@ -1166,9 +1177,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp)
         
         if inf_loop_gain_approx:
-            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
-                self._3poleresult['params'], self._3poleresult['cov'],
-                ibias, ibias_err, rsh, rp)
+            biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain( 
+                self._fit_results[3]['params'], self._fit_results[3]['cov'],
+                ibias, ibias_err, rsh, rp
+            )
         
         self._r0 = biasparams_dict['r0']
 
@@ -1177,12 +1189,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                              lgc_ssp_light=True)
                              
         if inf_loop_gain_limit:
-            if self._3poleresult['smallsignalparams']['l'] < 0:
-                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain(3, 
-                    self._3poleresult['params'], 
-                    self._3poleresult['cov'], i0, 
+            if self._fit_results[3]['smallsignalparams']['l'] < 0:
+                biasparams_dict = get_tes_bias_parameters_dict_infinite_loop_gain( 
+                    self._fit_results[3]['params'], 
+                    self._fit_results[3]['cov'], i0, 
                     i0_err, ibias, ibias_err, 
                     rsh, rp)
+                
                 result3 = self.dofit(3, bounds=bounds,
                                      guess_params=guess,
                                      biasparams_dict=biasparams_dict,
@@ -1225,25 +1238,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': errors[2],
             }
 
-        if poles == 2:
-            result['params'] = {
-                'A': params[0],
-                'B': params[1],
-                'tau1': params[2],
-                'tau2': params[3],
-                'dt': params[4],
-            }
-            
-            result['cov'] = cov
-            result['errors'] = {
-                'A': errors[0],
-                'B': errors[1],
-                'tau1': errors[2],
-                'tau2': errors[3],
-                'dt': errors[4],
-            }
+        elif (poles == 2 or poles == 3):
 
-        if poles == 3:
             result['params'] = {
                 'A': params[0],
                 'B': params[1],
@@ -1253,7 +1249,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': params[5],
                 'dt': params[6],
             }
+            
             result['cov'] = cov
+            
             result['errors'] = {
                 'A': errors[0],
                 'B': errors[1],
@@ -1264,7 +1262,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'dt': errors[6],
             }
 
-          
         # other params
         result['falltimes'] = falltimes
         result['cost'] = cost
@@ -1293,84 +1290,55 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         # 1-poles fit 
         if poles == 1:
             
-            if self._1poleresult is None:
+            if self._fit_results[1] is None:
                 raise ValueError(
                     'ERROR: No 1-poles fit done! Unable to '
                     'calculate small signal parameters ')
             
             smallsignalparams = DIDV._converttotesvalues(
-                self._1poleresult['params_array'],
+                self._fit_results[1]['params_array'],
                 self._rsh, self._r0, self._rp
             )
 
-            self._1poleresult['smallsignalparams'] = {
+            self._fit_results[1]['smallsignalparams'] = {
                 'rsh': smallsignalparams[0],
                 'rp': smallsignalparams[1],
                 'L': smallsignalparams[2],
                 'dt': smallsignalparams[3],
             }
             
-            self._1poleresult['didv0'] = (
-                complexadmittance(0, **self._1poleresult['smallsignalparams']).real
+            self._fit_results[1]['didv0'] = (
+                complexadmittance(0, **self._fit_results[1]['smallsignalparams']).real
             )
 
             # store bias params
             if  biasparams_dict is not None:  
-                self._1poleresult['biasparams'] = biasparams_dict.copy()
+                self._fit_results[1]['biasparams'] = biasparams_dict.copy()
             else:
-                self._1poleresult['biasparams'] = None
+                self._fit_results[1]['biasparams'] = None
                         
             
-        # 2-poles fit     
-        if poles == 2:
-                              
-            if self._2poleresult is None:
-                raise ValueError(
-                    'ERROR: No 2-poles fit done! Unable to '
-                    'calculate small signal parameters ')
+        # 2-poles and 3-poles fit     
+        if poles == 2 or poles == 3:
 
+            # get result dictionary
+            if (self._fit_results[poles] is None
+                or 'params_array' not in self._fit_results[poles]):
+                raise ValueError(
+                    f'ERROR: No {poles}-poles fit done! Unable to '
+                    f'calculate small signal parameters ')
+            
+            # results 
+            results = copy.deepcopy(self._fit_results[poles])
+
+            
+            # convert fit parameterts to smallsignalparams
             smallsignalparams = DIDV._converttotesvalues(
-                self._2poleresult['params_array'],
+                results['params_array'],
                 self._rsh, self._r0, self._rp
             )
 
-
-            self._2poleresult['smallsignalparams'] = {
-                'rsh': smallsignalparams[0],
-                'rp': smallsignalparams[1],
-                'r0': smallsignalparams[2],
-                'beta': smallsignalparams[3],
-                'l': smallsignalparams[4],
-                'L': smallsignalparams[5],
-                'tau0': smallsignalparams[6],
-                'dt': smallsignalparams[7],
-            }
-                              
-            self._2poleresult['didv0'] = (
-                complexadmittance(0, **self._2poleresult['smallsignalparams']).real
-            )              
-
-            # store also bias params
-            if  biasparams_dict is not None:  
-                self._2poleresult['biasparams'] = biasparams_dict.copy()
-            else:
-                self._2poleresult['biasparams'] = None
-                
-            
-        if poles == 3:
-
-            if self._3poleresult is None:
-                raise ValueError(
-                    'ERROR: No 3-poles fit done! Unable to '
-                    'calculate small signal parameters ')
-
-            smallsignalparams = DIDV._converttotesvalues(
-                self._3poleresult['params_array'],
-                self._rsh, self._r0, self._rp
-            )
-
-            
-            self._3poleresult['smallsignalparams'] = {
+            results['smallsignalparams'] = {
                 'rsh': smallsignalparams[0],
                 'rp': smallsignalparams[1],
                 'r0': smallsignalparams[2],
@@ -1382,17 +1350,18 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': smallsignalparams[8],
                 'dt': smallsignalparams[9],
             }
-            
-            self._3poleresult['didv0'] = (
-                complexadmittance(0, **self._3poleresult['smallsignalparams']).real
-            )   
-                        
+
+                                          
+            results['didv0'] = (
+                complexadmittance(0, **results['smallsignalparams']).real
+            )              
+
             # store bias params
             if  biasparams_dict is not None:  
-                self._3poleresult['biasparams'] = biasparams_dict.copy()
+                results['biasparams'] = biasparams_dict.copy()
             else:
-                self._3poleresult['biasparams'] = None
-          
+                results['biasparams'] = None
+                
             # calculate small signal parameters cov/sigmas
             if lgc_ssp_light:
 
@@ -1402,8 +1371,8 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                         'lgc_ssp_light=True'
                     )
 
-                ssp_light_cov = get_smallsignalparams_cov(self._3poleresult)
-                ssp_light_sigmas = get_smallsignalparams_sigmas(self._3poleresult)
+                ssp_light_cov = get_smallsignalparams_cov(results)
+                ssp_light_sigmas = get_smallsignalparams_sigmas(results)
 
                 # store
                 ssp_light_vals = {
@@ -1414,9 +1383,15 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     'gratio': smallsignalparams[7],
                 }
                 
-                self._3poleresult['ssp_light'] = {
+                results['ssp_light'] = {
                     'vals': ssp_light_vals,
                     'cov': ssp_light_cov,
                     'sigmas': ssp_light_sigmas,
                 }
+
+
+            # store results internally
+            self._fit_results[poles] = results
+            
                 
+                    

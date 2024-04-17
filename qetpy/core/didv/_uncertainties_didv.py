@@ -554,6 +554,114 @@ def _ddr0_loopgain(didv_result):
     rl = rp + rsh
     
     return -1.0 * B * (A + B + r0 - rl)**-2
+    
+#inverse loopgain
+
+def _get_inverse_loopgain(didv_result):
+    """
+    Returns the inverse of the dimensionless
+    TES loop gain parameter.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return (A + B + r0 - rl)/B
+    
+def _ddA_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the A parameter of the dIdV fit.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return 1.0/B
+    
+def _ddB_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the B parameter of the dIdV fit.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -1.0 * (A + r0 -rl) * B**-2
+
+def _ddC_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the C parameter of the dIdV fit.
+    """
+    return 0.0
+
+def _ddtau1_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the tau1 parameter of the dIdV fit.
+    """
+    return 0.0
+
+def _ddtau2_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the tau2 parameter of the dIdV fit.
+    """
+    return 0.0
+
+def _ddtau3_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the tau3 parameter of the dIdV fit.
+    """
+    return 0.0
+
+def _ddr0_inverse_loopgain(didv_result):
+    """
+    Returns the derivative of the inverse loopgain with respect
+    to the TES bias resistance r0.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    r0 = didv_result['biasparams']['r0']
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return 1.0/B
+    
+    
 
 #tau0
 
@@ -958,6 +1066,303 @@ def _ddr0_dVdI(didv_result, f):
     the TES bias resistance r0, evaluated at frequency f.
     """
     return 0.0
+    
+    
+#infinite loop gain variables: r0, i0, beta
+#
+#infinite loop gain r0
+
+def _get_r0ilg(didv_result):
+    """
+    Returns the r0 of the device using the infinte loop gain
+    approximation.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return rl - (A + B/(1 - C))
+    
+def _ddA_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to A.
+    """
+    
+    return -1.0
+    
+def _ddB_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to B.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -1.0/(1 - C)
+    
+def _ddC_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to C.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return -1.0*B * (1 - C)**-2
+    
+def _ddtau1_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to tau1.
+    """
+    
+    return 0.0
+    
+def _ddtau2_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to tau2.
+    """
+    
+    return 0.0
+    
+def _ddtau3_r0ilg(didv_result):
+    """
+    Returns the derivative of the device r0 calculated with
+    the infinite loop gain approximation with respect to tau3.
+    """
+    
+    return 0.0
+    
+    
+#infinite loop gain i0
+
+def _get_i0ilg(didv_result):
+    """
+    Returns the i0 of the device using the infinte loop gain
+    approximation.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
+    rl = rp + rsh
+    
+    return ibias * rsh / (2*rl - A - B/(1 - C))
+    
+def _ddA_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to A.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
+    rl = rp + rsh
+    
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2
+    
+def _ddB_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to B.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
+    rl = rp + rsh
+    
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2 * (1.0/(1 - C))
+    
+def _ddC_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to C.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['ibias']
+    rl = rp + rsh
+    
+    return ibias * rsh * (2*rl - A - B/(1 - C))**-2 * B * (1 - C)**-2
+    
+def _ddtau1_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to tau1.
+    """
+    
+    return 0.0
+    
+def _ddtau2_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to tau2.
+    """
+    
+    return 0.0
+    
+def _ddtau3_i0ilg(didv_result):
+    """
+    Returns the derivative of the device i0 calculated with
+    the infinite loop gain approximation with respect to tau3.
+    """
+    
+    return 0.0
+    
+#infinite loop gain beta
+
+def _get_betailg(didv_result):
+    """
+    Returns the beta of the device using the infinte loop gain
+    approximation.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    rl = rp + rsh
+    
+    return (A - rl)/(rl - A - B/(1 - C)) - 1
+    
+def _ddA_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to A.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['rsh']
+    rl = rp + rsh
+    
+    return (rl - A - B/(1 - C))**-1 + (A - rl)*(rl - A - B/(1 - C))**-2
+    
+def _ddB_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to B.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['rsh']
+    rl = rp + rsh
+    
+    return (A - rl)*(rl - A - B/(1 - C))**-2 * 1/(1 - C)
+    
+def _ddC_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to C.
+    """
+    A = didv_result['params']['A']
+    B = didv_result['params']['B']    
+    C = didv_result['params']['C']
+    tau1 = didv_result['params']['tau1']
+    tau2 = didv_result['params']['tau2']        
+    tau3 = didv_result['params']['tau3']
+    
+    rp = didv_result['smallsignalparams']['rp']
+    rsh = didv_result['smallsignalparams']['rsh']
+    ibias = didv_result['biasparams']['rsh']
+    rl = rp + rsh
+    
+    return (A - rl)*(rl - A - B/(1 - C))**-2 * B * (1 - C)**-2
+    
+def _ddtau1_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to tau1.
+    """
+    
+    return 0.0
+    
+def _ddtau2_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to tau2.
+    """
+    
+    return 0.0
+    
+def _ddtau3_betailg(didv_result):
+    """
+    Returns the derivative of the device beta calculated with
+    the infinite loop gain approximation with respect to tau3.
+    """
+    
+    return 0.0
+    
+    
 
     
     
@@ -1054,6 +1459,101 @@ def _ddD_dPdI_3(didv_result, f):
     dPdI = _get_dPdI_3(didv_result, f)
     
     return -1.0*dPdI/D
+    
+    
+#infinite loop gain approximation dPdI 
+#order of variables: i0, r0, dVdI, beta, D
+def _get_dPdI_ilg(didv_result, f):
+    """
+    Returns the modeled TES dPdI in units of volts. Note that 
+    this dPdI is written in such a way that it is both relatively
+    ''pole agnostic'' (i.e. this code can be fairly easily rewritten
+    to accomondate 2 or 4 pole models rather than the 3 pole model
+    used here).
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    
+    return -i0 * dVdI * r0 * (2 + beta)/D
+
+def _ddi0_dPdI_ilg(didv_result, f):
+    """
+    Returns the derivative of the infinite loop gain dPdI with respect to i0 (the 
+    current through the TES at the bias point) evaluated at a
+    frequency f.
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_ilg(didv_result, f)
+    
+    return dPdI/i0
+
+def _ddr0_dPdI_ilg(didv_result, f):
+    """
+    Returns the derivative of the infinite loop gain dPdI with respect to r0 (the 
+    resistance of the TES at the bias point) evaluated at a
+    frequency f.
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_ilg(didv_result, f)
+    
+    return dPdI/r0
+
+def _dddVdI_dPdI_ilg(didv_result, f):
+    """
+    Returns the derivative of the infinte loop gain dPdI with respect to the dVdI
+    evaluated at a frequency f.
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_ilg(didv_result, f)
+    
+    return dPdI/dVdI
+
+def _ddbeta_dPdI_ilg(didv_result, f):
+    """
+    Returns the derivative of the infinite loop gain dPdI with respect to beta (the 
+    current responsivity of the TES at the bias point) evaluated at a
+    frequency f.
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_ilg(didv_result, f)
+    
+    return dPdI/(2 + beta)
+
+def _ddD_dPdI_ilg(didv_result, f):
+    """
+    Returns the derivative of the infinite loop gain dPdI with respect to the
+    dPdI denominator D (see the function definition above) 
+    evaluated at a frequency f. The derivative is impemented
+    this way to correctly calculate the dPdI uncercertainty using
+    a linear approximation.
+    """
+    dVdI = _get_dVdI(didv_result, f)
+    i0 = _get_i0ilg(didv_result)
+    r0 = _get_r0ilg(didv_result)
+    beta = _get_betailg(didv_result)
+    D = _get_D(didv_result, f)
+    dPdI = _get_dPdI_ilg(didv_result, f)
+    
+    return -1.0*dPdI/D
 
 
 """
@@ -1142,6 +1642,79 @@ def _get_base_jacobian(didv_result, f):
     base_jacobian[4,6] = _ddr0_D(didv_result, f)
     
     return base_jacobian
+    
+def _get_full_base_cov_ilg(didv_result):
+    """
+    Returns the covariance matrix for the variables A, B, C, tau1, 
+    tau2, and tau3 for use with calculating the covariange matrix
+    in the infinite loop gain approximation. This is just the covariance
+    matrix included in the didV_fitresult dictionary.
+    
+    A and B are in units of ohms, C is dimensionless, tau1, tau2, tau3 have
+    units of seconds.
+    """
+
+    #order of variables is A, B, C, tau1, tau2, tau3, r0
+    full_cov_ilg = np.zeros((6,6))
+    
+    partial_cov = didv_result['cov'] #just A, B, C, tau1, tau2, tau3
+    full_cov_ilg[:6, :6] = partial_cov[:6, :6] #truncate the dt0, we don't care about covariance with it
+
+    return full_cov_ilg
+
+def _get_base_jacobian_ilg(didv_result, f):
+    """
+    Returns the Jacobian matrix of the base variables used
+    when calculating the covariance for the "derived varriables"
+    (e.g. i0, beta, etc.) with the infinite loop gain approximation.
+    The Jacobian is evaluated at a frequency f.
+    """
+
+    #order of derived variables: i0, r0, dVdI, beta, D
+    
+    base_jacobian = np.zeros((5, 6), dtype = 'complex64')
+    
+    #i0 terms
+    base_jacobian[0,0] = _ddA_i0ilg(didv_result)
+    base_jacobian[0,1] = _ddB_i0ilg(didv_result)
+    base_jacobian[0,2] = _ddC_i0ilg(didv_result)
+    base_jacobian[0,3] = _ddtau1_i0ilg(didv_result)
+    base_jacobian[0,4] = _ddtau2_i0ilg(didv_result)
+    base_jacobian[0,5] = _ddtau3_i0ilg(didv_result)
+    
+    #r0 terms
+    base_jacobian[1,0] = _ddA_r0ilg(didv_result)
+    base_jacobian[1,1] = _ddB_r0ilg(didv_result)
+    base_jacobian[1,2] = _ddC_r0ilg(didv_result)
+    base_jacobian[1,3] = _ddtau1_r0ilg(didv_result)
+    base_jacobian[1,4] = _ddtau2_r0ilg(didv_result)
+    base_jacobian[1,5] = _ddtau3_r0ilg(didv_result)
+    
+    #dVdI terms
+    base_jacobian[2,0] = _ddA_dVdI(didv_result, f)
+    base_jacobian[2,1] = _ddB_dVdI(didv_result, f)
+    base_jacobian[2,2] = _ddC_dVdI(didv_result, f)
+    base_jacobian[2,3] = _ddtau1_dVdI(didv_result, f)
+    base_jacobian[2,4] = _ddtau2_dVdI(didv_result, f)
+    base_jacobian[2,5] = _ddtau3_dVdI(didv_result, f)
+    
+    #beta terms
+    base_jacobian[3,0] = _ddA_betailg(didv_result)
+    base_jacobian[3,1] = _ddB_betailg(didv_result)
+    base_jacobian[3,2] = _ddC_betailg(didv_result)
+    base_jacobian[3,3] = _ddtau1_betailg(didv_result)
+    base_jacobian[3,4] = _ddtau2_betailg(didv_result)
+    base_jacobian[3,5] = _ddtau3_betailg(didv_result)
+    
+    #denominator terms
+    base_jacobian[4,0] = _ddA_D(didv_result, f)
+    base_jacobian[4,1] = _ddB_D(didv_result, f)
+    base_jacobian[4,2] = _ddC_D(didv_result, f)
+    base_jacobian[4,3] = _ddtau1_D(didv_result, f)
+    base_jacobian[4,4] = _ddtau2_D(didv_result, f)
+    base_jacobian[4,5] = _ddtau3_D(didv_result, f)
+    
+    return base_jacobian
 
 def _get_derived_jacobian(didv_result, f):
     """
@@ -1174,6 +1747,39 @@ def _get_derived_cov(didv_result, f):
     
     derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
     return derived_cov
+    
+def _get_derived_jacobian_ilg(didv_result, f):
+    """
+    Returns the Jacobian (or really gradiant, since it's 1D)
+    of dPdI when calculated in terms of the derived variables
+    under the infinite gain approximation.
+    Used when calculating the uncertainty in dPdI when correctly
+    taking into account covariance. The Jacobian is evaluated
+    at a frequency f.
+    """
+    #order of derived variables: i0, r0, dVdI, beta, L
+    
+    derived_jacobian = np.zeros(5)
+    
+    derived_jacobian[0] = _ddi0_dPdI_ilg(didv_result, f)
+    derived_jacobian[1] = _ddr0_dPdI_ilg(didv_result, f)
+    derived_jacobian[2] = _dddVdI_dPdI_ilg(didv_result, f)
+    derived_jacobian[3] = _ddbeta_dPdI_ilg(didv_result, f)
+    derived_jacobian[4] = _ddD_dPdI_ilg(didv_result, f)
+    
+    return derived_jacobian
+
+def _get_derived_cov_ilg(didv_result, f):
+    """
+    Returns the covariance matrix for the derived variables (e.g. beta, dVdI),
+    evaluated at a frequency f under the infinite loop gain approximation.
+    """
+    
+    base_cov = np.asarray(_get_full_base_cov_ilg(didv_result), dtype = 'complex64')
+    base_jacobian = np.asarray(_get_base_jacobian_ilg(didv_result, f), dtype = 'complex64')
+    
+    derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
+    return derived_cov
 
 def _get_dPdI_uncertainty(didv_result, f):
     """
@@ -1181,6 +1787,18 @@ def _get_dPdI_uncertainty(didv_result, f):
     """
     derived_cov = _get_derived_cov(didv_result, f)
     derived_jacobian = _get_derived_jacobian(didv_result, f)
+    
+    dPdI_variance = np.matmul(np.matmul(derived_jacobian, derived_cov), np.transpose(derived_jacobian))
+    
+    return dPdI_variance**0.5
+    
+def _get_dPdI_uncertainty_ilg(didv_result, f):
+    """
+    Returns the uncertainty in the dPdI evaluated at a frequency f
+    using the infinite loop gain approximation.
+    """
+    derived_cov = _get_derived_cov_ilg(didv_result, f)
+    derived_jacobian = _get_derived_jacobian_ilg(didv_result, f)
     
     dPdI_variance = np.matmul(np.matmul(derived_jacobian, derived_cov), np.transpose(derived_jacobian))
     
@@ -1209,9 +1827,9 @@ def _get_smallsignalparams_jacobian(didv_result):
     """
     Returns the covariance matrix for a 3 pole fit dIdV.
     Order of variables is:
-    beta, loopgain, L, tau0, gratio
+    beta, loopgain, L, tau0, gratio, inverse_loopgain
     """
-    ssp_jacobian = np.zeros((5, 7), dtype = 'complex64')
+    ssp_jacobian = np.zeros((6, 7), dtype = 'complex64')
     
     #beta terms
     ssp_jacobian[0,0] = _ddA_beta(didv_result)
@@ -1257,6 +1875,15 @@ def _get_smallsignalparams_jacobian(didv_result):
     ssp_jacobian[4,4] = _ddtau2_gratio(didv_result)
     ssp_jacobian[4,5] = _ddtau3_gratio(didv_result)
     ssp_jacobian[4,6] = _ddr0_gratio(didv_result)
+    
+    #inverse loopgain terms
+    ssp_jacobian[5,0] = _ddA_inverse_loopgain(didv_result)
+    ssp_jacobian[5,1] = _ddB_inverse_loopgain(didv_result)
+    ssp_jacobian[5,2] = _ddC_inverse_loopgain(didv_result)
+    ssp_jacobian[5,3] = _ddtau1_inverse_loopgain(didv_result)
+    ssp_jacobian[5,4] = _ddtau2_inverse_loopgain(didv_result)
+    ssp_jacobian[5,5] = _ddtau3_inverse_loopgain(didv_result)
+    ssp_jacobian[5,6] = _ddr0_inverse_loopgain(didv_result)
     
     return ssp_jacobian
     
@@ -1339,11 +1966,48 @@ def _get_gratio_sigma(didv_result):
     #print("gratio gradiant: " + str(gratio_gradiant))
     gratio_variance = np.matmul(np.matmul(gratio_gradiant, base_cov), np.transpose(gratio_gradiant))
     return np.abs(gratio_variance**0.5)
+    
+def _get_inverse_loopgain_sigma(didv_result):
+    """
+    Returns the standard deviation of the loopgain smallsignalparam
+    given the covariance matrix of the fit base variables. Note
+    that this doesn't take into account the covariance between
+    smallsignalparms, the full covariance matrix is given by 
+    get_smallsignalparams_cov(didv_result)
+    """
+    ssp_jacobian = _get_smallsignalparams_jacobian(didv_result)
+    base_cov = _get_full_base_cov(didv_result)
+    inverse_loopgain_gradiant = ssp_jacobian[5,:]
+    inverse_loopgain_variance = np.matmul(np.matmul(inverse_loopgain_gradiant, base_cov), np.transpose(inverse_loopgain_gradiant))
+    return np.abs(inverse_loopgain_variance**0.5)
 
 
 """
 Functions that are for general use
 """
+
+def get_smallsignalparams_vals(didv_result):
+    """
+    Returns the values of the smallsignalparams in the order:
+    beta, loopgain, L, tau0, gratio
+    """
+    val_beta = _get_beta(didv_result)
+    val_loopgain = _get_loopgain(didv_result)
+    val_L = _get_L(didv_result)
+    val_tau0 = _get_tau0(didv_result)
+    val_gratio = _get_gratio(didv_result)
+    val_inverse_loopgain = _get_inverse_loopgain(didv_result)
+    
+    ssp_vals = {
+        'beta': val_beta,
+        'l': val_loopgain,
+        'L': val_L,
+        'tau0': val_tau0,
+        'gratio': val_gratio,
+        'inverse_loopgain': val_inverse_loopgain,
+    }
+    
+    return ssp_vals
 
 def get_smallsignalparams_cov(didv_result):
     """
@@ -1371,6 +2035,7 @@ def get_smallsignalparams_sigmas(didv_result):
     sigma_L = _get_L_sigma(didv_result)
     sigma_tau0 = _get_tau0_sigma(didv_result)
     sigma_gratio = _get_gratio_sigma(didv_result)
+    sigma_inverse_loopgain = _get_inverse_loopgain_sigma(didv_result)
     
     sigmas_dict = {
         'sigma_beta': sigma_beta,
@@ -1378,6 +2043,7 @@ def get_smallsignalparams_sigmas(didv_result):
         'sigma_L': sigma_L,
         'sigma_tau0': sigma_tau0,
         'sigma_gratio': sigma_gratio,
+        'sigma_inverse_loopgain': sigma_inverse_loopgain,
     }
     
     return sigmas_dict
@@ -1489,7 +2155,8 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
 
 
 def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
-				lgc_loopgain_diagnostics=False):
+                                lgc_infinite_loopgain_approx=False, 
+				                lgc_loopgain_diagnostics=False):
     """
     Calculates the dPdI at an array of frequencies given a
     didv_result with a biasparams dict as part of it. Note
@@ -1513,6 +2180,10 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
     lgcplot: bool, optional
         If True, plots the absolute value of dVdI with the
         uncertainty in dVdI 
+        
+    lgc_infinite_loopgain_approx: bool, optional
+        If True, calculates the dPdI and the uncertainty in the dPdI
+        using the infinite loop gain approximation.
 
      lgc_loopgain_diagnostics: bool, optioal
 		If True, prints out diagnostics for figuring out if there are
@@ -1537,9 +2208,14 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
     
     i = 0
     while i < len(freqs):
-        dPdI[i] = _get_dPdI_3(didv_result, freqs[i])
-        dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
+        if lgc_infinite_loopgain_approx:
+            dPdI[i] = _get_dPdI_ilg(didv_result, freqs[i])
+            dPdI_err[i] = _get_dPdI_uncertainty_ilg(didv_result, freqs[i])
+        else:
+            dPdI[i] = _get_dPdI_3(didv_result, freqs[i])
+            dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
         i += 1
+    
         
     if lgcplot:
         
