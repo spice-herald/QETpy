@@ -92,6 +92,7 @@ class OFBase:
         #intialize the p matrices, independent of signal
         self._p_matrix  = None
         self._p_inv_matrix  = None
+        self._pmatrix_inv_eigen_vectors  = None
 
         # initialize signal
         self._signal = None
@@ -487,7 +488,7 @@ class OFBase:
         # normalize template
         template = template/np.max(template)
 
-        
+
         # add to dictionary
         self._templates[template_tag] = template
 
@@ -500,11 +501,11 @@ class OFBase:
         self._df = self._fs/self._nbins
         self._fft_freqs, template_fft = fft(template, self._fs, axis=-1)
         self._templates_fft[template_tag] = template_fft/self._nbins/self._df
-        
+
 
         if integralnorm:
             self._templates_fft[template_tag]  /= self._templates_fft[template_tag][0]
-            
+
         # pre-trigger
         if self._pretrigger_samples  is None:
             self._pretrigger_samples = self._nbins//2
@@ -657,7 +658,7 @@ class OFBase:
         f, signal_fft = fft(signal, self._fs, axis=-1)
         self._signal_fft = signal_fft/self._nbins/self._df
 
-        
+
         if calc_signal_filt or calc_signal_filt_td:
 
             # calculate filtered signal
@@ -916,21 +917,23 @@ class OFBase:
 
         """
         template_list = list(self._templates.keys())
-        template_1_tag = template_list[0]
-        template_2_tag = template_list[M-1]
 
         self._p_matrix = np.zeros((self._nbins, M, M))
+
         np.einsum('jii->ji', self._p_matrix)[:] = 1
 
-        pmatrix_off_diagonal = np.real( \
-                np.fft.ifft(self._templates_fft[template_2_tag] * self._phis[template_1_tag] ) \
-                       * self._fs)
-
-        self._p_matrix[:, 0, M-1] = self._p_matrix[:, M-1, 0] = pmatrix_off_diagonal
-        self._p_matrix[:, 0, 0] = self._norms[template_1_tag]
-        self._p_matrix[:, M-1, M-1] = self._norms[template_2_tag]
+        for i in range(M):
+            self._p_matrix[:, i, i] = self._norms[template_list[i]]
+            for j in range(i+1,M):
+                self._p_matrix[:, i, j] = self._p_matrix[:, j, i] = \
+                        np.real(np.fft.ifft(self._templates_fft[template_list[j]] * self._phis[template_list[i]] ) * self._fs)
 
         self._p_inv_matrix = np.linalg.pinv(self._p_matrix)
+
+        eigenvalues , eigenvectors = np.linalg.eigh(self._p_inv_matrix) # eigh for hermitian matrix only
+
+        self._pmatrix_inv_eigen_vectors  = eigenvectors
+
 
 
 
@@ -1250,7 +1253,7 @@ class OFBase:
 
         return amp, t0, chisq
 
-    
+
     def get_amplitude_resolution(self,  template_tag='default'):
         """
         Method to return the energy resolution for the optimum filter.
@@ -1286,7 +1289,7 @@ class OFBase:
         """
         return self.get_amplitude_resolution(template_tag=template_tag)
 
-    
+
     def get_time_resolution(self, amp, template_tag='default'):
         """
         Method to return the time resolution for the optimum filter.

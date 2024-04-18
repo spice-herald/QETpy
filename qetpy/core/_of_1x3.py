@@ -5,18 +5,19 @@ import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase
 
-__all__ = ['OF1x2']
+__all__ = ['OF1x3']
 
 
 
-class OF1x2:
+class  OF1x3:
     """
-    Single trace /  two template optimal filter (1x2)
+    Single trace /  two template optimal filter (1x3)
     calculations
     """
 
     def __init__(self, of_base=None, template_1_tag='Scintillation',
                  template_1=None, template_2_tag='Evaporation', template_2=None,
+                 template_3_tag='Triplet', template_3=None,
                  psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
@@ -24,7 +25,7 @@ class OF1x2:
                  verbose=True):
 
         """
-        Initialize OF1x2
+        Initialize  OF1x3
 
         Parameters
         ----------
@@ -101,6 +102,7 @@ class OF1x2:
         self._time_diff_two_Pulses = None
         self._time_first_pulse = None
         self._time_second_pulse = None
+        self._time_third_pulse = None
 
         # Instantiate OF base (if not provided)
         self._of_base = of_base
@@ -176,6 +178,32 @@ class OF1x2:
                 return
 
 
+        # tag template 3
+        self._template_3_tag = template_3_tag
+
+        # add template_3 to base object
+        if template_3 is not None:
+
+            if self._verbose:
+                print('INFO: Adding template_3 with tag "'
+                      +  template_3_tag + '" to OF base object.')
+
+            self._of_base.add_template(template_3,
+                                       template_tag=template_3_tag,
+                                       integralnorm=integralnorm)
+        else:
+
+            # check if template_3 exist already
+            tags =  self._of_base.template_tags()
+
+            if (tags is None
+                or template_3_tag not in tags):
+
+                print('ERROR: No template_3 with tag "'
+                      + template_3_tag + ' found in OF base object.'
+                      + ' Modify template_3 tag or add template_3 argument!')
+                return
+
          # add noise to base object
         if psd is not None:
 
@@ -203,6 +231,9 @@ class OF1x2:
         if self._of_base.phi(template_2_tag) is None:
             self._of_base.calc_phi(template_tags=template_2_tag)
 
+        if self._of_base.phi( template_3_tag) is None:
+            self._of_base.calc_phi(template_tags= template_3_tag)
+
 
         if self._of_base._p_matrix is None:
             self._of_base.calc_p_and_p_inverse(len(self._of_base._templates))
@@ -220,34 +251,26 @@ class OF1x2:
         if fit_window == None:
             time_combinations1 = np.arange(int(-self._of_base._nbins/ 2), int(self._of_base._nbins / 2))
             time_combinations2 = np.arange(int(-self._of_base._nbins / 2), int(self._of_base._nbins / 2))
+            time_combinations3 = np.arange(int(-self._of_base._nbins / 2), int(self._of_base._nbins / 2))
         else:
             time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
             time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
+            time_combinations3 = np.arange(int(fit_window[2][0]), int(fit_window[2][1]))
 
-        self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, len(self._of_base._templates))
+        self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2,time_combinations3), -1).reshape(-1, len(self._of_base._templates))
 
 
 
-    def _get_amps(self, t0s, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive): # not in OF base
+    def _get_amps(self, t0s): # not in OF base
         """
         Hidden function to calculate the amplitudes that correspond to
         the inputted time offsets.
         """
-
-        #pmatrix_inv = self._of_base._p_inv_matrix[t0s[:,0] - t0s[:,1]]
-        #self._q_vec = np.array([self._of_base._q_vector[self._template_1_tag][t0s[:,0]], \
-        #                       self._of_base._q_vector[self._template_2_tag][t0s[:,1]]])
-
-        #return pmatrix_inv[:,0,0]*self._q_vec[0,:] + pmatrix_inv[:,0,1]*self._q_vec[1,:],\
-        #       pmatrix_inv[:,1,0]*self._q_vec[0, :] + pmatrix_inv[:,1,1]*self._q_vec[1,:]
-
-
         template_list = list(self._of_base._templates.keys())
 
 
 
         pmatrix_inv  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates), len(self._of_base._templates) ))
-        pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates), len(self._of_base._templates) ))
         self._q_vec  = np.zeros(( len(self._of_base._templates),self._time_combinations[:,0].shape[0] ))
         amps  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
 
@@ -255,114 +278,46 @@ class OF1x2:
 
         for i in range(len(self._of_base._templates)):
             if i == len(self._of_base._templates)-1:
-                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,0] - t0s[:,i]][:, i, i] #this works not sure why....
-                #pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i] #this doesn't work...a big mystery
-
-                pmatrix_inv_eigen_vectors[:, i, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,0] - t0s[:,i]][:, i, i]
+                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i]
             else:
                 pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,i+1]][:, i, i]
-
-                pmatrix_inv_eigen_vectors[:, i, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
-
             self._q_vec[i,:] = self._of_base._q_vector[template_list[i]][t0s[:,i]]
 
             for j in range(i+1,len(self._of_base._templates)):
 
                 pmatrix_inv[:, i, j] = pmatrix_inv[:, j, i]= self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,j]][:, i, j]
-                pmatrix_inv_eigen_vectors[:, i, j] = pmatrix_inv_eigen_vectors[:, j, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
 
 
         for i in range(len(self._of_base._templates)):
+            sum =0;
             for j in range(len(self._of_base._templates)):
                 amps[:,i] = amps[:,i]  + pmatrix_inv[:,i,j]*self._q_vec[j,:]
 
-
-        amps0 ,amps1 = amps[:,0],amps[:,1]
-
-
-        if(flag_restrict_amps0_to_be_postive== True and flag_restrict_amps1_to_be_postive== False):
-            #first move along the vector corresponding to smallest eigen value
-            amps1_move_along_smallest_eigen_value = np.where( amps[:,0]>0, amps[:,0], amps[:,1] -( amps[:,0]/pmatrix_inv_eigen_vectors[:,0,0] )*pmatrix_inv_eigen_vectors[:,1,0] )
-            #next move along the vector corresponding to largest eigen value
-            amps1_move_along_largest_eigen_value = np.where( amps[:,0]>0, amps[:,0], amps[:,1] -(  amps[:,0]/pmatrix_inv_eigen_vectors[:,0,1] )*pmatrix_inv_eigen_vectors[:,1,1] )
-
-            #set all the amps0 value where amp0, before transforming was negative to zero
-            amps0 = np.where(amps[:,0]>0,amps0,0)
+        return amps[:,0],amps[:,1],amps[:,2]
 
 
-            #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
-
-            dist_along_largest_eigen_value = (amps[:,1] - amps1_move_along_largest_eigen_value )**2 + (amps[:,0] - amps0 )**2
-
-            dist_along_smallest_eigen_value = (amps[:,1] - amps1_move_along_smallest_eigen_value )**2 + (amps[:,0] - amps0 )**2
-
-
-            #figure out which of distance is smaller
-            amps1 = np.where(((amps[:,0]<0)*(dist_along_largest_eigen_value > dist_along_smallest_eigen_value))\
-                                       ,amps1_move_along_smallest_eigen_value ,amps1_move_along_largest_eigen_value)
-
-
-            #if still we have amps1 -ve .. force those to zero [0,0] is the solution
-            amps1 = np.where( amps1>0, amps1,0)
-
-
-
-
-        if(flag_restrict_amps0_to_be_postive== False and flag_restrict_amps1_to_be_postive== True):
-            #first move along the vector corresponding to smallest eigen value
-            amps0_move_along_smallest_eigen_value = np.where( amps[:,1]>0, amps[:,1], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,0] )*pmatrix_inv_eigen_vectors[:,0,0] )
-            #next move along the vector corresponding to largest eigen value
-            amps0_move_along_largest_eigen_value = np.where( amps[:,1]>0, amps[:,1], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,1])*pmatrix_inv_eigen_vectors[:,0,1] )
-
-            #set all the amps1 value where amp1, before transforming was negative to zero
-            amps1 = np.where(amps[:,1]>0,amps1,0)
-
-            #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
-
-            dist_along_largest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_largest_eigen_value )**2
-
-            dist_along_smallest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_smallest_eigen_value )**2
-
-            #figure out which of distance is smaller
-            amps0 = np.where(((amps[:,1]<0)*(dist_along_largest_eigen_value > dist_along_smallest_eigen_value))\
-                                       ,amps0_move_along_smallest_eigen_value ,amps0_move_along_largest_eigen_value)
-
-            #if still we have amps0 -ve .. force those to zero [0,0] is the solution
-            amps0 = np.where( amps0>0, amps0,0)
-
-        return amps0 ,amps1
-
-
-
-    def _chi2(self, amps1, amps2, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive): #not in OF base
+    def _chi2(self, amps1, amps2, amps3): #not in OF base
         """
         Hidden function to calculate the chi-square of the inputted
         amplitude and time offsets.
         """
-        #if(flag_restrict_amps1_to_be_postive):
-        #    amps2 = np.where(amps1>0,amps2,0)
-        #    amps1 = np.where(amps1>0,amps1,0)
-
-
-        #if(flag_restrict_amps2_to_be_postive):
-        #    amps1 = np.where(amps2>0,amps1,0)
-        #    amps2 = np.where(amps2>0,amps2,0)
 
         self._q_vec_conj = np.conjugate(self._q_vec)
 
         ##
         # find low freq indices
-        #chi2inds = np.abs(self._fft_freqs) <= lowchi2_fcutoff
-
-        # sum
-        #chi2low = np.sum(chi2tot[chi2inds])
-
-        return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 , amps1, amps2
+        #chi2inds = np.abs(self._of_base._fft_freqs) <= 30000
 
 
+        #low_chisq = np.real(np.dot(np.conjugate(self._of_base._signal_fft)[chi2inds]/self._of_base._psd[chi2inds],self._of_base._signal_fft[chi2inds])*self._of_base._df) \
+        #                    - self._q_vec_conj[0][chi2inds] * amps1 - self._q_vec_conj[1][chi2inds] * amps2 - self._q_vec_conj[2][chi2inds] * amps3
+
+        return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 - self._q_vec_conj[2,:] * amps3
 
 
-    def calc(self, signal=None, fit_window = None, flag_restrict_amps0_to_be_postive=False, flag_restrict_amps1_to_be_postive=False, lgc_plot=False):
+
+
+    def calc(self, signal=None, fit_window = None, lgc_plot=False):
         """
         Runs the pileup optimum filter algorithm for 1 channel 2 pulses.
         Parameters
@@ -384,32 +339,36 @@ class OF1x2:
                 calc_signal_filt_td=True,
                 calc_q_vector=True,
                 calc_chisq_amp=True,
-                template_tags=[self._template_1_tag , self._template_2_tag ]
+                template_tags=[self._template_1_tag , self._template_2_tag, self._template_3_tag ]
             )
 
 
         self._get_time_combs_and_array(fit_window)
 
-        amps1, amps2 = self._get_amps(self._time_combinations,flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
+        amps1, amps2, amps3 = self._get_amps(self._time_combinations)
 
-        chi2s, amps1, amps2 = self._chi2(amps1, amps2, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
+        chi2s, low_chisq  = self._chi2(amps1, amps2, amps3 )
 
         min_index = np.argmin(chi2s)
-        self._chi2_of_1x2 = chi2s[min_index]
+        self._chi2_of_1x2 = chi2s[min_index] 
         self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
 
 
         if(self._time_diff_two_Pulses < 0):
             self._amplitude[self._template_1_tag] = amps2[min_index]
             self._amplitude[self._template_2_tag]= amps1[min_index]
+            self._amplitude[self._template_3_tag]= amps3[min_index]
             self._time_diff_two_Pulses=np.abs(self._time_diff_two_Pulses)
             self._time_first_pulse =  self._time_combinations[min_index, 1]
             self._time_second_pulse =  self._time_combinations[min_index, 0]
+            self._time_third_pulse =  self._time_combinations[min_index, 2]
         else:
             self._amplitude[self._template_1_tag] = amps1[min_index]
             self._amplitude[self._template_2_tag]= amps2[min_index]
+            self._amplitude[self._template_3_tag]= amps3[min_index]
             self._time_first_pulse = self._time_combinations[min_index, 0]
             self._time_second_pulse =  self._time_combinations[min_index, 1]
+            self._time_third_pulse =  self._time_combinations[min_index, 2]
 
 
         if lgc_plot:
@@ -451,6 +410,7 @@ class OF1x2:
         signal = self._of_base.signal()
         template_1 = self._of_base._templates[self._template_1_tag]
         template_2 = self._of_base._templates[self._template_2_tag]
+        template_3 = self._of_base._templates[self._template_3_tag]
 
         fs = self._of_base.sample_rate
         nbins = len(signal)
@@ -476,10 +436,16 @@ class OF1x2:
 
 
             plt.plot(xtime_ms, shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse ), color = 'magenta', label='Scintillation' )
+
             plt.plot(xtime_ms, shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) , \
                                                              color= 'green', label='Evaporation' )
+
+            plt.plot(xtime_ms, shift(self._amplitude[self._template_3_tag]*template_3*1e6 , self._time_third_pulse) , \
+                                                                         color= 'blue', label='Triplet' )
+
             plt.plot(xtime_ms,  shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse )  + \
-                shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse)  , \
+                shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) + \
+                shift(self._amplitude[self._template_3_tag]*template_3*1e6 , self._time_third_pulse) ,\
                                   label=(r'OF_1x2, $\chi^2$'
                                    + f'/Ndof={chi2:.2f}'),
                                     color='k')
@@ -488,28 +454,8 @@ class OF1x2:
             ax.set_xlim(xlim_msec)
         ax.set_ylabel(r'Current [$\mu A$]')
         ax.set_xlabel('Time [ms]')
-        ax.set_title(f'{self._of_base.channel_name} OF_1x2 Results')
+        ax.set_title(f'{self._of_base.channel_name} OF_1x3 Results')
         lgd = ax.legend(loc='best')
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(linestyle='dotted')
         fig.tight_layout()
-
-
-        #fig, ax = plt.subplots(figsize=figsize)
-        #ax.plot(xtime_ms, signal*1e6, label='Signal', color='k', alpha=0.5)
-
-        #ax.plot(xtime_ms, signal*1e6-shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) , label='Signal minus delayed pulse', color='magenta', alpha=0.5)
-
-
-        #ax.plot(xtime_ms, signal*1e6-shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse ), label='Signal minus prompt pulse', color='green', alpha=0.5)
-
-
-        #if xlim_msec is not None:
-        #    ax.set_xlim(xlim_msec)
-        #ax.set_ylabel(r'Current [$\mu A$]')
-        #ax.set_xlabel('Time [ms]')
-        #ax.set_title(f'{self._of_base.channel_name} OF_1x2 Results')
-        #lgd = ax.legend(loc='best')
-        #ax.tick_params(which='both', direction='in', right=True, top=True)
-        #ax.grid(linestyle='dotted')
-        #fig.tight_layout()
