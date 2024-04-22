@@ -272,23 +272,21 @@ class OFnxm:
         def calc_amp_allt(self, channels, template_tags=None):
             '''
             FIXME
-            #in of_base calc_signal_filt_mat_td and signal_filts_mat_td
-            #+ signal_filts_mat_f need to be built
             #docstrings need to be added with dimensions 
             '''
             #self._signal_filts_mat_td = dict()
+            #signal_filt_mat_td
             # initialize
             if channels not in self._amps_alltimes_rolled:
                 self._amps_alltimes_rolled[channels] = dict()
                 self._amps_alltimes[channels] = dict()
             for tag in template_tags:
-
-                if self._of_base.signal_filts_mat_td(channels, template_tag=tag) is None:
-                    self._of_base.calc_signal_filt_mat_td(self, channels, template_tags=tag) #needs to be written
+                # calc_signal_filt_mat_td checks that _signal_filts_mat is calculated first
+                if self._of_base.signal_filt_mat_td(channels, template_tag=tag) is None:
+                    self._of_base.calc_signal_filt_mat_td(self, channels, template_tags=tag)
 
                 self._amps_alltimes[channels][tag] = (self._of_base.iw_mat(channels, template_tag=tag) @ 
-                                      self._of_base.signal_filts_mat_td(channels, template_tag=tag))
-                #signalfiltsmat needs to be written (both f and td) 
+                                      self._of_base.signal_filt_mat_td(channels, template_tag=tag))
                 
                 temp_amp_roll = np.zeros_like(self._amps_alltimes[channels][tag])
                 temp_amp_allt = self._amps_alltimes[channels][tag]
@@ -310,7 +308,7 @@ class OFnxm:
                 signal_fft = self._of_base.signal_mat(channels,template_tag=tag) #needs to be built still
                 temp_icov_f = self._of_base.icovf(self, channels)
                 temp_amp_allt = self._amps_alltimes[channels][tag]
-                filt_signal_t = self._of_base.signal_filts_mat_td(channels, template_tag=tag) #needs to be built still
+                filt_signal_t = self._of_base.signal_filt_mat_td(channels, template_tag=tag)
                 chi2base = 0
                 for kchan in range(self._nchan):
                     for jchan in range(self._nchan):
