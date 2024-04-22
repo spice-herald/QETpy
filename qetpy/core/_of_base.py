@@ -376,7 +376,7 @@ class OFBase:
             return None
     
     
-    def iw_mat():
+    def iw_mat(self, channels, template_tag='default'):
         '''
         FIXME
         add docstrings and dimensions
@@ -416,7 +416,16 @@ class OFBase:
             return self._signal_filts[channel][template_tag]
         else:
             return None
-     
+    
+    def signal_filt_mat(self, channels, template_tag='default'):
+        '''
+        FIXME: add dimensions and documentation 
+        '''
+        if (channels in self._signal_filts_mat.keys() 
+            and template_tag in self._signal_filts_mat[channels].keys()):
+            return self._signal_filts_mat[channels][template_tag]
+        else:
+            return None
 
     def signal_filt_td(self, channel, template_tag='default'):
         """
@@ -447,7 +456,17 @@ class OFBase:
             return self._signal_filts_td[channel][template_tag]
         else:
             return None
-     
+    
+    def signal_filt_mat_td(self, channels, template_tag='default'):
+        '''
+        FIXME: add dimensions and docstring
+        '''
+        if (channels in self._signal_filts_mat_td.keys()
+            and template_tag in self._signal_filts_mat_td[channels].keys()):
+            return self._signal_filts_mat_td[channels][template_tag]
+        else:
+            return None
+    
     def template_filt(self, channel, template_tag='default'):
         """
         FIXME: no implemented yet
@@ -812,7 +831,52 @@ class OFBase:
         if calc_chisq_amp:
             self.calc_chisq_amp(channel, template_tags=template_tags)
 
-
+    def build_signal_mat(self, channels, template_tags=None):
+        '''
+        FIXME:
+        add instance catching for self.psd(channel) 
+        add debug option for flagging signal or noise
+        I think the template tag loop will need to change
+        as "template_tags" is different from the 
+        signal or noise flag we will use? Unsure. 
+        A loop won't even be necessary for each channel since
+        each channel will only have one signal or noise tag
+        '''
+        temp_signal_mat = np.zeros((self._nchan, self._nbins))
+        # instantiate
+        if channels not in self._signal_mat:
+            self._signal_mat[channels] = dict()
+        #add type catching for channels 
+        channels_list = channels.split(sep='|')
+        # check channel
+        for ichan, channel in enumerate(channels_list):
+            
+            if channel not in self._signal_fft:
+                raise ValueError(f'ERROR: Missing signal fft for '
+                                 f'channel {channel}')
+                # _signal_fft should be done each time update_signal is called
+                # so it should be calculated for each channel
+                # _signal_fft is also signal_fft/self._nbins/self._df!!! 
+                
+            temp_signal_fft = self._signal_fft[channel]
+            temp_noise = self.psd(channel)
+            
+            for tag in template_tags:
+                # add debug option to say if we are flagging something as 
+                # noise or signal
+                if tag == 'signal':
+                    temp_signal_mat[ichan,:] = temp_signal_fft
+                elif tag == 'noise':
+                    temp_signal_mat[ichan,:] = temp_noise
+                else:
+                    raise ValueError(f'ERROR: {tag} is not a valid flag.' 
+                                     f' Please flag as "signal/noise"!')
+                self._signal_mat[channels][tag] = temp_signal_mat
+                #above I think will change. the signal or noise flag is NOT the same
+                # as template_tag
+                # also wary of setting the signal_mat inside of a channel loop
+                # as "channels"
+            
 
     def calc_phi(self, channel, template_tags=None):
         """
@@ -1098,9 +1162,19 @@ class OFBase:
     def calc_signal_filt_mat_td(self, channels, template_tags=None):
         '''
         FIXME
+        add template_tags instance type catching 
         '''
-        #add instance catching
+        #add template_tags instance catching
+        if channels not in self._signal_filts_mat:
+            self.calc_signal_filt_mat(channels, template_tags=template_tags)
+        # initialize    
+        if channels not in self._signal_filts_mat_td:
+            self._signal_filts_mat_td[channels] = dict()
         for tag in template_tags:
+            if tag not in self._signal_filts_mat[channels].keys():
+                self.calc_signal_filt_mat(channels, template_tags=tag)
+                # if for whatever reason the first signal_filts_mat catch failed
+                
             sign_f_mat = self._signal_filts_mat[channels][tag]
             temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
             self._signal_filts_mat_td[channels][tag] = temp_sign_t_mat
