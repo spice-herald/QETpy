@@ -162,6 +162,11 @@ class OFBase:
         else:
             return None
 
+    def fft_freqs(self):
+        """
+        Return frequency array
+        """
+        return self._fft_freqs
 
     def template_fft(self, channel, template_tag='default'):
         """
@@ -1746,7 +1751,7 @@ class OFBase:
         template_fft = self._templates_fft[channel][template_tag]
 
         sigma = 1.0 / np.sqrt(amp**2 * np.sum(
-            (2*np.pi*self._fft_freqs)**2 * np.abs(template_fft)**2 / self._psd
+            (2*np.pi*self._fft_freqs)**2 * np.abs(template_fft)**2 / self._psd[channel]
         ) * self._df)
 
         return sigma
