@@ -710,7 +710,7 @@ class OFBase:
         self._psd[channel] = psd
            
 
-    def clear_signal(self):
+    def clear_signal(self, channel=None):
         """
         Method to intialize calculated signal
         parameters  
@@ -726,26 +726,53 @@ class OFBase:
         """
 
         # signal
-        self._signal = dict()
-        self._signal_fft = dict()
-
+        if channel is None:
+            self._signal = dict()
+            self._signal_fft = dict()
+        else:
+            if channel in  self._signal:
+                self._signal.pop(channel)
+            if channel in  self._signal_fft:
+                self._signal_fft.pop(channel)
+      
         # (optimal) filtered  signals and templates
         # (frequency domain and  converted back to time domain)
-        self._signal_filts = dict()
-        self._signal_filts_td = dict()
-        self._template_filts = dict()
-        self._template_filts_td = dict()
-
-
+        if channel is None:
+            self._signal_filts = dict()
+            self._signal_filts_td = dict()
+            self._template_filts = dict()
+            self._template_filts_td = dict()
+        else:
+            if channel in self._signal_filts:
+                self._signal_filts.pop(channel)
+            if channel in self._signal_filts_td:
+                self._signal_filts_td.pop(channel)
+            if channel in self._template_filts:
+                self._template_filts.pop(channel)
+            if channel in self._template_filts_td:
+                self._template_filts_td.pop(channel)
+                
         # chisq and amp arrays
-        self._chisq0 = dict()
-        self._chisqs_alltimes_rolled = dict()
-        self._amps_alltimes_rolled = dict()
-
+        if channel is None:
+            self._chisq0 = dict()
+            self._chisqs_alltimes_rolled = dict()
+            self._amps_alltimes_rolled = dict()
+        else:
+            if channel in self._chisq0:
+                self._chisq0.pop(channel)
+            if channel in self._chisqs_alltimes_rolled:
+                self._chisqs_alltimes_rolled.pop(channel)
+            if channel in self._amps_alltimes_rolled:
+                self._amps_alltimes_rolled.pop(channel)
+            
         # matrices
-        self._q_vector = dict()
+        if channel is None:
+            self._q_vector = dict()
+        else:
+            if channel in self._q_vector:
+                self._q_vector.pop(channel)
 
-
+      
     def update_signal(self, channel, signal,
                       calc_signal_filt=True,
                       calc_q_vector= True,
@@ -798,7 +825,7 @@ class OFBase:
                              f'channel {channel}')
      
         # reset all signal dependent quantities
-        self.clear_signal()
+        self.clear_signal(channel=channel)
 
 
         # debug

@@ -139,10 +139,10 @@ class OF1x1:
             if (tags is None
                 or template_tag not in tags):
 
-                print(f'ERROR: No template with tag "{template_tag}" '
-                      f'for channel {channel} found in OF base object. '
-                      f'Modify template tag or add template argument!')
-                return
+                raise ValueError(
+                    f'ERROR: No template with tag "{template_tag}" '
+                    f'for channel {channel} found in OF base object. '
+                    f'Modify template tag or add template argument!')
                             
          # add noise to base object
         if psd is not None:
@@ -157,10 +157,9 @@ class OF1x1:
             
         else:
             if self._of_base.psd(channel) is None:
-                print(f'ERROR: No psd found in OF base object.'
-                      f'for channel {channel}. Add psd argument!')
-                return
-        
+                raise ValueError(f'ERROR: No psd found in OF base object.'
+                                 f'for channel {channel}. Add psd argument!')
+                
         #  template/noise pre-calculation
         if self._of_base.phi(channel, template_tag) is None:
             self._of_base.calc_phi(channel,
@@ -289,7 +288,7 @@ class OF1x1:
             pulse_direction_constraint=pulse_direction_constraint,
             interpolate_t0=interpolate_t0
         )
-        
+
         lowchi2 = self._of_base.get_chisq_lowfreq(
             self._channel_name,
             template_tag=self._template_tag,
@@ -594,11 +593,11 @@ class OF1x1:
 
         # check
         if lgc_plot_withdelay and self._of_amp_withdelay is None:
-            print('ERROR: No fit (with delay) done. Unable to plot result!')
+            print('WARNING: No fit (with delay) done. Unable to plot result!')
             return
 
         if lgc_plot_nodelay and self._of_amp_nodelay is None:
-            print('ERROR: No fit (no delay) done. Unable to plot result!')
+            print('WARNING: No fit (no delay) done. Unable to plot result!')
             return
         
         # signal
