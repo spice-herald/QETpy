@@ -249,7 +249,7 @@ class OFBase:
             channels = '|'.join(channels)
             
         if channels in self._csd.keys():
-            return self._csd[channel]
+            return self._csd[channels]
         else:
             return None
 
@@ -665,7 +665,7 @@ class OFBase:
                 f'number of samples!')
         
         # add to dictionary
-        self._csd[channel] = csd
+        self._csd[channels] = csd
         
         
     def set_psd(self, channel, psd, coupling='AC'):
