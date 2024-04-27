@@ -927,7 +927,6 @@ class OFBase:
             for j in range(i+1,M):
                 self._p_matrix[:, i, j] = self._p_matrix[:, j, i] = \
                         np.real(np.fft.ifft(self._templates_fft[template_list[j]] * self._phis[template_list[i]] ) * self._fs)
-
         self._p_inv_matrix = np.linalg.pinv(self._p_matrix)
 
         eigenvalues , eigenvectors = np.linalg.eigh(self._p_inv_matrix) # eigh for hermitian matrix only

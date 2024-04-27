@@ -277,87 +277,185 @@ class OF1x2:
                 amps[:,i] = amps[:,i]  + pmatrix_inv[:,i,j]*self._q_vec[j,:]
 
 
-        amps0 ,amps1 = amps[:,0],amps[:,1]
+        amps0 = amps[:,0]
+        amps1 = amps[:,1]
 
 
-        if(flag_restrict_amps0_to_be_postive== True and flag_restrict_amps1_to_be_postive== False):
+
+        if(flag_restrict_amps0_to_be_postive == True and flag_restrict_amps1_to_be_postive == False):#Only amps1 can move and amps0=0, if amps0 is negative
             #first move along the vector corresponding to smallest eigen value
-            amps1_move_along_smallest_eigen_value = np.where( amps[:,0]>0, amps[:,0], amps[:,1] -( amps[:,0]/pmatrix_inv_eigen_vectors[:,0,0] )*pmatrix_inv_eigen_vectors[:,1,0] )
+            amps1_move_along_smallest_eigen_value = np.where( amps[:,0]>0, amps[:,1], amps[:,1] -( amps[:,0]/pmatrix_inv_eigen_vectors[:,0,0] )*pmatrix_inv_eigen_vectors[:,1,0] )
             #next move along the vector corresponding to largest eigen value
-            amps1_move_along_largest_eigen_value = np.where( amps[:,0]>0, amps[:,0], amps[:,1] -(  amps[:,0]/pmatrix_inv_eigen_vectors[:,0,1] )*pmatrix_inv_eigen_vectors[:,1,1] )
+            amps1_move_along_largest_eigen_value = np.where( amps[:,0]>0, amps[:,1], amps[:,1] -(  amps[:,0]/pmatrix_inv_eigen_vectors[:,0,1] )*pmatrix_inv_eigen_vectors[:,1,1] )
 
-            #set all the amps0 value where amp0, before transforming was negative to zero
-            amps0 = np.where(amps[:,0]>0,amps0,0)
+            #set all the amps0 value to zero, where amp0 before transforming was negative. Only amps1 can move and amps0=0, if amps0 is negative
+            amps0 = np.where(amps[:,0]>0,amps[:,0],0)
 
 
             #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
-
             dist_along_largest_eigen_value = (amps[:,1] - amps1_move_along_largest_eigen_value )**2 + (amps[:,0] - amps0 )**2
-
             dist_along_smallest_eigen_value = (amps[:,1] - amps1_move_along_smallest_eigen_value )**2 + (amps[:,0] - amps0 )**2
-
-
             #figure out which of distance is smaller
-            amps1 = np.where(((amps[:,0]<0)*(dist_along_largest_eigen_value > dist_along_smallest_eigen_value))\
-                                       ,amps1_move_along_smallest_eigen_value ,amps1_move_along_largest_eigen_value)
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_smallest_eigen_value, amps1_move_along_largest_eigen_value)
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_largest_eigen_value, amps1_move_along_smallest_eigen_value)
+
+            #figure out which of distance is smaller, optmium point, second optmum poiint or origin
+            amps1 =  np.where( (amps[:,0]<0) ,\
+                        np.where(optimum_point>0, optimum_point, \
+                                np.where(second_optimum_point>0, second_optimum_point, 0)), amps[:,1])
 
 
-            #if still we have amps1 -ve .. force those to zero [0,0] is the solution
-            amps1 = np.where( amps1>0, amps1,0)
-
-
-
-
-        if(flag_restrict_amps0_to_be_postive== False and flag_restrict_amps1_to_be_postive== True):
+        if(flag_restrict_amps0_to_be_postive == False and flag_restrict_amps1_to_be_postive == True): #Only amps0 can move and amps1=0, if amps1 is negative
             #first move along the vector corresponding to smallest eigen value
-            amps0_move_along_smallest_eigen_value = np.where( amps[:,1]>0, amps[:,1], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,0] )*pmatrix_inv_eigen_vectors[:,0,0] )
+            amps0_move_along_smallest_eigen_value = np.where( amps[:,1]>0, amps[:,0], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,0] )*pmatrix_inv_eigen_vectors[:,0,0] )
             #next move along the vector corresponding to largest eigen value
-            amps0_move_along_largest_eigen_value = np.where( amps[:,1]>0, amps[:,1], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,1])*pmatrix_inv_eigen_vectors[:,0,1] )
+            amps0_move_along_largest_eigen_value = np.where( amps[:,1]>0, amps[:,0], amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,1])*pmatrix_inv_eigen_vectors[:,0,1] )
 
-            #set all the amps1 value where amp1, before transforming was negative to zero
-            amps1 = np.where(amps[:,1]>0,amps1,0)
+            #set all the amps1 value where amp0, before transforming was negative to zero. Only amps0 can move and amps1=0, if amps1 is negative
+            amps1 = np.where(amps[:,1]>0,amps[:,1],0)
 
             #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
-
             dist_along_largest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_largest_eigen_value )**2
-
             dist_along_smallest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_smallest_eigen_value )**2
+            #figure out which of distance is smaller
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_smallest_eigen_value, amps0_move_along_largest_eigen_value )
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_largest_eigen_value, amps0_move_along_smallest_eigen_value )
+
+            #figure out which of distance is smaller, optmium point, second optmum poiint or origin
+            amps0 =  np.where( amps[:,1]<0,\
+                                         np.where(optimum_point>0, optimum_point, \
+                                                  np.where(second_optimum_point>0, second_optimum_point, 0)), amps0)
+
+
+        if(flag_restrict_amps0_to_be_postive == True and flag_restrict_amps1_to_be_postive == True):
+
+            #**************************
+            #without loss of genrality, lets move all the points where amps0 is only negative and amps1 is positive to amp0 axis
+            #first move along the vector corresponding to smallest eigen value
+            amps1_move_along_smallest_eigen_value = np.where( ((amps[:,0]<0)*(amps[:,1]>0)), amps[:,1] -( amps[:,0]/pmatrix_inv_eigen_vectors[:,0,0] )*pmatrix_inv_eigen_vectors[:,1,0] , amps[:,1])
+            #next move along the vector corresponding to largest eigen value
+            amps1_move_along_largest_eigen_value = np.where( ((amps[:,0]<0)*(amps[:,1]>0)), amps[:,1] -(  amps[:,0]/pmatrix_inv_eigen_vectors[:,0,1] )*pmatrix_inv_eigen_vectors[:,1,1], amps[:,1] )
+
+            #set all the amps0 value to zero, where amp0 before transforming was negative. Only amps1 can move and amps0=0, if amps0 is negative
+            amps0 = np.where(((amps[:,0]<0)*(amps[:,1]>0)), 0, amps[:,0])
+
+
+            #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
+            dist_along_largest_eigen_value = (amps[:,1] - amps1_move_along_largest_eigen_value )**2 + (amps[:,0] - amps0 )**2
+            dist_along_smallest_eigen_value = (amps[:,1] - amps1_move_along_smallest_eigen_value )**2 + (amps[:,0] - amps0 )**2
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_smallest_eigen_value, amps1_move_along_largest_eigen_value )
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_largest_eigen_value, amps1_move_along_smallest_eigen_value)
+            #figure out which of distance is smaller, optmium point, second optmum poiint or origin
+            amps1 =  np.where( ((amps[:,0]<0)*(amps[:,1]>0)) ,\
+                        np.where(optimum_point>0, optimum_point, \
+                                np.where(second_optimum_point>0, second_optimum_point, 0)), amps[:,1])
+            #**************************
+
+            #**************************
+            #Next lets move all the points where amps1 is negative and amps0 is positive to amp1 = 0
+            #first move along the vector corresponding to smallest eigen value
+            amps0_move_along_smallest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]>0)) , amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,0] )*pmatrix_inv_eigen_vectors[:,0,0] , amps[:,0])
+            #next move along the vector corresponding to largest eigen value
+            amps0_move_along_largest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]>0)), amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,1])*pmatrix_inv_eigen_vectors[:,0,1], amps[:,0] )
+
+            #set all the amps1 value to zero, where amp1 before transforming was negative. Only amps0 can move and amps1=0, if amps1 is negative
+            amps1 = np.where( ((amps[:,1]<0)*(amps[:,0]>0)) ,0,amps1)
+
+            #now calculate the distance between the new point(along the largest eigen value and smallest eigen value) and the old point
+            dist_along_largest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_largest_eigen_value )**2
+            dist_along_smallest_eigen_value = (amps[:,1] - amps1 )**2 + (amps[:,0] - amps0_move_along_smallest_eigen_value )**2
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_smallest_eigen_value, amps0_move_along_largest_eigen_value )
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_largest_eigen_value, amps0_move_along_smallest_eigen_value )
+            #figure out which of distance is smaller, optmium point, second optmum poiint or origin
+            amps0 =  np.where( ((amps[:,0]>0)*(amps[:,1]<0)) ,\
+                                         np.where(optimum_point>0, optimum_point, \
+                                                  np.where(second_optimum_point>0, second_optimum_point, 0)), amps0)
+            #**************************
+
+
+            #if for now lets denoted the third quadrant i.e if amps0 < 0 and amps1<0 move those point to [0,0]
+            #amps0 = np.where( ((amps[:,1]<0)*(amps[:,0]<0)), 0, amps[:,0] )
+            #amps1 = np.where( ((amps[:,1]<0)*(amps[:,0]<0)),0, amps[:,1])
+
+            #on amps0 =0, move only amps1, if amps0 < 0 and amps1<0
+            amps1_move_along_smallest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]<0)), amps[:,1] -( amps[:,0]/pmatrix_inv_eigen_vectors[:,0,0] )*pmatrix_inv_eigen_vectors[:,1,0] , amps[:,0])
+            amps1_move_along_largest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]<0)), amps[:,1] -(  amps[:,0]/pmatrix_inv_eigen_vectors[:,0,1] )*pmatrix_inv_eigen_vectors[:,1,1], amps[:,0] )
+            amps0_move_if_amps0_is_set_to_zero = np.where(  ((amps[:,1]<0)*(amps[:,0]<0)), 0, amps[:,0])
+
+            dist_along_largest_eigen_value = (amps[:,1] - amps1_move_along_largest_eigen_value )**2 + (amps[:,0] - amps0_move_if_amps0_is_set_to_zero )**2
+            dist_along_smallest_eigen_value = (amps[:,1] - amps1_move_along_smallest_eigen_value )**2 + (amps[:,0] - amps0_move_if_amps0_is_set_to_zero )**2
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_smallest_eigen_value, amps1_move_along_largest_eigen_value )
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps1_move_along_largest_eigen_value, amps1_move_along_smallest_eigen_value )
 
             #figure out which of distance is smaller
-            amps0 = np.where(((amps[:,1]<0)*(dist_along_largest_eigen_value > dist_along_smallest_eigen_value))\
-                                       ,amps0_move_along_smallest_eigen_value ,amps0_move_along_largest_eigen_value)
+            amps1_move_if_amps0_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0)) ,optimum_point, amps[:,1])
+            #if still we have amps0 -ve .move to a new point second optimum point
+            amps1_move_if_amps0_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0))*(amps0_move_if_amps0_is_set_to_zero < 0), second_optimum_point, amps1_move_if_amps0_is_set_to_zero )
+            #if still we have amps0 -ve move to  [0,0]
+            amps1_move_if_amps0_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0))*(amps1_move_if_amps0_is_set_to_zero < 0), 0, amps1_move_if_amps0_is_set_to_zero )
 
-            #if still we have amps0 -ve .. force those to zero [0,0] is the solution
-            amps0 = np.where( amps0>0, amps0,0)
+            dist_if_amps0_is_set_to_zero = (amps[:,1] - amps1_move_if_amps0_is_set_to_zero)**2 + (amps[:,0] - amps0_move_if_amps0_is_set_to_zero )**2
+
+
+            #on amps1 =0, move only amps0, if amps0 < 0 and amps1<0
+            amps0_move_along_smallest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]<0)) , amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,0] )*pmatrix_inv_eigen_vectors[:,0,0] , amps[:,1])
+            amps0_move_along_largest_eigen_value = np.where( ((amps[:,1]<0)*(amps[:,0]<0)), amps[:,0] -( amps[:,1]/pmatrix_inv_eigen_vectors[:,1,1])*pmatrix_inv_eigen_vectors[:,0,1], amps[:,1] )
+            amps1_move_if_amps1_is_set_to_zero = np.where(  ((amps[:,1]<0)*(amps[:,0]<0)), 0, amps[:,1])
+
+            dist_along_largest_eigen_value = (amps[:,1] - amps1_move_if_amps1_is_set_to_zero )**2 + (amps[:,0] - amps0_move_along_largest_eigen_value )**2
+            dist_along_smallest_eigen_value = (amps[:,1] - amps1_move_if_amps1_is_set_to_zero )**2 + (amps[:,0] - amps0_move_along_smallest_eigen_value )**2
+            optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_smallest_eigen_value, amps0_move_along_largest_eigen_value )
+            second_optimum_point = np.where( dist_along_largest_eigen_value > dist_along_smallest_eigen_value, amps0_move_along_largest_eigen_value, amps0_move_along_smallest_eigen_value)
+
+            #figure out which of distance is smaller
+            amps0_move_if_amps1_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0)) ,optimum_point, amps[:,0])
+            #if still we have amps0 -ve .move to a new point second optimum point
+            amps0_move_if_amps1_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0))*(amps0_move_if_amps1_is_set_to_zero< 0),second_optimum_point ,amps0_move_if_amps1_is_set_to_zero )
+            #if still we have amps0 -ve .move to  [0,0]
+            amps0_move_if_amps1_is_set_to_zero =  np.where( ((amps[:,1]<0)*(amps[:,0]<0))*(amps0_move_if_amps1_is_set_to_zero < 0),0 ,amps0_move_if_amps1_is_set_to_zero )
+
+            #next again caliculate the distance between the two dummy move points
+            dist_if_amps1_is_set_to_zero = (amps[:,1] - amps1_move_if_amps1_is_set_to_zero )**2 + (amps[:,0] - amps0_move_if_amps1_is_set_to_zero )**2
+
+            flag_which_boundary_near = np.where( ((amps[:,1]<0)*(amps[:,0]<0))*(dist_if_amps1_is_set_to_zero < dist_if_amps0_is_set_to_zero) ,1, 0)
+
+            amps1=  np.where( ((amps[:,1]<0)*(amps[:,0]<0)), np.where(flag_which_boundary_near, amps1_move_if_amps1_is_set_to_zero, amps1_move_if_amps0_is_set_to_zero ), amps1 )
+            amps0 =  np.where( ((amps[:,1]<0)*(amps[:,0]<0)),np.where(flag_which_boundary_near, amps0_move_if_amps1_is_set_to_zero, amps0_move_if_amps0_is_set_to_zero), amps0 )
+
+
 
         return amps0 ,amps1
 
 
 
-    def _chi2(self, amps1, amps2, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive): #not in OF base
+    def _chi2(self, amps1, amps2,t0s): #not in OF base
         """
         Hidden function to calculate the chi-square of the inputted
         amplitude and time offsets.
+        # calc q
+        self._q_vector[tag] = self._signal_filts_td[tag] * self._norms[tag]
+
+        # calc signal filt ifft
+        self._signal_filts_td[tag] = np.real(ifft(self._signal_filts[tag]*self._nbins, axis=-1))*self._df
+
+        # filtered signal
+        self._signal_filts[tag] = (self._phis[tag]*self._signal_fft/self._norms[tag])
+
         """
-        #if(flag_restrict_amps1_to_be_postive):
-        #    amps2 = np.where(amps1>0,amps2,0)
-        #    amps1 = np.where(amps1>0,amps1,0)
-
-
-        #if(flag_restrict_amps2_to_be_postive):
-        #    amps1 = np.where(amps2>0,amps1,0)
-        #    amps2 = np.where(amps2>0,amps2,0)
 
         self._q_vec_conj = np.conjugate(self._q_vec)
 
-        ##
-        # find low freq indices
-        #chi2inds = np.abs(self._fft_freqs) <= lowchi2_fcutoff
+        #chi2, only useful when polarity constrained is not demanded
+        #return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 , amps1, amps2
 
-        # sum
-        #chi2low = np.sum(chi2tot[chi2inds])
+        #chi2 if polarity constrained is need 
+        chi2= (self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 - self._q_vec[0,:] * amps1 - self._q_vec[1,:] * amps2 +\
+              self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 0, 0]* amps1* amps1 + self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 1, 1]* amps2* amps2 +\
+              amps1*amps2*self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 0, 1] + amps1*amps2*self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 1, 0])
 
-        return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 , amps1, amps2
+        return chi2 , amps1, amps2
+
+
 
 
 
@@ -392,16 +490,16 @@ class OF1x2:
 
         amps1, amps2 = self._get_amps(self._time_combinations,flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
 
-        chi2s, amps1, amps2 = self._chi2(amps1, amps2, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
+        chi2s, amps1, amps2 = self._chi2(amps1, amps2,self._time_combinations)
 
         min_index = np.argmin(chi2s)
         self._chi2_of_1x2 = chi2s[min_index]
         self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
-
+        print("Scintillation: {}, Evaporation :{} and Time difference: {}".format(amps1[min_index],amps2[min_index],self._time_diff_two_Pulses))
 
         if(self._time_diff_two_Pulses < 0):
             self._amplitude[self._template_1_tag] = amps2[min_index]
-            self._amplitude[self._template_2_tag]= amps1[min_index]
+            self._amplitude[self._template_2_tag] = amps1[min_index]
             self._time_diff_two_Pulses=np.abs(self._time_diff_two_Pulses)
             self._time_first_pulse =  self._time_combinations[min_index, 1]
             self._time_second_pulse =  self._time_combinations[min_index, 0]
@@ -493,23 +591,3 @@ class OF1x2:
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(linestyle='dotted')
         fig.tight_layout()
-
-
-        #fig, ax = plt.subplots(figsize=figsize)
-        #ax.plot(xtime_ms, signal*1e6, label='Signal', color='k', alpha=0.5)
-
-        #ax.plot(xtime_ms, signal*1e6-shift(self._amplitude[self._template_2_tag]*template_2*1e6 , self._time_second_pulse) , label='Signal minus delayed pulse', color='magenta', alpha=0.5)
-
-
-        #ax.plot(xtime_ms, signal*1e6-shift( self._amplitude[self._template_1_tag]*template_1*1e6, self._time_first_pulse ), label='Signal minus prompt pulse', color='green', alpha=0.5)
-
-
-        #if xlim_msec is not None:
-        #    ax.set_xlim(xlim_msec)
-        #ax.set_ylabel(r'Current [$\mu A$]')
-        #ax.set_xlabel('Time [ms]')
-        #ax.set_title(f'{self._of_base.channel_name} OF_1x2 Results')
-        #lgd = ax.legend(loc='best')
-        #ax.tick_params(which='both', direction='in', right=True, top=True)
-        #ax.grid(linestyle='dotted')
-        #fig.tight_layout()

@@ -304,13 +304,6 @@ class  OF1x3:
 
         self._q_vec_conj = np.conjugate(self._q_vec)
 
-        ##
-        # find low freq indices
-        #chi2inds = np.abs(self._of_base._fft_freqs) <= 30000
-
-
-        #low_chisq = np.real(np.dot(np.conjugate(self._of_base._signal_fft)[chi2inds]/self._of_base._psd[chi2inds],self._of_base._signal_fft[chi2inds])*self._of_base._df) \
-        #                    - self._q_vec_conj[0][chi2inds] * amps1 - self._q_vec_conj[1][chi2inds] * amps2 - self._q_vec_conj[2][chi2inds] * amps3
 
         return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 - self._q_vec_conj[2,:] * amps3
 
@@ -347,10 +340,10 @@ class  OF1x3:
 
         amps1, amps2, amps3 = self._get_amps(self._time_combinations)
 
-        chi2s, low_chisq  = self._chi2(amps1, amps2, amps3 )
+        chi2s = self._chi2(amps1, amps2, amps3 )
 
-        min_index = np.argmin(chi2s)
-        self._chi2_of_1x2 = chi2s[min_index] 
+        min_index = np.argmin(np.abs(chi2s))
+        self._chi2_of_1x2 = chi2s[min_index]
         self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
 
 
@@ -403,7 +396,7 @@ class  OF1x3:
         # check
         if lgc_plot and self._amplitude[self._template_1_tag] is None and \
                         self._amplitude[self._template_2_tag] is None:
-            print('ERROR: No fit OF_1x2 is done. Unable to plot result!')
+            print('ERROR: No fit OF_1x3 is done. Unable to plot result!')
             return
 
         # signal
