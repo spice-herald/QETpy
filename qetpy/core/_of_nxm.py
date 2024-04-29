@@ -93,7 +93,7 @@ class OFnxm:
         # tag
         self._template_tag = template_tag
 
-        self._channels = channels
+        self._channel_name = channels
         
         # Instantiate OF base (if not provided)
         self._of_base = of_base
@@ -112,9 +112,6 @@ class OFnxm:
             #need to pass channels to this?
             #ofbase mods that bruno did, no way to grab channels?
             self._of_base = OFBase(sample_rate, 
-                                   pretrigger_msec=pretrigger_msec,
-                                   pretrigger_samples=pretrigger_samples,
-                                   channel_name=channel_name,
                                    verbose=verbose)
         # add template to base object
         if template is not None:
@@ -158,19 +155,18 @@ class OFnxm:
                 return
         
         #  template/noise pre-calculation
-        if self._of_base.iw_mat(channels, template_tag) is None:
+        if self._of_base.iw_mat(channels) is None:
             self._of_base.calc_weight_mat(channels=channels, template_tags=template_tag)
             # calc_weight_mat will then check that phi_mat is calculated
             # calc_phi_mat in turn checks that the templates are fft'd, 
-            # the template matrix is constructed (not yet implemented)
+            # the template matrix is constructed
             # and i_covf is calculated. So all precalcs are covered. 
             
         # initialize fit results
         #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
-        self._nchan, self._ntmp, self._nbins = self._of_base.template_mat(channels, template_tag)
+        self._nchan, self._ntmp, self._nbins = self._of_base.template_mat(channels).shape()
         self.pretrigger_samples = pretrigger_samples #need to add option for selection of 
         #pretrigger in msecs
-        #template_mat is not built yet 
         self._fs = sample_rate
         
         self._amps_alltimes_rolled = dict()
@@ -186,19 +182,21 @@ class OFnxm:
             '''
             FIXME
             #docstrings need to be added with dimensions
-            #in of_base, an update_signal function needs to be built
-            #specifically for the nxm 
+            #update_signal needs to be called ? from of_base
             '''
             # update signal and do preliminary (signal) calculations
             # (like fft signal, filtered signals, signal matrix ...
             if signal is not None:
-                ...
-                # some sort of _of_base.update_signal function but for 
-                # the nxm 
-                # this needs to be specific to the nxm since I will be 
-                # building matrices for each signal/event
-            calc_amp_allt(self, channels, template_tags=self._template_tag)
-            calc_chi2_allt(self, channels, template_tags=self._template_tag)
+                self._of_base.update_signal(
+                    self._channel_name,
+                    signal,
+                    signal_mat_flag=True,
+                    calc_signal_filt_mat=True,
+                    calc_signal_filt_mat_td=True,
+                    template_tags=self._template_tag)
+            
+            calc_amp_allt(self, self._channel_name)
+            calc_chi2_allt(self, self._channel_name, template_tags=self._template_tag)
         
         def get_fit_withdelay(self, channels, template_tag='default',
                               signal=None, window_min_from_trig_usec=None,
@@ -280,19 +278,18 @@ class OFnxm:
             if channels not in self._amps_alltimes_rolled:
                 self._amps_alltimes_rolled[channels] = dict()
                 self._amps_alltimes[channels] = dict()
-            for tag in template_tags:
-                # calc_signal_filt_mat_td checks that _signal_filts_mat is calculated first
-                if self._of_base.signal_filt_mat_td(channels, template_tag=tag) is None:
-                    self._of_base.calc_signal_filt_mat_td(self, channels, template_tags=tag)
+            # calc_signal_filt_mat_td checks that _signal_filts_mat is calculated first
+            if self._of_base.signal_filt_mat_td(channels) is None:
+                self._of_base.calc_signal_filt_mat_td(self, channels)
 
-                self._amps_alltimes[channels][tag] = (self._of_base.iw_mat(channels, template_tag=tag) @ 
-                                      self._of_base.signal_filt_mat_td(channels, template_tag=tag))
+            self._amps_alltimes[channels][tag] = (self._of_base.iw_mat(channels) @ 
+                                    self._of_base.signal_filt_mat_td(channels))
                 
-                temp_amp_roll = np.zeros_like(self._amps_alltimes[channels][tag])
-                temp_amp_allt = self._amps_alltimes[channels][tag]
-                for itmp in range(self._ntmp):
-                    temp_amp_roll[itmp,:] = np.roll(temp_amp_allt[itmp,:], self.pretrigger_samples, axis=-1)
-                self._amps_alltimes_rolled[channels][tag] = temp_amp_roll
+            temp_amp_roll = np.zeros_like(self._amps_alltimes[channels])
+            temp_amp_allt = self._amps_alltimes[channels]
+            for itmp in range(self._ntmp):
+                temp_amp_roll[itmp,:] = np.roll(temp_amp_allt[itmp,:], self.pretrigger_samples, axis=-1)
+            self._amps_alltimes_rolled[channels] = temp_amp_roll
                 
         def calc_chi2_allt(self, channels, template_tags=None):
             '''
@@ -304,25 +301,23 @@ class OFnxm:
             if channels not in self._chi2_alltimes_rolled:
                 self._chi2_alltimes_rolled[channels] = dict()
                 self._chi2_alltimes[channels] = dict()
-            for tag in template_tags:
-                signal_fft = self._of_base.signal_mat(channels,template_tag=tag) #needs to be built still
-                temp_icov_f = self._of_base.icovf(self, channels)
-                temp_amp_allt = self._amps_alltimes[channels][tag]
-                filt_signal_t = self._of_base.signal_filt_mat_td(channels, template_tag=tag)
-                chi2base = 0
-                for kchan in range(self._nchan):
-                    for jchan in range(self._nchan):
-                        chi2base += np.sum(np.dot(
-                        (signal_fft[kchan,:].conjugate())*temp_icov_f[kchan,jchan,:],
-                        signal_fft[jchan,:]))
-                        #chi2base is a time independent scalar on the sum over all channels & freq bins
-                chi2base = np.real(chi2base)
-                chi2_t = np.zeros_like(temp_amp_allt)
-                chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0)) #this sums along the template
-                #dim [ntmp, nbins]
-                #chi2_t is the time dependent part
-                self._chi2_alltimes[channels][tag] = chi2base-chi2_t
-                
-                self._chi2_alltimes_rolled[channels][tag] = np.roll(self._chi2_alltimes[channels][tag],
-                                                                    self.pretrigger_samples, axis=-1)
+            signal_fft = self._of_base.signal_mat(channels)
+            temp_icov_f = self._of_base.icovf(self, channels)
+            temp_amp_allt = self._amps_alltimes[channels]
+            filt_signal_t = self._of_base.signal_filt_mat_td(channels)
+            chi2base = 0
+            for kchan in range(self._nchan):
+                for jchan in range(self._nchan):
+                    chi2base += np.sum(np.dot(
+                    (signal_fft[kchan,:].conjugate())*temp_icov_f[kchan,jchan,:],
+                    signal_fft[jchan,:]))
+                    #chi2base is a time independent scalar on the sum over all channels & freq bins
+            chi2base = np.real(chi2base)
+            chi2_t = np.zeros_like(temp_amp_allt)
+            chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0)) #this sums along the template
+            #dim [ntmp, nbins]
+            #chi2_t is the time dependent part
+            self._chi2_alltimes[channels] = chi2base-chi2_t
+            self._chi2_alltimes_rolled[channels] = np.roll(self._chi2_alltimes[channels],
+                                                           self.pretrigger_samples, axis=-1)
             

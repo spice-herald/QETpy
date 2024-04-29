@@ -48,8 +48,8 @@ class OFBase:
         # number of samples
         self._nbins = None
         
-        self._ntmp = None #will need to be grabbed from build_temp_mat etc (which is not written yet)
-        self._nchan = None
+        self._ntmps = None #set in build_temp_mat by counting all template_tags that are not none type
+        self._nchans = None # set in self.set_csd by the channels list length
 
 
         # initialize templates (time domain and FFT)
@@ -159,6 +159,16 @@ class OFBase:
         if (channel in self._templates.keys()
             and template_tag in self._templates[channel].keys()):
             return self._templates[channel][template_tag]
+        else:
+            return None
+
+    def template_mat(self, channels):
+        '''
+        FIXME: 
+        add docstrings and dimensions
+        '''
+        if (channels in self._template_mat.keys():
+            return self._template_mat[channels]
         else:
             return None
 
@@ -292,6 +302,17 @@ class OFBase:
             return self._signal[channel]
         else:
             return None
+            
+    def signal_mat(self, channels):
+        '''
+        FIXME:
+        add docstrings and dimensions
+        '''
+        if (channels in self._signal_mat.keys()
+            return self._signal_mat[channels]
+        else:
+            return None
+
 
     def signal_fft(self, channel):
         """
@@ -344,12 +365,12 @@ class OFBase:
         else:
             return None
 
-    def phi_mat(self, channels, template_tag='default'):
+    def phi_mat(self, channels):
         '''
         '''
         if (channels in self._phi_mat.keys()
-            and template_tag in self._phi_mat[channels].keys()):
-            return self._phi_mat[channels][template_tag]
+            #and template_tag in self._phi_mat[channels].keys()):
+            return self._phi_mat[channels]
         else:
             return None
 
@@ -381,14 +402,14 @@ class OFBase:
             return None
     
     
-    def iw_mat(self, channels, template_tag='default'):
+    def iw_mat(self, channels):
         '''
         FIXME
         add docstrings and dimensions
         '''
         if (channels in self._iw_mat.keys()
-            and template_tag in self._iw_mat[channels].keys()):
-            return self._iw_mat[channels][template_tag]
+            #and template_tag in self._iw_mat[channels].keys()):
+            return self._iw_mat[channels]
         else:
             return None
 
@@ -422,13 +443,13 @@ class OFBase:
         else:
             return None
     
-    def signal_filt_mat(self, channels, template_tag='default'):
+    def signal_filt_mat(self, channels):
         '''
         FIXME: add dimensions and documentation 
         '''
         if (channels in self._signal_filts_mat.keys() 
-            and template_tag in self._signal_filts_mat[channels].keys()):
-            return self._signal_filts_mat[channels][template_tag]
+            #and template_tag in self._signal_filts_mat[channels].keys()):
+            return self._signal_filts_mat[channels]
         else:
             return None
 
@@ -462,13 +483,13 @@ class OFBase:
         else:
             return None
     
-    def signal_filt_mat_td(self, channels, template_tag='default'):
+    def signal_filt_mat_td(self, channels):
         '''
         FIXME: add dimensions and docstring
         '''
         if (channels in self._signal_filts_mat_td.keys()
-            and template_tag in self._signal_filts_mat_td[channels].keys()):
-            return self._signal_filts_mat_td[channels][template_tag]
+            #and template_tag in self._signal_filts_mat_td[channels].keys()):
+            return self._signal_filts_mat_td[channels]
         else:
             return None
     
@@ -650,6 +671,7 @@ class OFBase:
                     'at least one "|" separation')
         else:
             channels = '|'.join(channels)
+            self._nchans = len(channels) # for channels list length 
 
             
         # check if same length as template
@@ -731,7 +753,6 @@ class OFBase:
         """
 
         # signal
-<<<<<<< Updated upstream
         if channel is None:
             self._signal = dict()
             self._signal_fft = dict()
@@ -758,7 +779,6 @@ class OFBase:
             if channel in self._template_filts_td:
                 self._template_filts_td.pop(channel)
                 
-=======
         self._signal = dict()
         self._signal_fft = dict()
         self._signal_mat = dict()
@@ -772,8 +792,6 @@ class OFBase:
         self._template_filts = dict()
         self._template_filts_td = dict()
 
-
->>>>>>> Stashed changes
         # chisq and amp arrays
         if channel is None:
             self._chisq0 = dict()
@@ -796,7 +814,7 @@ class OFBase:
 
       
     def update_signal(self, channel, signal,
-                      signal_mat=False,
+                      signal_mat_flag=False,
                       calc_signal_filt=True,
                       calc_signal_filt_mat = False,
                       calc_q_vector= True,
@@ -821,7 +839,7 @@ class OFBase:
            the signal that we want to apply the optimum filter to
            (units should be Amps).
            
-        signal_mat : bool, optional
+        signal_mat_flag : bool, optional
             FIXME add docstrings
             Default: False
 
@@ -881,8 +899,8 @@ class OFBase:
         f, signal_fft = fft(signal, self._fs, axis=-1)
         self._signal_fft[channel] = signal_fft/self._nbins/self._df
         
-        if signal_mat: # requires that signal_fft already be calculated
-            self.build_signal_mat(channel, template_tags=template_tags)
+        if signal_mat_flag: # requires that signal_fft already be calculated
+            self.build_signal_mat(channels=channel, template_tags=template_tags)
         
         if calc_signal_filt or calc_signal_filt_td:
             
@@ -894,9 +912,9 @@ class OFBase:
                 self.calc_signal_filt_td(channel, template_tags=template_tags)
                 
         if calc_signal_filt_mat or calc_signal_filt_mat_td:
-            self.calc_signal_filt_mat(channel, template_tags=template_tags)
+            self.calc_signal_filt_mat(channels=channel)
             if calc_signal_filt_mat_td:
-                self.calc_signal_filt_mat_td(channel, template_tags=template_tags)
+                self.calc_signal_filt_mat_td(channels=channel)
 
         # calc q_vector
         if calc_q_vector:
@@ -906,38 +924,93 @@ class OFBase:
         if calc_chisq_amp:
             self.calc_chisq_amp(channel, template_tags=template_tags)
 
-    def build_signal_mat(self, channels, template_tags=None):
+    def build_signal_mat(self, channels):
         '''
         FIXME:
-        add type catching for channels list or string
         add dimensions and docstrings
         '''
-        temp_signal_mat = np.zeros((self._nchan, self._nbins))
+        temp_signal_mat = np.zeros((self._nchans, self._nbins))
+            
+        if isinstance(channels, str):
+            if '|' not in channels:
+                raise ValueError(
+                    'ERROR: format is wrong. There should be '
+                    'at least one "|" separation')
+        else:
+            channels = '|'.join(channels) #ensures that channels is a list
         # instantiate
         if channels not in self._signal_mat:
             self._signal_mat[channels] = dict()
-        #add type catching for channels 
-        channels_list = channels.split(sep='|')
-        for tag in template_tags:
+        
+        for ichan, chan in enumerate(channels):
             
-            for ichan, channel in enumerate(channels_list): # check channel
+            if chan not in self._signal_fft:
+                raise ValueError(f'ERROR: Missing signal fft for '
+                                    f'channel {chan}')
+                # _signal_fft should be done each time update_signal is called
+                # so it should already be calculated for each channel
+                # _signal_fft is also signal_fft/self._nbins/self._df!!! 
 
-                if channel not in self._signal_fft:
-                    raise ValueError(f'ERROR: Missing signal fft for '
-                                     f'channel {channel}')
-                    # _signal_fft should be done each time update_signal is called
-                    # so it should already be calculated for each channel
-                    # _signal_fft is also signal_fft/self._nbins/self._df!!! 
-
-                temp_signal_fft = self._signal_fft[channel]
-                temp_signal_mat[ichan,:] = temp_signal_fft
+            temp_signal_fft = self._signal_fft[chan]
+            temp_signal_mat[ichan,:] = temp_signal_fft
             
-            self._signal_mat[channels][tag] = temp_signal_mat #save the built signal matrix
+        self._signal_mat[channels] = temp_signal_mat #save the built signal matrix
     
     def build_template_mat(self, channels, template_tags=None):
         '''
+        FIXME:
+        see the comment about out of index error that will happen
+        
         '''
-        temp_templ_mat = np.zeros((self._nchans, self._ntemps, self._nbins))
+        # instantiate
+        if channels not in self._template_mat:
+            self._template_mat[channels] = dict()
+            
+        if isinstance(channels, str):
+            if '|' not in channels:
+                raise ValueError(
+                    'ERROR: format is wrong. There should be '
+                    'at least one "|" separation')
+        else:
+            channels = '|'.join(channels) #ensures that channels is a list
+            
+        # instantiate    
+        if template_tags is None:
+            template_tags = list(self._templates_fft[channels].keys())
+        elif isinstance(template_tags, str):
+            template_tags = [template_tags]
+        elif not isinstance(template_tags, list):
+            raise ValueError(f'ERROR "template_tags" argument should be '
+                             f'a string or list of strings')
+
+        template_count=0 #this way we don't count None templates
+        for tag in template_tags:
+            if tag is None:
+                continue
+            else:
+                template_count+=1
+                print(f'template_count: {template_count}')#remove after debugging
+        self._ntmps=template_count
+        
+        temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins))
+        #build the template matrix
+        for ichan, chan in enumerate(channels):    
+            for itag, tag in enumerate(template_tags): #each channel must have only 1 template in the nxm
+                if tag is None:
+                    print(f'{chan} will not have a template. Skipping.') #remove this after debugging
+                    continue
+                if tag not in self._templates_fft[chan].keys():
+                    raise ValueError(f'ERROR: Template FFT with tag "{tag}" '
+                                     f'not found for channel {channels}')
+
+                temp_templ_fft = self._templates_fft[chan][tag]
+                temp_templ_mat[ichan,ichan,:] = temp_templ_fft
+        self._template_mat[channels] = temp_templ_mat
+        #FIXME: there is a problem here in terms of dimensions
+        #if we have 3 channels and only want to fit 2 templates, one to the first channel
+        #and one to the last (aka no template to the middle channel), then we will get an 
+        #index error because we will skip the channel, ichan will +=1 and go out of bounds
+        #from the dimension ntmps. 
 
     def calc_phi(self, channel, template_tags=None):
         """
@@ -1014,9 +1087,15 @@ class OFBase:
         '''
         FIXME
         '''
-        channels_list = channels.split(sep='|')
+        if isinstance(channels, str):
+            if '|' not in channels:
+                raise ValueError(
+                    'ERROR: format is wrong. There should be '
+                    'at least one "|" separation')
+        else:
+            channels = '|'.join(channels) #ensures that channels is a list
         # check channel
-        for channel in channels_list:
+        for channel in channels:
             
             if channel not in self._templates_fft:
                 raise ValueError(f'ERROR: Missing template fft for '
@@ -1025,14 +1104,6 @@ class OFBase:
         if channels not in self._csd:
             raise ValueError(f'ERROR: Missing csd for '
                              f'channels {channels}')
-
-        #if template_tags is None:
-        #    template_tags = list(self._templates_fft[channel].keys())
-        #elif isinstance(template_tags, str):
-        #    template_tags = [template_tags]
-        #elif not isinstance(template_tags, list):
-        #    raise ValueError(f'ERROR "template_tags" argument should be '
-        #                     f'a string or list of strings')
         
         # initialize
         if channels not in self._phi_mat:
@@ -1043,38 +1114,33 @@ class OFBase:
             # calculate the inverted csd matrix
             # this only needs to be done once, (no need for template tags)
             calc_icovf(channels)
+         if channels not in self._template_mat:
+            build_template_mat(channels, template_tags)
             
-        for tag in template_tags:
-            #add error catching to make sure template matrix is built for 
-            #the channel combination + signal/noise callouts in the template tag
-            template_fft = self._template_mat[channels][tag] #needs to be built still 
-            temp_icovf = icovf(channels)
-            self._phi_mat[channels][tag] = np.array([(template_fft[:,:,jnu].T).conjugate()
-                                                     @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
-                                                    ],dtype='complex_')
+        template_fft = self._template_mat[channels]
+        temp_icovf = icovf(channels)
+        self._phi_mat[channels] = np.array([(template_fft[:,:,jnu].T).conjugate()
+                                            @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
+                                           ],dtype='complex_')
             
             
     def calc_weight_mat(self, channels, template_tags=None):
         '''
         FIXME
         '''
-        #need to add instantiate of self.ntmp self.nchan etc via build_template_mat and 
-        #build_signal_mat
-        for tag in template_tags:
-            
-            if phi_mat(channels, template_tag=tag) is None:
-                calc_phi_mat(channels, template_tags)
+        if phi_mat(channels) is None:
+            calc_phi_mat(channels, template_tags)
                 
-            temp_w = np.zeros((self._ntmp,self._ntmp),dtype='complex_')
-            temp_phi_mat = phi_mat(channels)
-            template_fft = self._template_mat[channels][tag] #needs to be built still
-            for itmp in range(self._ntmp):
-                for jtmp in range(self._ntmp):
-                    for jchan in range(self._nchan):
-                        temp_w[itmp,jtmp] += np.sum(temp_phi_mat[:,itmp,jchan]*template_fft[jchan,jtmp,:])
-            temp_w = np.real(temp_w)
-            temp_iw = pinv(temp_w)
-            self._iw_mat[channels][tag] = temp_iw 
+        temp_w = np.zeros((self._ntmps,self._ntmps),dtype='complex_')
+        temp_phi_mat = phi_mat(channels)
+        temp_templ_fft = self._template_mat[channels]
+        for itmp in range(self._ntmps):
+            for jtmp in range(self._ntmps):
+                for jchan in range(self._nchans):
+                    temp_w[itmp,jtmp] += np.sum(temp_phi_mat[:,itmp,jchan]*temp_templ_fft[jchan,jtmp,:])
+        temp_w = np.real(temp_w)
+        temp_iw = pinv(temp_w)
+        self._iw_mat[channels] = temp_iw 
             
             
     def calc_icovf(self, channels):
@@ -1145,7 +1211,7 @@ class OFBase:
                       tag + '"')
     
     
-    def calc_signal_filt_mat(self, channels, template_tags=None):
+    def calc_signal_filt_mat(self, channels):
         '''
         FIXME
         Add instance catching for phi_mat, None type template_tags, and signal_mat
@@ -1154,14 +1220,13 @@ class OFBase:
         Build template_mat
         Add dimensions and docstrings
         '''
-        for tag in template_tags:
-            temp_sign_mat = np.zeros((self._ntmp, self._nbins), dtype='complex_')
-            temp_phi_mat = phi_mat(channels, template_tag=tag)
-            signal_fft = self._signal_mat[channels][tag] 
-            for itmp in range(self._ntmp):
-                for jchan in range(self._nchan):
-                    temp_sign_mat[itmp,:]+= temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:] #filtered signal
-            self._signal_filts_mat[channels][tag] = temp_sign_mat
+        temp_sign_mat = np.zeros((self._ntmps, self._nbins), dtype='complex_')
+        temp_phi_mat = phi_mat(channels)
+        signal_fft = self._signal_mat[channels]
+        for itmp in range(self._ntmps):
+            for jchan in range(self._nchans):
+                temp_sign_mat[itmp,:]+= temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:] #filtered signal
+        self._signal_filts_mat[channels] = temp_sign_mat
 
             
     def calc_signal_filt_td(self, channel, template_tags=None):
@@ -1222,7 +1287,7 @@ class OFBase:
                       tag + '"')
 
     
-    def calc_signal_filt_mat_td(self, channels, template_tags=None):
+    def calc_signal_filt_mat_td(self, channels):
         '''
         FIXME
         add template_tags instance type catching and None type catching
@@ -1230,18 +1295,14 @@ class OFBase:
         '''
         #add template_tags instance catching
         if channels not in self._signal_filts_mat: #check to see if signal_filts_mat is calculated
-            self.calc_signal_filt_mat(channels, template_tags=template_tags)
+            self.calc_signal_filt_mat(channels)
         # initialize    
         if channels not in self._signal_filts_mat_td:
             self._signal_filts_mat_td[channels] = dict()
-        for tag in template_tags:
-            if tag not in self._signal_filts_mat[channels].keys():
-                self.calc_signal_filt_mat(channels, template_tags=tag)
-                # if for whatever reason the first signal_filts_mat catch failed
-                
-            sign_f_mat = self._signal_filts_mat[channels][tag]
-            temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
-            self._signal_filts_mat_td[channels][tag] = temp_sign_t_mat
+
+        sign_f_mat = self._signal_filts_mat[channels]
+        temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
+        self._signal_filts_mat_td[channels] = temp_sign_t_mat
 
             
     def calc_chisq0(self, channel):
