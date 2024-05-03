@@ -167,7 +167,7 @@ class OFBase:
         FIXME: 
         add docstrings and dimensions
         '''
-        if (channels in self._template_mat.keys():
+        if (channels in self._template_mat.keys()):
             return self._template_mat[channels]
         else:
             return None
@@ -308,7 +308,7 @@ class OFBase:
         FIXME:
         add docstrings and dimensions
         '''
-        if (channels in self._signal_mat.keys()
+        if (channels in self._signal_mat.keys()):
             return self._signal_mat[channels]
         else:
             return None
@@ -368,7 +368,7 @@ class OFBase:
     def phi_mat(self, channels):
         '''
         '''
-        if (channels in self._phi_mat.keys()
+        if (channels in self._phi_mat.keys()):
             #and template_tag in self._phi_mat[channels].keys()):
             return self._phi_mat[channels]
         else:
@@ -407,7 +407,7 @@ class OFBase:
         FIXME
         add docstrings and dimensions
         '''
-        if (channels in self._iw_mat.keys()
+        if (channels in self._iw_mat.keys()):
             #and template_tag in self._iw_mat[channels].keys()):
             return self._iw_mat[channels]
         else:
@@ -447,7 +447,7 @@ class OFBase:
         '''
         FIXME: add dimensions and documentation 
         '''
-        if (channels in self._signal_filts_mat.keys() 
+        if (channels in self._signal_filts_mat.keys()):
             #and template_tag in self._signal_filts_mat[channels].keys()):
             return self._signal_filts_mat[channels]
         else:
@@ -487,7 +487,7 @@ class OFBase:
         '''
         FIXME: add dimensions and docstring
         '''
-        if (channels in self._signal_filts_mat_td.keys()
+        if (channels in self._signal_filts_mat_td.keys()):
             #and template_tag in self._signal_filts_mat_td[channels].keys()):
             return self._signal_filts_mat_td[channels]
         else:
@@ -882,7 +882,6 @@ class OFBase:
             raise ValueError(f'ERROR:Inconsistent number of samples '
                              f'between signal and template/psd for '
                              f'channel {channel}')
-     
         # reset all signal dependent quantities
         self.clear_signal(channel=channel)
 
@@ -919,11 +918,10 @@ class OFBase:
         # calc q_vector
         if calc_q_vector:
             self._calc_q_vector(channel, template_tags=template_tags)
-
         # calc chisq no pulse
         if calc_chisq_amp:
             self.calc_chisq_amp(channel, template_tags=template_tags)
-
+        
     def build_signal_mat(self, channels):
         '''
         FIXME:
@@ -941,12 +939,9 @@ class OFBase:
         # instantiate
         if channels not in self._signal_mat:
             self._signal_mat[channels] = dict()
-        
         for ichan, chan in enumerate(channels):
-            
             if chan not in self._signal_fft:
-                raise ValueError(f'ERROR: Missing signal fft for '
-                                    f'channel {chan}')
+                raise ValueError(f'ERROR: Missing signal fft for channel {chan}')
                 # _signal_fft should be done each time update_signal is called
                 # so it should already be calculated for each channel
                 # _signal_fft is also signal_fft/self._nbins/self._df!!! 
@@ -955,22 +950,19 @@ class OFBase:
             temp_signal_mat[ichan,:] = temp_signal_fft
             
         self._signal_mat[channels] = temp_signal_mat #save the built signal matrix
-    
+            
     def build_template_mat(self, channels, template_tags=None):
         '''
         FIXME:
-        see the comment about out of index error that will happen
-        
+        dimensions and docstrings. add note about how the template is built
+        there is an indent error somewhere?
         '''
         # instantiate
         if channels not in self._template_mat:
             self._template_mat[channels] = dict()
-            
         if isinstance(channels, str):
             if '|' not in channels:
-                raise ValueError(
-                    'ERROR: format is wrong. There should be '
-                    'at least one "|" separation')
+                raise ValueError('ERROR: format is wrong. There should be at least one "|" separation')
         else:
             channels = '|'.join(channels) #ensures that channels is a list
             
@@ -980,8 +972,7 @@ class OFBase:
         elif isinstance(template_tags, str):
             template_tags = [template_tags]
         elif not isinstance(template_tags, list):
-            raise ValueError(f'ERROR "template_tags" argument should be '
-                             f'a string or list of strings')
+            raise ValueError(f'ERROR "template_tags" argument should be a string or list of strings')
 
         template_count=0 #this way we don't count None templates
         for tag in template_tags:
@@ -990,27 +981,35 @@ class OFBase:
             else:
                 template_count+=1
                 print(f'template_count: {template_count}')#remove after debugging
+                
         self._ntmps=template_count
         
-        temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins))
-        #build the template matrix
+        temp_templ_mat = np.zeros((self._nchans, self._nchans, self._nbins)) #the dimensions are technically
+        #nchans, ntmps, nbins but there will be out of index issues for channels in the middle which 
+        # do not have templates. And we are padding with zeroes. 
+        templ_list = []
+        
+        #first build a list of template tags so that each template tag
+        #is at the same index as channel
         for ichan, chan in enumerate(channels):    
-            for itag, tag in enumerate(template_tags): #each channel must have only 1 template in the nxm
-                if tag is None:
-                    print(f'{chan} will not have a template. Skipping.') #remove this after debugging
-                    continue
+            for itag, tag in enumerate(template_tags): # each channel must have only 1 maximum template in the nxm
                 if tag not in self._templates_fft[chan].keys():
-                    raise ValueError(f'ERROR: Template FFT with tag "{tag}" '
-                                     f'not found for channel {channels}')
-
-                temp_templ_fft = self._templates_fft[chan][tag]
+                    raise ValueError(f'ERROR: Template FFT with tag "{tag}" not found for channel {channels}')
+                
+                templ_list[ichan]=tag # this will work for each channel having 1 template maximum
+                #this ensures that the template tag is at the same index as the channel
+        
+        #now build the actual template matrix    
+        for ichan, chan in enumerate(channels):
+            if templ_list[ichan] is None:
+                print(f'{chan} will not have a template.')
+                continue
+            else:
+                temp_templ_fft = self._templates_fft[chan][templ_list[ichan]]
                 temp_templ_mat[ichan,ichan,:] = temp_templ_fft
         self._template_mat[channels] = temp_templ_mat
-        #FIXME: there is a problem here in terms of dimensions
-        #if we have 3 channels and only want to fit 2 templates, one to the first channel
-        #and one to the last (aka no template to the middle channel), then we will get an 
-        #index error because we will skip the channel, ichan will +=1 and go out of bounds
-        #from the dimension ntmps. 
+        #the above will create 0 amplitudes for the channels who have None type assigned channels
+        
 
     def calc_phi(self, channel, template_tags=None):
         """
