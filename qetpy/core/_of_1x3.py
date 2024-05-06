@@ -18,7 +18,7 @@ class  OF1x3:
     def __init__(self, of_base=None, template_1_tag='Scintillation',
                  template_1=None, template_2_tag='Evaporation', template_2=None,
                  template_3_tag='Triplet', template_3=None,
-                 psd=None, sample_rate=None,
+                 psd=None, sample_rate=None, fit_window=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
                  channel_name='unknown',
@@ -94,7 +94,6 @@ class  OF1x3:
 
         """
         # single 1x2
-        self._time_combinations = None
         self._q = dict()
         self._q_vec = None
         self._amplitude = dict()
@@ -122,6 +121,7 @@ class  OF1x3:
                                    pretrigger_msec=pretrigger_msec,
                                    pretrigger_samples=pretrigger_samples,
                                    channel_name=channel_name,
+                                   fit_window =fit_window,
                                    verbose=verbose)
 
         # verbose
@@ -236,29 +236,15 @@ class  OF1x3:
 
 
         if self._of_base._p_matrix is None:
-            self._of_base.calc_p_and_p_inverse(len(self._of_base._templates))
+            if self._of_base._fit_window is not None:
+                self._of_base.calc_p_and_p_inverse(self._of_base._fit_window)
+            else:
+                raise ValueError('ERROR in OF1x3: fit_window required cannot handle such big matrices!')
+
 
 
 
         # initialize fit results
-
-
-
-
-
-    def _get_time_combs_and_array(self, fit_window): #not in OF base
-
-        if fit_window == None:
-            time_combinations1 = np.arange(int(-self._of_base._nbins/ 2), int(self._of_base._nbins / 2))
-            time_combinations2 = np.arange(int(-self._of_base._nbins / 2), int(self._of_base._nbins / 2))
-            time_combinations3 = np.arange(int(-self._of_base._nbins / 2), int(self._of_base._nbins / 2))
-        else:
-            time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
-            time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
-            time_combinations3 = np.arange(int(fit_window[2][0]), int(fit_window[2][1]))
-
-        self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2,time_combinations3), -1).reshape(-1, len(self._of_base._templates))
-
 
 
     def _get_amps(self, t0s): # not in OF base
@@ -269,29 +255,17 @@ class  OF1x3:
         template_list = list(self._of_base._templates.keys())
 
 
-
-        pmatrix_inv  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates), len(self._of_base._templates) ))
         self._q_vec  = np.zeros(( len(self._of_base._templates),self._time_combinations[:,0].shape[0] ))
         amps  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
 
         np.einsum('jii->ji', pmatrix_inv )[:] = 1
 
         for i in range(len(self._of_base._templates)):
-            if i == len(self._of_base._templates)-1:
-                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i]
-            else:
-                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,i+1]][:, i, i]
             self._q_vec[i,:] = self._of_base._q_vector[template_list[i]][t0s[:,i]]
 
-            for j in range(i+1,len(self._of_base._templates)):
-
-                pmatrix_inv[:, i, j] = pmatrix_inv[:, j, i]= self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,j]][:, i, j]
-
-
         for i in range(len(self._of_base._templates)):
-            sum =0;
             for j in range(len(self._of_base._templates)):
-                amps[:,i] = amps[:,i]  + pmatrix_inv[:,i,j]*self._q_vec[j,:]
+                amps[:,i] = amps[:,i]  + self._of_base._pmatrix_inv[:,i,j]*self._q_vec[j,:]
 
         return amps[:,0],amps[:,1],amps[:,2]
 
@@ -335,16 +309,18 @@ class  OF1x3:
                 template_tags=[self._template_1_tag , self._template_2_tag, self._template_3_tag ]
             )
 
+        if fit_window is not None:
+           self._of_base.calc_p_and_p_inverse(fit_window)
+        else:
+            raise ValueError('ERROR in OF1x3: fit_window required cannot handle such big matrices!')
 
-        self._get_time_combs_and_array(fit_window)
-
-        amps1, amps2, amps3 = self._get_amps(self._time_combinations)
+        amps1, amps2, amps3 = self._get_amps(self._of_base._time_combinations)
 
         chi2s = self._chi2(amps1, amps2, amps3 )
 
         min_index = np.argmin(np.abs(chi2s))
         self._chi2_of_1x2 = chi2s[min_index]
-        self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
+        self._time_diff_two_Pulses = self._of_base._time_combinations[min_index, 1]/self._of_base._fs - self._of_base._time_combinations[min_index, 0]/self._of_base._fs
 
 
         if(self._time_diff_two_Pulses < 0):
@@ -352,16 +328,16 @@ class  OF1x3:
             self._amplitude[self._template_2_tag]= amps1[min_index]
             self._amplitude[self._template_3_tag]= amps3[min_index]
             self._time_diff_two_Pulses=np.abs(self._time_diff_two_Pulses)
-            self._time_first_pulse =  self._time_combinations[min_index, 1]
-            self._time_second_pulse =  self._time_combinations[min_index, 0]
-            self._time_third_pulse =  self._time_combinations[min_index, 2]
+            self._time_first_pulse =  self._of_base._time_combinations[min_index, 1]
+            self._time_second_pulse =  self._of_base._time_combinations[min_index, 0]
+            self._time_third_pulse =  self._of_base._time_combinations[min_index, 2]
         else:
             self._amplitude[self._template_1_tag] = amps1[min_index]
             self._amplitude[self._template_2_tag]= amps2[min_index]
             self._amplitude[self._template_3_tag]= amps3[min_index]
-            self._time_first_pulse = self._time_combinations[min_index, 0]
-            self._time_second_pulse =  self._time_combinations[min_index, 1]
-            self._time_third_pulse =  self._time_combinations[min_index, 2]
+            self._time_first_pulse = self._of_base._time_combinations[min_index, 0]
+            self._time_second_pulse =  self._of_base._time_combinations[min_index, 1]
+            self._time_third_pulse =  self._of_base._time_combinations[min_index, 2]
 
 
         if lgc_plot:

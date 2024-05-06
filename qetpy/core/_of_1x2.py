@@ -17,7 +17,7 @@ class OF1x2:
 
     def __init__(self, of_base=None, template_1_tag='Scintillation',
                  template_1=None, template_2_tag='Evaporation', template_2=None,
-                 psd=None, sample_rate=None,
+                 psd=None, sample_rate=None, fit_window=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
                  channel_name='unknown',
@@ -93,7 +93,6 @@ class OF1x2:
 
         """
         # single 1x2
-        self._time_combinations = None
         self._q = dict()
         self._q_vec = None
         self._amplitude = dict()
@@ -120,6 +119,7 @@ class OF1x2:
                                    pretrigger_msec=pretrigger_msec,
                                    pretrigger_samples=pretrigger_samples,
                                    channel_name=channel_name,
+                                   fit_window =fit_window,
                                    verbose=verbose)
 
         # verbose
@@ -205,27 +205,11 @@ class OF1x2:
 
 
         if self._of_base._p_matrix is None:
-            self._of_base.calc_p_and_p_inverse(len(self._of_base._templates))
+            self._of_base.calc_p_and_p_inverse(self._of_base._fit_window)
 
 
 
         # initialize fit results
-
-
-
-
-
-    def _get_time_combs_and_array(self, fit_window): #not in OF base
-
-        if fit_window == None:
-            time_combinations1 = np.arange(int(-self._of_base._nbins/ 2), int(self._of_base._nbins / 2))
-            time_combinations2 = np.arange(int(-self._of_base._nbins / 2), int(self._of_base._nbins / 2))
-        else:
-            time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
-            time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
-
-        self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, len(self._of_base._templates))
-
 
 
     def _get_amps(self, t0s, flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive): # not in OF base
@@ -234,52 +218,23 @@ class OF1x2:
         the inputted time offsets.
         """
 
-        #pmatrix_inv = self._of_base._p_inv_matrix[t0s[:,0] - t0s[:,1]]
-        #self._q_vec = np.array([self._of_base._q_vector[self._template_1_tag][t0s[:,0]], \
-        #                       self._of_base._q_vector[self._template_2_tag][t0s[:,1]]])
-
-        #return pmatrix_inv[:,0,0]*self._q_vec[0,:] + pmatrix_inv[:,0,1]*self._q_vec[1,:],\
-        #       pmatrix_inv[:,1,0]*self._q_vec[0, :] + pmatrix_inv[:,1,1]*self._q_vec[1,:]
-
-
         template_list = list(self._of_base._templates.keys())
 
+        self._q_vec  = np.zeros(( len(self._of_base._templates),self._of_base._time_combinations[:,0].shape[0] ))
+        amps  = np.zeros((self._of_base._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
 
-
-        pmatrix_inv  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates), len(self._of_base._templates) ))
-        pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates), len(self._of_base._templates) ))
-        self._q_vec  = np.zeros(( len(self._of_base._templates),self._time_combinations[:,0].shape[0] ))
-        amps  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
-
-        np.einsum('jii->ji', pmatrix_inv )[:] = 1
 
         for i in range(len(self._of_base._templates)):
-            if i == len(self._of_base._templates)-1:
-                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,0] - t0s[:,i]][:, i, i] #this works not sure why....
-                #pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i] #this doesn't work...a big mystery
-
-                pmatrix_inv_eigen_vectors[:, i, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,0] - t0s[:,i]][:, i, i]
-            else:
-                pmatrix_inv[:, i, i] = self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,i+1]][:, i, i]
-
-                pmatrix_inv_eigen_vectors[:, i, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
-
             self._q_vec[i,:] = self._of_base._q_vector[template_list[i]][t0s[:,i]]
-
-            for j in range(i+1,len(self._of_base._templates)):
-
-                pmatrix_inv[:, i, j] = pmatrix_inv[:, j, i]= self._of_base._p_inv_matrix[t0s[:,i] - t0s[:,j]][:, i, j]
-                pmatrix_inv_eigen_vectors[:, i, j] = pmatrix_inv_eigen_vectors[:, j, i] = self._of_base._pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
-
 
         for i in range(len(self._of_base._templates)):
             for j in range(len(self._of_base._templates)):
-                amps[:,i] = amps[:,i]  + pmatrix_inv[:,i,j]*self._q_vec[j,:]
+                amps[:,i] = amps[:,i]  + self._of_base._pmatrix_inv[:,i,j]*self._q_vec[j,:]
 
 
         amps0 = amps[:,0]
         amps1 = amps[:,1]
-
+        pmatrix_inv_eigen_vectors = self._of_base._pmatrix_inv
 
 
         if(flag_restrict_amps0_to_be_postive == True and flag_restrict_amps1_to_be_postive == False):#Only amps1 can move and amps0=0, if amps0 is negative
@@ -448,7 +403,7 @@ class OF1x2:
         #chi2, only useful when polarity constrained is not demanded
         #return self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 , amps1, amps2
 
-        #chi2 if polarity constrained is need 
+        #chi2 if polarity constrained is need
         chi2= (self._of_base._chisq0 - self._q_vec_conj[0,:] * amps1 - self._q_vec_conj[1,:] * amps2 - self._q_vec[0,:] * amps1 - self._q_vec[1,:] * amps2 +\
               self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 0, 0]* amps1* amps1 + self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 1, 1]* amps2* amps2 +\
               amps1*amps2*self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 0, 1] + amps1*amps2*self._of_base._p_matrix[t0s[:,0] - t0s[:,1]][:, 1, 0])
@@ -484,30 +439,30 @@ class OF1x2:
                 calc_chisq_amp=True,
                 template_tags=[self._template_1_tag , self._template_2_tag ]
             )
+            if fit_window is not None:
+                self._of_base.calc_p_and_p_inverse(fit_window)
 
 
-        self._get_time_combs_and_array(fit_window)
+        amps1, amps2 = self._get_amps(self._of_base._time_combinations,flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
 
-        amps1, amps2 = self._get_amps(self._time_combinations,flag_restrict_amps0_to_be_postive, flag_restrict_amps1_to_be_postive)
-
-        chi2s, amps1, amps2 = self._chi2(amps1, amps2,self._time_combinations)
+        chi2s, amps1, amps2 = self._chi2(amps1, amps2, self._of_base._time_combinations)
 
         min_index = np.argmin(chi2s)
         self._chi2_of_1x2 = chi2s[min_index]
-        self._time_diff_two_Pulses = self._time_combinations[min_index, 1]/self._of_base._fs - self._time_combinations[min_index, 0]/self._of_base._fs
+        self._time_diff_two_Pulses = self._of_base._time_combinations[min_index, 1]/self._of_base._fs - self._of_base._time_combinations[min_index, 0]/self._of_base._fs
         print("Scintillation: {}, Evaporation :{} and Time difference: {}".format(amps1[min_index],amps2[min_index],self._time_diff_two_Pulses))
 
         if(self._time_diff_two_Pulses < 0):
             self._amplitude[self._template_1_tag] = amps2[min_index]
             self._amplitude[self._template_2_tag] = amps1[min_index]
             self._time_diff_two_Pulses=np.abs(self._time_diff_two_Pulses)
-            self._time_first_pulse =  self._time_combinations[min_index, 1]
-            self._time_second_pulse =  self._time_combinations[min_index, 0]
+            self._time_first_pulse =  self._of_base._time_combinations[min_index, 1]
+            self._time_second_pulse =  self._of_base._time_combinations[min_index, 0]
         else:
             self._amplitude[self._template_1_tag] = amps1[min_index]
             self._amplitude[self._template_2_tag]= amps2[min_index]
-            self._time_first_pulse = self._time_combinations[min_index, 0]
-            self._time_second_pulse =  self._time_combinations[min_index, 1]
+            self._time_first_pulse = self._of_base._time_combinations[min_index, 0]
+            self._time_second_pulse =  self._of_base._time_combinations[min_index, 1]
 
 
         if lgc_plot:
