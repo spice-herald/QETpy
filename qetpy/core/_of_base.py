@@ -737,7 +737,7 @@ class OFBase:
         self._psd[channel] = psd
            
 
-    def clear_signal(self, channel=None):
+    def clear_signal(self, channel=None, signal_mat_flag=False):
         """
         Method to intialize calculated signal
         parameters  
@@ -751,11 +751,18 @@ class OFBase:
         None
 
         """
-
+            
+        if signal_mat_flag:
+            if isinstance(channel, str):
+                if '|' not in channel:
+                    raise ValueError('ERROR: format is wrong. There should be '
+                                     'at least one "|" separation')
+                else:
+                    channel = '|'.join(channel) #ensures that channels is a list
         # signal
         if channel is None:
             self._signal = dict()
-            self._signal_fft = dict()
+            self._signal_fft = dict()        
         else:
             if channel in  self._signal:
                 self._signal.pop(channel)
@@ -883,7 +890,7 @@ class OFBase:
                              f'between signal and template/psd for '
                              f'channel {channel}')
         # reset all signal dependent quantities
-        self.clear_signal(channel=channel)
+        self.clear_signal(channel=channel, signal_mat_flag=signal_mat_flag)
 
 
         # debug
@@ -892,13 +899,33 @@ class OFBase:
                   f'"{channel}"!')
             
         # update signal
-        self._signal[channel] = signal
-            
-        # FFT
-        f, signal_fft = fft(signal, self._fs, axis=-1)
-        self._signal_fft[channel] = signal_fft/self._nbins/self._df
+        # FIXME: for a nd array of signals corresponding to channels which 
+        # could be a list of strings this will cause issues. 
+        # add a dimension check 
+        if signal_mat_flag:
+            if isinstance(channel, str):
+                if '|' not in channel:
+                    raise ValueError(
+                        'ERROR: format is wrong. There should be '
+                        'at least one "|" separation')
+                else:
+                    channel = '|'.join(channel) #ensures that channels is a list
+                    
+            for ichan,chan in enumerate(channel):
+                self._signal[chan]=signal[ichan] #to assure each signal is assigned to the 
+                #correct single channel not list of channels
+                
+                f, signal_fft = fft(signal, self._fs, axis=-1)
+                self._signal_fft[chan] = signal_fft[ichan]/self._nbins/self._df
+                
+        else:
+            self._signal[channel] = signal
+            # FFT
+            f, signal_fft = fft(signal, self._fs, axis=-1)
+            self._signal_fft[channel] = signal_fft/self._nbins/self._df
         
         if signal_mat_flag: # requires that signal_fft already be calculated
+            print(f'building signal matrix for {channel}')
             self.build_signal_mat(channels=channel, template_tags=template_tags)
         
         if calc_signal_filt or calc_signal_filt_td:
@@ -947,7 +974,8 @@ class OFBase:
                 # _signal_fft is also signal_fft/self._nbins/self._df!!! 
 
             temp_signal_fft = self._signal_fft[chan]
-            temp_signal_mat[ichan,:] = temp_signal_fft
+            temp_signal_mat[ichan,:] = temp_signal_fft*self._df #this gets it back to right units that match
+            #with the rest of the nxm calculation
             
         self._signal_mat[channels] = temp_signal_mat #save the built signal matrix
             
@@ -955,7 +983,6 @@ class OFBase:
         '''
         FIXME:
         dimensions and docstrings. add note about how the template is built
-        there is an indent error somewhere?
         '''
         # instantiate
         if channels not in self._template_mat:
@@ -1005,8 +1032,10 @@ class OFBase:
                 print(f'{chan} will not have a template.')
                 continue
             else:
+                #template fft in this code is template_fft/nbins/df
                 temp_templ_fft = self._templates_fft[chan][templ_list[ichan]]
-                temp_templ_mat[ichan,ichan,:] = temp_templ_fft
+                temp_templ_mat[ichan,ichan,:] = temp_templ_fft*self._df #gets it back to right units to match
+                #the rest of the nxm code. 
         self._template_mat[channels] = temp_templ_mat
         #the above will create 0 amplitudes for the channels who have None type assigned channels
         
@@ -1113,7 +1142,7 @@ class OFBase:
             # calculate the inverted csd matrix
             # this only needs to be done once, (no need for template tags)
             calc_icovf(channels)
-         if channels not in self._template_mat:
+        if channels not in self._template_mat:
             build_template_mat(channels, template_tags)
             
         template_fft = self._template_mat[channels]

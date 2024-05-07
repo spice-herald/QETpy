@@ -15,15 +15,11 @@ class OFnxm:
     calculations
     FIXME:
     several things need to be added
-    big one: need to add template and signal matrix creation in of_base
-    That way we can grab the very important nchan, ntmp, dimensions +
-    pulses signals etc 
-    Need to add self class instantiation of pretrigger in msecs as an
-    option
+    
     Need to add no delay fits, no pulse fits, and low freq fits. 
     """
-    def __init__(self, of_base=None, template_tag='default', channels=None, 
-                 template=None, csd=None, sample_rate=None,
+    def __init__(self, of_base=None, template_tags=['default'], channels=None, 
+                 templates=None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False, channel_name='unknown',
                  verbose=True):
@@ -38,18 +34,19 @@ class OFnxm:
            OF base with pre-calculations
            Default: instantiate base class within OFnxm
 
-        template_tag : str, optional 
-           tamplate tag, default='default'
+        template_tags : list of str
+            Template tags to calculate optimal filters
+            Default: ['default']
            
         channels : str or list of string
           channels as ordered list or "|" separated string
           such as "channel1|channel2"
           
-        template : ndarray, optional
-          template array used for OF calculation, can be 
+        templates : ndarray dimn[ntmp, nbins], optional
+          multi-template array used for OF calculation, can be 
           None if already in of_base, otherwise required
 
-        psd : ndarray, optional
+        csd : ndarray, optional
           psd array used for OF calculation, can be 
           None if already in of_base, otherwise required
 
@@ -91,7 +88,7 @@ class OFnxm:
         self._verbose = verbose
 
         # tag
-        self._template_tag = template_tag
+        self._template_tags = template_tags
 
         self._channel_name = channels
         
@@ -114,23 +111,27 @@ class OFnxm:
             self._of_base = OFBase(sample_rate, 
                                    verbose=verbose)
         # add template to base object
-        if template is not None:
-
-            if self._verbose:
-                print('INFO: Adding template with tag "'
-                      +  template_tag + '" to OF base object.')
-            #add channel passing     
-            self._of_base.add_template(template,
-                                       template_tag=template_tag,
-                                       integralnorm=integralnorm)
-            
+        if templates is not None:
+            fs = self._of_base.sample_rate
+            if pretrigger_msec is not None:
+                pretrigger_samples = int(round(fs*pretrigger_msec/1000))
+                
+            for itmp in range(templates.shape[0]):
+                
+                if self._verbose:
+                    print('INFO: Adding template with tag "'
+                          +  template_tags[itmp] + '" to OF base object.')
+                    
+                #add channel passing     
+                self._of_base.add_template(templates[itmp],
+                                           template_tag=template_tags[itmp],
+                                           integralnorm=integralnorm)
         else:
-            
             # check if template exist already
             tags =  self._of_base.template_tags()
-        
+            for itag,tag in enumerate(template_tags):
             if (tags is None
-                or template_tag not in tags):
+                or template_tags not in tags):
 
                 print('ERROR: No template with tag "'
                       + template_tag + ' found in OF base object.'
@@ -151,10 +152,11 @@ class OFnxm:
             if self._of_base.csd(channels) is None:
                 
                 print('ERROR: No csd found in OF base object.'
-                      + ' Add psd(s) argument!')
+                      + ' Add csd argument!')
                 return
         
         #  template/noise pre-calculation
+        # at this point we have added the csd, and the templates to of_base
         if self._of_base.iw_mat(channels) is None:
             self._of_base.calc_weight_mat(channels=channels, template_tags=template_tag)
             # calc_weight_mat will then check that phi_mat is calculated
@@ -165,8 +167,7 @@ class OFnxm:
         # initialize fit results
         #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
         self._nchan, self._ntmp, self._nbins = self._of_base.template_mat(channels).shape()
-        self.pretrigger_samples = pretrigger_samples #need to add option for selection of 
-        #pretrigger in msecs
+        self.pretrigger_samples = pretrigger_samples
         self._fs = sample_rate
         
         self._amps_alltimes_rolled = dict()
@@ -194,6 +195,10 @@ class OFnxm:
                     calc_signal_filt_mat=True,
                     calc_signal_filt_mat_td=True,
                     template_tags=self._template_tag)
+                #update_signal calls clear_signal which resets: 
+                #signal_filts_mat, signal_mat for some list of channels
+                #update_signal then calls:
+                #build_signal_mat, calc_signal_filt_mat
             
             calc_amp_allt(self, self._channel_name)
             calc_chi2_allt(self, self._channel_name, template_tags=self._template_tag)
@@ -237,7 +242,6 @@ class OFnxm:
 
             if window_min is not None and window_min<0:
                 window_min = 0
-
             window_max = None
             if window_max_from_trig_usec is not None:
                 window_max = ceil(pretrigger_samples
@@ -247,6 +251,7 @@ class OFnxm:
 
             if window_max is not None and window_max>self._nbins:
                 window_max = self._nbins
+                
             #argmin_chisq will minimize along the last axis
             #chi2_all dim [ntmp,nbins]
             bestind = argmin_chisq(
