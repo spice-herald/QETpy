@@ -131,16 +131,12 @@ class _PlotDIDV(object):
                 
 
         if (self._fit_results[1] is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._fit_results[1]:
-                key = 'smallsignalparams'
-            else:
-                key = 'params'
             didvfit1_timedomain = squarewaveresponse(
                 self._time,
                 self._sgamp,
                 self._sgfreq,
+                self._fit_results[1]['params'],
                 self._dutycycle,
-                **self._fit_results[1][key],
             )
             
             if lp_cutoff is not None:
@@ -164,16 +160,12 @@ class _PlotDIDV(object):
                 )    
             
         if (self._fit_results[2] is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._fit_results[2]:
-                key = 'smallsignalparams'
-            else:
-                key = 'params'
             didvfit2_timedomain = squarewaveresponse(
                 self._time,
                 self._sgamp,
                 self._sgfreq,
+                self._fit_results[2]['params'],
                 self._dutycycle,
-                **self._fit_results[2][key],
             )
             
             if lp_cutoff is not None:
@@ -198,16 +190,12 @@ class _PlotDIDV(object):
                 )
 
         if (self._fit_results[3] is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._fit_results[3]:
-                key = 'smallsignalparams'
-            else:
-                key = 'params'
             didvfit3_timedomain = squarewaveresponse(
                 self._time,
                 self._sgamp,
                 self._sgfreq,
+                self._fit_results[3]['params'],
                 self._dutycycle,
-                **self._fit_results[3][key],
             )
             
             if lp_cutoff is not None:
