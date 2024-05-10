@@ -99,7 +99,11 @@ class OFBase:
         #intialize the p matrices, independent of signal
         self._p_matrix  = None
         self._pmatrix_inv  = None
-        self._pmatrix_inv_eigen_vectors  = None
+        #self._pmatrix_inv_eigen_vectors = None
+        self._transformation_matrix  = None
+        self._inverse_transformation_matrix  = None
+        self._wedge_matrix  = None
+
         self._time_combinations = None
 
         # initialize signal
@@ -928,21 +932,28 @@ class OFBase:
         M=len(self._templates)
 
         p_matrix = np.zeros((self._nbins, M, M))
+        allowed_boundary = np.zeros((self._nbins, M, M))
+        scaling = np.zeros((self._nbins, M, M))
 
         np.einsum('jii->ji', p_matrix)[:] = 1
 
         for i in range(M):
             p_matrix[:, i, i] = self._norms[template_list[i]]
+            allowed_boundary[:, i, i] = 1.0 #diagonal by definiation
             for j in range(i+1,M):
                 p_matrix[:, i, j] = p_matrix[:, j, i] = \
                 np.real(np.fft.ifft(self._templates_fft[template_list[j]] * self._phis[template_list[i]] ) * self._fs)
+                allowed_boundary[:, i, j] = allowed_boundary[:, j, i] = 0
 
         p_inv_matrix = np.linalg.pinv(p_matrix)
 
-        eigenvalues , eigenvectors = np.linalg.eigh(p_inv_matrix) # eigh for hermitian matrix only
+        #eigenvalues , eigenvectors = np.linalg.eigh(p_inv_matrix) # eigh for hermitian matrix only
+        #pmatrix_inv_eigen_values = np.diag(eigenvalues)
+        #pmatrix_inv_eigen_vectors  = eigenvectors
 
-        pmatrix_inv_eigen_vectors  = eigenvectors
         self._p_matrix= p_matrix
+
+
 
 
         if M==2:
@@ -954,28 +965,49 @@ class OFBase:
                 time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
                 time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
 
-            self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, M)
+            X,Y = np.meshgrid(time_combinations1,time_combinations2)
+
+            mask = X <= Y
+            indices = np.where(mask)
+
+            self._time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
+            #self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, M)
 
             self._pmatrix_inv   = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
-            self._pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
+            #self._pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
 
 
             t0s = self._time_combinations
 
             np.einsum('jii->ji', self._pmatrix_inv )[:] = 1
 
+
             for i in range(M):
                 if i == M-1:
                     self._pmatrix_inv[:, i, i] = p_inv_matrix[t0s[:,0] - t0s[:,i]][:, i, i] #this works not sure why....
                     #self._pmatrix_inv[:, i, i] = p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i] #this doesn't work...a big mystery
-                    self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,0] - t0s[:,i]][:, i, i]
+                    #self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,0]][:, i, i]
+
+
                 else:
                     self._pmatrix_inv[:, i, i] = p_inv_matrix[t0s[:,i] - t0s[:,i+1]][:, i, i]
-                    self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
+                    #self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
+
 
                 for j in range(i+1,M):
                     self._pmatrix_inv[:, i, j] = self._pmatrix_inv[:, j, i]= p_inv_matrix[t0s[:,i] - t0s[:,j]][:, i, j]
-                    self._pmatrix_inv_eigen_vectors[:, i, j] = self._pmatrix_inv_eigen_vectors[:, j, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
+                    #self._pmatrix_inv_eigen_vectors[:, i, j] = self._pmatrix_inv_eigen_vectors[:, j, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
+
+
+            eigenvalues , eigenvectors = np.linalg.eig( self._pmatrix_inv.reshape(-1,M,M) )
+            scaling = np.einsum( '...ij,...j->...ij', np.eye(M), 1/(np.sqrt(np.abs(eigenvalues))) ).reshape( self._time_combinations[:,0].shape[0] ,M,M)
+            rotation = eigenvectors.reshape( self._time_combinations[:,0].shape[0] ,M,M)
+            self._transformation_matrix = np.matmul( rotation, scaling)
+            self._wedge_matrix = self._transformation_matrix/np.linalg.norm( self._transformation_matrix ,axis=1)[:,None,:] #normalised
+            #the wedge vectors are stacked vertically
+            #thus if one wants the 0th wedge vector in the "Nth" time combination space: self._wedge_matrix[N,:,0]
+            self._inverse_transformation_matrix = np.linalg.pinv(self._transformation_matrix)
+
 
         if M==3:
 
@@ -991,7 +1023,7 @@ class OFBase:
             self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2,time_combinations3), -1).reshape(-1, M)
 
             self._pmatrix_inv   = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
-            self._pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
+            #self._pmatrix_inv_eigen_vectors  = np.zeros((self._time_combinations[:,0].shape[0], M, M ))
 
 
             t0s = self._time_combinations
@@ -1001,14 +1033,14 @@ class OFBase:
             for i in range(M):
                 if i ==  M-1:
                     self._pmatrix_inv[:, i, i] = p_inv_matrix[t0s[:,i] - t0s[:,0]][:, i, i]
-                    self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,0]][:, i, i]
+                    #self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,0]][:, i, i]
                 else:
                     self._pmatrix_inv[:, i, i] = p_inv_matrix[t0s[:,i] - t0s[:,i+1]][:, i, i]
-                    self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
+                    #self._pmatrix_inv_eigen_vectors[:, i, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,i+1]][:, i, i]
 
                 for j in range(i+1,M):
                     self._pmatrix_inv[:, i, j] = self._pmatrix_inv[:, j, i]= p_inv_matrix[t0s[:,i] - t0s[:,j]][:, i, j]
-                    self._pmatrix_inv_eigen_vectors[:, i, j] = self._pmatrix_inv_eigen_vectors[:, j, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
+                    #self._pmatrix_inv_eigen_vectors[:, i, j] = self._pmatrix_inv_eigen_vectors[:, j, i] = pmatrix_inv_eigen_vectors[t0s[:,i] - t0s[:,j]][:, i, j]
 
 
 
