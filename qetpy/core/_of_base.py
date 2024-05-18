@@ -61,6 +61,7 @@ class OFBase:
              
         # initialize two-sided noise csd (in Amps^2/Hz)
         self._csd = dict()
+        self._noise_traces = dict()
         
         # initialize the inverted covariance matrix (csd)
         self._icovf = dict()     
@@ -166,9 +167,14 @@ class OFBase:
         '''
         FIXME: 
         add docstrings and dimensions
+        dim: [nchans, ntmps, nbins]
+        Note: the real dimensions are [nchans,nchans,nbins]
+        We pad the template matrix with zeros to prevent an indexing issue
+        when eg: the middle channel has no template. 
+        This template matrix will only work for when each channel has a maximum of
+        1 template. 
         '''
         if (channels in self._template_mat.keys()):
-            print(f'found template mat: {self._template_mat[channels]}')
             return self._template_mat[channels]
         else:
             return None
@@ -238,8 +244,8 @@ class OFBase:
         
         Parameters
         ----------
-        channels : str or list of string
-          channels as ordered list or "|" separated string
+        channels : str
+          channels as "|" separated string
           such as "channel1|channel2"
          
         Return
@@ -261,11 +267,24 @@ class OFBase:
             return self._csd[channels]
         else:
             return None
+        
+        
+    def noise_traces(self, channels):
+        '''
+        FIXME: add docstrings and dimensions
+        '''
+        
+        if channels in self._noise_traces.keys():
+            return self._noise_traces[channels]
+        else:
+            return None
+        
 
     def icovf(self, channels):
         '''
         FIXME
         #add docstrings and dimensions
+        dim: [nchans, nchans, nbins]
         '''
         if channels in self._icovf.keys():
             return self._icovf[channels]
@@ -299,12 +318,11 @@ class OFBase:
         '''
         FIXME:
         add docstrings and dimensions
+        dim: [nchans, nbins]
         '''
         if (channels in self._signal_mat.keys()):
-            print(f'returning signal_mat for {channels}')
             return self._signal_mat[channels]
         else:
-            print(f'returning signal_mat is none')
             return None
 
 
@@ -361,9 +379,12 @@ class OFBase:
 
     def phi_mat(self, channels):
         '''
+        FIXME: add docstrings and dimensions
+        dim: [nbins, ntmps, nchans]
+        Note: this is technically [nbins, nchans, nchans]. See the 
+        note on constructing the template matrix and padding with zeroes.
         '''
         if (channels in self._phi_mat.keys()):
-            #and template_tag in self._phi_mat[channels].keys()):
             return self._phi_mat[channels]
         else:
             return None
@@ -400,9 +421,9 @@ class OFBase:
         '''
         FIXME
         add docstrings and dimensions
+        dim: [ntmps, ntmps]
         '''
         if (channels in self._iw_mat.keys()):
-            #and template_tag in self._iw_mat[channels].keys()):
             return self._iw_mat[channels]
         else:
             return None
@@ -440,13 +461,11 @@ class OFBase:
     def signal_filt_mat(self, channels):
         '''
         FIXME: add dimensions and documentation 
+        dim: [ntmps, nbins]
         '''
         if (channels in self._signal_filts_mat.keys()):
-            #and template_tag in self._signal_filts_mat[channels].keys()):
-            print(f'returning signal_filt_mat for {channels}')
             return self._signal_filts_mat[channels]
         else:
-            print(f'returning signal_filt_mat is none')
             return None
 
     def signal_filt_td(self, channel, template_tag='default'):
@@ -482,9 +501,9 @@ class OFBase:
     def signal_filt_mat_td(self, channels):
         '''
         FIXME: add dimensions and docstring
+        dim: [ntmps, nbins]
         '''
         if (channels in self._signal_filts_mat_td.keys()):
-            #and template_tag in self._signal_filts_mat_td[channels].keys()):
             return self._signal_filts_mat_td[channels]
         else:
             return None
@@ -661,7 +680,6 @@ class OFBase:
 
         """
         if isinstance(channels, str):
-            print(f'set_csd channels {channels}')
             if '|' not in channels:
                 raise ValueError(
                     'ERROR: format is wrong. There should be '
@@ -682,6 +700,13 @@ class OFBase:
         
         # add to dictionary
         self._csd[channels] = csd
+        
+    
+    def set_noise_traces(self, channels, noise_traces):
+        '''
+        FIXME: add docstrings and dimensions
+        '''
+        self._noise_traces[channels] = noise_traces
         
         
     def set_psd(self, channel, psd, coupling='AC'):
@@ -900,15 +925,13 @@ class OFBase:
                     raise ValueError(f'ERROR:Inconsistent number of samples '
                                      f'between signal and template/csd for '
                                      f'channel {chan}')
-                print(f'signal shape: {signal[ichan].shape}')
                 self._signal[chan]=signal[ichan] #to assure each signal is assigned to the 
                 #correct single channel not list of channels
                 
-                f, signal_fft = fft(signal[ichan], self._fs, axis=-1)
+                f, signal_fft = fft(signal[ichan],self._fs, axis=-1)
                 self._signal_fft[chan] = signal_fft/self._nbins
                 
-            print(f'building signal matrix for {channel_name}')
-            self.build_signal_mat(channels=channel, channel_name=channel_name)
+            self.build_signal_mat(channels=channel, channel_name=channel_name, template_tags=template_tags)
         else:
             self._signal[channel] = signal
             # FFT
@@ -925,7 +948,6 @@ class OFBase:
                 self.calc_signal_filt_td(channel, template_tags=template_tags)
                 
         if calc_signal_filt_mat or calc_signal_filt_mat_td:
-            print(f'calculating the filter signal matrices for {channel_name}')
             self.calc_signal_filt_mat(channels=channel_name)
             if calc_signal_filt_mat_td:
                 self.calc_signal_filt_mat_td(channels=channel_name)
@@ -937,12 +959,12 @@ class OFBase:
         if calc_chisq_amp:
             self.calc_chisq_amp(channel, template_tags=template_tags)
         
-    def build_signal_mat(self, channels, channel_name):
+    def build_signal_mat(self, channels, channel_name, template_tags):
         '''
         FIXME:
         add dimensions and docstrings
         '''
-        temp_signal_mat = np.zeros((self._nchans, self._nbins))
+        temp_signal_mat = np.zeros((self._nchans, self._nbins), dtype='complex_')
         # instantiate
         if channel_name not in self._signal_mat:
             self._signal_mat[channel_name] = dict()
@@ -952,9 +974,12 @@ class OFBase:
                 # _signal_fft should be done each time update_signal is called
                 # so it should already be calculated for each channel
                 # _signal_fft is also signal_fft/self._nbins/self._df!!! 
-
-            temp_signal_fft = self._signal_fft[chan]
-            temp_signal_mat[ichan,:] = temp_signal_fft
+            if template_tags[ichan] is 'None':
+                noise_trace = self.noise_traces(channel_name)
+                temp_signal_mat[ichan,:] = noise_trace[ichan,:]
+            else:
+                temp_signal_fft = self._signal_fft[chan]
+                temp_signal_mat[ichan,:] = temp_signal_fft
             #with the rest of the nxm calculation
             
         self._signal_mat[channel_name] = temp_signal_mat #save the built signal matrix
@@ -977,15 +1002,14 @@ class OFBase:
 
         template_count=0 #this way we don't count None templates
         for tag in template_tags:
-            if tag is None:
+            if tag is 'None':
                 continue
             else:
                 template_count+=1
-                print(f'template_count: {template_count}')#remove after debugging
                 
         self._ntmps=template_count
-        print(f'nchans, nbins, {self._nchans},{self._nbins}')
-        temp_templ_mat = np.zeros((self._nchans, self._nchans, self._nbins)) #the dimensions are technically
+        temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins), dtype='complex_') 
+        #the dimensions are technically
         #nchans, ntmps, nbins but there will be out of index issues for channels in the middle which 
         # do not have templates. And we are padding with zeroes. 
         templ_list = []
@@ -997,16 +1021,16 @@ class OFBase:
                 templ_list.append(tag) # this will work for each channel having 1 template maximum
                 #this ensures that the template tag is at the same index as the channel
                 #this will not work for multiple templates to each channel!
-        
         #now build the actual template matrix    
         for ichan, chan in enumerate(channels):
-            if templ_list[ichan] is None:
-                print(f'{chan} will not have a template.')
+            if templ_list[ichan] is 'None':
+                if self._verbose:
+                    print(f'{chan} will not have a template.')
                 continue
             else:
                 #template fft in this code is template_fft/nbins/df
                 temp_templ_fft = self._templates_fft[chan][templ_list[ichan]]
-                temp_templ_mat[ichan,ichan,:] = temp_templ_fft/self._df #gets it back to right units to match
+                temp_templ_mat[ichan,ichan,:] = temp_templ_fft*self._df #gets it back to right units to match
                 #the rest of the nxm code. 
         self._template_mat[channel_name] = temp_templ_mat
         #the above will create 0 amplitudes for the channels who have None type assigned channels

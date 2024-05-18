@@ -19,7 +19,7 @@ class OFnxm:
     Need to add no delay fits, no pulse fits, and low freq fits. 
     """
     def __init__(self, of_base=None, template_tags=['default'], channels=None, 
-                 templates=None, csd=None, sample_rate=None,
+                 templates=None, csd=None, noise_traces=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False, channel_name='unknown',
                  verbose=True):
@@ -99,8 +99,6 @@ class OFnxm:
                 channels = '|'.join(part.strip() for part in split_string) #gets rid of spaces if they are there
                 self._channel_name=channels #channel_name is for anything we need joint channels for
                 self._channels_list = channels.split('|') #now for sure has no spaces
-                print(f'channel_names {self._channel_name}')
-                print(f'split the channels: {self._channels_list}')
         
         # Instantiate OF base (if not provided)
         self._of_base = of_base
@@ -168,7 +166,21 @@ class OFnxm:
                 print('ERROR: No csd found in OF base object.'
                       + ' Add csd argument!')
                 return
-        
+            
+        if noise_traces is not None:
+            if self._verbose:
+                print('INFO: Adding noise traces '
+                      + 'to OF base object')
+            
+            self._of_base.set_noise_traces(channels=self._channel_name, noise_traces=noise_traces)
+            
+        else:
+
+            if self._of_base.noise_traces(channels=self._channel_name) is None:
+                
+                print('ERROR: No noise traces found in OF base object.'
+                      + ' Add noise trace argument!')
+                return
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
         if self._of_base.iw_mat(channels=self._channel_name) is None:
@@ -216,7 +228,6 @@ class OFnxm:
             #signal_filts_mat, signal_mat for some list of channels
             #update_signal then calls:
             #build_signal_mat, calc_signal_filt_mat, calc_signal_filt_mat_td
-        print(f'update signal was called, now calculating amps.')
         self.calc_amp_allt(channels=self._channel_name, template_tags=self._template_tags)
         self.calc_chi2_allt(channels=self._channel_name, template_tags=self._template_tags)
 
@@ -295,7 +306,8 @@ class OFnxm:
     def calc_amp_allt(self, channels, template_tags=None):
         '''
         FIXME
-        #docstrings need to be added with dimensions 
+        #docstrings need to be added with dimensions
+        dim: [ntmps, nbins]
         '''
         #self._signal_filts_mat_td = dict()
         #signal_filt_mat_td
@@ -321,6 +333,7 @@ class OFnxm:
         '''
         FIXME
         docstrings and dimensions need to be added
+        dim: [ntmps, nbins]
         '''
         # instantiate
         if channels not in self._chi2_alltimes_rolled:
@@ -339,7 +352,8 @@ class OFnxm:
                 #chi2base is a time independent scalar on the sum over all channels & freq bins
         chi2base = np.real(chi2base)
         chi2_t = np.zeros_like(temp_amp_allt)
-        chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0)) #this sums along the template
+        chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0))
+        #this sums along the template
         #dim [ntmp, nbins]
         #chi2_t is the time dependent part
         self._chi2_alltimes[channels] = chi2base-chi2_t
