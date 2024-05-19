@@ -256,7 +256,7 @@ class _PlotDIDV(object):
     def plot_full_trace(self, poles="all",
                         saveplot=False, savepath="",
                         savename="",
-                        lp_cutoff=None, didv_freq_filt=False, gray_mean=False):
+                        lp_cutoff=None, didv_freq_filt=False, gray_mean=True):
         """
         Function to plot the entire trace in time domain
 
@@ -301,7 +301,7 @@ class _PlotDIDV(object):
 
     def plot_single_period_of_trace(self, poles="all", saveplot=False,
                                     savepath="", savename="",
-                                    lp_cutoff=None, didv_freq_filt=False, gray_mean=False):
+                                    lp_cutoff=None, didv_freq_filt=False, gray_mean=True):
         """
         Function to plot a single period of the trace in time domain
 
@@ -346,7 +346,7 @@ class _PlotDIDV(object):
 
     def plot_zoomed_in_trace(self, poles="all", zoomfactor=0.1,
                              saveplot=False, savepath="", savename="",
-                             lp_cutoff=None, didv_freq_filt=False,gray_mean=False):
+                             lp_cutoff=None, didv_freq_filt=False,gray_mean=True):
         """
         Function to plot a zoomed in portion of the trace in time
         domain. This plot zooms in on the overshoot of the DIDV.
@@ -403,7 +403,7 @@ class _PlotDIDV(object):
 
 
     def plot_didv_flipped(self, poles="all", saveplot=False, savepath="",
-                          savename="", zoomfactor=None, lp_cutoff=None, gray_mean=False):
+                          savename="", zoomfactor=None, lp_cutoff=None, gray_mean=True):
         """
         Function to plot the flipped trace in time domain. This
         function should be used to test if there are nonlinearities in
