@@ -3,7 +3,7 @@ from scipy.optimize import least_squares, fsolve
 from ._base_didv import _BaseDIDV, complexadmittance
 from qetpy.core._biasparams import get_biasparams_offsets, get_biasparams_ilg
 from ._plot_didv import _PlotDIDV
-from ._uncertainties_didv import get_smallsignalparams_vals, get_smallsignalparams_cov, get_smallsignalparams_sigmas
+from ._uncertainties_didv import get_smallsignalparams_vals, get_smallsignalparams_cov, get_smallsignalparams_sigmas, get_dPdI_with_uncertainties
 from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 import copy
 import warnings
@@ -1000,6 +1000,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # results
             results = copy.deepcopy(self._fit_results[poles])
             
+            # store bias params
+            if  biasparams_dict is not None:
+                results['biasparams'] = biasparams_dict.copy()
+            else:
+                results['biasparams'] = None
             results['biasparams_tag'] = biasparams_tag
             
             # convert fit parameterts to smallsignalparams
@@ -1019,15 +1024,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'tau3': smallsignalparams[8],
                 'dt': smallsignalparams[9],
             }
-            results['didv0'] = (
-                complexadmittance(0, **results['smallsignalparams']).real
-            )
-            
-            # store bias params
-            if  biasparams_dict is not None:
-                results['biasparams'] = biasparams_dict.copy()
-            else:
-                results['biasparams'] = None
                 
             # calculate small signal parameters cov/sigmas
             if lgc_ssp_light:
@@ -1046,6 +1042,16 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     'cov': ssp_light_cov,
                     'sigmas': ssp_light_sigmas,
                 }
+                
+                
+            
+            results['didv0'] = (
+                complexadmittance(0, **results['smallsignalparams']).real
+            )
+            
+            dpdi, dpdi_err = get_dPdI_with_uncertainties([0.0], results)
+            results['dpdi0'] = (dpdi[0].real)
+            results['dpdi0_err'] = (dpdi_err[0].real)
                 
             # store results internally
             self._fit_results[poles] = results
