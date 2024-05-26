@@ -9,6 +9,7 @@ from ._of_pileup import *
 from ._de_pileup import *
 from ._of_base import *
 from ._of_nxm import *
+from ._of_nxmx2 import *
 from ._of_1x1 import *
 from ._of_nonlin import *
 #from ._of_1_chan_2_template import *

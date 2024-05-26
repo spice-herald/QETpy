@@ -5,11 +5,11 @@ from qetpy.utils import shift, interpolate_of, argmin_chisq
 from qetpy.core import OFBase
 from numpy.linalg import pinv as pinv
 
-__all__ = ['OFnxm']
+__all__ = ['OFnxmx2']
 
 
 
-class OFnxm:
+class OFnxmx2:
     """
     Single trace /  multichannel, multitemplate optimal filter (nxm)
     calculations
@@ -19,20 +19,20 @@ class OFnxm:
     Need to add no delay fits, no pulse fits, and low freq fits.
     """
     def __init__(self, of_base=None, template_tags=['default'], channels=None,
-                 templates=None, csd=None, noise_traces=None, sample_rate=None,
+                 templates=None, templates_time_tag =None, csd=None, noise_traces=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
-                 integralnorm=False, channel_name='unknown',
+                 integralnorm=False, channel_name='unknown', fit_window = None,
                  verbose=True):
 
         """
-        Initialize OFnxm
+        Initialize OFnxmx2
 
         Parameters
         ----------
 
         of_base : OFBase object, optional
            OF base with pre-calculations
-           Default: instantiate base class within OFnxm
+           Default: instantiate base class within OFnxmx2
 
         template_tags : list of str
             Template tags to calculate optimal filters
@@ -45,6 +45,11 @@ class OFnxm:
         templates : ndarray dimn[ntmp, nbins], optional
           multi-template array used for OF calculation, can be
           None if already in of_base, otherwise required
+
+        templates_time_tag : ndarray dimn[ntmp],
+          time tage used for multi-template array with each having 2 time degree of freedom
+          used for OF calculation, can be None if already in of_base, otherwise required.
+          eg for 4 template : one can have [0,1,0,0]-> meaning 1st, 3rd and fourth templat move together
 
         csd : ndarray, optional
           psd array used for OF calculation, can be
@@ -74,6 +79,12 @@ class OFnxm:
 
         channel_name : str, optional
             channel name
+
+        fit_window :  used for preparing the time window for nxmx2 filter, if not specified we will use
+                      the available bins size
+
+             time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
+             time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
 
         verbose : bool, optional
             Display information
@@ -108,11 +119,11 @@ class OFnxm:
 
             # check parameters
             if sample_rate is None:
-                raise ValueError('ERROR in OFnxm: sample rate required!')
+                raise ValueError('ERROR in OFnxmx2: sample rate required!')
 
             if (pretrigger_msec is None
                 and pretrigger_samples is None):
-                raise ValueError('ERROR in OFnxm: '
+                raise ValueError('ERROR in OFnxmx2: '
                                  + 'pretrigger (msec or samples) required!')
 
             # instantiate
@@ -185,31 +196,53 @@ class OFnxm:
                 return
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
-        if self._of_base.iw_mat(channels=self._channel_name) is None:
-            self._of_base.calc_weight_mat(channels=self._channels_list, channel_name=self._channel_name,
-                                          template_tags=self._template_tags)
+
+        if(self._of_base.templates_time_tag) is None:
+            self._of_base.templates_time_tag = templates_time_tag
+            if self._of_base.templates_time_tag is None:
+                print('ERROR: No time tag for templates found.'
+                                + ' Add time tag for templates!')
+                return
+
+        # initialize fit results
+        #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
+        self._ntmps = self._of_base._ntmps
+
+        self._nbins = self._of_base._nbins
+        self.pretrigger_samples = pretrigger_samples
+        self._fs = sample_rate
+
+
+        self._amps = dict()
+        self._chi2 = dict()
+
+
+        self._of_amp = None
+        self._of_chi2 = None
+        self._of_t0 = None
+        self._index_first_pulse = None
+        self._index_second_pulse =  None
+
+
+
+        if(self._of_base.fit_window) is None:
+            self._of_base.fit_window = fit_window
+            if self._of_base.fit_window is None:
+                print('No fitwindow found.'
+                                + ' using all the bins for construction of fit window')
+
+
+        if self._of_base.calc_p_matrix_mat(channels=self._channel_name) is None:
+            self._of_base.calc_p_matrix_mat(channels=self._channels_list, channel_name=self._channel_name,
+                                          template_tags=self._template_tags, fit_window= self._of_base.fit_window)
             # calc_weight_mat will then check that phi_mat is calculated
             # calc_phi_mat in turn checks that the templates are fft'd,
             # the template matrix is constructed
             # and i_covf is calculated. So all precalcs are covered.
 
-        # initialize fit results
-        #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
-        self._ntmps = self._of_base._ntmps
-        self._nbins = self._of_base._nbins
-        self.pretrigger_samples = pretrigger_samples
-        self._fs = sample_rate
 
-        self._amps_alltimes_rolled = dict()
-        self._amps_alltimes = dict()
-        self._chi2_alltimes = dict()
-        self._chi2_alltimes_rolled = dict()
 
-        self._of_amp_withdelay = None
-        self._of_chi2_withdelay = None
-        self._of_t0_withdelay = None
-
-    def calc(self, channels, signal=None):
+    def calc(self, channels, signal=None, fit_window=None,polarity_constraint=False):
         '''
         FIXME
         #docstrings need to be added with dimensions
@@ -230,17 +263,15 @@ class OFnxm:
             #signal_filts_mat, signal_mat for some list of channels
             #update_signal then calls:
             #build_signal_mat, calc_signal_filt_mat, calc_signal_filt_mat_td
-        self.calc_amp_allt(channels=self._channel_name, template_tags=self._template_tags)
-        self.calc_chi2_allt(channels=self._channel_name, template_tags=self._template_tags)
+            #calc_signal_filt_mat_td has the caclculation of q_vector_mat
 
-    def get_fit_withdelay(self, channels, template_tag='default',
-                          signal=None, window_min_from_trig_usec=None,
-                          window_max_from_trig_usec=None,
-                          window_min_index=None,
-                          window_max_index=None,
-                          lgc_outside_window=False,
-                          pulse_direction_constraint=0,
-                          interpolate_t0=False):
+        if fit_window is not None:
+            calc_p_matrix_mat(self, channels=self._channel_name, channel_name=self._channel_name, template_tags=self._template_tags, fit_window= fit_window)
+
+        self.calc_amp(channels=self._channel_name, template_tags=self._template_tags)
+        self.calc_chi2(channels=self._channel_name, template_tags=self._template_tags,polarity_constraint )
+
+    def get_fit(self, channels, template_tag='default',signal=None,fit_window=None,polarity_constraint=False ):
         '''
         FIXME
         #docstrings need to be added with dimensions
@@ -255,57 +286,23 @@ class OFnxm:
                 split_string = channels.split('|')
                 channels = '|'.join(part.strip() for part in split_string) #gets rid of spaces if they are there
 
-        if channels not in self._chi2_alltimes_rolled:
-            self.calc(channels, signal=signal)
-
-        amp_all = self._amps_alltimes_rolled[channels]
-        chi2_all = self._chi2_alltimes_rolled[channels]
-        pretrigger_samples = self.pretrigger_samples
-
-        # mask pulse direction
-        constraint_mask = None
-        if (pulse_direction_constraint==1 or pulse_direction_constraint==-1):
-            constraint_mask=(amps_all*pulse_direction_constraint>0)
-        # find index minimum chisq within window
-        window_min = None
-        if window_min_from_trig_usec is not None:
-            window_min = np.floor(pretrigger_samples
-                                + window_min_from_trig_usec*self._fs*1e-6)
-        elif window_min_index is not None:
-            window_min = window_min_index
-
-        if window_min is not None and window_min<0:
-            window_min = 0
-        window_max = None
-        if window_max_from_trig_usec is not None:
-            window_max = np.ceil(pretrigger_samples
-                                + window_max_from_trig_usec*self._fs*1e-6)
-        elif window_max_index is not None:
-            window_max = window_max_index
-
-        if window_max is not None and window_max>self._nbins:
-            window_max = self._nbins
+        if channels not in self._chi2:
+            self.calc(channels, signal=signal,fit_window,polarity_constraint)
 
         #argmin_chisq will minimize along the last axis
         #chi2_all dim [ntmp,nbins]
-        bestind = argmin_chisq(
-            chi2_all,
-            window_min=window_min,
-            window_max=window_max,
-            lgc_outside_window=lgc_outside_window,
-            constraint_mask=constraint_mask)
+        bestind = np.argmin(self._chi2[channels])
         #need to add interpolate option
-        amp = amp_all[:,bestind]
-        t0 = (bestind-pretrigger_samples)/self._fs
-        chi2 = chi2_all[bestind]
-        self._of_amp_withdelay = amp
-        self._of_chi2_withdelay = chi2
-        self._of_t0_withdelay = t0
-
-        return amp,t0,chi2
+        self._of_amp = self._amps[channels][bestind]
+        self._of_t0 =  self._of_base._time_combinations[bestind, 1]/self._of_base._fs - self._of_base._time_combinations[bestind, 0]/self._of_base._fs
+        self._of_chi2 = self._chi2[channels][bestind]
+        self._index_first_pulse = self._of_base._time_combinations[min_index, 0]
+        self._index_second_pulse =  self._of_base._time_combinations[min_index, 1]
+        self._of_chi2_per_DOF = self._of_chi2/(self._nchans*self._nbins)
 
 
-    def calc_amp_allt(self, channels, template_tags=None):
+
+    def calc_amp(self, channels, template_tags=None):
         '''
         FIXME
         #docstrings need to be added with dimensions
@@ -314,50 +311,59 @@ class OFnxm:
         #self._signal_filts_mat_td = dict()
         #signal_filt_mat_td
         # initialize
-        if channels not in self._amps_alltimes_rolled:
-            self._amps_alltimes_rolled[channels] = dict()
-            self._amps_alltimes[channels] = dict()
+        if channels not in self._amps:
+            self._amps[channels] = dict()
 
         # calc_signal_filt_mat_td checks that _signal_filts_mat is calculated first
         if self._of_base.signal_filt_mat_td(channels) is None:
             self._of_base.calc_signal_filt_mat_td(channels)
 
-        self._amps_alltimes[channels] = (self._of_base.iw_mat(channels) @
-                                self._of_base.signal_filt_mat_td(channels))
 
-        temp_amp_roll = np.zeros_like(self._amps_alltimes[channels])
-        temp_amp_allt = self._amps_alltimes[channels]
-        for itmp in range(self._ntmps):
-            temp_amp_roll[itmp,:] = np.roll(temp_amp_allt[itmp,:], self.pretrigger_samples, axis=-1)
-        self._amps_alltimes_rolled[channels] = temp_amp_roll
 
-    def calc_chi2_allt(self, channels, template_tags=None):
+        self._amps[channels]  = np.zeros(( self._of_base._time_combinations[:,0].shape[0], self._ntmps ))
+
+        for itmps in range( self._ntmps ):
+            for jtmps in range( self._ntmps ):
+                self._amps[channels][:,itmps] += self._of_base._p_inv_matrix_mat[channels][:,itmps,jtmps]*self._of_base._q_vector_mat[channels][jtmps,:]
+
+
+
+    def calc_chi2(self, channels, template_tags=None, polarity_constraint ):
         '''
         FIXME
         docstrings and dimensions need to be added
         dim: [ntmps, nbins]
         '''
         # instantiate
-        if channels not in self._chi2_alltimes_rolled:
-            self._chi2_alltimes_rolled[channels] = dict()
-            self._chi2_alltimes[channels] = dict()
-        signal_fft = self._of_base.signal_mat(channels)
-        temp_icov_f = self._of_base.icovf(channels)
-        temp_amp_allt = self._amps_alltimes[channels]
-        filt_signal_t = self._of_base.signal_filt_mat_td(channels)
+        if channels not in self._chi2:)
+            self._chi2[channels] = dict()
+
         chi2base = 0
         for kchan in range(self._nchans):
             for jchan in range(self._nchans):
                 chi2base += np.sum(np.dot(
-                (signal_fft[kchan,:].conjugate())*temp_icov_f[kchan,jchan,:],
-                signal_fft[jchan,:]))
+                (self._of_base.signal_mat(channels)[kchan,:].conjugate())*self._of_base.icovf(channels)[kchan,jchan,:],
+                self._of_base.signal_mat(channels)[jchan,:]))
                 #chi2base is a time independent scalar on the sum over all channels & freq bins
         chi2base = np.real(chi2base)
-        chi2_t = np.zeros_like(temp_amp_allt)
-        chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0))
+        chi2_t = np.zeros_like(self._amps[channels])
+        chi2_when_one_deviates_from_true_minima = np.zeros_like(self._amps[channels])
+        chi2_t = np.real(np.sum(self._amps[channels]*self._of_base._q_vector_mat[channels], axis=0))
         #this sums along the template
         #dim [ntmp, nbins]
         #chi2_t is the time dependent part
-        self._chi2_alltimes[channels] = chi2base-chi2_t
-        self._chi2_alltimes_rolled[channels] = np.roll(self._chi2_alltimes[channels],
-                                                        self.pretrigger_samples, axis=-1)
+
+
+        if self._of_base._p_matrix_mat[channels] is None:
+            self._of_base.calc_p_and_p_inverse_mat(channels=self._channels_list, channel_name=self._channel_name,
+                                                  template_tags=self._template_tags, fit_window=self._of_base._fit_window)
+
+        if polarity_constraint:
+            chi2_polarity = np.zeros_like(self._amps[channels]) # this is zero when polarity constarin is not used
+            for ibins in range(chi2_polarity.shape[0]):
+                chi2_polarity[ibins] = self._amps[channels].T[:,ibins]@self._of_base._p_matrix_mat[channels][ibins,:,:]@self._amps[channels].T[:,ibins]
+
+            chi2_when_one_deviates_from_true_minima = chi2_polarity- np.sum(np.conjugate(q_vec) * self._amps[channels].T, axis =0)
+
+
+        self._chi2[channels] = chi2base - chi2_t - chi2_when_one_deviates_from_true_minima
