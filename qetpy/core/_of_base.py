@@ -66,6 +66,7 @@ class OFBase:
         #time_tag
         self._template_time_tag = None #time tag for each template
         self._time_combinations = None
+        self._fit_window = None
 
         # initialize the inverted covariance matrix (csd)
         self._icovf = dict()
@@ -1187,10 +1188,10 @@ class OFBase:
         self._time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
 
 
-        time_diff_mat = np.zeros(( self.templates_time_tag.shape[0] ,self.templates_time_tag.shape[0] ))
-        for i in range(self.templates_time_tag.shape[0]):
-            for j in range(self.templates_time_tag.shape[0]):
-                time_diff_mat[i,j]=np.abs(self.templates_time_tag[i]-self.templates_time_tag[j])
+        time_diff_mat = np.zeros(( self._template_time_tag.shape[0] ,self._template_time_tag.shape[0] ))
+        for i in range(self._template_time_tag.shape[0]):
+            for j in range(self._template_time_tag.shape[0]):
+                time_diff_mat[i,j]=np.abs(self._template_time_tag[i]-self._template_time_tag[j])
 
         p_matrix_mat = np.zeros((self._nbins, self._ntmps, self._ntmps ))
         for itmp in range(self._ntmps):
@@ -1207,14 +1208,16 @@ class OFBase:
                 p_matrix_mat[:,itmp,jtmp] = p_matrix_mat[:,jtmp,itmp] = sum
         p_inv_matrix_mat = np.linalg.pinv(p_matrix_mat)
 
-        pmatrix_inv[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
-        pmatrix[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
+
+        self._p_matrix_mat[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
+        self._p_inv_matrix_mat[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
 
 
         for itmps in range(self._ntmps):
             for jtmps in range(self._ntmps):
-                pmatrix_inv[channel_name][:, itmps, jtmps]  =  p_inv_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
-                pmatrix[channel_name][:, itmps, jtmps] = p_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+                self._p_matrix_mat[channel_name][:, itmps, jtmps] = p_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+                self._p_inv_matrix_mat[channel_name][:, itmps, jtmps]  =  p_inv_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+
 
 
     def calc_icovf(self, channels):
@@ -1377,10 +1380,10 @@ class OFBase:
         temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
         self._signal_filts_mat_td[channels] = temp_sign_t_mat
 
-        self._q_vector_mat[channels]  = np.zeros(( self._ntmps, self._time_combinations[:,0].shape[0] ))
-
-        for itmps in range( self._ntmps ):
-            self._q_vector_mat[channels][itmps,:] = self._signal_filts_mat_td[channels][itmps][ self._time_combinations[:,self.templates_time_tag[i]] ]
+        if self._time_combinations is not None:
+            self._q_vector_mat[channels]  = np.zeros(( self._ntmps, self._time_combinations[:,0].shape[0] ))
+            for itmps in range( self._ntmps ):
+                self._q_vector_mat[channels][itmps,:] = self._signal_filts_mat_td[channels][itmps][ self._time_combinations[:,self._template_time_tag[itmps]] ]
 
 
     def calc_chisq0(self, channel):
