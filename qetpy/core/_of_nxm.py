@@ -149,7 +149,7 @@ class OFnxm:
                     or self._template_tags not in tags):
 
                     print('ERROR: No template with tag "'
-                          + template_tag + ' found in OF base object.'
+                          + tag + ' found in OF base object.'
                           + ' Modify template tag or add template argument!')
 
          # add noise to base object
@@ -265,7 +265,7 @@ class OFnxm:
         # mask pulse direction
         constraint_mask = None
         if (pulse_direction_constraint==1 or pulse_direction_constraint==-1):
-            constraint_mask=(amps_all*pulse_direction_constraint>0)
+            constraint_mask=(amp_all*pulse_direction_constraint>0)
         # find index minimum chisq within window
         window_min = None
         if window_min_from_trig_usec is not None:

@@ -717,8 +717,8 @@ class OFBase:
         elif nbins != self._nbins:
             raise ValueError(
                 f'ERROR: Inconsistent number of samples '
-                f'for channel {channel}, tag={template_tag}. '
-                f'csd/template with same tag must have same '
+                f'for channel {channels}. '
+                f'csd/template must have same '
                 f'number of samples!')
 
         # add to dictionary
@@ -771,7 +771,7 @@ class OFBase:
         elif nbins != self._nbins:
             raise ValueError(
                 f'ERROR: Inconsistent number of samples '
-                f'for channel {channel}, tag={template_tag}. '
+                f'for channel {channel} '
                 f'psd/template with same tag must have same '
                 f'number of samples!')
 
@@ -997,7 +997,7 @@ class OFBase:
                 # _signal_fft should be done each time update_signal is called
                 # so it should already be calculated for each channel
                 # _signal_fft is also signal_fft/self._nbins/self._df!!!
-            if template_tags[ichan] is 'None':
+            if template_tags[ichan] == 'None':
                 noise_trace = self.noise_traces(channel_name)
                 temp_signal_mat[ichan,:] = noise_trace[ichan,:]
             else:
@@ -1025,7 +1025,7 @@ class OFBase:
 
         template_count=0 #this way we don't count None templates
         for tag in template_tags:
-            if tag is 'None':
+            if tag == 'None':
                 continue
             else:
                 template_count+=1
