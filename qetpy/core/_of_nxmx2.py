@@ -325,14 +325,12 @@ class OFnxmx2:
         if self._of_base.signal_filt_mat_td(channels) is None:
             self._of_base.calc_signal_filt_mat_td(channels)
 
-
-
-        self._amps[channels]  = np.zeros((self._of_base._time_combinations[:,0].shape[0], self._of_base._ntmps))
+        self._amps[channels] = np.zeros((self._of_base._time_combinations[:,0].shape[0], self._of_base._ntmps))
 
         for itmps in range(self._of_base._ntmps):
             for jtmps in range(self._of_base._ntmps):
-                self._amps[channels][:,itmps] += (self._of_base._p_inv_matrix_mat[channels]
-                                                  [:,itmps,jtmps]*self._of_base._q_vector_mat[channels][jtmps,:])
+                self._amps[channels][:,itmps] += (self._of_base._p_inv_matrix_mat[channels][:,itmps,jtmps]
+                                                  *self._of_base._q_vector_mat[channels][jtmps,:])
 
 
 
@@ -350,8 +348,8 @@ class OFnxmx2:
         for kchan in range(self._nchans):
             for jchan in range(self._nchans):
                 chi2base += (np.sum(np.dot(
-                self._of_base.signal_mat(channels)[kchan,:].conjugate())*self._of_base.icovf(channels)[kchan,jchan,:],
-                self._of_base.signal_mat(channels)[jchan,:]))
+                (self._of_base.signal_mat(channels)[kchan,:].conjugate())*self._of_base.icovf(channels)[kchan,jchan,:],
+                self._of_base.signal_mat(channels)[jchan,:])))
                 #chi2base is a time independent scalar on the sum over all channels & freq bins
         chi2base = np.real(chi2base)
 
