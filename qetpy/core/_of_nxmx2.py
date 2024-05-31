@@ -359,7 +359,6 @@ class OFnxmx2:
 
         chi2_t= np.real(np.sum(np.conjugate(self._of_base._q_vector_mat[channels]) * self._amps[channels].T, axis =0))
 
-
         if polarity_constraint: # this is zero when polarity constrain is not used\
 
             if self._of_base.p_matrix_mat(self._channel_name) is None:
@@ -371,7 +370,9 @@ class OFnxmx2:
             chi2_polarity = np.zeros_like(self._amps[channels])
             
             for ibins in range(chi2_polarity.shape[0]):
-                chi2_polarity[ibins] = self._amps[channels].T[:,ibins]@self._of_base._p_matrix_mat[channels[ibins,:,:]@self._amps[channels].T[:,ibins]
+                chi2_polarity[ibins] = (self._amps[channels].T[:,ibins]
+                                        @self._of_base._p_matrix_mat[channels][ibins,:,:]
+                                        @self._amps[channels].T[:,ibins])
 
             chi2_when_one_deviates_from_true_minima = chi2_polarity- np.real(np.sum(np.conjugate(self._of_base._q_vector_mat[channels]) * self._amps[channels].T, axis =0))
 
