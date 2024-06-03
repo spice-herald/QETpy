@@ -128,7 +128,7 @@ class OFnxm:
                 pretrigger_samples = int(round(fs*pretrigger_msec/1000))
 
             #for itmp in range(templates.shape[0]):
-            sum=0
+            count=0
             for ichan in range(len(self._channels_list)):
                 for itmp in range(len(template_tags)):
                     if template_tags[itmp] == 'None':
@@ -138,10 +138,11 @@ class OFnxm:
                           +  template_tags[itmp] + ' to OF base object. Channel is' + self._channels_list[ichan])
                     #add channel passing
                     self._of_base.add_template(channel=self._channels_list[ichan],
-                                           template=templates[itmp],
+                                           template=templates[count],
                                            template_tag=template_tags[itmp],
                                            pretrigger_samples=pretrigger_samples,
                                            integralnorm=integralnorm)
+                    count+=1
         else:
             # check if template exist already
             tags =  self._of_base.template_tags()
