@@ -19,7 +19,7 @@ class OFnxm:
     Need to add no delay fits, no pulse fits, and low freq fits.
     """
     def __init__(self, of_base=None, template_tags=['default'], channels=None,
-                 templates=None, csd=None, noise_traces=None, sample_rate=None,
+                 templates=None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False, channel_name='unknown',
                  verbose=True):
@@ -131,16 +131,17 @@ class OFnxm:
             sum=0
             for ichan in range(len(self._channels_list)):
                 for itmp in range(len(template_tags)):
+                    if template_tags[itmp] == 'None':
+                        continue
                     if self._verbose:
                         print('INFO: Adding template with tag '
                           +  template_tags[itmp] + ' to OF base object. Channel is' + self._channels_list[ichan])
                     #add channel passing
                     self._of_base.add_template(channel=self._channels_list[ichan],
-                                           template=templates[sum],
+                                           template=templates[itmp],
                                            template_tag=template_tags[itmp],
                                            pretrigger_samples=pretrigger_samples,
                                            integralnorm=integralnorm)
-                    sum = sum+1
         else:
             # check if template exist already
             tags =  self._of_base.template_tags()
@@ -169,20 +170,6 @@ class OFnxm:
                       + ' Add csd argument!')
                 return
 
-        if noise_traces is not None:
-            if self._verbose:
-                print('INFO: Adding noise traces '
-                      + 'to OF base object')
-
-            self._of_base.set_noise_traces(channels=self._channel_name, noise_traces=noise_traces)
-
-        else:
-
-            if self._of_base.noise_traces(channels=self._channel_name) is None:
-
-                print('ERROR: No noise traces found in OF base object.'
-                      + ' Add noise trace argument!')
-                return
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
         if self._of_base.iw_mat(channels=self._channel_name) is None:

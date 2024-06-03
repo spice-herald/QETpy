@@ -61,7 +61,6 @@ class OFBase:
 
         # initialize two-sided noise csd (in Amps^2/Hz)
         self._csd = dict()
-        self._noise_traces = dict()
 
         #time_tag
         self._template_time_tag = None #time tag for each template
@@ -273,17 +272,6 @@ class OFBase:
 
         if channels in self._csd.keys():
             return self._csd[channels]
-        else:
-            return None
-
-
-    def noise_traces(self, channels):
-        '''
-        FIXME: add docstrings and dimensions
-        '''
-
-        if channels in self._noise_traces.keys():
-            return self._noise_traces[channels]
         else:
             return None
 
@@ -663,11 +651,6 @@ class OFBase:
             self._templates_fft[channel] = dict()
 
         self._templates_fft[channel][template_tag] = template_fft/nbins/df
-        print("***********")
-        print(channel,template_tag)
-        print(template_fft)
-        print(nbins,df)
-        print("***********")
 
         # pre-trigger
         if pretrigger_samples is None:
@@ -723,13 +706,6 @@ class OFBase:
 
         # add to dictionary
         self._csd[channels] = csd
-
-
-    def set_noise_traces(self, channels, noise_traces):
-        '''
-        FIXME: add docstrings and dimensions
-        '''
-        self._noise_traces[channels] = noise_traces
 
 
     def set_psd(self, channel, psd, coupling='AC'):
@@ -794,33 +770,39 @@ class OFBase:
 
         """
         # signal
-        '''
-        if channel is None:
-            self._signal = dict()
-            self._signal_fft = dict()
-        else:
-            if channel in  self._signal:
-                self._signal.pop(channel)
-            if channel in  self._signal_fft:
-                self._signal_fft.pop(channel)
+        if signal_mat_flag is False:
+            if channel is None:
+                self._signal = dict()
+                self._signal_fft = dict()
+            else:
+                if channel in  self._signal:
+                    self._signal.pop(channel)
+                if channel in  self._signal_fft:
+                    self._signal_fft.pop(channel)
+                    
+        elif signal_mat_flag is True:
+            if channel is None:
+                self._signal = dict()
+                self._signal_fft = dict()
 
         # (optimal) filtered  signals and templates
         # (frequency domain and  converted back to time domain)
-        if channel is None:
-            self._signal_filts = dict()
-            self._signal_filts_td = dict()
-            self._template_filts = dict()
-            self._template_filts_td = dict()
-        else:
-            if channel in self._signal_filts:
-                self._signal_filts.pop(channel)
-            if channel in self._signal_filts_td:
-                self._signal_filts_td.pop(channel)
-            if channel in self._template_filts:
-                self._template_filts.pop(channel)
-            if channel in self._template_filts_td:
-                self._template_filts_td.pop(channel)
-                '''
+        if signal_mat_flag is False:
+            if channel is None:
+                self._signal_filts = dict()
+                self._signal_filts_td = dict()
+                self._template_filts = dict()
+                self._template_filts_td = dict()
+            else:
+                if channel in self._signal_filts:
+                    self._signal_filts.pop(channel)
+                if channel in self._signal_filts_td:
+                    self._signal_filts_td.pop(channel)
+                if channel in self._template_filts:
+                    self._template_filts.pop(channel)
+                if channel in self._template_filts_td:
+                    self._template_filts_td.pop(channel)
+        
         self._signal = dict()
         self._signal_fft = dict()
         self._signal_mat = dict()
@@ -997,9 +979,6 @@ class OFBase:
                 # _signal_fft should be done each time update_signal is called
                 # so it should already be calculated for each channel
                 # _signal_fft is also signal_fft/self._nbins/self._df!!!
-            if template_tags[ichan] == 'None':
-                noise_trace = self.noise_traces(channel_name)
-                temp_signal_mat[ichan,:] = noise_trace[ichan,:]
             else:
                 temp_signal_fft = self._signal_fft[chan]
                 temp_signal_mat[ichan,:] = temp_signal_fft
@@ -1007,6 +986,7 @@ class OFBase:
 
         self._signal_mat[channel_name] = temp_signal_mat #save the built signal matrix
 
+        
     def build_template_mat(self, channels, channel_name, template_tags=None):
         '''
         FIXME:
@@ -1023,15 +1003,9 @@ class OFBase:
         elif not isinstance(template_tags, list):
             raise ValueError(f'ERROR "template_tags" argument should be a string or list of strings')
 
-        template_count=0 #this way we don't count None templates
-        for tag in template_tags:
-            if tag == 'None':
-                continue
-            else:
-                template_count+=1
-
         self._ntmps = len(template_tags)
         temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins), dtype='complex_')
+        
         for ichan, chan in enumerate(channels):
             channels_templates = list(self._templates_fft[chan].keys())
             for itag, tag in enumerate(channels_templates):
@@ -1039,7 +1013,6 @@ class OFBase:
                 temp_templ_fft[np.isnan(temp_templ_fft)] = 0
                 temp_templ_mat[ichan,itag,:]  = temp_templ_fft*self._df
         self._template_mat[channel_name] = temp_templ_mat
-
 
 
     def calc_phi(self, channel, template_tags=None):
