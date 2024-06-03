@@ -1007,8 +1007,7 @@ class OFBase:
         temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins), dtype='complex_')
         
         for ichan, chan in enumerate(channels):
-            channels_templates = list(self._templates_fft[chan].keys())
-            for itag, tag in enumerate(channels_templates):
+            for itag, tag in enumerate(template_tags):
                 temp_templ_fft = self._templates_fft[chan][tag]
                 temp_templ_fft[np.isnan(temp_templ_fft)] = 0
                 temp_templ_mat[ichan,itag,:]  = temp_templ_fft*self._df
