@@ -19,7 +19,7 @@ class OFnxmx2:
     Need to add no delay fits, no pulse fits, and low freq fits.
     """
     def __init__(self, of_base=None, template_tags=['default'], channels=None,
-                 templates=None, templates_time_tag =None, csd=None, noise_traces=None, sample_rate=None,
+                 templates=None, templates_time_tag =None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False, channel_name='unknown', fit_window = None,
                  verbose=True):
@@ -180,20 +180,6 @@ class OFnxmx2:
                       + ' Add csd argument!')
                 return
 
-        if noise_traces is not None:
-            if self._verbose:
-                print('INFO: Adding noise traces '
-                      + 'to OF base object')
-
-            self._of_base.set_noise_traces(channels=self._channel_name, noise_traces=noise_traces)
-
-        else:
-
-            if self._of_base.noise_traces(channels=self._channel_name) is None:
-
-                print('ERROR: No noise traces found in OF base object.'
-                      + ' Add noise trace argument!')
-                return
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
 
@@ -266,15 +252,15 @@ class OFnxmx2:
             #calc_signal_filt_mat_td has the caclculation of q_vector_mat
 
         if fit_window is not None:
-            self._of_base.calc_p_matrix_mat(self, channels=self._channel_name, 
-                              channel_name=self._channel_name, 
-                              template_tags=self._template_tags, 
+            self._of_base.calc_p_matrix_mat(self, channels=self._channel_name,
+                              channel_name=self._channel_name,
+                              template_tags=self._template_tags,
                               fit_window= fit_window)
 
         self.calc_amp(channels=self._channel_name, template_tags=self._template_tags)
-        
-        self.calc_chi2(channels=self._channel_name, 
-                       template_tags=self._template_tags, 
+
+        self.calc_chi2(channels=self._channel_name,
+                       template_tags=self._template_tags,
                        polarity_constraint=polarity_constraint)
 
     def get_fit(self, channels, template_tag='default',signal=None,fit_window=None, polarity_constraint=False ):
@@ -300,7 +286,7 @@ class OFnxmx2:
         min_index = np.argmin(self._chi2[channels])
         #need to add interpolate option
         self._of_amp = self._amps[channels][min_index]
-        self._of_t0 =  (self._of_base._time_combinations[min_index, 1]/self._of_base._fs 
+        self._of_t0 =  (self._of_base._time_combinations[min_index, 1]/self._of_base._fs
                         - self._of_base._time_combinations[min_index, 0]/self._of_base._fs)
         self._of_chi2 = self._chi2[channels][min_index]
         self._index_first_pulse = self._of_base._time_combinations[min_index, 0]
@@ -362,13 +348,13 @@ class OFnxmx2:
         if polarity_constraint: # this is zero when polarity constrain is not used\
 
             if self._of_base.p_matrix_mat(self._channel_name) is None:
-                self._of_base.calc_p_matrix_mat(channels=self._channels_list, 
+                self._of_base.calc_p_matrix_mat(channels=self._channels_list,
                                                 channel_name=self._channel_name,
                                                 template_tags=self._template_tags,
                                                 fit_window= self._of_base._fit_window)
 
             chi2_polarity = np.zeros_like(self._amps[channels])
-            
+
             for ibins in range(chi2_polarity.shape[0]):
                 chi2_polarity[ibins] = (self._amps[channels].T[:,ibins]
                                         @self._of_base._p_matrix_mat[channels][ibins,:,:]
