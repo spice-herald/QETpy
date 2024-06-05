@@ -255,10 +255,9 @@ class  OF1x3:
         template_list = list(self._of_base._templates.keys())
 
 
-        self._q_vec  = np.zeros(( len(self._of_base._templates),self._time_combinations[:,0].shape[0] ))
-        amps  = np.zeros((self._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
+        self._q_vec  = np.zeros(( len(self._of_base._templates),self._of_base._time_combinations[:,0].shape[0] ))
+        amps  = np.zeros((self._of_base._time_combinations[:,0].shape[0], len(self._of_base._templates) ))
 
-        np.einsum('jii->ji', pmatrix_inv )[:] = 1
 
         for i in range(len(self._of_base._templates)):
             self._q_vec[i,:] = self._of_base._q_vector[template_list[i]][t0s[:,i]]
