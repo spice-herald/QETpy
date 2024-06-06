@@ -755,7 +755,8 @@ class OFBase:
         self._psd[channel] = psd
 
 
-    def clear_signal(self, channel=None, signal_mat_flag=False, channel_name=None):
+    def clear_signal(self, channel=None, signal_mat_flag=False,
+                     channel_name=None):
         """
         Method to intialize calculated signal
         parameters
@@ -769,6 +770,68 @@ class OFBase:
         None
 
         """
+        
+        if channel is None:
+
+            # case no channel name provided
+            # -> reset data with signal from ALL channels 
+            
+            # signal
+            self._signal = dict()
+            self._signal_fft = dict()
+            
+            # (optimal) filtered  signals and templates
+            self._signal_filts = dict()
+            self._signal_filts_td = dict()
+            self._template_filts = dict()
+            self._template_filts_td = dict()
+            
+            # chisq and amp arrays
+            self._chisq0 = dict()
+            self._chisqs_alltimes_rolled = dict()
+            self._amps_alltimes_rolled = dict()
+            
+            # NxM and other matrices
+            self._q_vector = dict()
+            
+        else:
+            # only reset data for specified data
+
+            # signal
+            if channel in  self._signal:
+                self._signal.pop(channel)
+            if channel in  self._signal_fft:
+                self._signal_fft.pop(channel)
+
+            # (optimal) filtered  signals and templates
+            # (frequency domain and  converted back to time domain)
+            if channel in self._signal_filts:
+                self._signal_filts.pop(channel)
+            if channel in self._signal_filts_td:
+                self._signal_filts_td.pop(channel)
+            if channel in self._template_filts:
+                self._template_filts.pop(channel)
+            if channel in self._template_filts_td:
+                self._template_filts_td.pop(channel)
+
+            # chisq and amp arrays
+            if channel in self._chisq0:
+                 self._chisq0.pop(channel)
+            if channel in self._chisqs_alltimes_rolled:
+                self._chisqs_alltimes_rolled.pop(channel)
+            if channel in self._amps_alltimes_rolled:
+                self._amps_alltimes_rolled.pop(channel)
+                
+            # NxM and other matrices
+            if channel in self._q_vector:
+                self._q_vector.pop(channel)
+
+        
+        
+        """
+        BACKUP of most recent code:
+
+
         # signal
         if signal_mat_flag is False:
             if channel is None:
@@ -835,8 +898,12 @@ class OFBase:
         elif signal_mat_flag is False:
             if channel in self._q_vector:
                 self._q_vector.pop(channel)
+        """
 
 
+
+        
+        
     def update_signal(self, channel, signal,
                       signal_mat_flag=False,
                       calc_signal_filt=True,
