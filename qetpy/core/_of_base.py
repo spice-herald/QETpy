@@ -172,14 +172,20 @@ class OFBase:
 
     def template_mat(self, channels):
         '''
-        FIXME:
-        add docstrings and dimensions
-        dim: [nchans, ntmps, nbins]
-        Note: the real dimensions are [nchans,nchans,nbins]
-        We pad the template matrix with zeros to prevent an indexing issue
-        when eg: the middle channel has no template.
-        This template matrix will only work for when each channel has a maximum of
-        1 template.
+        Get the template matrix for the specified channel combination.
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+            
+        Return
+        ------
+        
+        template_mat: ndarray, dimn [nchans, ntmps, nbins]
+            A template matrix constructed with fft'd templates. 
         '''
         if (channels in self._template_mat.keys()):
             return self._template_mat[channels]
@@ -278,9 +284,20 @@ class OFBase:
 
     def icovf(self, channels):
         '''
-        FIXME
-        #add docstrings and dimensions
-        dim: [nchans, nchans, nbins]
+        Get the inverted noise covariance (csd) matrix between channels. 
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+        
+        Return
+        ------
+        
+        icovf: ndarray, dimn: [nchans,nchans,nbins]
+            The inverted csd in units 1/A^2. 
         '''
         if channels in self._icovf.keys():
             return self._icovf[channels]
@@ -312,9 +329,20 @@ class OFBase:
 
     def signal_mat(self, channels):
         '''
-        FIXME:
-        add docstrings and dimensions
-        dim: [nchans, nbins]
+        Get the fft'd signal matrix for the signals on the specified channels. 
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+            
+        Return
+        ------
+        
+        signal_mat: ndarray, dimn: [nchans,nbins]
+            The signal matrix constructed from fftd traces for each channel. 
         '''
         if (channels in self._signal_mat.keys()):
             return self._signal_mat[channels]
@@ -375,10 +403,22 @@ class OFBase:
 
     def phi_mat(self, channels):
         '''
-        FIXME: add docstrings and dimensions
-        dim: [nbins, ntmps, nchans]
-        Note: this is technically [nbins, nchans, nchans]. See the
-        note on constructing the template matrix and padding with zeroes.
+        Get the phi matrix for the specified channels.
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+            
+        Returns
+        -------
+        
+        phi_mat: ndarray, dimn: [nbins, ntmps, nchans]
+            The optimal filter, a matrix that describes how each template 
+            interacts with each channel, adjusted for noise characteristics,
+            across all possible combinations of amplitudes.
         '''
         if (channels in self._phi_mat.keys()):
             return self._phi_mat[channels]
@@ -415,9 +455,23 @@ class OFBase:
 
     def iw_mat(self, channels):
         '''
-        FIXME
-        add docstrings and dimensions
-        dim: [ntmps, ntmps]
+        Get the inverted weighting matrix for the specified combination
+        of channels. 
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+            
+        Returns
+        -------
+        
+        iw_mat: ndarray, dimn: [ntmps,ntmps]
+            The inverted matrix which describes how we weight each
+            template w/ respect to one another. This is "norms" in the 
+            1x1. 
         '''
         if (channels in self._iw_mat.keys()):
             return self._iw_mat[channels]
@@ -466,8 +520,21 @@ class OFBase:
 
     def signal_filt_mat(self, channels):
         '''
-        FIXME: add dimensions and documentation
-        dim: [ntmps, nbins]
+        Get the filtered signal matrix in frequency domain. 
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+            
+        Returns
+        -------
+        
+        signal_filt_mat: ndarray, dimn:[ntmps,nbins]
+            The optimally filtered signal, the fft'd signal matrix multiplied
+            by the optimal filter Phi. 
         '''
         if (channels in self._signal_filts_mat.keys()):
             return self._signal_filts_mat[channels]
@@ -506,8 +573,21 @@ class OFBase:
 
     def signal_filt_mat_td(self, channels):
         '''
-        FIXME: add dimensions and docstring
-        dim: [ntmps, nbins]
+        Get the filtered signal matrix in time domain. 
+        
+        Parameters
+        -----------
+        
+        channels : str 
+            channels as "|" separated string
+            such as "channel1|channel2"
+        
+        Returns
+        -------
+        
+        signal_filt_mat_td: ndarray, dimn:[ntmps,nbins]
+            The optimally filtered signal matrix in time domain. The ifft'd
+            filtered signal matrix. 
         '''
         if (channels in self._signal_filts_mat_td.keys()):
             return self._signal_filts_mat_td[channels]
@@ -1033,8 +1113,23 @@ class OFBase:
 
     def build_signal_mat(self, channels, channel_name, template_tags):
         '''
-        FIXME:
-        add dimensions and docstrings
+        Function to build the signal matrix between specified channels.
+        
+        Parameters
+        ----------
+        
+        channels : str 
+            a single channel such as "channel1"
+        channel_name: str
+            multiple channels as "|" separated string
+            such as "channel1|channel2"
+        template_tags: list
+            a list of str template tags
+        
+        Returns
+        -------
+        
+        None
         '''
         temp_signal_mat = np.zeros((self._nchans, self._nbins), dtype='complex_')
         # instantiate
@@ -1056,8 +1151,25 @@ class OFBase:
         
     def build_template_mat(self, channels, channel_name, template_tags=None):
         '''
-        FIXME:
-        dimensions and docstrings. add note about how the template is built
+        A function to build the template matrix for each channels specified 
+        template tags from the user provided fftd template arrays. 
+        
+        Parameters
+        ----------
+        
+        channels : list 
+            a list of str channels
+        channel_name: str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        template_tags: list
+            a list of str template tags
+            default: None
+        
+        Returns
+        -------
+        
+        None
         '''
         # instantiate
         if channel_name not in self._template_mat:
@@ -1154,7 +1266,26 @@ class OFBase:
 
     def calc_phi_mat(self, channels, channel_name, template_tags=None):
         '''
-        FIXME
+        Calculates the optimal filter matrix across the specified channels and templates.
+        Depends on the templates and the inverted covariance matrix. This function also checks
+        that precalculations are covered. 
+        
+        Parameters
+        ----------
+        
+        channels : list 
+            a list of str channels
+        channel_name: str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        template_tags: list
+            a list of str template tags
+            default: None
+        
+        Returns
+        -------
+        
+        None
         '''
         # check channel
         for channel in channels:
@@ -1188,7 +1319,26 @@ class OFBase:
 
     def calc_weight_mat(self, channels, channel_name, template_tags=None):
         '''
-        FIXME
+        A function that calculates the inverted and non inverted weighting (or norm) matrix. 
+        Depends on the optimal filter matrix (phi) and the template matrix.
+        This function also checks that the phi matrix has been precomputed. 
+        
+        Parameters
+        ----------
+        
+        channels : list 
+            a list of str channels
+        channel_name: str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        template_tags: list
+            a list of str template tags
+            default: None
+        
+        Returns
+        -------
+        
+        None
         '''
         if self.phi_mat(channel_name) is None:
             self.calc_phi_mat(channels=channels, channel_name=channel_name, template_tags=template_tags)
@@ -1261,7 +1411,19 @@ class OFBase:
 
     def calc_icovf(self, channels):
         '''
-        FIXME
+        A function that inverts the csd or covariance noise matrix between channels. 
+        
+        Parameters
+        ----------
+        
+        channels : str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        
+        Returns
+        -------
+        
+        None
         '''
         #I should add lines that make sure csd is instantiated first
         covf = np.copy(self.csd(channels)) #an ndarray for a combination of channels
@@ -1331,12 +1493,20 @@ class OFBase:
 
     def calc_signal_filt_mat(self, channels):
         '''
-        FIXME
-        Add instance catching for phi_mat, None type template_tags, and signal_mat
-        Add initialization of signal_mat[channels] dictionary if not in
-        Add instantiation of ntmp and nchan from template_mat and signal_mat
-        Build template_mat
-        Add dimensions and docstrings
+        A function that calculates the filtered signal matrix in frequency domain.
+        That is, the signal matrix multiplied by the optimal filter matrix (phi). 
+        
+        Parameters
+        ----------
+        
+        channels : str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        
+        Returns
+        -------
+        
+        None
         '''
         temp_sign_mat = np.zeros((self._ntmps, self._nbins), dtype='complex_')
         temp_phi_mat = self.phi_mat(channels)
@@ -1407,9 +1577,21 @@ class OFBase:
 
     def calc_signal_filt_mat_td(self, channels):
         '''
-        FIXME
-        add template_tags instance type catching and None type catching
-        Add dimensions and docstrings
+        A function that calculates the optimally filtered signal matrix in time domain.
+        In other words, the ifft of the filtered signal matrix. 
+        This function also calculates the q matrix FIXME: Praytush code. needs documentation from him.
+        
+        Parameters
+        ----------
+        
+        channels : str
+            multiple channels as a single "|" separated string
+            such as "channel1|channel2"
+        
+        Returns
+        -------
+        
+        None
         '''
         #add template_tags instance catching
         if self.signal_filt_mat(channels) is None: #check to see if signal_filts_mat is calculated
