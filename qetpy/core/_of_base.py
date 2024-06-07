@@ -771,7 +771,7 @@ class OFBase:
 
         """
         
-        if channel is None:
+        if channel is None or signal_mat_flag is True:
 
             # case no channel name provided
             # -> reset data with signal from ALL channels 
@@ -794,7 +794,7 @@ class OFBase:
             # NxM and other matrices
             self._q_vector = dict()
             
-        else:
+        elif (channel != None) and (signal_mat_flag is False):
             # only reset data for specified data
 
             # signal
