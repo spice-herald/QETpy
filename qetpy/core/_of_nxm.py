@@ -38,7 +38,7 @@ class OFnxm:
             Template tags to calculate optimal filters
             Default: ['default']
 
-        channels : str or list of string
+        channels : str
           channels as ordered list or "|" separated string
           such as "channel1|channel2"
 
