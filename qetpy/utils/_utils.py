@@ -36,7 +36,9 @@ __all__ = [
     "fftfreq",
     "rfftfreq",
     "energy_resolution",
-    "fold_spectrum"
+    "fold_spectrum",
+    "convert_channel_list_to_name",
+    "convert_channel_name_to_list"
 ]
 
 
@@ -1516,3 +1518,56 @@ def fold_spectrum(spectrum, fs):
             
 
     return f, folded_spectrum
+
+
+def convert_channel_list_to_name(channels):
+    """
+    convert channel list to a string separated
+    with '|'
+
+    Parameters:
+      channels: array like or string
+        list of channels
+
+    Return:
+      channel_name: string
+       channel name
+    """
+
+    # check if string already
+    if isinstance(channels, str):
+        return channels
+
+    channel_name = str()
+    
+    try:
+        channel_name = '|'.join(part.strip() for part in channels)
+    except:
+        raise ValueError('Channels is not an array!')
+        
+    return channel_name
+
+
+def convert_channel_name_to_list(channels):
+    """
+    convert channel name separed with '|' to list of channels
+ 
+    Parameters:
+      channels: string
+        channel name
+
+    Return:
+      channel_list: list
+       list of channels
+    """
+
+    if not isinstance(channels, str):
+        return channels
+
+    # remove all white space
+    channels = channels.replace(' ','')
+
+    # convert to list
+    channel_list = channels.split('|')
+
+    return channel_list
