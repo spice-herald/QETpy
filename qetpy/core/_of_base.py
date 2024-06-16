@@ -779,7 +779,7 @@ class OFBase:
                     self._signal.pop(channel)
                 if channel in  self._signal_fft:
                     self._signal_fft.pop(channel)
-                    
+
         elif signal_mat_flag is True:
             if channel is None:
                 self._signal = dict()
@@ -802,7 +802,7 @@ class OFBase:
                     self._template_filts.pop(channel)
                 if channel in self._template_filts_td:
                     self._template_filts_td.pop(channel)
-        
+
         self._signal = dict()
         self._signal_fft = dict()
         self._signal_mat = dict()
@@ -986,7 +986,7 @@ class OFBase:
 
         self._signal_mat[channel_name] = temp_signal_mat #save the built signal matrix
 
-        
+
     def build_template_mat(self, channels, channel_name, template_tags=None):
         '''
         FIXME:
@@ -1005,7 +1005,7 @@ class OFBase:
 
         self._ntmps = len(template_tags)
         temp_templ_mat = np.zeros((self._nchans, self._ntmps, self._nbins), dtype='complex_')
-        
+
         for ichan, chan in enumerate(channels):
             for itag, tag in enumerate(template_tags):
                 temp_templ_fft = self._templates_fft[chan][tag]
@@ -1167,7 +1167,8 @@ class OFBase:
 
         p_matrix_mat = np.zeros((self._nbins, self._ntmps, self._ntmps ))
         for itmp in range(self._ntmps):
-            for jtmp in range(itmp, self._ntmps):
+            #for jtmp in range(itmp, self._ntmps):
+            for jtmp in range(self._ntmps):
                 sum = 0.0
                 for jchan in range(self._nchans):
                     if (time_diff_mat[itmp,jtmp] == 1):
@@ -1177,7 +1178,8 @@ class OFBase:
                         sum += np.real( np.sum(self._phi_mat[channel_name][:,itmp,jchan]\
                                                      *self._template_mat[channel_name][jchan,jtmp,:] ))
 
-                p_matrix_mat[:,itmp,jtmp] = p_matrix_mat[:,jtmp,itmp] = sum
+                #p_matrix_mat[:,itmp,jtmp] = p_matrix_mat[:,jtmp,itmp] = sum
+                p_matrix_mat[:,itmp,jtmp] = sum
         p_inv_matrix_mat = np.linalg.pinv(p_matrix_mat)
 
 
