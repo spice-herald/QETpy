@@ -137,7 +137,7 @@ class OFnxm:
                                  '"templates" and "template_tags" is not '
                                  'consistent!')
            
-            if templates.shape[0] != self._nchans:
+            if template_tags.shape[0] != self._nchans:
                 raise ValueError(f'ERROR: Expecting "template_tags" to have '
                                  f'shape[0]={self._nchans}!')
                             
@@ -189,24 +189,24 @@ class OFnxm:
             )
                 
         else:
-            
-            # check if template exist already
-            for ichan, chan in enumerate(self._channel_list):
 
-                # get all tags for this channel
-                tags = self._ofbase.template_tags(chan)
+            is_tag = False
+            tags = self._of_base.template_tags(self._channel_name)
+            for tag in tags:
+                if np.array_equal(tag, template_tags):
+                    is_tag = True
 
-                for chan_tag in template_tags[ichan]:
-                    if chan_tag not in tags:
-                        raise ValueError(
-                            f'ERROR: No template with tag '
-                            f'"{chan_tag}" found for channel '
-                            f'{chan} in OF base!'
-                        )
+            if not is_tag:
+                raise ValueError(
+                    f'ERROR: No template with tag '
+                    f'"{template_tags}" found for channel '
+                    f'{self._channel_name} in OF base!'
+                )
                     
         # save template tags
         self._template_tags = template_tags
-    
+        self._ntmps = template_tags.shape[1]
+        
         # add noise to base object
         if csd is not None:
 
@@ -218,7 +218,7 @@ class OFnxm:
         elif self._of_base.csd(channels=self._channel_name) is None:
             raise ValueError('ERROR: No csd found in OF base object.'
                              ' Add csd argument!')
-            
+                  
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
         
@@ -233,12 +233,14 @@ class OFnxm:
             # the template matrix is constructed
             # and i_covf is calculated. So all precalcs are covered.
 
-            
         # initialize fit results
         #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
         self._nbins = self._of_base._nbins
-        self.pretrigger_samples = pretrigger_samples
-        self._fs = sample_rate
+        self.pretrigger_samples = self._of_base.pretrigger_samples(
+            self._channel_name, self._template_tags
+        )
+
+        self._fs = self._of_base.sample_rate
 
         self._amps_alltimes_rolled = None
         self._amps_alltimes = None
@@ -299,7 +301,7 @@ class OFnxm:
                 raise ValueError('ERROR: Wrong number of channels '
                                 'in "signal" array!')
             
-            self._of_base.clear_signals()
+            self._of_base.clear_signal()
             
             self._of_base.update_signal_many_channels(
                 self._channel_name,
@@ -366,14 +368,24 @@ class OFnxm:
         if window_max is not None and window_max>self._nbins:
             window_max = self._nbins
 
+        
+        if  window_min is not None:
+             window_min = int(window_min)
+             
+        if  window_max is not None:
+             window_max = int(window_max)
+
+            
         #argmin_chisq will minimize along the last axis
         #chi2_all dim [ntmp,nbins]
+           
         bestind = argmin_chisq(
             chi2_all,
             window_min=window_min,
             window_max=window_max,
             lgc_outside_window=lgc_outside_window,
             constraint_mask=constraint_mask)
+        
         #need to add interpolate option
         amp = amp_all[:,bestind]
         t0 = (bestind-pretrigger_samples)/self._fs
@@ -414,9 +426,9 @@ class OFnxm:
         # inverted weight matrix
         iw_mat = self._of_base.iw_mat(self._channel_name,
                                       self._template_tags)
-        # caculate
+        # calculate
         self._amps_alltimes = (iw_mat @ signal_filt)
-               
+           
         # roll with pretrigger_samples 
         temp_amp_roll = np.zeros_like(self._amps_alltimes)
         for itmp in range(self._ntmps):
@@ -436,7 +448,7 @@ class OFnxm:
 
         # get signal fft 
         signal_fft = self._of_base.signal_fft(self._channel_name)
-
+        
         # inverted cov matrix
         temp_icov_f = self._of_base.icovf(self._channel_name)
 
@@ -448,7 +460,7 @@ class OFnxm:
             self._channel_name,
             template_tag=self._template_tags
         )
-
+        
         # calculate chi2
 
         #chi2base is a time independent scalar on the sum over all channels & freq bins
