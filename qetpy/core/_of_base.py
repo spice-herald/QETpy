@@ -1552,7 +1552,7 @@ class OFBase:
 
 
 
-    def calc_icovf(self, channels):
+    def calc_icovf(self, channels, coupling='AC'):
         """
         A function that inverts the csd or covariance noise matrix between channels. 
         
@@ -1562,6 +1562,14 @@ class OFBase:
         channels : str or list
             multiple channels as a single "|" separated string
             such as "channel1|channel2"
+
+        coupling : str, optional [default='AC']
+            String that determines if the zero frequency bin of the csd
+            should be ignored   when calculating
+            the optimum amplitude. If set to 'AC', then the zero
+            frequency bin is ignored. If set to anything else, then the
+            zero frequency bin is kept.
+
         
         Returns
         -------
@@ -1579,6 +1587,9 @@ class OFBase:
         temp_icovf = np.zeros_like(covf, dtype='complex')
         for ii in range(self._nbins):
             temp_icovf[:,:,ii] = pinv(covf[:,:,ii]) #1/A^2
+
+        if coupling == 'AC':
+            temp_icovf[:,:,0] = 0.0
             
         self._icovf[channel_name] = temp_icovf
         
