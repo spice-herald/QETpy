@@ -739,7 +739,7 @@ class OFBase:
     def add_template(self, channel, template,
                      template_tag='default',
                      pretrigger_samples=None,
-                     maxnorm=True,
+                     maxnorm=False,
                      integralnorm=False,
                      overwrite=False):
         """
@@ -847,7 +847,7 @@ class OFBase:
     def add_template_many_channels(self, channels,
                                    templates, template_tags,
                                    pretrigger_samples=None,
-                                   maxnorm=True,
+                                   maxnorm=False,
                                    integralnorm=False,
                                    overwrite=False):
         """
