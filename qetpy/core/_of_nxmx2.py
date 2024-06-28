@@ -21,7 +21,7 @@ class OFnxmx2:
     def __init__(self, of_base=None, template_tags=['default'], channels=None,
                  templates=None, templates_time_tag =None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
-                 integralnorm=False, channel_name='unknown', fit_window = None,
+                 integralnorm=False, channel_name='unknown', fit_window = None, restrict_time_flag = True,
                  verbose=True):
 
         """
@@ -100,6 +100,10 @@ class OFnxmx2:
 
         # tag
         self._template_tags = template_tags
+
+        # restrict_time_flag
+        self._restrict_time_flag =  restrict_time_flag
+
 
         if isinstance(channels, str):
             if '|' not in channels:
@@ -220,7 +224,7 @@ class OFnxmx2:
 
         if self._of_base.p_matrix_mat(self._channel_name) is None:
             self._of_base.calc_p_matrix_mat(channels=self._channels_list, channel_name=self._channel_name,
-                                          template_tags=self._template_tags, fit_window= self._of_base._fit_window)
+                                          template_tags=self._template_tags, fit_window= self._of_base._fit_window, restrict_time_flag = self._restrict_time_flag)
             # calc_weight_mat will then check that phi_mat is calculated
             # calc_phi_mat in turn checks that the templates are fft'd,
             # the template matrix is constructed
@@ -255,7 +259,7 @@ class OFnxmx2:
             self._of_base.calc_p_matrix_mat(self, channels=self._channel_name,
                               channel_name=self._channel_name,
                               template_tags=self._template_tags,
-                              fit_window= fit_window)
+                              fit_window= fit_window, restrict_time_flag = self._restrict_time_flag)
 
         self.calc_amp(channels=self._channel_name, template_tags=self._template_tags)
 
@@ -343,7 +347,8 @@ class OFnxmx2:
         chi2_t = np.zeros_like(self._of_base._time_combinations[:,0])
         chi2_when_one_deviates_from_true_minima = np.zeros_like(self._of_base._time_combinations[:,0])
 
-        chi2_t= np.real(np.sum(np.conjugate(self._of_base._q_vector_mat[channels]) * self._amps[channels].T, axis =0))
+
+        chi2_t= np.sum( np.conjugate(self._of_base._q_vector_mat[channels])*self._amps[channels].T , axis =0)
 
         if polarity_constraint: # this is zero when polarity constrain is not used\
 
@@ -351,7 +356,7 @@ class OFnxmx2:
                 self._of_base.calc_p_matrix_mat(channels=self._channels_list,
                                                 channel_name=self._channel_name,
                                                 template_tags=self._template_tags,
-                                                fit_window= self._of_base._fit_window)
+                                                fit_window= self._of_base._fit_window, restrict_time_flag = self._restrict_time_flag)
 
             chi2_polarity = np.zeros_like(self._amps[channels])
 

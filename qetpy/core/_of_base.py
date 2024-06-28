@@ -1138,7 +1138,7 @@ class OFBase:
 
 
 
-    def calc_p_matrix_mat(self, channels, channel_name, template_tags=None, fit_window= None):
+    def calc_p_matrix_mat(self, channels, channel_name, template_tags=None, fit_window= None, restrict_time_flag = None):
         '''
         FIXME
         '''
@@ -1152,49 +1152,70 @@ class OFBase:
             time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
             time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
 
-        X,Y = np.meshgrid(time_combinations1,time_combinations2)
+        if(restrict_time_flag):
+            print("Flag to restrict the time window is ON!! ")
+            X,Y = np.meshgrid(time_combinations1,time_combinations2)
+            mask = X <= Y
+            indices = np.where(mask)
+            self._time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
+        else:
+            self._time_combinations = np.stack(np.meshgrid(time_combinations1,time_combinations2), -1).reshape(-1, 2)
 
-        mask = X <= Y
-        indices = np.where(mask)
 
-        self._time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
 
 
         time_diff_mat = np.zeros(( self._template_time_tag.shape[0] ,self._template_time_tag.shape[0] ))
         for i in range(self._template_time_tag.shape[0]):
             for j in range(self._template_time_tag.shape[0]):
-                time_diff_mat[i,j]=np.abs(self._template_time_tag[i]-self._template_time_tag[j])
+                time_diff_mat[i,j]=(self._template_time_tag[i]-self._template_time_tag[j])
 
-        p_matrix_mat = np.zeros((self._nbins, self._ntmps, self._ntmps ))
+        p_matrix_mat = np.zeros((self._nbins, self._ntmps, self._ntmps ),dtype='complex_')
+        np.einsum('jii->ji', p_matrix_mat)[:] = 1
         for itmp in range(self._ntmps):
             #for jtmp in range(itmp, self._ntmps):
             for jtmp in range(self._ntmps):
-                sum = 0.0
+                sum = 0.0 + 0.0j
                 for jchan in range(self._nchans):
-                    if (time_diff_mat[itmp,jtmp] == 1):
-                        sum += np.real( np.fft.ifft(self._phi_mat[channel_name][:,itmp,jchan]\
-                                                     *self._template_mat[channel_name][jchan,jtmp,:])*self._nbins )
+                    if (time_diff_mat[itmp,jtmp] != 0):
+                        #sum += np.real( np.fft.ifft(self._phi_mat[channel_name][:,itmp,jchan]\
+                        #                             *self._template_mat[channel_name][jchan,jtmp,:])*self._nbins )
+                        sum += np.fft.ifft(self._phi_mat[channel_name][:,itmp,jchan]\
+                                                     *self._template_mat[channel_name][jchan,jtmp,:])*self._nbins
                     if (time_diff_mat[itmp,jtmp] == 0):
-                        sum += np.real( np.sum(self._phi_mat[channel_name][:,itmp,jchan]\
-                                                     *self._template_mat[channel_name][jchan,jtmp,:] ))
+                        #sum += np.real( np.sum(self._phi_mat[channel_name][:,itmp,jchan]\
+                        #                             *self._template_mat[channel_name][jchan,jtmp,:] ))
+                        sum +=  np.sum(self._phi_mat[channel_name][:,itmp,jchan]\
+                                                     *self._template_mat[channel_name][jchan,jtmp,:] )
 
-                #p_matrix_mat[:,itmp,jtmp] = p_matrix_mat[:,jtmp,itmp] = sum
-                p_matrix_mat[:,itmp,jtmp] = sum
+                #p_matrix_mat[:,itmp,jtmp] = np.real(sum)
+                if (jtmp >= itmp):
+                    p_matrix_mat[:,itmp,jtmp] = p_matrix_mat[:,jtmp,itmp] = np.real(sum)
+
         p_inv_matrix_mat = np.linalg.pinv(p_matrix_mat)
-
-
+        self._p_matrix[channel_name] = p_matrix_mat
+        print("Pmatrix has been calculated:")
+        print(p_matrix_mat[2,:,:])
         self._p_matrix_mat[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
         self._p_inv_matrix_mat[channel_name]   = np.zeros((self._time_combinations[:,0].shape[0], self._ntmps, self._ntmps))
+        np.einsum('jii->ji', self._p_inv_matrix_mat[channel_name] )[:] = 1
 
 
+        #for itmps in range(self._ntmps):
+        #    for jtmps in range(self._ntmps):
+        #        if(jtmps >= itmps):
+        #            self._p_matrix_mat[channel_name][:, itmps, jtmps]  = p_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+        #            self._p_inv_matrix_mat[channel_name][:, itmps, jtmps] = p_inv_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+        #        else:
+        #            self._p_matrix_mat[channel_name][:, itmps, jtmps] =p_matrix_mat[self._time_combinations[:,1] - self._time_combinations[:,0]][:, itmps, jtmps]
+        #            self._p_inv_matrix_mat[channel_name][:, itmps, jtmps] = p_inv_matrix_mat[self._time_combinations[:,1] - self._time_combinations[:,0]][:, itmps, jtmps]
         for itmps in range(self._ntmps):
             for jtmps in range(self._ntmps):
-                self._p_matrix_mat[channel_name][:, itmps, jtmps] = p_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
-                self._p_inv_matrix_mat[channel_name][:, itmps, jtmps]  =  p_inv_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+                    self._p_matrix_mat[channel_name][:, itmps, jtmps] = p_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
+                    self._p_inv_matrix_mat[channel_name][:, itmps, jtmps] = p_inv_matrix_mat[self._time_combinations[:,0] - self._time_combinations[:,1]][:, itmps, jtmps]
 
 
 
-    def calc_icovf(self, channels):
+    def calc_icovf(self, channels, coupling='AC'):
         '''
         FIXME
         '''
@@ -1206,8 +1227,12 @@ class OFBase:
         for ii in range(self._nbins):
             temp_icovf[:,:,ii] = pinv(covf[:,:,ii]) #1/A^2
         self._icovf[channels] = temp_icovf
+
+        if coupling == 'AC':
+            temp_icovf[:,:,0] = 0.0
+
         print("The noise csd has been calculated: ")
-        print(temp_icovf[:,:,0])
+        print(temp_icovf[:,:,2])
 
 
     def calc_signal_filt(self, channel, template_tags=None):
