@@ -800,7 +800,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
     def calc_smallsignal_params(self, biasparams,
-                                biasparams_tag='normal_iv',
                                 poles=None,
                                 lgc_verbose=True,
                                 lgc_diagnostics=False):
@@ -849,8 +848,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         # initialize  bias parameters dict
         biasparams_dict = biasparams.copy()
-        biasparams_dict['biasparams_type'] = biasparams_tag
-        
+             
         rp = biasparams_dict['rp']
         rn = None
         if 'rn' in biasparams_dict:
@@ -874,7 +872,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # calc
             self._calc_ssp(model_poles,
                            biasparams_dict=biasparams_dict.copy(),
-                           biasparams_tag=biasparams_tag, 
                            lgc_ssp_light=True)
             
  
@@ -944,7 +941,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     def _calc_ssp(self, poles,
                   biasparams_dict=None,
-                  biasparams_tag='norm_iv', 
                   lgc_ssp_light=False):
         """
         Function to calculate small signal parameters  from fit result
@@ -952,6 +948,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         
         # check if r0/rp available in biasparams_dict
         if biasparams_dict is not None:
+
             if 'r0' in biasparams_dict:
                 self._r0 = biasparams_dict['r0']
             if 'rp' in biasparams_dict:
@@ -977,7 +974,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             }
             
             self._fit_results[1]['didv0'] = (
-                complexadmittance(0, **self._fit_results[1]['smallsignalparams']).real
+                complexadmittance(0, self._fit_results[1]['smallsignalparams']).real
             )
             
             # store bias params
@@ -1003,7 +1000,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 results['biasparams'] = biasparams_dict.copy()
             else:
                 results['biasparams'] = None
-            results['biasparams_tag'] = biasparams_tag
             
             # convert fit parameterts to smallsignalparams
             smallsignalparams = DIDV._converttotesvalues(
@@ -1042,7 +1038,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 }
                 
             results['didv0'] = (
-                complexadmittance(0, **results['smallsignalparams']).real
+                complexadmittance(0, results['smallsignalparams']).real
             )
             
             dpdi, dpdi_err = get_dPdI_with_uncertainties([0.0], results)

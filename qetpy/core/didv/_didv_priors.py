@@ -101,7 +101,9 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
-        didv = complexadmittance(freq, rsh=rsh, rp=rp, L=L)
+        params = {'rsh': rsh, 'rp':rp, 'L':L}
+        
+        didv = complexadmittance(freq, params)
 
         return rsh * didv
 
@@ -115,8 +117,11 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
+        params = {'rsh': rsh, 'rp':rp, 'L':L, 'r0': r0,
+                  'beta':beta, 'tau0':tau0, 'l':l}
+
         didv = complexadmittance(
-            freq, rsh=rsh, rp=rp, r0=r0, beta=beta, l=l, L=L, tau0=tau0,
+            freq, params
         )
 
         return rsh * didv
@@ -132,17 +137,13 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         """
 
+        
+        params = {'rsh': rsh, 'rp':rp, 'L':L, 'r0': r0,
+                  'beta':beta, 'tau0':tau0, 'l':l,
+                  'gratio':gratio, 'tau3':tau3}
+
         didv = complexadmittance(
-            freq,
-            rsh=rsh,
-            rp=rp,
-            r0=r0,
-            beta=beta,
-            l=l,
-            L=L,
-            tau0=tau0,
-            gratio=gratio,
-            tau3=tau3,
+            freq, params
         )
 
         return rsh * didv
@@ -476,6 +477,6 @@ class DIDVPriors(_BaseDIDV, _PlotDIDV):
 
         result['falltimes'] = falltimes
         result['cost'] = cost
-        result['didv0'] = complexadmittance(0, **result['params']).real
+        result['didv0'] = complexadmittance(0, result['params']).real
 
         return result

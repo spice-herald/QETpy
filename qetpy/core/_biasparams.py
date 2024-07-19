@@ -589,7 +589,7 @@ def get_biasparams_offsets(offset_data, offset_data_err,
     
     biasparams = get_biasparams_i0(i0_offset, i0_offset_err, ibias, ibias_err,
                                    rsh, rp, rn=None)
-                    
+    biasparams['biasparams_type'] = 'offset'       
     return biasparams
     
 
@@ -662,7 +662,8 @@ def get_biasparams_muon(baseline_av, baseline_err,
     
     biasparams = get_biasparams_i0(i0, i0_err, ibias, 0.0,
                                    rsh, rp, rn=None)
-                    
+    biasparams['biasparams_type'] = 'muon'
+    
     return biasparams
     
                         
@@ -743,6 +744,7 @@ def get_biasparams_normal_iv(normal_avs, normal_errs,
     
     biasparams = get_biasparams_i0(i0, i0_err, ibias_baseline, 0.0,
                                    rsh, rl-rsh, rn=None)
-                                   
+
+    biasparams['biasparams_type'] = 'normal_iv'
     return biasparams
     

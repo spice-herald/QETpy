@@ -14,33 +14,49 @@ __all__ = [
 ]
 
 
-def _pole_extractor(arg_dict):
+def _pole_extractor(arg_dict, is_ssp):
     """
     Hidden helper function for aiding in determining which model to
     use when calculating the complex impedance or admittance.
 
     """
 
-    one_pole = [
-        'rsh', 'rp', 'L',
-    ]
-    two_pole = [
-        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0',
-    ]
-    three_pole = [
-        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0', 'gratio', 'tau3',
-    ]
+    params = copy.deepcopy(arg_dict)
+    
+    if is_ssp:
+        one_pole = ['rsh', 'rp', 'L']
+        two_pole = ['rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0']
+        three_pole = ['rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0',
+                      'gratio', 'tau3']
 
-    if all(arg_dict[p3] is not None for p3 in three_pole):
-        return 3
-    if all(arg_dict[p2] is not None for p2 in two_pole):
-        return 2
-    if all(arg_dict[p1] is not None for p1 in one_pole):
-        return 1
+        if all(params[p3] is not None for p3 in three_pole):
+            return 3
+        if all(params[p2] is not None for p2 in two_pole):
+            return 2
+        if all(params[p1] is not None for p1 in one_pole):
+            return 1
+        
+        raise ValueError("ERROR: The passed parameters do not "
+                         "match a valid model. May be missing "
+                         "arguments!")
+    else:
 
-    raise ValueError("The passed parameters do not match a valid model")
+        if 'A' not in params:
+            raise ValueError("ERROR: The passed parameters do not "
+                             "match a valid model. May be missing "
+                             "arguments!")
+        if 'B' not in params:
+            params['B'] = 0
+        if 'C' not in params:
+            params['C'] = 0
 
-
+        if params['B'] == 0 and params['C'] == 0:
+            return 1
+        elif params['C'] == 0:
+            return 2
+        else:
+            return 3
+        
 def stdcomplex(x, axis=0):
     """
     Function to return complex standard deviation (individually
@@ -71,8 +87,7 @@ def stdcomplex(x, axis=0):
     return std_complex
 
 
-def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
-                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
+def compleximpedance(f, params, **kwargs):
     """
     Method for calculating the complex impedance for a given model,
     depending on the parameters inputted (see Notes for more
@@ -83,34 +98,11 @@ def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
     f : ndarray, float
         The frequencies at which the complex impedance will be
         calculated.
-    rsh : float, optional
-        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
-        2-, and 3-pole models.
-    rp : float, optional
-        Parasitic resistance on the non-shunt side of the TES circuit,
-        units of Ohms. Used by 1-, 2-, and 3-pole models.
-    r0 : float, optional
-        The operating resistance of the TES, units of Ohms. Used by 2-
-        and 3-pole models.
-    beta : float, optional
-        The current sensitivity of the TES, defined as
-        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
-    l : float, optional
-        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
-        by the 2- and 3-pole models.
-    L : float, optional
-        The inductance in the TES circuit, units of Henrys. Used by 1-,
-        2-, and 3-pole models.
-    tau0 : float, optional
-        The thermal time constant of the TES (in sseconds), defined as
-        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
-    gratio : float, optional
-        The ratio of thermal conductances in the 3 thermal block models
-        that are used as the basis of the 3-pole model. Used in 3-pole
-        model only.
-    tau3 : float, optional
-        The extra pole  associated with the 3 thermal block model,
-        units of seconds. Used in 3-pole model only.
+    params : dict
+        Either fit results or small signal paramters
+          - small signal parameters (rsh, rp, r0, beta, l, 
+                                      L, tau0, gratio, tau3)
+          - fit results (A, B, C, tau1, tau2, tau3)
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -147,29 +139,57 @@ def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
                   - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
 
     """
+    params = copy.deepcopy(params)
+      
+    # check if ssp or fit params
+    is_ssp = ('beta' in params and 'A' not in params)
+    poles = _pole_extractor(params, is_ssp)
 
-    passed_args = locals()
-    poles = _pole_extractor(passed_args)
-
+    # parameters
+    if is_ssp:
+        rsh = params['rsh']
+        rp = params['rp']
+        L =  params['L']
+        if poles >= 2:
+            r0 = params['r0']
+            beta = params['beta']
+            l = params['l']
+            tau0 = params['tau0']
+        if poles == 3:
+            gratio = params['gratio']
+            tau3 = params['tau3']
+    else:
+        A = params['A']
+        tau2 = params['tau2']
+        if poles >= 2:
+            B = params['B']
+            tau1 = params['tau1']
+        if poles == 3:
+            C = params['C']
+            tau3 = params['tau3']
+            
     if poles == 1:
-        A, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, L, 0),
-        )
+        if is_ssp:
+            A, tau2, _  = _BaseDIDV._convertfromtesvalues(
+                (rsh, params['rp'],  params['L'], 0),
+            )
         return _BaseDIDV._onepoleimpedance(f, A, tau2)
+
     if poles == 2:
-        A, B, tau1, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, 0),
-        )
+        if is_ssp:
+            A, B, tau1, tau2,_  = _BaseDIDV._convertfromtesvalues(
+                (rsh, rp, r0, beta, l, L, tau0, 0),
+            )
         return _BaseDIDV._twopoleimpedance(f, A, B, tau1, tau2)
     if poles == 3:
-        A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
-        )
+        if is_ssp:
+            A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
+                (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
+            )
         return _BaseDIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
 
 
-def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
-                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
+def complexadmittance(f, params, **kwargs):
     """
     Method for calculating the complex admittance for a given
     model, depending on the parameters inputted (see Notes for more
@@ -181,34 +201,11 @@ def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
     f : ndarray, float
         The frequencies at which the complex impedance will be
         calculated.
-    rsh : float, optional
-        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
-        2-, and 3-pole models.
-    rp : float, optional
-        Parasitic resistance on the non-shunt side of the TES circuit,
-        units of Ohms. Used by 1-, 2-, and 3-pole models.
-    r0 : float, optional
-        The operating resistance of the TES, units of Ohms. Used by 2-
-        and 3-pole models.
-    beta : float, optional
-        The current sensitivity of the TES, defined as
-        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
-    l : float, optional
-        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
-        by the 2- and 3-pole models.
-    L : float, optional
-        The inductance in the TES circuit, units of Henrys. Used by 1-,
-        2-, and 3-pole models.
-    tau0 : float, optional
-        The thermal time constant of the TES (in sseconds), defined as
-        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
-    gratio : float, optional
-        The ratio of thermal conductances in the 3 thermal block models
-        that are used as the basis of the 3-pole model. Used in 3-pole
-        model only.
-    tau3 : float, optional
-        The extra pole  associated with the 3 thermal block model,
-        units of seconds. Used in 3-pole model only.
+   params : dict
+        Either fit results or small signal paramters
+          - small signal parameters (rsh, rp, r0, beta, l, 
+                                      L, tau0, gratio, tau3)
+          - fit results (A, B, C, tau1, tau2, tau3)
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -246,19 +243,7 @@ def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
 
     """
 
-    impedance = compleximpedance(
-        f,
-        rsh=rsh,
-        rp=rp,
-        r0=r0,
-        beta=beta,
-        l=l,
-        L=L,
-        tau0=tau0,
-        gratio=gratio,
-        tau3=tau3,
-    )
-
+    impedance = compleximpedance(f, params)
     return 1 / impedance
 
 def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
@@ -833,16 +818,45 @@ class _BaseDIDV(object):
 
         """
 
+        one_pole = ['A', 'tau2']
+        two_pole = ['A', 'B', 'tau1', 'tau2']
+        three_pole = ['A', 'B', 'C', 'tau1', 'tau2', 'tau3']
+
+        params_dict = dict()
+        poles = None
+        if len(params) == 3:
+            poles = 1
+            for ipar, par in enumerate(one_pole):
+                params_dict[par] = params[ipar]
+                
+        elif len(params) == 5:
+            poles = 2
+            for ipar, par in enumerate(two_pole):
+                params_dict[par] = params[ipar]
+        else:
+            for ipar, par in enumerate(three_pole):
+                params_dict[par] = params[ipar]
+            poles = _pole_extractor(params_dict, False)
+            
+        # Extract parameters
+        A = params_dict['A']
+        tau2 = params_dict['tau2']
+        if poles >= 2:
+            B = params_dict['B']
+            tau1 = params_dict['tau1']
+        if poles == 3:
+            C = params_dict['C']
+            tau3 = params_dict['tau3']
+             
         # convert dvdi time constants to fall times of didv
-        if len(params)==3:
+        if poles == 1:
+            
             # one pole fall time for didv is same as tau2=L/R
-            A, tau2, dt = params
-            falltimes = np.array([tau2])
-
-        elif len(params)==5:
-            # two pole fall times for didv is different than tau1, tau2
-            A, B, tau1, tau2, dt = params
-
+            falltimes = np.array([tau2, 0, 0])
+            return falltimes
+        
+        elif poles == 2:
+            
             def twopoleequations(p):
                 taup,taum = p
                 eq1 = taup+taum - A/(A+B)*(tau1+tau2)
@@ -851,11 +865,11 @@ class _BaseDIDV(object):
 
             taup, taum = fsolve(twopoleequations ,(tau1, tau2))
             falltimes = np.array([taup, taum])
-
-        elif len(params)==7:
-            # three pole fall times for didv is different
-            # than tau1, tau2, tau3
-            A, B, C, tau1, tau2, tau3, dt = params
+            falltimes = np.sort(falltimes)
+            falltimes = np.append(falltimes, 0)
+            return falltimes
+            
+        elif poles == 3:
 
             def threepoleequations(p):
                 taup, taum, taun = p
@@ -872,8 +886,8 @@ class _BaseDIDV(object):
             falltimes = np.array([taup, taum, taun])
 
         else:
-            print("Wrong number of input parameters, returning zero...")
-            falltimes = np.zeros(1)
+            print("WARNING: Wrong number of input parameters, returning zero...")
+            falltimes = np.zeros(3)
 
         # fall times sorted from shortest to longest
         falltimes = np.sort(falltimes)

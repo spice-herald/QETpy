@@ -156,12 +156,14 @@ class _PlotDIDV(object):
                 
 
         if (self._fit_results[1] is not None) and (1 in poleslist):
+                   
             didvfit1_timedomain = squarewaveresponse(
                 self._time,
                 self._sgamp,
                 self._sgfreq,
                 self._fit_results[1]['params'],
                 self._dutycycle,
+                rsh=self._rsh,
             )
             
             if lp_cutoff is not None:
@@ -191,6 +193,7 @@ class _PlotDIDV(object):
                 self._sgfreq,
                 self._fit_results[2]['params'],
                 self._dutycycle,
+                rsh=self._rsh,
             )
             
             if lp_cutoff is not None:
@@ -221,6 +224,7 @@ class _PlotDIDV(object):
                 self._sgfreq,
                 self._fit_results[3]['params'],
                 self._dutycycle,
+                rsh=self._rsh,
             )
             
             if lp_cutoff is not None:
@@ -528,14 +532,16 @@ class _PlotDIDV(object):
             color='black',
             alpha=0.1,
         )
-
+        
         if (self._fit_results[1] is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._fit_results[1]:
+            if 'params' in self._fit_results[1]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[1]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 1-pole fit results!')
             didvfit1_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[1][key],
+                self._freq, self._fit_results[1][key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -545,13 +551,17 @@ class _PlotDIDV(object):
             )
 
         if (self._fit_results[2] is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._fit_results[2]:
+            if 'params' in self._fit_results[2]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[2]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 2-pole fit results!')
+
             didvfit2_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[2][key],
+                self._freq, self._fit_results[2][key],
             )
+            
             ax.plot(
                 self._freq[fitinds],
                 function(didvfit2_freqdomain)[fitinds],
@@ -560,12 +570,15 @@ class _PlotDIDV(object):
             )
 
         if (self._fit_results[3] is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._fit_results[3]:
+            if 'params' in self._fit_results[3]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[3]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 3-pole fit results!')
+            
             didvfit3_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[3][key],
+                self._freq, self._fit_results[3][key],
             )
             ax.plot(
                 self._freq[fitinds],
@@ -740,12 +753,15 @@ class _PlotDIDV(object):
         )
 
         if (self._fit_results[1] is not None) and (1 in poleslist):
-            if 'smallsignalparams' in self._fit_results[1]:
+            if 'params' in self._fit_results[1]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[1]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 1-pole fit results!')
+
             didvfit1_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[1][key],
+                self._freq, self._fit_results[1][key],
             )
             ax.plot(
                 np.real(1 / didvfit1_freqdomain)[fitinds],
@@ -755,12 +771,15 @@ class _PlotDIDV(object):
             )
 
         if (self._fit_results[2] is not None) and (2 in poleslist):
-            if 'smallsignalparams' in self._fit_results[2]:
+            if 'params' in self._fit_results[2]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[2]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 2-pole fit results!')
+
             didvfit2_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[2][key],
+                self._freq, self._fit_results[2][key],
             )
             ax.plot(
                 np.real(1 / didvfit2_freqdomain)[fitinds],
@@ -770,12 +789,15 @@ class _PlotDIDV(object):
             )
 
         if (self._fit_results[3] is not None) and (3 in poleslist):
-            if 'smallsignalparams' in self._fit_results[3]:
+            if 'params' in self._fit_results[3]:
+                key =  'params'
+            elif 'smallsignalparams' in self._fit_results[3]:
                 key = 'smallsignalparams'
             else:
-                key = 'params'
+                raise ValueError('Missing 3-pole fit results!')
+
             didvfit3_freqdomain = complexadmittance(
-                self._freq, **self._fit_results[3][key],
+                self._freq, self._fit_results[3][key],
             )
             ax.plot(
                 np.real(1 / didvfit3_freqdomain)[fitinds],
