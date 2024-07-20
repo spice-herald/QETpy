@@ -643,6 +643,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # cost: divide by NDOF
             fitcost2 = fitcost2/(np.sum(fit_freqs)-len(fitparams2))
 
+            # Convert to didv falltimes
+            falltimes2 = DIDV._findpolefalltimes(fitparams2)
+
+            
             # Convert to a 3-pole model with  C=0  and tau3=0
 
             # 1)  fit parameters
@@ -669,10 +673,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # And index 5 for columns
             final_cov2 = np.insert(final_cov2, 5, 0, axis=1) 
 
-
-            # Convert to didv falltimes
-            falltimes2 = DIDV._findpolefalltimes(fitparams2)
-                     
             # store as dictionary
             self._fit_results[2] = DIDV._fitresult(
                 poles,
@@ -876,7 +876,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             
  
     @staticmethod
-    def _fitresult(poles, params, cov, falltimes, cost,                   
+    def _fitresult(poles, params_array, cov, falltimes, cost,                   
                    lgcfix=None):
 
         """
@@ -887,7 +887,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         result = dict()
         result['lgcfix'] = lgcfix
-        result['params_array'] = params
+        result['params_array'] = params_array
         
         # errors
         errors = np.diag(cov)**0.5
@@ -898,9 +898,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         
         if poles == 1:
             result['params'] = {
-                'A': params[0],
-                'tau2': params[1],
-                'dt': params[2],
+                'A': params_array[0],
+                'tau2': params_array[1],
+                'dt': params_array[2],
             }
             result['cov'] = cov
             result['errors'] = {
@@ -912,13 +912,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         elif (poles == 2 or poles == 3):
 
             result['params'] = {
-                'A': params[0],
-                'B': params[1],
-                'C': params[2],
-                'tau1': params[3],
-                'tau2': params[4],
-                'tau3': params[5],
-                'dt': params[6],
+                'A': params_array[0],
+                'B': params_array[1],
+                'C': params_array[2],
+                'tau1': params_array[3],
+                'tau2': params_array[4],
+                'tau3': params_array[5],
+                'dt': params_array[6],
             }
             
             result['cov'] = cov
@@ -962,16 +962,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                     'calculate small signal parameters ')
                     
             smallsignalparams = DIDV._converttotesvalues(
-                self._fit_results[1]['params_array'],
-                self._rsh, self._r0, self._rp
+                self._fit_results[1]['params'],
+                rs=self._rsh, r0=self._r0, rp=self._rp
             )
             
-            self._fit_results[1]['smallsignalparams'] = {
-                'rsh': smallsignalparams[0],
-                'rp': smallsignalparams[1],
-                'L': smallsignalparams[2],
-                'dt': smallsignalparams[3],
-            }
+            self._fit_results[1]['smallsignalparams'] = (
+                smallsignalparams.copy()
+            )
             
             self._fit_results[1]['didv0'] = (
                 complexadmittance(0, self._fit_results[1]['smallsignalparams']).real
@@ -1003,21 +1000,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             
             # convert fit parameterts to smallsignalparams
             smallsignalparams = DIDV._converttotesvalues(
-                results['params_array'],
-                self._rsh, self._r0, self._rp
+                results['params'],
+                rsh=self._rsh, r0=self._r0, rp=self._rp
             )
-            results['smallsignalparams'] = {
-                'rsh': smallsignalparams[0],
-                'rp': smallsignalparams[1],
-                'r0': smallsignalparams[2],
-                'beta': smallsignalparams[3],
-                'l': smallsignalparams[4],
-                'L': smallsignalparams[5],
-                'tau0': smallsignalparams[6],
-                'gratio': smallsignalparams[7],
-                'tau3': smallsignalparams[8],
-                'dt': smallsignalparams[9],
-            }
+            
+            results['smallsignalparams'] = smallsignalparams.copy()
                 
             # calculate small signal parameters cov/sigmas
             if lgc_ssp_light:

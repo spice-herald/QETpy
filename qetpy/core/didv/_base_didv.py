@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-def _pole_extractor(arg_dict, is_ssp):
+def _pole_extractor(arg_dict):
     """
     Hidden helper function for aiding in determining which model to
     use when calculating the complex impedance or admittance.
@@ -22,6 +22,8 @@ def _pole_extractor(arg_dict, is_ssp):
     """
 
     params = copy.deepcopy(arg_dict)
+    is_ssp = ('L' in params and 'A' not in params)
+
     
     if is_ssp:
         one_pole = ['rsh', 'rp', 'L']
@@ -143,49 +145,27 @@ def compleximpedance(f, params, **kwargs):
       
     # check if ssp or fit params
     is_ssp = ('beta' in params and 'A' not in params)
-    poles = _pole_extractor(params, is_ssp)
+    poles = _pole_extractor(params)
 
-    # parameters
+    # convert small signal parameters to fit parameters
     if is_ssp:
-        rsh = params['rsh']
-        rp = params['rp']
-        L =  params['L']
-        if poles >= 2:
-            r0 = params['r0']
-            beta = params['beta']
-            l = params['l']
-            tau0 = params['tau0']
-        if poles == 3:
-            gratio = params['gratio']
-            tau3 = params['tau3']
-    else:
-        A = params['A']
-        tau2 = params['tau2']
-        if poles >= 2:
-            B = params['B']
-            tau1 = params['tau1']
-        if poles == 3:
-            C = params['C']
-            tau3 = params['tau3']
-            
+        params = _BaseDIDV._convertfromtesvalues(params)
+
+    # extract parameters from dictionary
+    A = params['A']
+    B = params['B']
+    C = params['C']
+    tau1 =  params['tau1']
+    tau2 = params['tau2']
+    tau3 = params['tau3']
+
     if poles == 1:
-        if is_ssp:
-            A, tau2, _  = _BaseDIDV._convertfromtesvalues(
-                (rsh, params['rp'],  params['L'], 0),
-            )
         return _BaseDIDV._onepoleimpedance(f, A, tau2)
 
-    if poles == 2:
-        if is_ssp:
-            A, B, tau1, tau2,_  = _BaseDIDV._convertfromtesvalues(
-                (rsh, rp, r0, beta, l, L, tau0, 0),
-            )
+    elif poles == 2:
         return _BaseDIDV._twopoleimpedance(f, A, B, tau1, tau2)
-    if poles == 3:
-        if is_ssp:
-            A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
-                (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
-            )
+    
+    elif poles == 3:
         return _BaseDIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
 
 
@@ -281,29 +261,37 @@ def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
         the inputted parameters.
 
     """
-    
+
+    # warning id no rshunt 
     if rsh is None:
         print('WARNING in squarewaveresponse: '
               'Using 5 mOhms shunt resistor. Add  '
               'rsh argument if needed!')
         rsh = 5e-3
+        
+    # check if small signal parameters or fit params
+    is_ssp = ('beta' in params and 'A' not in params)
+    poles = _pole_extractor(params)
 
+    # convert small signal parameters to fit parameters
+    if is_ssp:
+        params = _BaseDIDV._convertfromtesvalues(params)
+
+    # extract parameters from dictionary
     A = params['A']
     B = params['B']
     C = params['C']
-    tau1 = params['tau1']
+    tau1 =  params['tau1']
     tau2 = params['tau2']
     tau3 = params['tau3']
-    dt = params['dt']
     
     response = _BaseDIDV._convolvedidv(
-                                       t, A, B, C,
-                                       tau1, tau2, tau3,
-                                       sgamp, rsh, sgfreq, dutycycle,
-                                       )
-                                   
-    return response
+        t, A, B, C,
+        tau1, tau2, tau3,
+        sgamp, rsh, sgfreq, dutycycle,
+    )
 
+    return response
 
 class _BaseDIDV(object):
     """
@@ -680,9 +668,10 @@ class _BaseDIDV(object):
         return A0, B0, tau10, tau20, isloopgainsub1
 
     @staticmethod
-    def _converttotesvalues(popt, rsh, r0, rp):
+    def _converttotesvalues(params, rsh=None, r0=None, rp=None):
         """
-        Function to convert the fit parameters for either 1-pole
+        Function to convert the fit parameters (stored in 
+        a dictionary) for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
         (A, B, C, tau1, tau2, tau3, dt) fit to the corresponding TES
         parameters: 
@@ -692,162 +681,173 @@ class _BaseDIDV(object):
             3-pole: (rsh, rp, r0, beta, l, L, tau0, gratio, tau3)
 
         """
+        
+        params = copy.deepcopy(params)
+        
+        # check required parameters
+        if rsh is None:
+            raise ValueError('ERROR: "rsh" required!')
 
-        if len(popt)==3:
-            # one pole
-            A = popt[0]
-            tau2 = popt[1]
-            dt = popt[2]
+        if ('A' not in params or 'tau2' not in params or 'dt' not
+            in params):
+            raise ValueError('ERROR: Missing fit parameters!')
 
-            popt_out = np.array([rsh, A - rsh, A * tau2, dt])
+        poles = _pole_extractor(params)
+        
+        # initialize
+        output  = {'rsh':rsh, 'rp':rp, 'r0':r0,
+                   'beta':None, 'l':None, 'L':None,
+                   'tau0':None, 'gratio':None,
+                   'tau3':None}
 
-        elif len(popt)==5:
-            # two poles
-            A = popt[0]
-            B = popt[1]
-            tau1 = popt[2]
-            tau2 = popt[3]
-            dt = popt[4]
+        # fit parameters
+        dt = params['dt']
+        A = params['A']
+        B = 0
+        C = 0
+        tau1 = 0
+        tau2 = params['tau2']
+        tau3 = 0
+        if poles >= 2:
+            B = params['B']
+            tau1 = params['tau1']
+        if poles == 3:
+            C = params['C']
+            tau3 = params['tau3']
 
-            rload = rsh + rp
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            beta  = (A - rload) / r0 - 1.0
-            l = B / (A + B + r0 - rload)
-            L = A * tau2
-            tau = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
 
-            popt_out = np.array([rsh, rp, r0, beta, l, L, tau, dt])
+        # calculate small signal parameters
+        output['dt'] =  dt
+        
+        if poles == 1:
+            output['rp'] =  A - rsh
+            output['L'] =  A * tau2
+            
+        else:
 
-        elif len(popt)==7:
-            # three poles
-            A = popt[0]
-            B = popt[1]
-            C = popt[2]
-            tau1 = popt[3]
-            tau2 = popt[4]
-            tau3 = popt[5]
-            dt = popt[6]
+            if rp is None or r0 is None:
+                raise ValueError(
+                    'ERROR: rp and r0 required for '
+                    '2 and 3 -poles fit '
+                )
+            rload  = rsh + rp
+            output['L'] =  A * tau2
+            output['beta']  = (A - rload) / r0 - 1.0
+            output['l'] = B / (A + B + r0 - rload)
+            output['tau0'] = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
+            if poles == 3:
+                output['gratio'] = C * (A + r0 - rload) / (A + B + r0 - rload)
+                output['tau3'] = tau3
 
-            rload = rsh + rp
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            beta  = (A - rload) / r0 - 1.0
-            l = B / (A + B + r0 - rload)
-            L = A * tau2
-            tau0 = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
-            gratio = C * (A + r0 - rload) / (A + B + r0 - rload)
-
-            popt_out = np.array(
-                [rsh, rp, r0, beta, l, L, tau0, gratio, tau3, dt]
-            )
-
-        return popt_out
+        return output
 
 
     @staticmethod
-    def _convertfromtesvalues(popt):
+    def _convertfromtesvalues(params):
         """
         Function to convert from Irwin's TES parameters
         (rsh, rp, r0, beta, l, L, tau0, dt) to the fit parameters
-        (A, B, tau1, tau2, dt)
+        (A, B, C, tau1, tau2, tau3, dt)
 
         """
 
-        if len(popt) == 4:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            L = popt[2]
-            dt = popt[3]
+        # copy locally
+        params = copy.deepcopy(params)
 
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp
-            tau2 = L / (rsh + rp)
+        # intialize output
+        output = {'A':0, 'B':0, 'C':0,
+                  'tau1':0, 'tau2':0, 'tau3':0,
+                  'dt': params['dt']}
 
-            popt_out = np.array([A, tau2, dt])
+        
+        # check poles
+        poles = _pole_extractor(params)
 
-        elif len(popt) == 8:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            r0 = popt[2]
-            beta = popt[3]
-            l = popt[4]
-            L = popt[5]
-            tau0 = popt[6]
-            dt = popt[7]
+        # extract parameters from dictionary
+        rsh = params['rsh']
+        rp = params['rp']
+        L =  params['L']
+        if poles >= 2:
+            r0 = params['r0']
+            beta = params['beta']
+            l = params['l']
+            tau0 = params['tau0']
+        if poles == 3:
+            gratio = params['gratio']
+            tau3 = params['tau3']
+        
 
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp + r0 * (1 + beta)
-            B = r0 * l / (1 - l) * (2 + beta)
-            tau1 = tau0 / (1 - l)
-            tau2 = L / (rsh + rp + r0 * (1 + beta))
-
-            popt_out = np.array([A, B, tau1, tau2, dt])
-
-        elif len(popt) == 10:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            r0 = popt[2]
-            beta = popt[3]
-            l = popt[4]
-            L = popt[5]
-            tau0 = popt[6]
-            gratio = popt[7]
-            tau3 = popt[8]
-            dt = popt[9]
-
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp + r0 * (1 + beta)
-            B = r0 * l / (1 - l) * (2 + beta)
-            C = gratio / (1 - l)
-            tau1 = tau0 / (1 - l)
-            tau2 = L / (rsh + rp + r0 * (1 + beta))
-
-            popt_out = np.array([A, B, C, tau1, tau2, tau3, dt])
+        # convert to fit value
+        if poles == 1:
+            output['A'] = rsh + rp
+            output['tau2'] =  L / (rsh + rp)
             
-        return popt_out
+        else:
+            
+            output['A'] = rsh + rp + r0 * (1 + beta)
+            output['B'] = r0 * l / (1 - l) * (2 + beta)
+            output['tau1'] = tau0 / (1 - l)
+            output['tau2'] =  L / (rsh + rp + r0 * (1 + beta))
+
+            if poles == 3:
+                output['C'] =  gratio / (1 - l)
+                output['tau3'] = tau3
+                
+                        
+        return output
 
 
     @staticmethod
-    def _findpolefalltimes(params):
+    def _findpolefalltimes(params_array):
         """
-        Function for taking TES params from a 1-pole, 2-pole, or 3-pole
+        Function for taking fit params from a 1-pole, 2-pole, or 3-pole
         didv and calculating the falltimes (i.e. the values of the
         poles in the complex plane).
 
         """
 
+        # convert array to dictionary
+
+        # poles base on array length 
         one_pole = ['A', 'tau2']
         two_pole = ['A', 'B', 'tau1', 'tau2']
         three_pole = ['A', 'B', 'C', 'tau1', 'tau2', 'tau3']
 
-        params_dict = dict()
+        # convert array to dictionary
+
+        # initialize parameters dict
+        params =  {'A':0, 'B':0, 'C':0,
+                   'tau1':0, 'tau2':0, 'tau3':0}
+            
         poles = None
-        if len(params) == 3:
+        if len(params_array) == 3:
             poles = 1
             for ipar, par in enumerate(one_pole):
-                params_dict[par] = params[ipar]
+               params[par] = params_array[ipar]
                 
-        elif len(params) == 5:
+        elif (len(params_array) == 5 or
+              (len(params_array) == 7 and params_array[2] == 0)):
             poles = 2
             for ipar, par in enumerate(two_pole):
-                params_dict[par] = params[ipar]
-        else:
+               params[par] = params_array[ipar]
+                
+        elif len(params_array) == 7:
+            poles = 3
             for ipar, par in enumerate(three_pole):
-                params_dict[par] = params[ipar]
-            poles = _pole_extractor(params_dict, False)
-            
+               params[par] = params_array[ipar]
+         
+        else:
+            raise ValueError('ERROR: Unrecognized number of '
+                             'fit parameters!')
+        
         # Extract parameters
-        A = params_dict['A']
-        tau2 = params_dict['tau2']
-        if poles >= 2:
-            B = params_dict['B']
-            tau1 = params_dict['tau1']
-        if poles == 3:
-            C = params_dict['C']
-            tau3 = params_dict['tau3']
-             
+        A = params['A']
+        B = params['B']
+        C = params['C']
+        tau1 =  params['tau1']
+        tau2 = params['tau2']
+        tau3 = params['tau3']
+                  
         # convert dvdi time constants to fall times of didv
         if poles == 1:
             
