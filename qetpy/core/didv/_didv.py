@@ -799,7 +799,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         else:
             raise ValueError("The number of poles should be 1, 2, or 3.")
 
-    def calc_smallsignal_params(self, biasparams,
+    def calc_smallsignal_params(self, biasparams=None,
                                 poles=None,
                                 lgc_verbose=True,
                                 lgc_diagnostics=False):
@@ -810,35 +810,62 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         FIXME: add parameters description!
         """
 
-        # check which models have been fitted (2 and/or 3 poles)
+        # check which models have been fitted (1, 2 and/or 3 poles)
         model_list  = list()
 
         if poles is not None:
-            if (self._fit_results[poles] is None
-                or 'params' not in  self._fit_results[poles]):
-                raise ValueError(f'ERROR: {poles}-poles fit needs to be done first!')
-            else:
-                model_list.append(poles)
-        else:
-            if self._fit_results[2] is not None:
-                if  'params' not in  self._fit_results[2]:
-                    raise ValueError(f'ERROR: 2-poles fit needs to be done first!')
-                else:
-                    model_list.append(2)
-              
-            if self._fit_results[3] is not None:
-                if  'params' not in self._fit_results[3]:
-                    raise ValueError(f'ERROR: 3-poles fit needs to be done first!')
-                else:
-                    model_list.append(3)
 
+            if isinstance(poles, list):
+                model_list = poles
+            else:
+                model_list = [poles]
+
+            for model_poles in model_list:
+                if (self._fit_results[model_poles] is None
+                    or 'params' not in  self._fit_results[model_poles]):
+                    raise ValueError(f'ERROR: {model_poles}-poles fit needs to '
+                                     f'be done first!')
+        else:
+
+            if (self._fit_results[1] is not None
+                and 'params' in  self._fit_results[1]):
+                model_list.append(1)
+                
+            if (self._fit_results[2] is not None
+                and 'params' in  self._fit_results[2]):
+                model_list.append(2)
+
+            if (self._fit_results[3] is not None
+                and 'params' in  self._fit_results[3]):
+                model_list.append(3)
+                
+                
         if not model_list:
             print('WARNING: No fit have been done. Doing nothing...')
             return
-                
+
+        # 1-pole (does not require biasparams)
+        if 1 in model_list:
+
+            print(f'INFO: Calculating small signal parameters '
+                  f'for 1-pole model!')
+            
+            # calc
+            self._calc_ssp(1, biasparams_dict=None,
+                           lgc_ssp_light=False)
+
+            # remove from list
+            model_list.remove(1)
+
+            if not model_list:
+                return
+
+        # 2 and/or 3 poles
+            
         # check ivsweep results and convert to dictionary
-        if not isinstance(biasparams, dict):
-            raise ValueError(f'ERROR: "biasparams" should be a dictionary!')
+        if (biasparams is None or not isinstance(biasparams, dict)):
+            raise ValueError(f'ERROR: "biasparams" is required '
+                             f'and should be a dictionary!')
         
         required_parameters = ['rp', 'i0', 'i0_err','r0', 'r0_err']
         for par in required_parameters:
@@ -850,10 +877,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         biasparams_dict = biasparams.copy()
              
         rp = biasparams_dict['rp']
-        rn = None
-        if 'rn' in biasparams_dict:
-            rn = biasparams_dict['rn']
-
         ibias = biasparams_dict['ibias']
         ibias_err = 0
        
@@ -901,12 +924,20 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 'A': params_array[0],
                 'tau2': params_array[1],
                 'dt': params_array[2],
+                'B':0,
+                'C':0,
+                'tau1':0,
+                'tau3':0
             }
             result['cov'] = cov
             result['errors'] = {
                 'A': errors[0],
                 'tau2': errors[1],
                 'dt': errors[2],
+                'B':0,
+                'C':0,
+                'tau1':0,
+                'tau3':0
             }
 
         elif (poles == 2 or poles == 3):
@@ -949,6 +980,9 @@ class DIDV(_BaseDIDV, _PlotDIDV):
         # check if r0/rp available in biasparams_dict
         if biasparams_dict is not None:
 
+            # copy
+            biasparams_dict = copy.deepcopy(biasparams_dict)
+                    
             if 'r0' in biasparams_dict:
                 self._r0 = biasparams_dict['r0']
             if 'rp' in biasparams_dict:
@@ -956,16 +990,17 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 
         # 1-poles fit
         if poles == 1:
-            if self._fit_results[1] is None:
+            if (self._fit_results[1] is None
+                or 'params' not in self._fit_results[1]):
                 raise ValueError(
                     'ERROR: No 1-poles fit done! Unable to '
-                    'calculate small signal parameters ')
+                    'calculate small signal parameters...')
                     
             smallsignalparams = DIDV._converttotesvalues(
                 self._fit_results[1]['params'],
-                rs=self._rsh, r0=self._r0, rp=self._rp
+                rsh=self._rsh, r0=self._r0, rp=self._rp
             )
-            
+
             self._fit_results[1]['smallsignalparams'] = (
                 smallsignalparams.copy()
             )
@@ -975,29 +1010,24 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             )
             
             # store bias params
-            if  biasparams_dict is not None:
-                self._fit_results[1]['biasparams'] = biasparams_dict.copy()
-            else:
-                self._fit_results[1]['biasparams'] = None
+            self._fit_results[1]['biasparams'] = biasparams_dict
+            
                 
         # 2-poles and 3-poles fit
         if poles == 2 or poles == 3:
             # get result dictionary
             if (self._fit_results[poles] is None
-                or 'params_array' not in self._fit_results[poles]):
+                or 'params' not in self._fit_results[poles]):
                 raise ValueError(
                     f'ERROR: No {poles}-poles fit done! Unable to '
-                    f'calculate small signal parameters ')
+                    f'calculate small signal parameters...')
                     
             # results
             results = copy.deepcopy(self._fit_results[poles])
             
             # store bias params
-            if  biasparams_dict is not None:
-                results['biasparams'] = biasparams_dict.copy()
-            else:
-                results['biasparams'] = None
-            
+            results['biasparams'] = biasparams_dict
+                      
             # convert fit parameterts to smallsignalparams
             smallsignalparams = DIDV._converttotesvalues(
                 results['params'],
@@ -1008,6 +1038,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 
             # calculate small signal parameters cov/sigmas
             if lgc_ssp_light:
+                
                 if biasparams_dict is None:
                     raise ValueError(
                         'ERROR: "biasparams_dict" required when '
