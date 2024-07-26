@@ -150,10 +150,10 @@ def test_didv():
             
         assert np.isclose(
             qp.complexadmittance(
-                1e4, **didvfit.fitresult(pole)['smallsignalparams'],
+                1e4, didvfit.fitresult(pole)['smallsignalparams'],
             ),
             qp.complexadmittance(
-                1e4, **true_params,
+                1e4, true_params,
             ),
             rtol=1e-2,
         )
