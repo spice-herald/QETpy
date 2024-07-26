@@ -61,7 +61,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
     )
     
     didvfit.dofit(poles)
-    idvfit.calc_smallsignal_params(true_params)
+    didvfit.calc_smallsignal_params(true_params)
     assert isinstance(didvfit.fitresult(poles), dict)
 
     _run_plotting_suite(didvfit, poles)
