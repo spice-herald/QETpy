@@ -35,7 +35,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
 
     t = np.arange(rawnoise.shape[-1]) / fs
     didv_response = qp.squarewaveresponse(
-        t, sgamp, sgfreq, **true_params,
+        t, sgamp, sgfreq, true_params,
 
     )
     rawtraces = didv_response + rawnoise
