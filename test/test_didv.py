@@ -22,6 +22,9 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
         'rsh': rsh,
         'rp': 0.006,
         'r0': 0.0756 if poles in [2, 3] else 0,
+        'r0_err': 0,
+        'i0': 1e-6,
+        'i0_err': 0,
         'beta': 2 if poles in [2, 3] else 0,
         'l': 10 if poles in [2, 3] else 0,
         'L': 1e-7,
@@ -58,6 +61,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
     )
     
     didvfit.dofit(poles)
+    idvfit.calc_smallsignal_params(true_params)
     assert isinstance(didvfit.fitresult(poles), dict)
 
     _run_plotting_suite(didvfit, poles)

@@ -875,11 +875,6 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
         # initialize  bias parameters dict
         biasparams_dict = biasparams.copy()
-             
-        rp = biasparams_dict['rp']
-        ibias = biasparams_dict['ibias']
-        ibias_err = 0
-       
         self._r0 = biasparams_dict['r0']
         self._rp = biasparams_dict['rp']
 
