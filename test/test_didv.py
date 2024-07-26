@@ -28,6 +28,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
         'tau0': 500e-6 if poles in [2, 3] else 0,
         'gratio': 0.5 if poles in [3] else 0,
         'tau3': 1e-3 if poles in [3] else 0,
+        'dt': 0,
     }
 
     psd_test = np.ones(int(4 * fs / sgfreq)) / tracegain**2 / 1e4
