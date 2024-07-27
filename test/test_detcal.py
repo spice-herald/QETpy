@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from qetpy import autocuts, IV, Noise, calc_psd
+from qetpy import autocuts, Noise, calc_psd
 from qetpy.sim import TESnoise
 from qetpy.plotting import compare_noise, plot_noise_sim
 
@@ -14,22 +14,6 @@ def test_autocuts():
     cut = autocuts(traces, fs=fs)
     assert len(cut)>0
 
-def test_iv():
-    pathtodata = os.path.join(THIS_DIR, "data/test_iv_data.npz")
-    testdata = np.load(pathtodata)
-    dites = testdata["dites"]
-    dites_err = testdata["dites_err"]
-    vb = testdata["vb"]
-    vb_err = testdata["vb_err"]
-    rload = testdata["rload"]
-    rload_err = testdata["rload_err"]
-
-    ivdata = IV(dites, dites_err, vb, vb_err, rload, rload_err, ["A","B","C"])
-    ivdata.calc_iv()
-
-    ivdata.plot_all_curves()
-
-    assert len(ivdata.r0) > 0
 
 def test_noise():
     pathtodata = os.path.join(THIS_DIR, "data/traces.npy")

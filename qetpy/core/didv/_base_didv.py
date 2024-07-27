@@ -11,10 +11,6 @@ __all__ = [
     "compleximpedance",
     "complexadmittance",
     "squarewaveresponse",
-    "get_i0",
-    "get_ibias",
-    "get_tes_bias_parameters_dict",
-    "get_tes_bias_parameters_dict_infinite_loop_gain"
 ]
 
 
@@ -25,26 +21,44 @@ def _pole_extractor(arg_dict):
 
     """
 
-    one_pole = [
-        'rsh', 'rp', 'L',
-    ]
-    two_pole = [
-        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0',
-    ]
-    three_pole = [
-        'rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0', 'gratio', 'tau3',
-    ]
+    params = copy.deepcopy(arg_dict)
+    is_ssp = ('L' in params and 'A' not in params)
 
-    if all(arg_dict[p3] is not None for p3 in three_pole):
-        return 3
-    if all(arg_dict[p2] is not None for p2 in two_pole):
-        return 2
-    if all(arg_dict[p1] is not None for p1 in one_pole):
-        return 1
+    
+    if is_ssp:
+        one_pole = ['rsh', 'rp', 'L']
+        two_pole = ['rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0']
+        three_pole = ['rsh', 'rp', 'r0', 'L', 'l', 'beta', 'tau0',
+                      'gratio', 'tau3']
 
-    raise ValueError("The passed parameters do not match a valid model")
+        if all(params[p3] is not None for p3 in three_pole):
+            return 3
+        if all(params[p2] is not None for p2 in two_pole):
+            return 2
+        if all(params[p1] is not None for p1 in one_pole):
+            return 1
+        
+        raise ValueError("ERROR: The passed parameters do not "
+                         "match a valid model. May be missing "
+                         "arguments!")
+    else:
 
+        if 'A' not in params:
+            raise ValueError("ERROR: The passed parameters do not "
+                             "match a valid model. May be missing "
+                             "arguments!")
+        if 'B' not in params:
+            params['B'] = 0
+        if 'C' not in params:
+            params['C'] = 0
 
+        if params['B'] == 0 and params['C'] == 0:
+            return 1
+        elif params['C'] == 0:
+            return 2
+        else:
+            return 3
+        
 def stdcomplex(x, axis=0):
     """
     Function to return complex standard deviation (individually
@@ -75,8 +89,7 @@ def stdcomplex(x, axis=0):
     return std_complex
 
 
-def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
-                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
+def compleximpedance(f, params, **kwargs):
     """
     Method for calculating the complex impedance for a given model,
     depending on the parameters inputted (see Notes for more
@@ -87,34 +100,11 @@ def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
     f : ndarray, float
         The frequencies at which the complex impedance will be
         calculated.
-    rsh : float, optional
-        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
-        2-, and 3-pole models.
-    rp : float, optional
-        Parasitic resistance on the non-shunt side of the TES circuit,
-        units of Ohms. Used by 1-, 2-, and 3-pole models.
-    r0 : float, optional
-        The operating resistance of the TES, units of Ohms. Used by 2-
-        and 3-pole models.
-    beta : float, optional
-        The current sensitivity of the TES, defined as
-        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
-    l : float, optional
-        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
-        by the 2- and 3-pole models.
-    L : float, optional
-        The inductance in the TES circuit, units of Henrys. Used by 1-,
-        2-, and 3-pole models.
-    tau0 : float, optional
-        The thermal time constant of the TES (in sseconds), defined as
-        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
-    gratio : float, optional
-        The ratio of thermal conductances in the 3 thermal block models
-        that are used as the basis of the 3-pole model. Used in 3-pole
-        model only.
-    tau3 : float, optional
-        The extra pole  associated with the 3 thermal block model,
-        units of seconds. Used in 3-pole model only.
+    params : dict
+        Either fit results or small signal paramters
+          - small signal parameters (rsh, rp, r0, beta, l, 
+                                      L, tau0, gratio, tau3)
+          - fit results (A, B, C, tau1, tau2, tau3)
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -151,29 +141,35 @@ def compleximpedance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
                   - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
 
     """
+    params = copy.deepcopy(params)
+      
+    # check if ssp or fit params
+    is_ssp = ('beta' in params and 'A' not in params)
+    poles = _pole_extractor(params)
 
-    passed_args = locals()
-    poles = _pole_extractor(passed_args)
+    # convert small signal parameters to fit parameters
+    if is_ssp:
+        params = _BaseDIDV._convertfromtesvalues(params)
+
+    # extract parameters from dictionary
+    A = params['A']
+    B = params['B']
+    C = params['C']
+    tau1 =  params['tau1']
+    tau2 = params['tau2']
+    tau3 = params['tau3']
 
     if poles == 1:
-        A, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, L, 0),
-        )
         return _BaseDIDV._onepoleimpedance(f, A, tau2)
-    if poles == 2:
-        A, B, tau1, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, 0),
-        )
+
+    elif poles == 2:
         return _BaseDIDV._twopoleimpedance(f, A, B, tau1, tau2)
-    if poles == 3:
-        A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
-        )
+    
+    elif poles == 3:
         return _BaseDIDV._threepoleimpedance(f, A, B, C, tau1, tau2, tau3)
 
 
-def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
-                     L=None, tau0=None, gratio=None, tau3=None, **kwargs):
+def complexadmittance(f, params, **kwargs):
     """
     Method for calculating the complex admittance for a given
     model, depending on the parameters inputted (see Notes for more
@@ -185,34 +181,11 @@ def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
     f : ndarray, float
         The frequencies at which the complex impedance will be
         calculated.
-    rsh : float, optional
-        Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
-        2-, and 3-pole models.
-    rp : float, optional
-        Parasitic resistance on the non-shunt side of the TES circuit,
-        units of Ohms. Used by 1-, 2-, and 3-pole models.
-    r0 : float, optional
-        The operating resistance of the TES, units of Ohms. Used by 2-
-        and 3-pole models.
-    beta : float, optional
-        The current sensitivity of the TES, defined as
-        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
-    l : float, optional
-        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
-        by the 2- and 3-pole models.
-    L : float, optional
-        The inductance in the TES circuit, units of Henrys. Used by 1-,
-        2-, and 3-pole models.
-    tau0 : float, optional
-        The thermal time constant of the TES (in sseconds), defined as
-        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
-    gratio : float, optional
-        The ratio of thermal conductances in the 3 thermal block models
-        that are used as the basis of the 3-pole model. Used in 3-pole
-        model only.
-    tau3 : float, optional
-        The extra pole  associated with the 3 thermal block model,
-        units of seconds. Used in 3-pole model only.
+   params : dict
+        Either fit results or small signal paramters
+          - small signal parameters (rsh, rp, r0, beta, l, 
+                                      L, tau0, gratio, tau3)
+          - fit results (A, B, C, tau1, tau2, tau3)
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -250,25 +223,11 @@ def complexadmittance(f, *, rsh=None, rp=None, r0=None, beta=None, l=None,
 
     """
 
-    impedance = compleximpedance(
-        f,
-        rsh=rsh,
-        rp=rp,
-        r0=r0,
-        beta=beta,
-        l=l,
-        L=L,
-        tau0=tau0,
-        gratio=gratio,
-        tau3=tau3,
-    )
-
+    impedance = compleximpedance(f, params)
     return 1 / impedance
 
-
-def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
-                       r0=None, beta=None, l=None, L=None, tau0=None,
-                       gratio=None, tau3=None, **kwargs):
+def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
+                       *, rsh=None, **kwargs):
     """
     Method for calculating the TES response to a square wave for a
     given model, depending on the parameters inputted (see Notes
@@ -283,37 +242,15 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
         The peak-to-peak size of the square wave jitter (in Amps)
     sgfreq : float
         The frequency of the square wave jitter (in Hz)
+    params : float
+        The fit parameters (A, B, ... tau1, tau2... ) of the model
+        to be generated
     dutycycle : float, optional
         The duty cycle of the square wave jitter (between 0 and 1).
         Default is 0.5.
     rsh : float, optional
         Shunt resistance of the TES circuit, unis of Ohms. Used by 1-,
         2-, and 3-pole models.
-    rp : float, optional
-        Parasitic resistance on the non-shunt side of the TES circuit,
-        units of Ohms. Used by 1-, 2-, and 3-pole models.
-    r0 : float, optional
-        The operating resistance of the TES, units of Ohms. Used by 2-
-        and 3-pole models.
-    beta : float, optional
-        The current sensitivity of the TES, defined as
-        beta = d(log R)/d(log I). Used by 2- and 3-pole models.
-    l : float, optional
-        The loop gain of the TES, defined as l = P0*alpha/(G*Tc). Used
-        by the 2- and 3-pole models.
-    L : float, optional
-        The inductance in the TES circuit, units of Henrys. Used by 1-,
-        2-, and 3-pole models.
-    tau0 : float, optional
-        The thermal time constant of the TES (in sseconds), defined as
-        tau0 = C/G. Used by 1-, 2-, and 3-pole models.
-    gratio : float, optional
-        The ratio of thermal conductances in the 3 thermal block models
-        that are used as the basis of the 3-pole model. Used in 3-pole
-        model only.
-    tau3 : float, optional
-        The extra pole  associated with the 3 thermal block model,
-        units of seconds. Used in 3-pole model only.
     kwargs : dict, optional
         Any extra keyword arguments passed are simply ignored.
 
@@ -323,568 +260,38 @@ def squarewaveresponse(t, sgamp, sgfreq, dutycycle=0.5, *, rsh=None, rp=None,
         The response of the TES to a square wave jitter, based on
         the inputted parameters.
 
-    Notes
-    -----
-    For the inputted values, there are three possible models to be
-    used:
-
-    1-pole model
-        - used if `rsh`,  `rp`, and `L` are passed
-        - has the form:
-            dV/dI = rsh + rp + 2.0j * pi * freq * L
-
-    2-pole model (see https://doi.org/10.1007/10933596_3)
-        - used if `rsh`,  `rp`, `r0`, `beta`, `l` and `L` are passed
-        - has the form:
-            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
-                  + (r0 * (2 + beta) * l / (1 - l)
-                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)))
-
-    3-pole model (see https://doi.org/10.1063/1.4759111)
-        - used if `rsh`,  `rp`, `r0`, `beta`, `l`, `L`, `gratio` and
-          `tau3` are passed
-        - has the form:
-            dV/dI = rsh + rp + 2.0j * pi * freq * L + r0 * (1 + beta)
-                  + r0 * (2 + beta) * l / (1 - l)
-                  / (1.0 + 2.0j * pi * freq * tau0 / (1 - l)
-                  - gratio / (1 - l) / (1.0 + 2.0j * pi * freq * tau3))
-
     """
 
-    passed_args = locals()
-    poles = _pole_extractor(passed_args)
+    # warning id no rshunt 
+    if rsh is None:
+        print('WARNING in squarewaveresponse: '
+              'Using 5 mOhms shunt resistor. Add  '
+              'rsh argument if needed!')
+        rsh = 5e-3
+        
+    # check if small signal parameters or fit params
+    is_ssp = ('beta' in params and 'A' not in params)
+    poles = _pole_extractor(params)
 
-    if poles == 1:
-        A, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, L, 0),
-        )
-        return _BaseDIDV._convolvedidv(
-            t, A, 0, 0, 0, tau2, 0, sgamp, rsh, sgfreq, dutycycle,
-        )
-    if poles == 2:
-        A, B, tau1, tau2, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, 0),
-        )
-        return _BaseDIDV._convolvedidv(
-            t, A, B, 0, tau1, tau2, 0, sgamp, rsh, sgfreq, dutycycle,
-        )
-    if poles == 3:
-        A, B, C, tau1, tau2, tau3, _  = _BaseDIDV._convertfromtesvalues(
-            (rsh, rp, r0, beta, l, L, tau0, gratio, tau3, 0),
-        )
-        return _BaseDIDV._convolvedidv(
-            t, A, B, C, tau1, tau2, tau3, sgamp, rsh, sgfreq, dutycycle,
-        )
+    # convert small signal parameters to fit parameters
+    if is_ssp:
+        params = _BaseDIDV._convertfromtesvalues(params)
 
+    # extract parameters from dictionary
+    A = params['A']
+    B = params['B']
+    C = params['C']
+    tau1 =  params['tau1']
+    tau2 = params['tau2']
+    tau3 = params['tau3']
+    
+    response = _BaseDIDV._convolvedidv(
+        t, A, B, C,
+        tau1, tau2, tau3,
+        sgamp, rsh, sgfreq, dutycycle,
+    )
 
-
-def get_i0(offset, offset_err, offset_dict, output_offset=None,
-           closed_loop_norm=None, output_gain=1,
-           lgc_invert_offset=False,
-           lgc_calibration_on=False, calibration_dict=None, 
-           lgc_diagnostics=False):
-    """
-    Gets and returns the current and uncertainty in the current
-    through the TES from a didv_fitresult dictonary (which
-    includes a parameter for the offset of the didv and the offset)
-    
-    Parameters
-    ----------
-    offset: float
-        The current offset of the dIdV as fit (i.e. as measured, without
-        any corrections)
-        
-    offset_err: float
-        The uncertainty in the current offset of the dIdV fit
-        
-    offset_dict: dict
-        Dictionary of offsets gotten from the IV sweep.
-        
-    output_offset: float, volts
-        The output offset gotten from the event metadata. In units of volts,
-        we correct for volts to amps conversion with the closed loop norm.
-        
-    closed_loop_norm: float, volts/amp=ohms
-        The constant from the metadata used to translate the voltage measured by
-        the DAQ into a current coming into the input coil of the SQUIDs. In units of
-        volts/amp = ohms.
-        
-    output_gain: float, dimensionless
-        The dimensionless gain for the front end electronics. Used to translate the
-        output_offset in units of volts to the equivilant value read in the DAQ in
-        units of volts.
-        
-    lgc_calibration_on : bool, optional
-        By default False (i.e. not using the calibration). If True, uses the calibration_dict
-        to more closely approximate how changing the output_offset changes the current
-        measured.
-        
-    calibration_dict : dict, optional
-        A dictonary of data used to more closely model the relationship between the
-        output_offset and the change in the measured current in the device. 
-        
-    lgc_diagnostics : bool, optional
-        Used if you want to see the raw currents and offsets and how they're
-        added together. Prints these out
-        
-    Returns
-    -------
-    i0 : float
-        The calculated absolute current through the TES
-    i0_err : float
-        The uncertainty in the absolute current through the TES
-        
-    """
-
-    # SQUID controller variable offset
-    delta_i_variable = 0
-    if output_offset is not None:
-
-        # check if "closed_loop_norm" available
-        if closed_loop_norm is None:
-            raise ValueError(
-                'ERROR: "closed_loop_norm" parameter is '
-                'required!'
-            )
-        
-        # IV sweep "i0_variable_offset" (check old names for back compatibility)
-        i0_variable_offset_sweep = None
-        if 'i0_variable_offset' in offset_dict.keys():
-            i0_variable_offset_sweep = offset_dict['i0_variable_offset']
-        elif ('i0_changable_offset_cal' in offset_dict.keys()) and (lgc_calibration_on is True):
-            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_cal']
-        elif ('i0_changable_offset_uncal' in offset_dict.keys()) and (lgc_calibration_on is False):
-            i0_variable_offset_sweep  =  offset_dict['i0_changable_offset_uncal']
-        else:
-            raise ValueError('ERROR: i0 variable offset not found in '
-                             '"ivsweep_result" dictionary!')
-
-        # current IV variable offset
-        if lgc_calibration_on is False:
-            i0_variable_offset = output_offset * output_gain/closed_loop_norm
-        else:
-            if calibration_dict is None:
-                raise ValueError('ERROR: must include calibration_dict if '
-                                 'lgc_calibration_on is True (i.e. being used)!'
-                                 'Check offset dicts')
-                                 
-            elif (output_gain != 50):
-                raise ValueError('ERROR: calibration only done for a gain of 50')
-                
-            elif (calibration_dict['model'] == 'twopartlinear'):
-                m1, m2, b1, b2 = calibration_dict['params']
-                if output_offset > 0.0:
-                    i0_variable_offset = output_offset * m1 + b1
-                else:
-                    i0_variable_offset = output_offset * m2 + b2
-                    
-            elif (calibration_dict['model'] == 'lookup_extrapolated'):
-                offsets_arr = calibration_dict['params']['lookup_x']
-                currents_arr = calibration_dict['params']['lookup_y']
-                params_low = calibration_dict['params']['params_low']
-                params_high = calibration_dict['params']['params_high']
-                
-                def linear(x, m, b):
-                    return x*m + b
-                
-                if output_offset in offsets_arr:
-                    i0_variable_offset = currents_arr[list(offsets_arr).index(offset)]
-                elif output_offset > 0.0:
-                    i0_variable_offset = linear(output_offset, *params_high)
-                else:
-                    i0_variable_offset = linear(output_offset, *params_low)
-                    
-            else:
-                raise ValueError('ERROR: unknown calibration_dict model')
-            
-       
-        # delta variable offset
-        delta_i_variable = i0_variable_offset - i0_variable_offset_sweep
-       
-        #alerts user when the current offset changed
-        if np.abs(delta_i_variable) > 1e-9:
-            print(" ")
-            print("----------------------------------------------------------------")
-            print("ALERT: Variable output voltage offset has changed since the IV sweep.")
-            print("Thus, it needs to be taken into account when calculating true I0!")
-            print("IV sweep variable offset [muAmps]: " + str(i0_variable_offset_sweep*1e6))
-            print("This dIdV dataset variable offset [muAmps]: " + str(i0_variable_offset*1e6))
-            print("RESULTS MAY NOT BE ACCURATE IF GAIN/OFFSET NON LINEARITIES!")
-            print("----------------------------------------------------------------")
-            print(" ")
-
-    # calculate new i0
-    current_didv = offset - delta_i_variable 
-    if lgc_invert_offset:
-        current_didv = -current_didv
-    current_err_didv = offset_err
-    i0 = current_didv - offset_dict['i0_off']
-    
-    if lgc_diagnostics:
-        print("Current as measured from dIdV: " + str(offset) + " amps")
-        print("Variable current as meaured from metadata for this dIdV: " + str(i0_variable_offset) + " amps")
-        print(" ")
-        print("Variable current as measured during IV when offsets were measured: " + 
-              str(i0_variable_offset_sweep) + " amps")
-        print("Current offset as measured from IV: " + str(offset_dict['i0_off']) + " amps")
-        print(" ")
-        print("Delta variable current: " + str(i0_variable_offset) + " - " + 
-             str(i0_variable_offset_sweep) + " = \n " + str(delta_i_variable) + " amps")
-        print(" ")
-        print("True current through TES: " + str(offset) + " - " + str(delta_i_variable) + " - \n" + 
-             str(offset_dict['i0_off']) + " = " + str(i0) + " amps")
-    
-    i0_err = np.sqrt((current_err_didv)**2.0 + (offset_dict['i0_off_err'])**2.0)
-    
-    if lgc_diagnostics:
-        print(" ")
-        print(" --------- ")
-        print(" ")
-        print("Current uncertainty from dIdV: " + str(current_err_didv) + " amps")
-        print("Current offset uncertainty from IV: " + str(offset_dict['i0_off_err']) + " amps")
-        print(" ")
-        print("Total current uncetainty: (("  + str(current_err_didv) + ")**2.0 + (" +
-              str(offset_dict['i0_off_err']) + ")**2.0 )**0.5 = \n" + 
-              str(i0_err) + " amps")
-    
-    return i0, i0_err
-
-def get_ibias(tes_bias, offset_dict, lgc_diagnostics=False):
-    """
-    Gets and returns the current and uncertainty in the current
-    used to bias the TES from a metadata list
-    
-    Parameters
-    ----------
-        
-    tes_bias: float
-        The ibias gotten from the event metadata, i.e. without correcting for
-        the ibias offset calculated from the IV curve
-        
-    offset_dict: dict
-        Dictionary of offsets gotten from the IV sweep.
-        
-    lgc_diagnostics : bool, optional
-        Used if you want to see the raw currents and offsets and how they're
-        added together. Prints these out
-        
-    Returns
-    -------
-    ibias : float
-        The calculated absolute current used to bias the TES
-    ibias_err : float
-        The uncertainty in the absolute current used to bias the TES
-        
-    """
-    
-    ibias = tes_bias - offset_dict['ibias_off']
-    ibias_err = offset_dict['ibias_off_err']
-    
-    if lgc_diagnostics:
-        print("Bias current from metadata: " + str(tes_bias) + " amps")
-        print("Bias current offset from IV: " + str(offset_dict['ibias_off']) + " amps")
-        print("True bias current: " + str(tes_bias) + " - " + str(offset_dict['ibias_off']) + 
-             " = \n" + str(ibias) + " amps")
-        print(" ")
-        
-        print("Bias current uncertainty from IV: " + str(offset_dict['ibias_off_err']) + " amps")
-        
-    return np.absolute(ibias), ibias_err
-
-
-def _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp):
-    """
-    Gets and returns voltage and uncertainty in voltage across the
-    TES at a given bias point.
-    
-    Parameters
-    ----------
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
-        
-    ibias: float
-        The bias current applied to the TES/shunt system
-        
-    ibias_err: float
-        The uncertainty in the bias current applied to the TES/shunt
-        system
-        
-    rsh: float
-        The shunt resistance in ohms
-        
-    rp: float
-        The parasitic resistance in ohms
-        
-    Returns
-    -------
-    v0 : float
-        The calculated voltage across the TES in volts
-        
-    v0_err : float
-        The calculated uncertainty in the voltage across the TES
-        in volts
-        
-    """
-    
-    ibias = np.absolute(ibias)
-    i0 = np.absolute(i0)
-    vb = rsh * (ibias - i0) #voltage across the shunt resistor
-    vb_err = rsh * np.sqrt(i0_err**2 + ibias_err**2)
-    
-    v0 = np.absolute(vb - rp * i0) #the voltage across the shunt resistor minus
-                      #the voltage across the parasitic resistance
-    v0_err = np.sqrt(vb_err**2 + rp**2 * i0_err**2)
-    
-    return v0, v0_err
-
-def _get_r0(i0, i0_err, v0, v0_err):
-    """
-    Gets and returns the resistance and uncertainty in resistance
-    of a TES at a given bias point
-    
-    Parameters
-    ----------
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
-        
-    v0: float
-        The voltage across the TES at the bias point
-        
-    v0_err: float
-        The uncertainty in the voltage across the TES at the bias
-        point
-        
-    Returns
-    -------
-    r0 : float
-        The calculated resistance of the TES at the bias point
-        in ohms
-        
-    r0_err : float
-        The calculated uncertainty in the resistance of the TES at
-        the bias point in ohms
-        
-    """
-    
-    r0 = np.absolute(v0/i0)
-    r0_err = np.sqrt(v0_err**2 * i0**-2 + v0**2 * i0_err**2 * i0**-4)
-    
-    return r0, r0_err
-
-def _get_p0(i0, i0_err, v0, v0_err):
-    """
-    Gets and returns the bias power and uncertainty in bias power
-    of a TES at a given bias point
-    
-    Parameters
-    ----------
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
-        
-    v0: float
-        The voltage across the TES at the bias point
-        
-    v0_err: float
-        The uncertainty in the voltage across the TES at the bias
-        point
-        
-    Returns
-    -------
-    p0 : float
-        The calculated bias power of the TES at the bias point
-        in watts
-        
-    p0_err : float
-        The calculated uncertainty in the bias power of the TES at
-        the bias point in watts
-        
-    """
-    
-    p0 = np.absolute(v0*i0)
-    p0_err = np.sqrt(v0_err**2 * i0**2 + v0**2 * i0_err**2)
-    
-    return p0, p0_err
-
-def get_tes_bias_parameters_dict(i0, i0_err, ibias, ibias_err, rsh, rp,
-                                 rn=None):
-    """
-    Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
-    from the measured TES bias current and i0
-    
-    Parameters
-    ----------
-        
-    i0 : float
-        The current through the TES at a given bias point
-        
-    i0_err: float
-        The uncertainty in the current through the TES at a given
-        bias point
-        
-    ibias: float
-        The bias current applied to the TES/shunt system
-        
-    ibias_err: float
-        The uncertainty in the bias current applied to the TES/shunt
-        system
-        
-    rsh: float
-        The shunt resistance in ohms
-        
-    rp: float
-        The parasitic resistance in ohms
-
-    rn: float (optional) 
-        The normal resistance in ohms
-        
-    Returns
-    -------
-    bias_parameters_dict : dict
-        A dictonary of bias parameters and uncertainties, including i0, r0,
-        v0, and p0
-        
-    """
-    
-    i0 = np.absolute(i0)
-    
-    rl = rp + rsh
-    
-    v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
-    r0, r0_err = _get_r0(i0, i0_err, v0, v0_err)
-    p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
-
-    if rn is None:
-        rn = np.nan
-
-    
-    bias_parameter_dict = {
-        'i0': i0,
-        'i0_err': i0_err,
-        'v0': v0,
-        'v0_err': v0_err,
-        'r0': r0,
-        'r0_err': r0_err,
-        'p0': p0,
-        'p0_err': p0_err,
-        'rp': rp,
-        'rsh': rsh,
-        'rshunt': rsh,
-        'rl': rl,
-        'ibias': ibias,
-        'rn': rn,
-    }
-    
-    return bias_parameter_dict
-    
-def get_tes_bias_parameters_dict_infinite_loop_gain(params, cov,
-                                                    ibias, ibias_err,
-                                                    rsh, rp, rn=None):
-    """
-    Gets and returns a dictonary of i0, v0, r0, and p0 with uncertainties
-    using the infinte loop gain approximation
-    
-    Parameters
-    ----------
-  
-    params : dict
-        The parameters (A, B, tau_1, etc.) of the previous dIdV fit.
-               
-    cov : matrix
-        The covariance matrix for the params, starting with the A, B
-        components.
-        
-    ibias: float
-        The bias current applied to the TES/shunt system
-        
-    ibias_err: float
-        The uncertainty in the bias current applied to the TES/shunt
-        system
-        
-    rsh: float
-        The shunt resistance in ohms
-        
-    rp: float
-        The parasitic resistance in ohms
-        
-    Returns
-    -------
-    bias_parameters_dict : dict
-        A dictonary of bias parameters and uncertainties, including i0, r0,
-        v0, and p0
-        
-    """
-
-    # check dimension
-    num_params = cov.shape[0]
-    if len(params.keys()) != num_params:
-        raise ValueError('ERROR: inconsistent number of '
-                         'parameters with covariance '
-                         'matrix shape')
-    
-    # Rload
-    rl = rp + rsh
-
-    # r0
-    dvdi0 = None
-    r0_jac = None
-    if num_params == 5:
-        dvdi0 =  params['A'] +  params['B']
-        r0_jac = np.asarray([1, 1, 0, 0, 0])
-    else:
-        dvdi0 =  params['A'] + params['B']/(1-params['C'])
-        r0_jac = np.asarray([1, 1, 1, 0, 0, 0, 0])
-        
-    r0 = abs(dvdi0) + rl
-    r0_err = np.matmul(r0_jac, np.matmul(cov, np.transpose(r0_jac)))
-    
-    i0 = ibias * rsh / (r0 + rl)
-    i0_err = ((ibias_err * rsh / (r0 + rl))**2 + (r0_err * ibias * rsh * (rl + r0)**-2)**2)**0.5
-    
-    
-    v0, v0_err = _get_v0(i0, i0_err, ibias, ibias_err, rsh, rp)
-    p0, p0_err = _get_p0(i0, i0_err, v0, v0_err)
-    
-    if rn is None:
-        rn = np.nan
- 
-    bias_parameter_dict = {
-        'i0': i0,
-        'i0_err': i0_err,
-        'v0': v0,
-        'v0_err': v0_err,
-        'r0': r0,
-        'r0_err': r0_err,
-        'p0': p0,
-        'p0_err': p0_err,
-        'rp': rp,
-        'rsh': rsh,
-        'rshunt': rsh,
-        'rl': rl,
-        'ibias': ibias,
-        'rn': rn,
-    }
-    
-    return bias_parameter_dict
-
-
-
-
-
+    return response
 
 class _BaseDIDV(object):
     """
@@ -1261,9 +668,10 @@ class _BaseDIDV(object):
         return A0, B0, tau10, tau20, isloopgainsub1
 
     @staticmethod
-    def _converttotesvalues(popt, rsh, r0, rp):
+    def _converttotesvalues(params, rsh=None, r0=None, rp=None):
         """
-        Function to convert the fit parameters for either 1-pole
+        Function to convert the fit parameters (stored in 
+        a dictionary) for either 1-pole
         (A, tau2, dt), 2-pole (A, B, tau1, tau2, dt), or 3-pole
         (A, B, C, tau1, tau2, tau3, dt) fit to the corresponding TES
         parameters: 
@@ -1273,142 +681,182 @@ class _BaseDIDV(object):
             3-pole: (rsh, rp, r0, beta, l, L, tau0, gratio, tau3)
 
         """
+        
+        params = copy.deepcopy(params)
+        
+        # check required parameters
+        if rsh is None:
+            raise ValueError('ERROR: "rsh" required!')
 
-        if len(popt)==3:
-            # one pole
-            A = popt[0]
-            tau2 = popt[1]
-            dt = popt[2]
+        if ('A' not in params or 'tau2' not in params or 'dt' not
+            in params):
+            raise ValueError('ERROR: Missing fit parameters!')
 
-            popt_out = np.array([rsh, A - rsh, A * tau2, dt])
+        poles = _pole_extractor(params)
+        
+        # initialize
+        output  = {'rsh':rsh, 'rp':rp, 'r0':r0,
+                   'beta':None, 'l':None, 'L':None,
+                   'tau0':None, 'gratio':None,
+                   'tau3':None}
 
-        elif len(popt)==5:
-            # two poles
-            A = popt[0]
-            B = popt[1]
-            tau1 = popt[2]
-            tau2 = popt[3]
-            dt = popt[4]
+        # fit parameters
+        dt = params['dt']
+        A = params['A']
+        B = 0
+        C = 0
+        tau1 = 0
+        tau2 = params['tau2']
+        tau3 = 0
+        if poles >= 2:
+            B = params['B']
+            tau1 = params['tau1']
+        if poles == 3:
+            C = params['C']
+            tau3 = params['tau3']
 
-            rload = rsh + rp
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            beta  = (A - rload) / r0 - 1.0
-            l = B / (A + B + r0 - rload)
-            L = A * tau2
-            tau = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
 
-            popt_out = np.array([rsh, rp, r0, beta, l, L, tau, dt])
+        # calculate small signal parameters
+        output['dt'] =  dt
+        
+        if poles == 1:
+            output['rp'] =  A - rsh
+            output['L'] =  A * tau2
+            
+        else:
 
-        elif len(popt)==7:
-            # three poles
-            A = popt[0]
-            B = popt[1]
-            C = popt[2]
-            tau1 = popt[3]
-            tau2 = popt[4]
-            tau3 = popt[5]
-            dt = popt[6]
+            if rp is None or r0 is None:
+                raise ValueError(
+                    'ERROR: rp and r0 required for '
+                    '2 and 3 -poles fit '
+                )
+            rload  = rsh + rp
+            output['L'] =  A * tau2
+            output['beta']  = (A - rload) / r0 - 1.0
+            output['l'] = B / (A + B + r0 - rload)
+            output['tau0'] = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
+            if poles == 3:
+                output['gratio'] = C * (A + r0 - rload) / (A + B + r0 - rload)
+                output['tau3'] = tau3
 
-            rload = rsh + rp
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            beta  = (A - rload) / r0 - 1.0
-            l = B / (A + B + r0 - rload)
-            L = A * tau2
-            tau0 = tau1 * (A + r0 - rload) / (A + B + r0 - rload)
-            gratio = C * (A + r0 - rload) / (A + B + r0 - rload)
-
-            popt_out = np.array(
-                [rsh, rp, r0, beta, l, L, tau0, gratio, tau3, dt]
-            )
-
-        return popt_out
+        return output
 
 
     @staticmethod
-    def _convertfromtesvalues(popt):
+    def _convertfromtesvalues(params):
         """
         Function to convert from Irwin's TES parameters
         (rsh, rp, r0, beta, l, L, tau0, dt) to the fit parameters
-        (A, B, tau1, tau2, dt)
+        (A, B, C, tau1, tau2, tau3, dt)
 
         """
 
-        if len(popt) == 4:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            L = popt[2]
-            dt = popt[3]
+        # copy locally
+        params = copy.deepcopy(params)
 
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp
-            tau2 = L / (rsh + rp)
+        # intialize output
+        output = {'A':0, 'B':0, 'C':0,
+                  'tau1':0, 'tau2':0, 'tau3':0,
+                  'dt': params['dt']}
 
-            popt_out = np.array([A, tau2, dt])
+        
+        # check poles
+        poles = _pole_extractor(params)
 
-        elif len(popt) == 8:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            r0 = popt[2]
-            beta = popt[3]
-            l = popt[4]
-            L = popt[5]
-            tau0 = popt[6]
-            dt = popt[7]
+        # extract parameters from dictionary
+        rsh = params['rsh']
+        rp = params['rp']
+        L =  params['L']
+        if poles >= 2:
+            r0 = params['r0']
+            beta = params['beta']
+            l = params['l']
+            tau0 = params['tau0']
+        if poles == 3:
+            gratio = params['gratio']
+            tau3 = params['tau3']
+        
 
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp + r0 * (1 + beta)
-            B = r0 * l / (1 - l) * (2 + beta)
-            tau1 = tau0 / (1 - l)
-            tau2 = L / (rsh + rp + r0 * (1 + beta))
-
-            popt_out = np.array([A, B, tau1, tau2, dt])
-
-        elif len(popt) == 10:
-            ## two poles
-            rsh = popt[0]
-            rp = popt[1]
-            r0 = popt[2]
-            beta = popt[3]
-            l = popt[4]
-            L = popt[5]
-            tau0 = popt[6]
-            gratio = popt[7]
-            tau3 = popt[8]
-            dt = popt[9]
-
-            # convert A, B tau1, tau2 to beta, l, L, tau
-            A = rsh + rp + r0 * (1 + beta)
-            B = r0 * l / (1 - l) * (2 + beta)
-            C = gratio / (1 - l)
-            tau1 = tau0 / (1 - l)
-            tau2 = L / (rsh + rp + r0 * (1 + beta))
-
-            popt_out = np.array([A, B, C, tau1, tau2, tau3, dt])
+        # convert to fit value
+        if poles == 1:
+            output['A'] = rsh + rp
+            output['tau2'] =  L / (rsh + rp)
             
-        return popt_out
+        else:
+            
+            output['A'] = rsh + rp + r0 * (1 + beta)
+            output['B'] = r0 * l / (1 - l) * (2 + beta)
+            output['tau1'] = tau0 / (1 - l)
+            output['tau2'] =  L / (rsh + rp + r0 * (1 + beta))
+
+            if poles == 3:
+                output['C'] =  gratio / (1 - l)
+                output['tau3'] = tau3
+                
+                        
+        return output
 
 
     @staticmethod
-    def _findpolefalltimes(params):
+    def _findpolefalltimes(params_array):
         """
-        Function for taking TES params from a 1-pole, 2-pole, or 3-pole
+        Function for taking fit params from a 1-pole, 2-pole, or 3-pole
         didv and calculating the falltimes (i.e. the values of the
         poles in the complex plane).
 
         """
 
+        # convert array to dictionary
+
+        # poles base on array length 
+        one_pole = ['A', 'tau2']
+        two_pole = ['A', 'B', 'tau1', 'tau2']
+        three_pole = ['A', 'B', 'C', 'tau1', 'tau2', 'tau3']
+
+        # convert array to dictionary
+
+        # initialize parameters dict
+        params =  {'A':0, 'B':0, 'C':0,
+                   'tau1':0, 'tau2':0, 'tau3':0}
+            
+        poles = None
+        if len(params_array) == 3:
+            poles = 1
+            for ipar, par in enumerate(one_pole):
+               params[par] = params_array[ipar]
+                
+        elif (len(params_array) == 5 or
+              (len(params_array) == 7 and params_array[2] == 0)):
+            poles = 2
+            for ipar, par in enumerate(two_pole):
+               params[par] = params_array[ipar]
+                
+        elif len(params_array) == 7:
+            poles = 3
+            for ipar, par in enumerate(three_pole):
+               params[par] = params_array[ipar]
+         
+        else:
+            raise ValueError('ERROR: Unrecognized number of '
+                             'fit parameters!')
+        
+        # Extract parameters
+        A = params['A']
+        B = params['B']
+        C = params['C']
+        tau1 =  params['tau1']
+        tau2 = params['tau2']
+        tau3 = params['tau3']
+                  
         # convert dvdi time constants to fall times of didv
-        if len(params)==3:
+        if poles == 1:
+            
             # one pole fall time for didv is same as tau2=L/R
-            A, tau2, dt = params
-            falltimes = np.array([tau2])
-
-        elif len(params)==5:
-            # two pole fall times for didv is different than tau1, tau2
-            A, B, tau1, tau2, dt = params
-
+            falltimes = np.array([tau2, 0, 0])
+            return falltimes
+        
+        elif poles == 2:
+            
             def twopoleequations(p):
                 taup,taum = p
                 eq1 = taup+taum - A/(A+B)*(tau1+tau2)
@@ -1417,11 +865,11 @@ class _BaseDIDV(object):
 
             taup, taum = fsolve(twopoleequations ,(tau1, tau2))
             falltimes = np.array([taup, taum])
-
-        elif len(params)==7:
-            # three pole fall times for didv is different
-            # than tau1, tau2, tau3
-            A, B, C, tau1, tau2, tau3, dt = params
+            falltimes = np.sort(falltimes)
+            falltimes = np.append(falltimes, 0)
+            return falltimes
+            
+        elif poles == 3:
 
             def threepoleequations(p):
                 taup, taum, taun = p
@@ -1438,8 +886,8 @@ class _BaseDIDV(object):
             falltimes = np.array([taup, taum, taun])
 
         else:
-            print("Wrong number of input parameters, returning zero...")
-            falltimes = np.zeros(1)
+            print("WARNING: Wrong number of input parameters, returning zero...")
+            falltimes = np.zeros(3)
 
         # fall times sorted from shortest to longest
         falltimes = np.sort(falltimes)

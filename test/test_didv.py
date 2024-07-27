@@ -22,12 +22,16 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
         'rsh': rsh,
         'rp': 0.006,
         'r0': 0.0756 if poles in [2, 3] else 0,
+        'r0_err': 0,
+        'i0': 1e-6,
+        'i0_err': 0,
         'beta': 2 if poles in [2, 3] else 0,
         'l': 10 if poles in [2, 3] else 0,
         'L': 1e-7,
         'tau0': 500e-6 if poles in [2, 3] else 0,
         'gratio': 0.5 if poles in [3] else 0,
         'tau3': 1e-3 if poles in [3] else 0,
+        'dt': 0,
     }
 
     psd_test = np.ones(int(4 * fs / sgfreq)) / tracegain**2 / 1e4
@@ -35,7 +39,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
 
     t = np.arange(rawnoise.shape[-1]) / fs
     didv_response = qp.squarewaveresponse(
-        t, sgamp, sgfreq, **true_params,
+        t, sgamp, sgfreq, true_params,
 
     )
     rawtraces = didv_response + rawnoise
@@ -57,6 +61,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
     )
     
     didvfit.dofit(poles)
+    didvfit.calc_smallsignal_params(true_params)
     assert isinstance(didvfit.fitresult(poles), dict)
 
     _run_plotting_suite(didvfit, poles)
@@ -145,10 +150,10 @@ def test_didv():
             
         assert np.isclose(
             qp.complexadmittance(
-                1e4, **didvfit.fitresult(pole)['smallsignalparams'],
+                1e4, didvfit.fitresult(pole)['smallsignalparams'],
             ),
             qp.complexadmittance(
-                1e4, **true_params,
+                1e4, true_params,
             ),
             rtol=1e-2,
         )

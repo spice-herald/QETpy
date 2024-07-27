@@ -58,6 +58,8 @@ setup(
     long_description_content_type='text/markdown',
     author="Samuel Watkins, Caleb Fink",
     author_email="samwatkins@berkeley.edu, cwfink@berkeley.edu",
+    maintainer="Bruno Serfass",
+    maintainer_email="serfass@berkeley.edu",
     url="https://github.com/spice-herald/QETpy",
     license_files = ('LICENSE', ),
     packages=find_packages(),

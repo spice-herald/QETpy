@@ -265,7 +265,12 @@ class OF1x1:
         
         # update signal and do preliminary
         # calculations
-        if signal is not None:   
+        if signal is not None:
+
+            # clear
+            self._of_base.clear_signal()
+
+            # update
             self._of_base.update_signal(
                 self._channel_name,
                 signal,
@@ -372,7 +377,12 @@ class OF1x1:
 
         # update signal and do preliminary
         # calculations
-        if signal is not None:   
+        if signal is not None:
+
+            # clear
+            self._of_base.clear_signal()
+
+            # update
             self._of_base.update_signal(
                 self._channel_name,
                 signal,

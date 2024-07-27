@@ -166,7 +166,9 @@ def _plot_rv(IVobject, temps="all", chans="all", lgcsave=False, savepath="", sav
         #plt.show()
         return fig, ax    
 
-def _plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", savename=""):
+def _plot_pv(IVobject,  temps="all", chans="all",
+             percent_rn_range=None, 
+             lgcsave=False, savepath="", savename=""):
     """
     Function to plot the power curves for the data in an IV object.
     
@@ -220,27 +222,82 @@ def _plot_pv(IVobject,  temps="all", chans="all", lgcsave=False, savepath="", sa
                 label_str="Temp {}, Channel {}".format(t,chan_names[ch])
             else:
                 label_str="Channel {}".format(chan_names[ch])
-            ax.scatter(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, label=label_str,
-                        color=ch_colors[it*len(chrange) + ich], s=20.0)
-            ax.plot(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, color=ch_colors[it*len(chrange) + ich], 
-                    linewidth=2.5, alpha=0.5)
-            ax.errorbar(IVobject.vb[t, ch]*1e6, IVobject.ptes[t, ch]*1e12, yerr=IVobject.ptes_err[t, ch]*1e12,
-                        xerr=IVobject.vb_err[t, ch]*1e6,
-                         linestyle='None', color='k')
+                
+            v0 = IVobject.vb[t, ch]*1e6
+            v0_err = IVobject.vb_err[t, ch]*1e6
+            p0 = IVobject.ptes[t, ch]*1e12
+            p0_err = IVobject.ptes_err[t, ch]*1e12
 
-            ax.legend(loc='best')
-            ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
-            ax.set_ylabel(r'Power [$pW$]', fontsize=14)
-            ax.grid(linestyle='dotted')
-            ax.tick_params(which='both',direction='in',right=True,top=True)
-            ax.set_title(f"{channel_name}  $P_0$ vs. $V_b$", fontsize=16)
-    
+            unit_label = 'pW'
+            if np.median(p0) < 1:
+                p0 = p0*1e3
+                p0_err = p0_err*1e3
+                unit_label = 'fW'
+                       
+            # percent  rn
+            rn = IVobject.rnorm[t, ch]
+            pc = 100*IVobject.r0[t, ch]/rn
+            if percent_rn_range is not None:
+
+                if len( percent_rn_range) != 2:
+                    raise ValueError(
+                        'ERROR: "percent_rn_range" should be '
+                        'a tuple!')
+                
+                mask = ((pc >= percent_rn_range[0])
+                        & (pc <= percent_rn_range[1]))
+
+                v0 = v0[mask]
+                v0_err = v0_err[mask]
+                p0 = p0[mask]
+                p0_err = p0_err[mask]
+                pc =  pc[mask]
+
+            if percent_rn_range is None:
+                
+                ax.scatter(v0, p0, label=label_str,
+                           color=ch_colors[it*len(chrange) + ich],
+                           s=20.0)
+                ax.plot(v0, p0, color=ch_colors[it*len(chrange) + ich], 
+                        linewidth=2.5, alpha=0.5)
+                ax.errorbar(v0, p0, yerr=p0_err, xerr=v0_err,
+                            linestyle='None', color='k')
+
+                ax.legend(loc='best')
+                ax.set_xlabel(r'Bias Voltage [$\mu V$]', fontsize=14)
+                ax.set_ylabel(f'Power [{unit_label}]', fontsize=14)
+                ax.grid(linestyle='dotted')
+                ax.tick_params(which='both',direction='in',right=True,
+                               top=True)
+                ax.set_title(f"{channel_name}  $P_0$ vs. $V_b$",
+                             fontsize=16)
+
+            else:
+
+                ax.scatter(pc, p0, label=label_str,
+                           color=ch_colors[it*len(chrange) + ich],
+                           s=20.0)
+                ax.plot(pc, p0, color=ch_colors[it*len(chrange) + ich], 
+                        linewidth=2.5, alpha=0.5)
+                ax.errorbar(pc, p0, yerr=p0_err, xerr=0,
+                            linestyle='None', color='k')
+
+                ax.legend(loc='best')
+                ax.set_xlabel(r'Percent Rn', fontsize=14)
+                ax.set_ylabel(f'Power [{unit_label}]', fontsize=14)
+                ax.grid(linestyle='dotted')
+                ax.tick_params(which='both',direction='in',right=True,
+                               top=True)
+                ax.set_title(f"{channel_name}  $P_0$ vs. %$Rn$ (zoom)",
+                             fontsize=16)
+                       
     if lgcsave:
         fig.savefig(savepath+"pv_curve_{}.png".format(savename))
         plt.close(fig)
     else:
         #plt.show()
         return fig, ax
+
         
 def _plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=False, savepath="", savename=""):
     """
@@ -270,6 +327,7 @@ def _plot_all_curves(IVobject,  temps="all", chans="all", showfit=True, lgcsave=
     _plot_iv(IVobject,  temps=temps, chans=chans, showfit=showfit, lgcsave=lgcsave, savepath=savepath, savename=savename)
     _plot_rv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
     _plot_pv(IVobject,  temps=temps, chans=chans, lgcsave=lgcsave, savepath=savepath, savename=savename)
-
+    _plot_pv(IVobject,  temps=temps, chans=chans, percent_rn_range=(3,40),
+             lgcsave=lgcsave, savepath=savepath, savename=savename)
 
   
