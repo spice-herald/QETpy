@@ -144,7 +144,7 @@ class OF1x1:
                     f'for channel {channel} found in OF base object. '
                     f'Modify template tag or add template argument!')
                             
-         # add noise to base object
+        # add noise to base object
         if psd is not None:
 
             if self._verbose:
@@ -274,7 +274,6 @@ class OF1x1:
             self._of_base.update_signal(
                 self._channel_name,
                 signal,
-                calc_q_vector=False,
                 calc_signal_filt=True,
                 calc_signal_filt_td=True,
                 calc_chisq_amp=True,

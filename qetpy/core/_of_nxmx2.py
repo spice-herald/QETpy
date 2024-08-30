@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.optimize import least_squares
-import matplotlib.pyplot as plt
 from qetpy.utils import shift, interpolate_of, argmin_chisq
+from qetpy.utils import convert_channel_name_to_list, convert_channel_list_to_name
 from qetpy.core import OFBase
 from numpy.linalg import pinv as pinv
 
@@ -11,17 +10,16 @@ __all__ = ['OFnxmx2']
 
 class OFnxmx2:
     """
-    Single trace /  multichannel, multitemplate optimal filter (nxm)
-    calculations
-    FIXME:
-    several things need to be added
-
-    Need to add no delay fits, no pulse fits, and low freq fits.
+    N channels / M templates Optimal Fitler 
+    (with 2 delays degree of freedom)
+   
     """
-    def __init__(self, of_base=None, template_tags=['default'], channels=None,
-                 templates=None, templates_time_tag =None, csd=None, sample_rate=None,
+    def __init__(self, of_base=None, channels=None,
+                 templates=None, template_tags=None,
+                 template_time_tags=None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
-                 integralnorm=False, channel_name='unknown', fit_window = None,
+                 integralnorm=False, fit_window=None,
+                 restrict_time_flag=True,
                  verbose=True):
 
         """
@@ -33,20 +31,21 @@ class OFnxmx2:
         of_base : OFBase object, optional
            OF base with pre-calculations
            Default: instantiate base class within OFnxmx2
-
-        template_tags : list of str
-            Template tags to calculate optimal filters
-            Default: ['default']
-
+  
         channels : str or list of string
           channels as ordered list or "|" separated string
           such as "channel1|channel2"
-
-        templates : ndarray dimn[ntmp, nbins], optional
+         
+        templates : 3D ndarray [nchan, ntmp, nbins] (optional)
           multi-template array used for OF calculation, can be
           None if already in of_base, otherwise required
+          
+        template_tags : 2D array (optional)
+            Template tags to calculate optimal filters
+            Optional if "templates" provided (must be same 
+            format as "templates" if not None)
 
-        templates_time_tag : ndarray dimn[ntmp],
+        template_time_tags : 2D array (optional)
           time tage used for multi-template array with each having 2 time degree of freedom
           used for OF calculation, can be None if already in of_base, otherwise required.
           eg for 4 template : one can have [0,1,0,0]-> meaning 1st, 3rd and fourth templat move together
@@ -80,11 +79,15 @@ class OFnxmx2:
         channel_name : str, optional
             channel name
 
-        fit_window :  used for preparing the time window for nxmx2 filter, if not specified we will use
+        fit_window :  used for preparing the time window for nxmx2 filter, 
+                      if not specified we will use
                       the available bins size
 
              time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
              time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
+
+        restrict_time_flag : boolean, optional
+        
 
         verbose : bool, optional
             Display information
@@ -95,272 +98,403 @@ class OFnxmx2:
         ------
 
         """
+
         # verbose
         self._verbose = verbose
+        
+        # channels
+        if channels is None:
+            raise ValueError('ERROR: "channels" argument required!')
+        
+        self._channel_name = convert_channel_list_to_name(channels)
+        self._channel_list = convert_channel_name_to_list(channels)
+        self._nchans = len(self._channel_list)
+        
+        # initialize number of templates (per channel)
+        self._ntmps = None
 
-        # tag
-        self._template_tags = template_tags
+        # check templates argument
+        if templates is None:
+            
+            # OF base required
+            if of_base is None:
+                raise ValueError('ERROR: Either "of_base" or '
+                                 '"templates" argument required!')
 
-        if isinstance(channels, str):
-            if '|' not in channels:
-                raise ValueError('ERROR: format is wrong. There should be '
-                                 'at least one "|" separation')
-            else:
-                split_string = channels.split('|')
-                channels = '|'.join(part.strip() for part in split_string) #gets rid of spaces if they are there
-                self._channel_name=channels #channel_name is for anything we need joint channels for
-                self._channels_list = channels.split('|') #now for sure has no spaces
+            # templates tag required 
+            if (of_base is not None
+                and template_tags is None):
+                raise ValueError('ERROR: "template_tags" required '
+                                 'if "of_base" provided and "templates" '
+                                 'argument is None')
+        
+        else:
 
-        # Instantiate OF base (if not provided)
+            # check numpy array
+            if (not isinstance(templates, np.ndarray)
+                or templates.ndim != 3):
+                raise ValueError('ERROR: Expecting "templates" to be '
+                                 'a 3D array')
+            self._ntmps = templates.shape[1]
+            
+            if templates.shape[0] != self._nchans:
+                raise ValueError(f'ERROR: Expecting "templates" to have '
+                                 f'shape[0]={self._nchans}!')
+                        
+        # check template tags
+        if template_tags is not None:
+
+            if (not isinstance(template_tags, np.ndarray)
+                or  template_tags.ndim != 2):
+                raise ValueError('ERROR: Expecting "template_tags" '
+                                 'to be a (2D) numpy array')
+
+            ntmps = template_tags.shape[1]
+            if (self._ntmps is not None
+                and ntmps != self._ntmps):
+                raise ValueError('ERROR: the number of templates M between '
+                                 '"templates" and "template_tags" is not '
+                                 'consistent!')
+           
+            if template_tags.shape[0] != self._nchans:
+                raise ValueError(f'ERROR: Expecting "template_tags" to have '
+                                 f'shape[0]={self._nchans}!')
+
+
+        # Instantiate OF base (if None) and add templates
         self._of_base = of_base
-        self._nchans = len(self._channels_list)
 
+        # instantiate OF base if None
         if of_base is None:
-
-            # check parameters
+            
+            # check required parameters
             if sample_rate is None:
-                raise ValueError('ERROR in OFnxmx2: sample rate required!')
+                raise ValueError('ERROR in OFnxm: sample rate required!')
 
             if (pretrigger_msec is None
                 and pretrigger_samples is None):
-                raise ValueError('ERROR in OFnxmx2: '
-                                 + 'pretrigger (msec or samples) required!')
-
+                raise ValueError('ERROR in OFnxm: '
+                                 'pretrigger (msec or samples) required!')
             # instantiate
-            #need to pass channels to this?
-            #ofbase mods that bruno did, no way to grab channels?
-            self._of_base = OFBase(sample_rate,
-                                   verbose=verbose)
-        # add template to base object
+            self._of_base = OFBase(sample_rate, verbose=verbose)
+
+            
+        # add template to base object if templates not None
         if templates is not None:
-            print(self._of_base)
+        
             fs = self._of_base.sample_rate
             if pretrigger_msec is not None:
                 pretrigger_samples = int(round(fs*pretrigger_msec/1000))
 
-            #for itmp in range(templates.shape[0]):
-            sum=0
-            for ichan in range(len(self._channels_list)):
-                for itmp in range(len(template_tags)):
-                    if self._verbose:
-                        print('INFO: Adding template with tag '
-                          +  template_tags[itmp] + ' to OF base object. Channel is' + self._channels_list[ichan])
-                    #add channel passing
-                    self._of_base.add_template(channel=self._channels_list[ichan],
-                                           template=templates[sum],
-                                           template_tag=template_tags[itmp],
-                                           pretrigger_samples=pretrigger_samples,
-                                           integralnorm=integralnorm)
-                    sum = sum+1
+            # create tags if template_tags is None
+            if template_tags is None:
+                
+                template_tags = np.empty(templates.shape[0:2], dtype='object')
+                count = 0
+                for i in range(len(template_tags)):
+                    for j in range(len(template_tags[i])):
+                        template_tags[i][j] = f'default_{count}'
+                        count +=1
+            # verbose
+            print(f'INFO: Adding templates with shape={templates.shape} '
+                  'to OF base object!')
+                                    
+            # add to OF 
+            self._of_base.add_template_many_channels(
+                self._channel_list, templates, template_tags,
+                pretrigger_samples=pretrigger_samples,
+                integralnorm=integralnorm,
+                overwrite=True
+            )
+                
         else:
-            # check if template exist already
-            tags =  self._of_base.template_tags()
-            for itag,tag in enumerate(self._template_tags):
-                if (tags is None
-                    or self._template_tags not in tags):
 
-                    print('ERROR: No template with tag "'
-                          + tags + ' found in OF base object.'
-                          + ' Modify template tag or add template argument!')
+            is_tag = False
+            tags = self._of_base.template_tags(self._channel_name)
+            for tag in tags:
+                if np.array_equal(tag, template_tags):
+                    is_tag = True
 
-         # add noise to base object
+            if not is_tag:
+                raise ValueError(
+                    f'ERROR: No template with tag '
+                    f'"{template_tags}" found for channel '
+                    f'{self._channel_name} in OF base!'
+                )
+                    
+        # save template tags
+        self._template_tags = template_tags
+        self._ntmps = template_tags.shape[-1]
+
+        # sample rate
+        self._fs = self._of_base.sample_rate
+        
+        # number of samples
+        self._nb_samples = self._of_base.nb_samples()
+        self._nb_pretrigger_samples = self._of_base.nb_pretrigger_samples(
+            self._channel_name, self._template_tags
+        )
+
+        #  Set time constraints
+        if (template_time_tags is None
+            or len(template_time_tags) != self._ntmps):
+            raise ValueError(f'ERROR: "template_time_tags" is required '
+                             f'and must have length {self._ntmps}!')
+        
+        
+        time_combinations = self._of_base.calc_time_combinations(
+            fit_window,
+            restrict_time_flag
+        )
+                
+        self._of_base.set_time_constraints(
+            channels,
+            template_tags,
+            template_time_tags,
+            time_combinations
+        )
+        
+        self._template_time_tags = template_time_tags
+        self._time_combinations = time_combinations
+         
+        # add noise to base object
         if csd is not None:
-
+            
             if self._verbose:
-                print('INFO: Adding noise CSD '
-                      + 'to OF base object')
-
-            self._of_base.set_csd(channels=self._channel_name, csd=csd, nchans=self._nchans)
-
-        else:
-
-            if self._of_base.csd(channels=self._channel_name) is None:
-
-                print('ERROR: No csd found in OF base object.'
-                      + ' Add csd argument!')
-                return
-
+                print('INFO: Adding noise CSD to OF base object')
+                
+            self._of_base.set_csd(channels=self._channel_name, csd=csd)
+            
+        elif self._of_base.csd(channels=self._channel_name) is None:
+            raise ValueError('ERROR: No csd found in OF base object.'
+                             ' Add csd argument!')
+                  
         #  template/noise pre-calculation
-        # at this point we have added the csd, and the templates to of_base
+        #   aka "p" matrix
+        
+        
+        # initialize
+        self.clear()
+        
+        # calulate (if not calculated yet)
+        self._of_base.calc_p_matrix(channels,
+                                    template_tags=template_tags,
+                                    template_time_tags=template_time_tags,
+                                    time_combinations=time_combinations)
+        # save
+        self._p_matrix_inv = (
+            self._of_base.p_matrix_inv(
+                channels,
+                template_tags,
+                template_time_tags,
+                time_combinations
+            )
+        )
+        
 
-        if(self._of_base._template_time_tag) is None:
-            self._of_base._template_time_tag = templates_time_tag
-            if self._of_base._template_time_tag is None:
-                print('ERROR: No time tag for templates found.'
-                                + ' Add time tag for templates!')
-                return
+        self._p_matrix  = (
+            self._of_base.p_matrix(
+                channels,
+                template_tags,
+                template_time_tags,
+                time_combinations
+            )
+        )
+            
+        
 
-        # initialize fit results
-        #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
-        self._ntmps = self._of_base._ntmps
+    def clear(self):
+        """
+        clear all signal data
+        """
+        # initialize
+        self._q_vector  = None
+        self._amps_allt = None
+        self._chi2_allt = None
 
-        self._nbins = self._of_base._nbins
-        self.pretrigger_samples = pretrigger_samples
-        self._fs = sample_rate
-
-
-        self._amps = dict()
-        self._chi2 = dict()
-
-
-        self._of_amp = None
+        self._of_amps = None
         self._of_chi2 = None
         self._of_t0 = None
         self._index_first_pulse = None
         self._index_second_pulse =  None
-
-
-
-        if(self._of_base._fit_window) is None:
-            self._of_base._fit_window = fit_window
-            if self._of_base._fit_window is None:
-                print('No fitwindow found.'
-                                + ' using all the bins for construction of fit window')
-
-
-        if self._of_base.p_matrix_mat(self._channel_name) is None:
-            self._of_base.calc_p_matrix_mat(channels=self._channels_list, channel_name=self._channel_name,
-                                          template_tags=self._template_tags, fit_window= self._of_base._fit_window)
-            # calc_weight_mat will then check that phi_mat is calculated
-            # calc_phi_mat in turn checks that the templates are fft'd,
-            # the template matrix is constructed
-            # and i_covf is calculated. So all precalcs are covered.
-
-
-
-    def calc(self, channels, signal=None, fit_window=None,polarity_constraint=False):
-        '''
+        self._of_chi2_per_DOF = None
+        
+        
+    def calc(self, signal=None, polarity_constraint=False):
+        """
         FIXME
-        #docstrings need to be added with dimensions
-        #update_signal needs to be called ? from of_base
-        '''
+        docstrings need to be added with dimensions
+        update_signal needs to be called ? from of_base
+        """
+        
         # update signal and do preliminary (signal) calculations
         # (like fft signal, filtered signals, signal matrix ...
+
+        # clear internal (signal) data
+        self.clear()
+        
+        # update signal and do preliminary (signal) calculations
+        # (like fft signal, filtered signal, signal matrix ...
         if signal is not None:
-            self._of_base.update_signal(
-                channel=self._channels_list,
-                signal=signal,
-                signal_mat_flag=True,
-                calc_signal_filt_mat=True,
-                calc_signal_filt_mat_td=True,
-                template_tags=self._template_tags,
-                channel_name=self._channel_name)
-            #update_signal calls clear_signal which resets:
-            #signal_filts_mat, signal_mat for some list of channels
-            #update_signal then calls:
-            #build_signal_mat, calc_signal_filt_mat, calc_signal_filt_mat_td
-            #calc_signal_filt_mat_td has the caclculation of q_vector_mat
+            
+            # check if correct size
+            if (not isinstance(signal, np.ndarray)
+                or signal.shape[0] != self._nchans):
+                raise ValueError('ERROR: Wrong number of channels '
+                                 'in "signal" array!')
+            
+            self._of_base.clear_signal()
+            
+            self._of_base.update_signal_many_channels(
+                self._channel_name,
+                signal,
+                calc_signal_filt_matrix=True,
+                calc_signal_filt_matrix_td=True,
+                template_tags=self._template_tags)
 
-        if fit_window is not None:
-            self._of_base.calc_p_matrix_mat(self, channels=self._channel_name,
-                              channel_name=self._channel_name,
-                              template_tags=self._template_tags,
-                              fit_window= fit_window)
 
-        self.calc_amp(channels=self._channel_name, template_tags=self._template_tags)
 
-        self.calc_chi2(channels=self._channel_name,
-                       template_tags=self._template_tags,
-                       polarity_constraint=polarity_constraint)
+        # calculate Q vector
+        self._calc_q_vector()
 
-    def get_fit(self, channels, template_tag='default',signal=None,fit_window=None, polarity_constraint=False ):
-        '''
+        # calculate amp and chi2
+        self._calc_amps()
+        self._calc_chi2(polarity_constraint=polarity_constraint)
+
+
+        
+    def get_fit(self):
+        """
         FIXME
         #docstrings need to be added with dimensions
         #returns that send back the ofamp chi2 and t need to be added
         #interpolate option needs to be added
-        '''
-        if isinstance(channels, str):
-            if '|' not in channels:
-                raise ValueError('ERROR: format is wrong. There should be '
-                                 'at least one "|" separation')
-            else:
-                split_string = channels.split('|')
-                channels = '|'.join(part.strip() for part in split_string) #gets rid of spaces if they are there
 
-        if channels not in self._chi2:
-            self.calc(channels, signal=signal,fit_window=fit_window, polarity_constraint= polarity_constraint)
+        FIXME need to add interpolate option
+        
+        """
 
-        #argmin_chisq will minimize along the last axis
-        #chi2_all dim [ntmp,nbins]
-        min_index = np.argmin(self._chi2[channels])
-        #need to add interpolate option
-        self._of_amp = self._amps[channels][min_index]
-        self._of_t0 =  (self._of_base._time_combinations[min_index, 1]/self._of_base._fs
-                        - self._of_base._time_combinations[min_index, 0]/self._of_base._fs)
-        self._of_chi2 = self._chi2[channels][min_index]
-        self._index_first_pulse = self._of_base._time_combinations[min_index, 0]
-        self._index_second_pulse =  self._of_base._time_combinations[min_index, 1]
-        self._of_chi2_per_DOF = self._of_chi2/(self._nchans*self._nbins)
+        # min chi2 index
+        min_index = np.argmin(self._chi2_allt)
+        
+        self._of_amp = self._amps_allt[min_index]
+        self._of_t0 =  (self._time_combinations[min_index, 1]/self._fs
+                        - self._time_combinations[min_index, 0]/self._fs)
+        self._of_chi2 = self._chi2_allt[min_index]
+        self._index_first_pulse = self._time_combinations[min_index, 0]
+        self._index_second_pulse =  self._time_combinations[min_index, 1]
 
+        nbins = self._of_base.nb_samples()
+        self._of_chi2_per_DOF = self._of_chi2/(self._nchans*nbins)
 
+        return self._of_amp, self._of_t0, self._of_chi2
 
-    def calc_amp(self, channels, template_tags=None):
-        '''
-        FIXME
-        #docstrings need to be added with dimensions
-        dim: [ntmps, nbins]
-        '''
-        #self._signal_filts_mat_td = dict()
-        #signal_filt_mat_td
+    def _calc_q_vector(self):
+        """
+        Calculate Q vector
+        """
+
+        # calc filtered signal matrix td
+        # if not yet calculated
+        self._of_base.calc_signal_filt_matrix_td(
+            self._channel_name,
+            self._template_tags
+        )
+        
+        signal_filt_matrix_td = (
+            self._of_base.signal_filt_td(
+                self._channel_name,
+                template_tag=self._template_tags)
+        )
+            
         # initialize
-        if channels not in self._amps:
-            self._amps[channels] = dict()
+        self._q_vector = np.zeros(
+            (self._ntmps, self._time_combinations[:,0].shape[0] )
+        )
+        
+        for itmps in range(self._ntmps):
+            self._q_vector[itmps,:] = (
+                signal_filt_matrix_td[itmps][
+                    self._time_combinations[:,self._template_time_tags[itmps]]
+                ]
+            )
+        
+    def _calc_amps(self):
+        """
+        Calc amplitude all times
+       
+        """
 
-        # calc_signal_filt_mat_td checks that _signal_filts_mat is calculated first
-        if self._of_base.signal_filt_mat_td(channels) is None:
-            self._of_base.calc_signal_filt_mat_td(channels)
+        if self._q_vector is None:
+            self._calc_q_vector()
+            
+        
+        self._amps_allt = np.zeros((self._time_combinations[:,0].shape[0],
+                               self._ntmps))
 
-        self._amps[channels] = np.zeros((self._of_base._time_combinations[:,0].shape[0], self._of_base._ntmps))
-
-        for itmps in range(self._of_base._ntmps):
-            for jtmps in range(self._of_base._ntmps):
-                self._amps[channels][:,itmps] += (self._of_base._p_inv_matrix_mat[channels][:,itmps,jtmps]
-                                                  *self._of_base._q_vector_mat[channels][jtmps,:])
-
+        for itmps in range(self._ntmps):
+            for jtmps in range(self._ntmps):
+                self._amps_allt[:,itmps] += (self._p_matrix_inv[:,itmps,jtmps]
+                                        * self._q_vector[jtmps,:])
+                
 
 
-    def calc_chi2(self, channels, template_tags=None, polarity_constraint=False ):
+    def _calc_chi2(self, polarity_constraint=False ):
         '''
         FIXME
         docstrings and dimensions need to be added
         dim: [ntmps, nbins]
         '''
-        # instantiate
-        if channels not in self._chi2:
-            self._chi2[channels] = dict()
 
+        if self._amps_allt is None:
+            self._calc_amps()
+
+        
+        # get signal matrix fft
+        signal_matrix_fft = self._of_base.signal_fft(self._channel_name)
+
+        # get invert covariant matrix
+        icovf = self._of_base.icovf(self._channel_name)
+        
         chi2base = 0
         for kchan in range(self._nchans):
             for jchan in range(self._nchans):
-                chi2base += (np.sum(np.dot(
-                (self._of_base.signal_mat(channels)[kchan,:].conjugate())*self._of_base.icovf(channels)[kchan,jchan,:],
-                self._of_base.signal_mat(channels)[jchan,:])))
-                #chi2base is a time independent scalar on the sum over all channels & freq bins
+                chi2base += np.sum(
+                    np.dot((signal_matrix_fft[kchan,:].conjugate())
+                           * icovf[kchan,jchan,:],
+                           signal_matrix_fft[jchan,:])
+                )
+
+                
+        #chi2base is a time independent scalar on the sum over all channels & freq bins
         chi2base = np.real(chi2base)
 
         #chi2_t is the time dependent part
-        chi2_t = np.zeros_like(self._of_base._time_combinations[:,0])
-        chi2_when_one_deviates_from_true_minima = np.zeros_like(self._of_base._time_combinations[:,0])
+        chi2_t = np.zeros_like(self._time_combinations[:,0])
+        chi2_when_one_deviates =  np.zeros_like(self._time_combinations[:,0])
 
-        chi2_t= np.real(np.sum(np.conjugate(self._of_base._q_vector_mat[channels]) * self._amps[channels].T, axis =0))
+        chi2_t = np.real(np.sum(
+            np.conjugate(self._q_vector) * self._amps_allt.T,
+            axis=0)
+        )
 
-        if polarity_constraint: # this is zero when polarity constrain is not used\
-
-            if self._of_base.p_matrix_mat(self._channel_name) is None:
-                self._of_base.calc_p_matrix_mat(channels=self._channels_list,
-                                                channel_name=self._channel_name,
-                                                template_tags=self._template_tags,
-                                                fit_window= self._of_base._fit_window)
-
-            chi2_polarity = np.zeros_like(self._amps[channels])
-
+        if polarity_constraint: # this is zero when polarity constrain is not used
+            
+            chi2_polarity = np.zeros(self._amps_allt.shape[0])
+            
             for ibins in range(chi2_polarity.shape[0]):
-                chi2_polarity[ibins] = (self._amps[channels].T[:,ibins]
-                                        @self._of_base._p_matrix_mat[channels][ibins,:,:]
-                                        @self._amps[channels].T[:,ibins])
+                chi2_polarity[ibins] = (self._amps_allt.T[:,ibins]
+                                        @self._p_matrix[ibins,:,:]
+                                        @self._amps_allt.T[:,ibins])
 
-            chi2_when_one_deviates_from_true_minima = chi2_polarity- np.real(np.sum(np.conjugate(self._of_base._q_vector_mat[channels]) * self._amps[channels].T, axis =0))
+            chi2_when_one_deviates = chi2_polarity - (
+                np.real(np.sum(
+                    np.conjugate(self._q_vector) * self._amps_allt.T,
+                    axis=0)
+                )
+            )
+                
+        self._chi2_allt = chi2base - chi2_t - chi2_when_one_deviates
 
 
-        self._chi2[channels] = chi2base - chi2_t - chi2_when_one_deviates_from_true_minima
+    
