@@ -1709,9 +1709,9 @@ class OFBase:
             )
 
             if  p_matrix is not None:
-                if self._verbose:
-                    print(f'INFO: p matrix already calculated for '
-                          f'channel { channel_name}')
+                #if self._verbose:
+                #    print(f'INFO: p matrix already calculated for '
+                #          f'channel { channel_name}')
                 return
             
             
@@ -2121,10 +2121,10 @@ class OFBase:
             )
             
             if signal_td  is not None:
-                if self._verbose:
-                    print(f'INFO: filtered signal matrix already '
-                          f'calculated for channel {channel_name}')
-                    return
+                #if self._verbose:
+                #    print(f'INFO: filtered signal matrix already '
+                #          f'calculated for channel {channel_name}')
+                return
                 
             
         for tags in template_tags_list:
