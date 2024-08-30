@@ -493,7 +493,7 @@ class  OF1x3:
              signal_filt_tds[2]*norms[2]]
 
         
-        M = len(q_vector)
+        M = len(q)
         t0s = self._time_combinations
         self._q_vector = np.zeros((M, t0s[:,0].shape[0]))
         for i in range(M):
