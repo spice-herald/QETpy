@@ -222,21 +222,21 @@ class OFnxm:
         #  template/noise pre-calculation
         # at this point we have added the csd, and the templates to of_base
         
-        if self._of_base.iw_mat(self._channel_name,
+        if self._of_base.iw_matrix(self._channel_name,
                                 self._template_tags) is None:
             
-            self._of_base.calc_weight_mat(self._channel_name,
+            self._of_base.calc_weight_matrix(self._channel_name,
                                           self._template_tags)
             
-            # calc_weight_mat will then check that phi_mat is calculated
-            # calc_phi_mat in turn checks that the templates are fft'd,
+            # calc_weight_matrix will then check that phi_matrix is calculated
+            # calc_phi_matrix in turn checks that the templates are fft'd,
             # the template matrix is constructed
             # and i_covf is calculated. So all precalcs are covered.
 
         # initialize fit results
         #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
         self._nbins = self._of_base._nbins
-        self.pretrigger_samples = self._of_base.pretrigger_samples(
+        self._pretrigger_samples = self._of_base.nb_pretrigger_samples(
             self._channel_name, self._template_tags
         )
 
@@ -306,8 +306,8 @@ class OFnxm:
             self._of_base.update_signal_many_channels(
                 self._channel_name,
                 signal,
-                calc_signal_filt_mat=True,
-                calc_signal_filt_mat_td=True,
+                calc_signal_filt_matrix=True,
+                calc_signal_filt_matrix_td=True,
                 template_tags=self._template_tags)
 
 
@@ -319,7 +319,7 @@ class OFnxm:
 
 
         
-    def get_fit_withdelay(self, signal=None,
+    def get_fit_withdelay(self, 
                           window_min_from_trig_usec=None,
                           window_max_from_trig_usec=None,
                           window_min_index=None,
@@ -334,14 +334,9 @@ class OFnxm:
         #interpolate option needs to be added
         """
 
-        # calculate first if needed
-        if (signal is not None 
-            or self._chi2_alltimes_rolled is None):
-            self.calc(signal=signal)
-
         amp_all = self._amps_alltimes_rolled
         chi2_all = self._chi2_alltimes_rolled
-        pretrigger_samples = self.pretrigger_samples
+        pretrigger_samples = self._pretrigger_samples
         
         # mask pulse direction
         constraint_mask = None
@@ -413,7 +408,7 @@ class OFnxm:
                 self._channel_name,
                 template_tag=self._template_tags
         ) is None:
-            self._of_base.calc_signal_filt_mat_td(
+            self._of_base.calc_signal_filt_matrix_td(
                 self._channel_name,
                 self._template_tags)
 
@@ -424,8 +419,8 @@ class OFnxm:
         )
 
         # inverted weight matrix
-        iw_mat = self._of_base.iw_mat(self._channel_name,
-                                      self._template_tags)
+        iw_mat = self._of_base.iw_matrix(self._channel_name,
+                                         self._template_tags)
         # calculate
         self._amps_alltimes = (iw_mat @ signal_filt)
            
@@ -433,7 +428,7 @@ class OFnxm:
         temp_amp_roll = np.zeros_like(self._amps_alltimes)
         for itmp in range(self._ntmps):
             temp_amp_roll[itmp,:] = np.roll(self._amps_alltimes[itmp,:],
-                                            self.pretrigger_samples,
+                                            self._pretrigger_samples,
                                             axis=-1)
         self._amps_alltimes_rolled = temp_amp_roll
 
@@ -479,5 +474,5 @@ class OFnxm:
         #chi2_t is the time dependent part
         self._chi2_alltimes = chi2base-chi2_t
         self._chi2_alltimes_rolled = np.roll(self._chi2_alltimes,
-                                             self.pretrigger_samples,
+                                             self._pretrigger_samples,
                                              axis=-1)
