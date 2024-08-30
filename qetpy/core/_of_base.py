@@ -823,7 +823,7 @@ class OFBase:
 
         # matrix tag
         matrix_tag = self._get_template_matrix_tag(
-            channel_list, template_tag
+            channel_list, template_tags
         )
 
         if (channel_name not in self._time_constraints
