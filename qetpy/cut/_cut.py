@@ -523,11 +523,8 @@ class _PlotCut(object):
         ymax_all = None
         ymin_all = None
 
-        for temp_trace in self.traces[fail_inds]:
-            temp_trace = lowpassfilter(temp_trace,
-                                       cut_off_freq=10000,
-                                       fs=self.fs, order=2)
-
+        for temp_trace in self.filtered_traces[fail_inds]:
+   
             axes[0].plot(time * 1e3, temp_trace, alpha=0.5)
 
             # min/max
@@ -540,10 +537,8 @@ class _PlotCut(object):
                 ymin_all = ymin 
 
                 
-        for temp_trace in self.traces[pass_inds]:
-            temp_trace = lowpassfilter(temp_trace,
-                                       cut_off_freq=10000,
-                                       fs=self.fs, order=2)
+        for temp_trace in self.filtered_traces[pass_inds]:
+        
             axes[1].plot(time * 1e3, temp_trace, alpha=0.5)
 
             # min/max
@@ -609,6 +604,7 @@ class IterCut(_PlotCut):
 
     def __init__(self, traces, fs, external_cut=None,
                  lgc_plot=False, nplot=10,
+                 lowpass_cutoff=10000,
                  lgc_diagnostics=False):
         """
         Initialization of the IterCut class object.
@@ -641,6 +637,7 @@ class IterCut(_PlotCut):
         self._ntraces = traces.shape[0]
         self._nbin = traces.shape[-1]
         self._cutinds = np.arange(self._ntraces)
+        self._lowpass_cutoff = lowpass_cutoff
             
         # diagnostics
         self._lgc_diagnostics = lgc_diagnostics
@@ -657,8 +654,12 @@ class IterCut(_PlotCut):
             self._cutinds = self._cutinds[external_cut]
             
 
-
-        
+        # filter traces
+        self.filtered_traces = lowpassfilter(
+            self.traces.copy(),
+            cut_off_freq=lowpass_cutoff,
+            fs=fs, order=2
+        )
 
     @property
     def cmask(self):
@@ -904,8 +905,13 @@ class IterCut(_PlotCut):
         if fs is not None:
             self.fs = fs
             
-
-
+        # filter traces
+        self.filtered_traces = lowpassfilter(
+            self.traces.copy(),
+            cut_off_freq=self._lowpass_cutoff,
+            fs=self.fs, order=2
+        )
+        
         
     def ofampscut(self, template, psd,
                   cut_pars,
@@ -1012,6 +1018,7 @@ class IterCut(_PlotCut):
     def baselinecut(self,
                     cut_pars,
                     outlieralgo="sigma_clip",
+                    lowpass_filter=True,
                     window_min_index=None,
                     window_max_index=None,
                     lgc_outside_window=False,
@@ -1062,6 +1069,9 @@ class IterCut(_PlotCut):
         """
               
         temp_traces = self.traces[self._cutinds,:]
+        if lowpass_filter:
+            temp_traces = self.filtered_traces[self._cutinds,:]
+        
         ntemptraces = len(temp_traces)
 
         inds = np.arange(self._nbin)
@@ -1082,7 +1092,7 @@ class IterCut(_PlotCut):
                 inds = np.r_[0:min_index, max_index:self._nbin]
             else:
                 inds = np.arange(min_index, max_index, 1)
-                
+
         baselines = np.median(temp_traces[..., inds],
                               axis=-1)
         
@@ -1165,13 +1175,9 @@ class IterCut(_PlotCut):
 
         """
         temp_traces = self.traces[self._cutinds,:]
-
         if lowpass_filter:
-            temp_traces = lowpassfilter(temp_traces,
-                                        cut_off_freq=10000,
-                                        fs=self.fs, order=2)
-
-        
+            temp_traces = self.filtered_traces[self._cutinds,:]
+               
         inds = np.arange(self._nbin)
         if (window_min_index is not None
             or window_max_index is not None):
@@ -1224,6 +1230,7 @@ class IterCut(_PlotCut):
 
     def slopecut(self, cut_pars,
                  outlieralgo="sigma_clip",
+                 lowpass_filter=True,
                  window_min_index=None,
                  window_max_index=None,
                  lgc_outside_window=True,
@@ -1275,6 +1282,9 @@ class IterCut(_PlotCut):
         """
 
         temp_traces = self.traces[self._cutinds,:]
+        if lowpass_filter:
+            temp_traces = self.filtered_traces[self._cutinds,:]
+           
         ntemptraces = len(temp_traces)
         time = np.arange(self._nbin) / self.fs
 
@@ -1461,6 +1471,7 @@ class IterCut(_PlotCut):
     def arbitrarycut(self, cutfunction,
                      *args, cut_pars={'sigma':2},
                      outlieralgo='sigma_clip',
+                     lowpass_filter=True,
                      cutname='arbitrary',
                      lgc_plot=None,
                      **kwargs):
@@ -1509,7 +1520,10 @@ class IterCut(_PlotCut):
 
         """
 
-        temp_traces = self.traces[self._cutinds]
+        temp_traces = self.traces[self._cutinds,:]
+        if lowpass_filter:
+            temp_traces = self.filtered_traces[self._cutinds,:]
+        
         vals_func = cutfunction(temp_traces, *args)
 
 
@@ -1773,7 +1787,6 @@ def autocuts_noise(traces, fs=1.25e6,
           
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
-                  lowpass_filter=True,
                   **kwargs)
 
     # 2. baseline
@@ -2004,7 +2017,6 @@ def autocuts_didv(traces, fs=1.25e6,
           
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
-                  lowpass_filter=True,
                   **kwargs)
 
     # 2. baseline
@@ -2365,7 +2377,6 @@ def autocuts_template(traces, fs=1.25e6,
       
     Cut.minmaxcut(cut_pars,
                   outlieralgo=outlieralgo,
-                  lowpass_filter=True,
                   window_min_index=window_min_index,
                   window_max_index=window_max_index,
                   lgc_outside_window=True,
