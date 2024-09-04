@@ -10,7 +10,6 @@ import copy
 
 __all__ = ['OFBase']
 
-
 class OFBase:
     """
     Multiple channels - multiple templates optimal filter base class.
@@ -1020,6 +1019,7 @@ class OFBase:
                                    pretrigger_samples=None,
                                    maxnorm=False,
                                    integralnorm=False,
+                                   build_matrix=True,
                                    overwrite=False):
         """
         Add templates for multiple channels
@@ -1080,6 +1080,10 @@ class OFBase:
                                   integralnorm=integralnorm,
                                   overwrite=True)
 
+        # build matrix
+        if (build_matrix and nchans >  1):
+            self.build_template_matrix(channels, template_tags)
+            
                 
     def set_time_constraints(self, channels, template_tags,
                              template_time_tags,
@@ -2816,7 +2820,6 @@ class OFBase:
             matrix_tag = self._get_template_matrix_tag(channel_name,
                                                        template_tags)
 
-
         # template time domain
         pretrigger_samples = None
         
@@ -2860,7 +2863,7 @@ class OFBase:
                 self._templates[channel_name] = dict()
 
             self._templates[channel_name][matrix_tag] = template_matrix
-            
+                    
             # pretrigger samples
             if channel_name not in self._pretrigger_samples:
                 self._pretrigger_samples[channel_name] = dict()
