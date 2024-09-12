@@ -492,7 +492,7 @@ class OFBase:
         channel_list = convert_channel_name_to_list(channels)
 
         # multiple channel 
-        if len(channel_list) > 1:
+        if len(channel_list) > 1 or True:
             
             if (not isinstance(template_tag, np.ndarray)
                 or  template_tag.ndim != 2):
@@ -1538,8 +1538,8 @@ class OFBase:
         channel_name = convert_channel_list_to_name(channels)
         nchans = len(channel_list)
 
-        if nchans == 1:
-            raise ValueError('ERROR: "calc_weight_matrix() function requires '
+        if nchans == 1 and False:
+            raise ValueError('ERROR: "calc_phi_matrix() function requires '
                              'multiple channels')
 
         template_tags_list = [template_tags]
@@ -1622,7 +1622,7 @@ class OFBase:
         channel_name = convert_channel_list_to_name(channels)
         nchans = len(channel_list)
 
-        if nchans == 1:
+        if nchans == 1 and False:
             raise ValueError('ERROR: "calc_weight_matrix() function requires '
                              'multiple channels')
 
@@ -2796,7 +2796,7 @@ class OFBase:
         channel_list = convert_channel_name_to_list(channels)
         nchans = len(channel_list)
 
-        if nchans == 1:
+        if nchans == 1 and False:
             raise ValueError('ERROR: more than one channel needed '
                              'to build template matrix')
 
@@ -2913,7 +2913,7 @@ class OFBase:
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
 
-        if len(channel_list) == 1:
+        if len(channel_list) == 1 and False:
             raise ValueError('ERROR: Matrix tag only for multiple '
                              'channels!')
 
