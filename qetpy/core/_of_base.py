@@ -566,7 +566,7 @@ class OFBase:
         channel_list = convert_channel_name_to_list(channels)
         
         # only multiple-channels
-        if len(channel_list) == 1:
+        if len(channel_list) == 1 and False:
             raise ValueError('ERROR: inverted weighting matrix '
                              'only for multi-channels')
         
