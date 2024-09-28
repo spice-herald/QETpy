@@ -491,8 +491,9 @@ class OFBase:
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channel 
-        if len(channel_list) > 1 or True:
+        # multiple channel
+        # or single channel represented as 2D 1x1 template array
+        if len(channel_list) > 1 or isinstance(template_tag, np.ndarray):
             
             if (not isinstance(template_tag, np.ndarray)
                 or  template_tag.ndim != 2):
@@ -564,11 +565,6 @@ class OFBase:
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
-        
-        # only multiple-channels
-        if len(channel_list) == 1 and False:
-            raise ValueError('ERROR: inverted weighting matrix '
-                             'only for multi-channels')
         
         # get matrix tag
         matrix_tag = self._get_template_matrix_tag(
@@ -1538,10 +1534,6 @@ class OFBase:
         channel_name = convert_channel_list_to_name(channels)
         nchans = len(channel_list)
 
-        if nchans == 1 and False:
-            raise ValueError('ERROR: "calc_phi_matrix() function requires '
-                             'multiple channels')
-
         template_tags_list = [template_tags]
         if template_tags is None:
             template_tags_list = self.template_tags(channel_name)
@@ -1621,11 +1613,6 @@ class OFBase:
         channel_list = convert_channel_name_to_list(channels)
         channel_name = convert_channel_list_to_name(channels)
         nchans = len(channel_list)
-
-        if nchans == 1 and False:
-            raise ValueError('ERROR: "calc_weight_matrix() function requires '
-                             'multiple channels')
-
 
         template_tags_list = [template_tags]
         if template_tags is None:
@@ -2796,10 +2783,6 @@ class OFBase:
         channel_list = convert_channel_name_to_list(channels)
         nchans = len(channel_list)
 
-        if nchans == 1 and False:
-            raise ValueError('ERROR: more than one channel needed '
-                             'to build template matrix')
-
         # check template tags
         if (not isinstance(template_tags, np.ndarray)
             or  template_tags.ndim != 2):
@@ -2912,10 +2895,6 @@ class OFBase:
         # check channels
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
-
-        if len(channel_list) == 1 and False:
-            raise ValueError('ERROR: Matrix tag only for multiple '
-                             'channels!')
 
         # get template tags matrix
         if (not isinstance(template_tags, np.ndarray)
