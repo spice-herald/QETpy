@@ -97,6 +97,7 @@ class  OF1x3:
 
         # verbose
         self._verbose = verbose
+        self._pretrigger_samples = pretrigger_samples
 
         # channel name
         self._channel = channel
@@ -235,7 +236,7 @@ class  OF1x3:
         self._time_third_pulse = None
      
         
-    def calc(self, signal=None, lgc_plot=False):
+    def calc(self, signal=None,fit_window = None, lgc_plot=False):
         """
         Runs the pileup optimum filter algorithm for 1 channel 2 pulses.
         Parameters
@@ -258,12 +259,16 @@ class  OF1x3:
                                self._template_2_tag,
                                self._template_3_tag]
             )
-           
+        if fit_window is not None:
+           self._calc_p_matrix(fit_window)
+        else:
+            raise ValueError('ERROR in OF1x3: fit_window required cannot handle such big matrices!')
+
         # calculate amplitudes
         amps1, amps2, amps3 = self._calc_amps()
 
         # calculate chi2
-        chi2s = self._chi2(amps1, amps2, amps3 )
+        chi2s = self._calc_chi2(amps1, amps2, amps3 )
 
         min_index = np.argmin(np.abs(chi2s))
         self._chi2 = chi2s[min_index]
@@ -475,11 +480,11 @@ class  OF1x3:
         """
 
         # calc q vector
-        signal_filt_tds = [self._of.base.signal_filt_td(self._channel,
+        signal_filt_tds = [self._of_base.signal_filt_td(self._channel,
                                                         self._template_1_tag),
-                           self._of.base.signal_filt_td(self._channel,
+                           self._of_base.signal_filt_td(self._channel,
                                                         self._template_2_tag),
-                           self._of.base.signal_filt_td(self._channel,
+                           self._of_base.signal_filt_td(self._channel,
                                                         self._template_3_tag)]
         
         norms = [self._of_base.norm(self._channel, self._template_1_tag),
