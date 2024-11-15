@@ -518,7 +518,6 @@ def get_time_offset_nxm(csd, template_1, template_2, fs=1.25e6, start_time=10e-3
         The time offset needed to be added to the start time of
         template_2 to make it consistent with template_1
     """
-    from qetpy.core._of_nxm import OFnxm
 
     channels= ['channel1', 'channel2']
     ofnxm_1 = OFnxm(channels=channels, templates=template_1,
