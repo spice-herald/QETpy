@@ -121,7 +121,7 @@ def foldcsd(csd, fs):
     return fold_spectrum(csd, fs)
 
 
-def calc_csd(array, fs=1.0, folded_over=False):
+def calc_csd(array, fs=1.0, folded_over=False, use_hann_window=False):
     """
     Calculate and return the CSD of in Amps^2/Hz
 
@@ -138,6 +138,10 @@ def calc_csd(array, fs=1.0, folded_over=False):
     folded_over : bool, optional
         Boolean value specifying whether or not the CSD is two-sided or 
         folder
+
+    use_hann_window : bool, optional
+        Specifies whether to use a Hann window on the CSD calculation.
+        If false, defaults to a boxcar window, identical to no window.
             
     Returns
     -------
@@ -184,9 +188,14 @@ def calc_csd(array, fs=1.0, folded_over=False):
     csd_freqs = None
     for irow, jcolumn in product(list(range(nchannels)),repeat=2):
         for n in range(ntraces):
-            csd_freqs, temp_csd = csd(array[n, irow, :], array[n, jcolumn, :],
+            if use_hann_window:
+                csd_freqs, temp_csd = csd(array[n, irow, :], array[n, jcolumn, :],
                                       nperseg=nsamples, fs=fs, nfft=nsamples,
                                       return_onesided=folded_over)
+            else:
+                csd_freqs, temp_csd = csd(array[n, irow, :], array[n, jcolumn, :],
+                                      nperseg=nsamples, fs=fs, nfft=nsamples,
+                                      return_onesided=folded_over, window='boxcar')
 
             traces_csd[irow][jcolumn][n] = temp_csd
                 
