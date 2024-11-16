@@ -7,7 +7,8 @@ from numpy.linalg import pinv as pinv
 from qetpy.utils import convert_channel_name_to_list, convert_channel_list_to_name
 
 
-__all__ = ['OFnxm']
+__all__ = ['OFnxm',
+           'get_time_offset_nxm']
 
 class OFnxm:
     """
@@ -476,3 +477,54 @@ class OFnxm:
         self._chi2_alltimes_rolled = np.roll(self._chi2_alltimes,
                                              self._pretrigger_samples,
                                              axis=-1)
+                                             
+                                             
+def get_time_offset_nxm(csd, template_1, template_2, fs=1.25e6, start_time=10e-3):
+    """
+    Calculates the offset between two different NxM templates, so that
+    different templates will trigger at nominally the same time. There
+    will still be some offset due to differences between the real
+    event and the template, but the average difference should be zero.
+    
+    Parameters
+    ----------
+    
+    csd : 2x2xn numpy array
+        Array of size 2x2x(number of samples per trace) input into the 
+        2x1 optimal filter.
+        
+    template_1 : 2x1xn numpy array
+        Array with size 2x1x(number of samples per trace) input into the 
+        2x1 optimal filter. This should be the ''main trigger,'' i.e. the
+        t0 output by this function will tell you how far to offset
+        template_2 to make it consistent with template_1.
+        
+    template_2 : 2x1xn numpy array
+        Array with size 2x1x(number of samples per trace) input into the 
+        2x1 optimal filter. This should be the ''secondary trigger,'' i.e.
+        the t0 output by this function will tell you how far to offset
+        template_2 to make it consistent with template_1.
+        
+    fs : float, optional
+        Sampling frequency (e.g. defaults to 1.25 MHz)
+        
+    start_time : float, optional
+        The start time of the event, defaults to 10 ms.
+        
+    Return:
+    -------
+    
+    t0 : float
+        The time offset needed to be added to the start time of
+        template_2 to make it consistent with template_1
+    """
+
+    channels= ['channel1', 'channel2']
+    ofnxm_1 = OFnxm(channels=channels, templates=template_1,
+                    csd=csd, sample_rate=fs, 
+                    pretrigger_samples=int(start_time*fs), verbose=False)
+    
+    ofnxm_1.calc(signal=template_2[:,0,:])
+    amp, t0, chi2 = ofnxm_1.get_fit_withdelay()
+    return -t0
+

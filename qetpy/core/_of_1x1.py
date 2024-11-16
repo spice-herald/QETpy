@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase
 
-__all__ = ['OF1x1']
+__all__ = ['OF1x1',
+           'get_time_offset_1x1']
 
 
 
@@ -657,3 +658,54 @@ class OF1x1:
         ax.tick_params(which='both', direction='in', right=True, top=True)
         ax.grid(linestyle='dotted')
         fig.tight_layout()
+        
+        
+        
+def get_time_offset_1x1(psd, template_1, template_2, fs=1.25e6, start_time=10e-3):
+    """
+    Calculates the offset between two different NxM templates, so that
+    different templates will trigger at nominally the same time. There
+    will still be some offset due to differences between the real
+    event and the template, but the average difference should be zero.
+    
+    Parameters
+    ----------
+    
+    psd : numpy array
+        PSD used in the 1x1 OF.
+        
+    template_1 : numpy array
+        Template for the first i.e. ''main trigger.'' The t0 output by 
+        this function will tell you how far to offset template_2 to make
+        it consistent with template_1.
+        
+    template_2 : 2x1xn numpy array
+        Template for the second i.e. ''secondary trigger.'' The t0 output
+        by this function will tell you how far to offset template_2 to make
+        it consistent with template_1.
+        
+    fs : float, optional
+        Sampling frequency (e.g. defaults to 1.25 MHz)
+        
+    start_time : float, optional
+        The start time of the event, defaults to 10 ms.
+        
+    Return:
+    -------
+    
+    t0 : float
+        The time offset needed to be added to the start time of
+        template_2 to make it consistent with template_1
+    """
+    
+    channels= ['channel1', 'channel2']
+    of = OF1x1(template=template_1, psd=psd, sample_rate=fs,
+               pretrigger_samples=int(start_time*fs), 
+               channel = 'ch1',
+               verbose=False)
+    
+    of.calc(signal=template_2,
+            window_min_from_trig_usec=-2000, 
+            window_max_from_trig_usec=2000)
+    amp, t0, chi2, lowchi2 = of.get_result_withdelay()
+    return -t0
