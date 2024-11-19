@@ -1571,3 +1571,5 @@ def convert_channel_name_to_list(channels):
     channel_list = channels.split('|')
 
     return channel_list
+    
+
