@@ -320,6 +320,27 @@ class OFnxm:
 
 
         
+    def get_fit_nodelay(self):
+        """
+        New nodelay version of NxM fits. Just returns the nxm best fit
+        at the index of pretrigger_samples
+        """
+
+        amp_all = self._amps_alltimes_rolled
+        chi2_all = self._chi2_alltimes_rolled
+        pretrigger_samples = self._pretrigger_samples
+        
+        amp = amp_all[:,pretrigger_samples]
+        t0 = (pretrigger_samples)/self._fs
+        chi2 = chi2_all[pretrigger_samples]
+
+        # save
+        self._of_amp_nodelay = amp
+        self._of_chi2_nodelay = chi2
+        self._of_t0_nodelay = t0
+
+        return amp, t0, chi2
+    
     def get_fit_withdelay(self, 
                           window_min_from_trig_usec=None,
                           window_max_from_trig_usec=None,
