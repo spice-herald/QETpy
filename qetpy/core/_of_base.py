@@ -6,7 +6,7 @@ from qetpy.utils import convert_channel_name_to_list, convert_channel_list_to_na
 from numpy.linalg import pinv as pinv
 import time
 import copy
-
+import uuid
 
 __all__ = ['OFBase']
 
@@ -2915,10 +2915,12 @@ class OFBase:
         # create tag
         if  matrix_tag is None:
 
-            # create a new tag
-            current_time_seconds = time.time()
-            current_time_milliseconds = int(current_time_seconds * 1000)
-            matrix_tag = 'matrix_tag_' + str(current_time_milliseconds)
+            # create unique id
+            unique_id = str(uuid.uuid4())
+            matrix_tag = f'matrix_tag_{unique_id}'
+            if matrix_tag in self._template_matrix_tags[channel_name]:
+                unique_id = str(uuid.uuid4())
+                matrix_tag = f'matrix_tag_{unique_id}'
             
             # save template tags
             self._template_matrix_tags[channel_name][matrix_tag] = (
@@ -2983,9 +2985,8 @@ class OFBase:
             return constraints_tag
 
         # create new tag
-        current_time_seconds = time.time()
-        current_time_milliseconds = int(current_time_seconds * 1000)
-        constraints_tag = f'constraints_tag_{current_time_milliseconds}'
+        unique_id = str(uuid.uuid4())
+        constraints_tag = f'constraints_tag_{unique_id}'
         
         self._time_constraints[channel_name][matrix_tag][constraints_tag] = (
             copy.deepcopy(constraints_dict)
