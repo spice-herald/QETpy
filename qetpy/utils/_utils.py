@@ -4,6 +4,12 @@ from scipy import interpolate, signal, constants
 from scipy import ndimage
 from sympy.ntheory import factorrat
 from sympy.core.symbol import S
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
 
 # global variable for the fft, fftfreq and
 # ifft functions
