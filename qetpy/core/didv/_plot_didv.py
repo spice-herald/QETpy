@@ -108,7 +108,7 @@ class _PlotDIDV(object):
                         didv_filt_trace * 1e6,
                         color='purple',
                         alpha = 0.5, 
-                        label='Mean, dIdV Frequencies Only',
+                        label='Mean, dIdV Freqs Only',
                     )
 
                     
@@ -116,14 +116,14 @@ class _PlotDIDV(object):
                         self._time * 1e6,
                         lp_didv_filt_trace,
                         color='lime',
-                        label='Mean, dIdV Frequencies Only +  ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+                        label='Mean, dIdV Freqs Only +  ' + str(lp_cutoff*1e-3) + ' kHz LP',
                     )
                 else:
                     ax.plot(
                         self._time * 1e6,
                         didv_filt_trace * 1e6,
                         color='purple',
-                        label='Mean, dIdV Frequencies Only',
+                        label='Mean, dIdV Freqs Only',
                     )
 
                     
@@ -131,7 +131,7 @@ class _PlotDIDV(object):
                         self._time * 1e6,
                         lp_didv_filt_trace,
                         color='lime',
-                        label='Mean, dIdV Frequencies Only +  ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+                        label='Mean, dIdV Freqs Only +  ' + str(lp_cutoff*1e-3) + ' kHz LP',
                     )
         elif didv_freq_filt:
             didv_filt_trace = self._get_didv_filtered_trace()
@@ -142,7 +142,7 @@ class _PlotDIDV(object):
                     didv_filt_trace,
                     color='purple',
                     alpha=0.3,
-                    label='Mean, dIdV Frequencies Only',
+                    label='Mean, dIdV Freqs Only',
                 )
             else:
                 ax.plot(
@@ -150,7 +150,7 @@ class _PlotDIDV(object):
                     didv_filt_trace,
                     color='purple',
                     alpha=0.7,
-                    label='Mean, dIdV Frequencies Only',
+                    label='Mean, dIdV Freqs Only',
                 )
 
                 
@@ -459,7 +459,7 @@ class _PlotDIDV(object):
                 time_flipped * 1e6,
                 lp_meantrace_flip,
                 color='cyan',
-                label='Flipped Data, ' + str(lp_cutoff*1e-3) + ' kHz Low Pass',
+                label='Flipped Data, ' + str(lp_cutoff*1e-3) + ' kHz LP',
             )
 
         if zoomfactor is not None:
