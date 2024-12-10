@@ -42,6 +42,7 @@ __all__ = [
     "fftfreq",
     "rfftfreq",
     "energy_resolution",
+    "calc_resolution_nxm", 
     "fold_spectrum",
     "convert_channel_list_to_name",
     "convert_channel_name_to_list"
@@ -1467,6 +1468,73 @@ def energy_resolution(psd, template,  dpdi, fs,
     
     return energy_res
 
+def calc_resolution_nxm(csd, template, fs):
+    """
+    Calculates the resolution of an NxM OF. To calculate energy resolution corectly,
+    you need to supply a template matrix correctly normalized such that the
+    templates represent an event of energy 1 in whatever units you'd like to calculate
+    the resolution in (usually eV). The CSD and template need to also be in the same
+    domain, so either both in current or in power units.
+
+    Parameters:
+    -----------
+
+    csd : 3D numpy array
+        A numpy array with shape (channels) x (channels) x (frequencies). This CSD
+        should be in the same domain (current or power) as the templates, and should
+        be unfolded.
+
+    template : 3D numpy array
+        A time domain template array of shape (channels) x (fit amplitudes) x (samples).
+        It should be in the same domain (current or power) as the CSD.
+
+    fs : float
+        The sampling frequency, e.g. 1.25e6 Hz.
+
+    Returns:
+    --------
+
+    resolutions : 1D numpy array
+        An array of the calculated resolutions for each amplitude in the NxM OF.
+    
+    """
+
+    channels = len(template[:,0,0])
+    amplitudes = len(template[0,:,0])
+    samples = len(template[0,0,:])
+    
+    df = fs/samples
+
+    template_fft = np.zeros_like(template, dtype=np.complex128)
+
+    i = 0
+    while i < len(template_fft[:,0,0]):
+        j = 0
+        while j < len(template_fft[0,:,0]):
+            _, temp_fft = fft(template[i,j,:], int(fs), axis=-1)
+            template_fft[i,j,:] = temp_fft/samples/df
+            j += 1
+        i += 1
+
+    inverse_csd = np.zeros([channels, channels, samples], dtype=np.complex128)
+    i = 0
+    while i < samples:
+        inverse_csd[:, :, i] = np.linalg.inv(csd[:,:, i])
+        i += 1
+
+    integrals_arr = np.zeros(amplitudes)
+    i = 1 #ignore zero frequency bin
+    while i < samples:
+        j = 0
+        while j < amplitudes:
+            integrals_arr[j] += np.abs(np.matmul(np.matmul(template_fft[:,j,i], inverse_csd[:,:,i]), np.transpose(template_fft[:,j,i])))
+            j += 1
+        i += 1
+
+    integrals_arr *= df
+    res_arr = integrals_arr**-0.5
+
+    return res_arr
         
 def fold_spectrum(spectrum, fs):
     """
