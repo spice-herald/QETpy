@@ -278,7 +278,7 @@ def smooth_psd(psd):
     
     return psd_out
 
-def gen_noise(psd, fs=1.0, ntraces=1):
+def gen_noise_old(psd, fs=1.0, ntraces=1):
     """
     Function to generate noise traces with random phase from a given PSD. The PSD calculated from
     the generated noise traces should be the equivalent to the inputted PSD as the number of traces
@@ -311,6 +311,75 @@ def gen_noise(psd, fs=1.0, ntraces=1):
     noise = ifft(noisefft).real
     
     return noise
+
+
+
+def gen_noise(csd, fs=1.0, n_traces=1):
+    """
+    Function to generate noise traces with random phase from a given CSD. The CSD calculated from
+    the generated noise traces should be the equivalent to the inputted CSD as the number of traces
+    goes to infinity. Note that the DC term in the CSD is ignored.
+    
+    Parameters
+    ----------
+    csd : ndarray
+        The two-sided cross spectral density that will be used to generate the noise.
+        Can be 3D or 1D. If 1D, it's assumed to be the PSD.
+    fs : float, optional
+        Sample rate of the data being taken, assumed to be in units of Hz.
+    ntraces : int, optional
+        The number of noise traces that should be generated. Default is 1.
+    
+    Returns
+    -------
+    noise : ndarray
+        An array containing all of the generated noise traces from the inputted PSD. Has shape
+        (ntraces, n_channels, len(csd)). 
+    """
+
+
+    # Convert PSD to 3D if needed
+    if csd.ndim == 1:
+        csd = np.reshape(csd, (1, 1, len(csd)))
+        
+        # Check if the PSD is infinite at 0 Hz
+        if np.isinf(csd[0,0,0]):
+            csd[0,0,0] = 0
+
+    # Read CSD matrix shape
+    n_channels, _, f_freqs = csd.shape
+    freqs = fftfreq(f_freqs, fs)
+    dfreq = np.diff(freqs)[0]
+
+    # Initialize the Fourier-domain noise realizations
+    random_trace_fd = np.zeros((n_traces, n_channels, f_freqs), dtype=complex)
+    
+    # Loop over the frequencies, randomly generate the noise in each frequency
+    for i, freq in enumerate(freqs):
+        
+        # Ignore DC term; negative frequencies will be calculated by symmetry
+        if freq <= 0:
+            continue
+        
+        # Cholesky decomposition for Hermitian matrices
+        L = np.linalg.cholesky(csd[:, :, i] * dfreq)
+
+        # Generate standard normal random variables (mean=0, variance=1)
+        z = np.random.normal(size=(n_channels, n_iterations)) + \
+            1j * np.random.normal(size=(n_channels, n_iterations))
+        z *= 1 / np.sqrt(2)
+
+        # Get the desired distribution of Fourier amplitudes
+        random_trace_fd[:, :, i] = (L @ z).T
+        
+        # Calculate the negative frequency by symmetry
+        i_neg = np.where(freqs == -freq)[0][0]
+        random_trace_fd[:, :, i_neg] = np.conj(random_trace_fd[:, :, i])
+
+    # Inverse Fourier transform to convert to time domain
+    random_trace_td = ifft(random_trace_fd, axis=-1).real * f_freqs
+    
+    return random_trace_td
 
 
 
