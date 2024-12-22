@@ -365,8 +365,8 @@ def gen_noise(csd, fs=1.0, n_traces=1):
         L = np.linalg.cholesky(csd[:, :, i] * dfreq)
 
         # Generate standard normal random variables (mean=0, variance=1)
-        z = np.random.normal(size=(n_channels, n_iterations)) + \
-            1j * np.random.normal(size=(n_channels, n_iterations))
+        z = np.random.normal(size=(n_channels, n_traces)) + \
+            1j * np.random.normal(size=(n_channels, n_traces))
         z *= 1 / np.sqrt(2)
 
         # Get the desired distribution of Fourier amplitudes
