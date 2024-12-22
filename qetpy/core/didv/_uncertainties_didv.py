@@ -1726,8 +1726,8 @@ def _get_derived_jacobian(didv_result, f):
     """
     #order of derived variables: i0, r0, dVdI, beta, L
     
-    derived_jacobian = np.zeros(5)
-    
+    derived_jacobian = np.zeros(5, dtype='complex64')
+       
     derived_jacobian[0] = _ddi0_dPdI_3(didv_result, f)
     derived_jacobian[1] = _ddr0_dPdI_3(didv_result, f)
     derived_jacobian[2] = _dddVdI_dPdI_3(didv_result, f)
