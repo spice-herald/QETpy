@@ -278,7 +278,7 @@ def smooth_psd(psd):
     
     return psd_out
 
-def gen_noise_old(psd, fs=1.0, ntraces=1):
+def gen_noise_from_psd(psd, fs=1.0, ntraces=1):
     """
     Function to generate noise traces with random phase from a given PSD. The PSD calculated from
     the generated noise traces should be the equivalent to the inputted PSD as the number of traces
