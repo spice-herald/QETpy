@@ -497,9 +497,9 @@ class _PlotDIDV(object):
 
         # remove values set with placeholder mean
         goodinds = (
-            self._didvmean != 0.5 - 0.5j
+            np.abs(self._didvmean - (0.5 - 0.5j)) > 1e-16
         ) & (
-            self._didvmean != - 0.5 + 0.5j
+            np.abs(self._didvmean - (- 0.5 + 0.5j)) > 1e-16
         )
         fitinds = self._freq > 0
         plotinds = np.logical_and(fitinds, goodinds)
