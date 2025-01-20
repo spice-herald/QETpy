@@ -1804,7 +1804,9 @@ class OFBase:
                                     * template_fft_mat[jchan,jtmp,:]
                                 )
                                 
-                        if (jtmp >= itmp):
+                        if (time_diff_mat[itmp, jtmp] == -1):
+                            p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
+                        elif (time_diff_mat[itmp, jtmp] == 0):
                             p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
 
                 p_inv = np.linalg.pinv(p)
