@@ -82,7 +82,7 @@ def create_example_data(lgcpileup=False, lgcbaseline=False):
     pulse_shifted = np.roll(pulse, len(t)//2)
     template = pulse_shifted/pulse_shifted.max()
     
-    noise = qp.gen_noise_from_psd(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, n_traces=1)[0]
     signal = noise + np.roll(template, 100)*(pulse_amp)
 
     if lgcpileup:
@@ -124,7 +124,7 @@ def create_example_muontail():
     pulse = np.exp(-t/tau_fall)
     template = pulse/pulse.max()
     
-    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, n_traces=1)[0]
     signal = noise + template * pulse_amp
 
     return signal, psd_sim
@@ -174,7 +174,7 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     muon_pulse = np.exp(-t/muon_fall)
     muon_template = muon_pulse/muon_pulse.max()
 
-    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, n_traces=1)[0]
     signal = noise + template*PULSE_AMP + muon_template*muon_amp
 
     if lgcbaseline:
@@ -259,7 +259,7 @@ def create_example_ttl_leakage_pulses(
     backgroundpulses = backgroundtemplates@bkgamps
     backgroundpulses = backgroundpulses * bkgampscale
 
-    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise(psd_sim, fs=fs, n_traces=1)[0]
     signal = noise + backgroundpulses + leakagepulse
 
     if lgcbaseline:

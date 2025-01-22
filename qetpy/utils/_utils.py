@@ -995,11 +995,11 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh, fs=None,
     trace_power = powertrace_simple(trace, ioffset, qetbias, rload, rsh)
 
     if fs is not None:
-        integrated_energy = np.trapz(
+        integrated_energy = np.trapezoid(
             baseline_p0 - trace_power, axis=-1,
         ) / (fs * constants.e)
     elif time is not None:
-        integrated_energy = np.trapz(
+        integrated_energy = np.trapezoid(
             baseline_p0 - trace_power, x=time, axis=-1,
         ) / constants.e
     else:
