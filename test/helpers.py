@@ -82,7 +82,7 @@ def create_example_data(lgcpileup=False, lgcbaseline=False):
     pulse_shifted = np.roll(pulse, len(t)//2)
     template = pulse_shifted/pulse_shifted.max()
     
-    noise = qp.gen_noise(psd_sim, fs=fs, ntraces=1)[0]
+    noise = qp.gen_noise_from_psd(psd_sim, fs=fs, ntraces=1)[0]
     signal = noise + np.roll(template, 100)*(pulse_amp)
 
     if lgcpileup:

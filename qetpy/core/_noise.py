@@ -13,7 +13,9 @@ from qetpy.utils import fft, ifft, fftfreq, rfftfreq
 
 __all__ = ["foldpsd", "foldcsd", "calc_psd",
            "calc_csd","calc_corrcoeff_from_csd",
-           "smooth_psd", "gen_noise", "Noise"]
+           "smooth_psd", "gen_noise",
+           "gen_noise_from_psd",
+           "Noise"]
 
 
 def foldpsd(psd, fs):
