@@ -35,7 +35,7 @@ def _initialize_didv(poles, sgfreq=100, autoresample=False):
     }
 
     psd_test = np.ones(int(4 * fs / sgfreq)) / tracegain**2 / 1e4
-    rawnoise = qp.gen_noise(psd_test, fs=fs, ntraces=300)
+    rawnoise = qp.gen_noise_from_psd(psd_test, fs=fs, ntraces=300)
 
     t = np.arange(rawnoise.shape[-1]) / fs
     didv_response = qp.squarewaveresponse(
