@@ -743,7 +743,7 @@ def get_biasparams_normal_iv(normal_avs, normal_errs,
     i0_err = np.sqrt(i0_err_sq)
     
     biasparams = get_biasparams_i0(i0, i0_err, ibias_baseline, 0.0,
-                                   rsh, rl-rsh, rn=None)
+                                   rsh, rl-rsh, rn=np.abs(calc_rn))
 
     biasparams['biasparams_type'] = 'normal_iv'
     return biasparams
