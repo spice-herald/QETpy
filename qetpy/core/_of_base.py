@@ -61,6 +61,9 @@ class OFBase:
         # and time constraints
         self._template_matrix_tags = dict()
         self._time_constraints = dict()
+
+        # template time tags for NxMx2
+        self._template_time_tags = dict()
  
         # initialize two-sided noise psd (in Amps^2/Hz)
         self._psd = dict()
@@ -1016,7 +1019,8 @@ class OFBase:
                                    maxnorm=False,
                                    integralnorm=False,
                                    build_matrix=True,
-                                   overwrite=False):
+                                   overwrite=False,
+                                   template_time_tags=None):
         """
         Add templates for multiple channels
         
@@ -1047,6 +1051,7 @@ class OFBase:
            if True, overwrite existing templates with same tag
 
         """
+        
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
@@ -1063,6 +1068,8 @@ class OFBase:
             raise ValueError('ERROR: Expecting "template_tags" '
                              'to be a (2D) numpy array')
         
+        # Update _template_time_tags dictionary
+        self._template_time_tags[str(template_tags)] = template_time_tags
        
         # number of templates
         for ichan, chan in enumerate(channel_list):
@@ -1797,7 +1804,9 @@ class OFBase:
                                     * template_fft_mat[jchan,jtmp,:]
                                 )
                                 
-                        if (jtmp >= itmp):
+                        if (time_diff_mat[itmp, jtmp] == -1):
+                            p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
+                        elif (time_diff_mat[itmp, jtmp] == 0):
                             p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
 
                 p_inv = np.linalg.pinv(p)
@@ -3025,6 +3034,12 @@ class OFBase:
                     return False
                 
         return True
+
+    def get_template_time_tags(self, template_tags):
+        """
+        Pull template time tags for a given channel
+        """
+        return self._template_time_tags[str(template_tags)]
 
 
 
