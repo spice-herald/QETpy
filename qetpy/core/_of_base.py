@@ -1330,11 +1330,9 @@ class OFBase:
         None
         """
 
-        # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
+        # convert to name
         channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-
+        
         # check if noise available
         if channel_name not in self._csd:
             raise ValueError(f'ERROR: Noise csd not availabe for '
@@ -1370,14 +1368,15 @@ class OFBase:
             # - j be the template index,
             # - and n the frequency bin.
             
-            phi = np.einsum('kjn,kin->jin', np.conjugate(template_fft), icovf)
+            phi = np.einsum('kjn,kin->ijn', np.conjugate(template_fft), icovf)
 
-            print(f'Phi shape: {phi.shape}')
-            #phis = (
+            #print(f'Phi shape: {phi.shape}')
+            #phi_loop = (
             #    np.array([(template_fft[:,:,jnu].T).conjugate()
-            #              @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
+            #              @ icovf[:,:,jnu] for jnu in range(self._nbins)
             #    ], dtype='complex_')
             #)
+            #phi = np.transpose(phi_loop, (2, 1, 0))
 
             # save
             if channel_name not in self._phis:

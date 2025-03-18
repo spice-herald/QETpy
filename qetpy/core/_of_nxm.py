@@ -207,8 +207,9 @@ class OFnxm:
                              ' Add csd argument!')
                   
         # calculate optimal filter and weight matrix (if not done)
-        if self._of_base.phi(self._channel_name,
-                             self._template_tag) is None:
+        if (calc_phi
+            or self._of_base.phi(self._channel_name,
+                                 self._template_tag) is None):
             if self._verbose:
                 print('INFO: Calculating optimal filter!')
                 
