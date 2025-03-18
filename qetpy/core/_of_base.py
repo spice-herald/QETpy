@@ -932,7 +932,9 @@ class OFBase:
         if channel_name not in self._templates:
             self._templates[channel_name] = dict()
 
-        self._templates[channel_name][template_tag] = templates
+        # check isnan
+        templates[np.isnan(templates)] = 0
+        self._templates[channel_name][template_tag] = copy.deepcopy(templates)
         
         # Store number of samples
         # (all data in same OF base object should have same number of samples)
@@ -950,7 +952,7 @@ class OFBase:
         # frequency resolution
         df = self._fs/nbins
 
-        if  self._df is None:
+        if self._df is None:
             self._df = df
 
         # FFT
@@ -964,7 +966,7 @@ class OFBase:
         if channel_name not in self._templates_fft.keys():
             self._templates_fft[channel_name] = dict()
             
-        self._templates_fft[channel_name][template_tag] = templates_fft/nbins/df
+        self._templates_fft[channel_name][template_tag] = templates_fft/nbins
 
                    
         # store pre-trigger
@@ -1440,7 +1442,7 @@ class OFBase:
                                              squeeze_array=False)
             
             # Compute the weight matrix
-            temp_w = np.einsum('cif,cjf->ij', phi, template_fft) * self._df
+            temp_w = np.einsum('cif,cjf->ij', phi, template_fft)
             
             # take the pseudoinverse of its real part,
             weight =  copy.deepcopy(np.real(temp_w))
