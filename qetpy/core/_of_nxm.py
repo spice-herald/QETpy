@@ -89,7 +89,7 @@ class OFnxm:
         self._channel_name = convert_channel_list_to_name(channels)
         self._channel_list = convert_channel_name_to_list(channels)
         self._nchans = len(self._channel_list)
-
+             
         # initialize number of templates (per channel)
         self._ntmps = None
         self._template_tag = None
@@ -270,19 +270,29 @@ class OFnxm:
         None
  
         """
-
+                
         # clear internal (signal) data
         self.clear()
-        
+
+                
         # update signal and do preliminary (signal) calculations
         # (like fft signal, filtered signal, signal matrix ...
         if signal is not None:
+
+            # check array
+            if not isinstance(signal, np.ndarray):
+                  raise ValueError('ERROR: signal should be a '
+                                   'numpy array!')
+
+            
+            # check dimension
+            if signal.ndim == 1:
+                signal = signal[np.newaxis, :]
             
             # check if correct size
-            if (not isinstance(signal, np.ndarray)
-                or signal.shape[0] != self._nchans):
+            if signal.shape[0] != self._nchans:
                 raise ValueError('ERROR: Wrong number of channels '
-                                'in "signal" array!')
+                                 'in "signal" array!')
             
             self._of_base.clear_signal()
 
@@ -436,16 +446,13 @@ class OFnxm:
             self._channel_name,
             template_tag=self._template_tag
         )
-        print(f'Shape signal filt: {signal_filt.shape}')
-        
+            
         # inverted weight matrix
         iw = self._of_base.iweights(self._channel_name,
                                     self._template_tag)
 
-        print(f'Shape iw: {iw.shape}')
         # calculate
         self._amps_alltimes = (iw @ signal_filt)
-        print(self._amps_alltimes.shape)
            
         # roll with pretrigger_samples 
         temp_amp_roll = np.zeros_like(self._amps_alltimes)
@@ -479,7 +486,6 @@ class OFnxm:
             template_tag=self._template_tag
         )
 
-        print(f'Shape signal filt td: {filt_signal_t.shape}')
         # calculate chi2
 
         #chi2base is a time independent scalar on the sum over all channels & freq bins

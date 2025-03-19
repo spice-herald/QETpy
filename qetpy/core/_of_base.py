@@ -1078,6 +1078,11 @@ class OFBase:
         
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
+
+        # convert to 3D if needed
+        if csd.ndim == 1:
+            csd = csd[np.newaxis, np.newaxis, :]
+            
         
         # check if same length as template
         nbins = csd.shape[-1]
@@ -1302,10 +1307,10 @@ class OFBase:
             # add signal
             self._signals[chan] = signal
             
-            # add fft
+            # add fft ("forward" normalization)
             if calc_fft:
                 f, signal_fft = fft(signal, self._fs, axis=-1)
-                self._signals_fft[chan] = signal_fft/self._nbins/self._df
+                self._signals_fft[chan] = signal_fft/self._nbins
                 
     
     def calc_phi(self, channels, template_tag=None,
@@ -1372,14 +1377,7 @@ class OFBase:
             
             phi = np.einsum('kjn,kin->ijn', np.conjugate(template_fft), icovf)
 
-            #print(f'Phi shape: {phi.shape}')
-            #phi_loop = (
-            #    np.array([(template_fft[:,:,jnu].T).conjugate()
-            #              @ icovf[:,:,jnu] for jnu in range(self._nbins)
-            #    ], dtype='complex_')
-            #)
-            #phi = np.transpose(phi_loop, (2, 1, 0))
-
+        
             # save
             if channel_name not in self._phis:
                 self._phis[channel_name] = dict()
@@ -1455,25 +1453,6 @@ class OFBase:
             self._weights[channel_name][tag] =  weight
             self._iweights[channel_name][tag] = pinv(weight)
             
-            
-            """
-            # calculate weigth matrix
-            temp_w = np.zeros((ntmps, ntmps), dtype='complex_')
-            for itmp in range(ntmps):
-                for jtmp in range(ntmps):
-                    for jchan in range(nchans):
-                        temp_w[itmp,jtmp] += np.sum(
-                            phi[:,itmp,jchan]*template_fft[jchan,jtmp,:]
-                        )
-            # real
-            temp_w = np.real(temp_w)
-
-            # store
-            if channel_name not in self._iw_matrix:
-                self._iw_matrix[channel_name] = dict()
-            
-            self._iw_matrix[channel_name][matrix_tag] = pinv(temp_w)
-            """
 
             
     def calc_p_matrix(self, channels,
