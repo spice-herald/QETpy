@@ -419,6 +419,32 @@ class OFnxm:
         return amp, t0, chi2
 
 
+    def get_fit_overlay(self, amp, t0):
+        """
+        Get fit overlay to display fit
+        """
+
+        # get template
+        templates = self._of_base.template(self._channel_name,
+                                           self._template_tag)
+        
+        if templates is None:
+            return []
+
+        # sample rate 
+        fs = self._of_base.sample_rate
+        
+        
+        # fit overlay
+        shift = int(t0 * fs)
+        rolled_templates = np.roll(templates, shift, axis=-1)
+        fit_overlay = np.sum(rolled_templates * amp[None, :, None], axis=1)
+
+
+        return fit_overlay
+
+    
+
     def _calc_amp_allt(self):
         """
         FIXME

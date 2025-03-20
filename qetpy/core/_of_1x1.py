@@ -614,14 +614,8 @@ class OF1x1:
         """
 
         # psd
-        psd = self._of_base.psd(self._channel_name)
-        if psd is None:
-            raise ValueError(f'ERROR: No psd found for '
-                             f'channel {self._channel_name} '
-                             f'in OF base class!')
+        psd = self._get_psd_amps2()
 
-        psd = self._of_base.psd(self._channel_name)
-        
         # signal fft
         signal_fft = self._of_base.signal_fft(self._channel_name,
                                               squeeze_array=True)
@@ -630,9 +624,7 @@ class OF1x1:
                              f'channel {self._channel_name} '
                              f'in OF base class!')
         
-        # df
-        df = self._of_base.df()
-            
+        
         # "no pulse chisq" (doesn't depend on template)
         self._of_chi2_nopulse = np.real(
             np.dot(signal_fft.conjugate()/psd,
@@ -711,11 +703,6 @@ class OF1x1:
         # total chisq
         chisq = self._of_chi2_nopulse - chisq_t0
 
-        print(f'chisq0: {self._of_chi2_nopulse}')
-        print(f'chisq_t0: {chisq_t0}')
-        print(f'chisq: {chisq}')
-
-        
         # shift so that 0 delay is at pre-trigger bin
         self._chisqs_alltimes_rolled = np.roll(
             chisq,
@@ -1055,10 +1042,7 @@ class OF1x1:
                              f'in OF base class!')
 
         # psd
-        psd = self._of_base.psd(self._channel_name)
-        if psd is None:
-            raise ValueError(f'ERROR: No psd found for '
-                             f'channel {self._channel_name} ')
+        psd = self._get_psd_amps2()
          
         # sample rate and pretrigger. frequencies
         fs = self._of_base.sample_rate
@@ -1069,22 +1053,50 @@ class OF1x1:
         )
         fft_freqs = self._of_base.fft_freqs()
         df = self._of_base.df()
-
-        
         
         # calc chisq
-        chi2tot = df * np.abs(
+        chi2tot = np.abs(
             signal_fft - amp * np.exp(-2.0j * np.pi * t0 * fft_freqs) * template_fft
         )**2 / psd
         
         # find low freq indices
         chi2inds = np.abs(fft_freqs) <= lowchi2_fcutoff
-
+        ndof = np.sum(chi2inds)
+            
         # sum
-        chi2low = np.sum(chi2tot[chi2inds])
+        chi2low = np.real(np.sum(chi2tot[chi2inds]))
 
         return chi2low
 
+
+    def _get_psd_amps2(self):
+        """
+        Get PSD in A^2
+        """
+        
+        psd = self._of_base.psd(self._channel_name)
+        if psd is None:
+            raise ValueError(f'ERROR: No psd found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+
+        psd = psd.copy()
+
+        
+        # df
+        df = self._of_base.df()
+
+        # Coupling type
+        is_coupling_ac =  np.isinf(psd[0].real)
+
+        
+        # units of A^2
+        psd *= df
+        if is_coupling_ac:
+            psd[0] = np.inf
+
+
+        return psd
         
         
 def get_time_offset_1x1(psd, template_1, template_2, fs=1.25e6, start_time=10e-3):

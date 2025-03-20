@@ -351,7 +351,7 @@ class OFBase:
         
         array = self._csd[channel_name]
         array = np.squeeze(array)
-
+        
         return array
 
     def csd(self, channels):
@@ -379,7 +379,8 @@ class OFBase:
 
         # get add and return
         if channel_name in self._csd.keys():
-            return self._csd[channel_name]
+            csd = self._csd[channel_name]
+            return csd.copy()
         else:
             return None
 
