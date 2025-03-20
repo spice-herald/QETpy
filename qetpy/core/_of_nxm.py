@@ -448,8 +448,8 @@ class OFnxm:
         )
             
         # inverted weight matrix
-        iw = self._of_base.iweights(self._channel_name,
-                                    self._template_tag)
+        iw = self._of_base.iweight(self._channel_name,
+                                   self._template_tag)
 
         # calculate
         self._amps_alltimes = (iw @ signal_filt)
@@ -478,7 +478,7 @@ class OFnxm:
         icov_f = self._of_base.icovf(self._channel_name)
 
         # amplitude all time
-        temp_amp_allt = self._amps_alltimes
+        temp_amp_allt = self._amps_alltimes.copy()
 
         # signal filt
         filt_signal_t = self._of_base.signal_filt_td(
@@ -499,7 +499,7 @@ class OFnxm:
         #this sums along the template
         #dim [ntmp, nbins]
         #chi2_t is the time dependent part
-        self._chi2_alltimes = chi2base-chi2_t
+        self._chi2_alltimes = chi2base - chi2_t
         self._chi2_alltimes_rolled = np.roll(self._chi2_alltimes,
                                              self._pretrigger_samples,
                                              axis=-1)

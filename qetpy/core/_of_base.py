@@ -690,7 +690,7 @@ class OFBase:
         Get (optimal) filtered signal in frequency domain
         for the specified template tag
 
-        signal_filt = phi*signal_fft/norm
+        signal_filt = phi*signal_fft
 
         Parameters
         ----------

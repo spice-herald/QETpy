@@ -292,9 +292,9 @@ class OF1x1:
         """
 
         # get norm
-        norm = self._of_base.iweight(self._channel_name,
-                                     template_tag=self._template_tag,
-                                     squeeze_array=True)
+        norm = self._of_base.weight(self._channel_name,
+                                    template_tag=self._template_tag,
+                                    squeeze_array=True)
         if norm is None:
             raise ValueError(f'ERROR: No "norm" found for '
                              f'channel {self._channel_name} and '
@@ -636,9 +636,10 @@ class OF1x1:
         # "no pulse chisq" (doesn't depend on template)
         self._of_chi2_nopulse = np.real(
             np.dot(signal_fft.conjugate()/psd,
-                   signal_fft)*df
+                   signal_fft)
         )
 
+                
         
     def _calc_chisq_amp(self):
         """
@@ -675,9 +676,9 @@ class OF1x1:
                              f'in OF base class!')
         
         # norm
-        norm = self._of_base.iweight(self._channel_name,
+        norm = self._of_base.weight(self._channel_name,
                                     template_tag=self._template_tag,
-                                     squeeze_array=True)
+                                    squeeze_array=True)
         
         if norm is None:
             raise ValueError(f'ERROR: No "norm" found for '
@@ -694,24 +695,35 @@ class OF1x1:
         self._chisqs_alltimes_rolled = None
         self._amps_alltimes_rolled = None
 
+        # amplitude
+        amps_all = signal_filt_td/norm
+        
+        self._amps_alltimes_rolled = (
+            np.roll(amps_all,
+                    pretrigger_samples,
+                    axis=-1)
+        )
+
         
         # build chi2
-        chisq_t0 = (signal_filt_td**2) * norm
+        chisq_t0 = amps_all*signal_filt_td
         
         # total chisq
         chisq = self._of_chi2_nopulse - chisq_t0
 
+        print(f'chisq0: {self._of_chi2_nopulse}')
+        print(f'chisq_t0: {chisq_t0}')
+        print(f'chisq: {chisq}')
+
+        
         # shift so that 0 delay is at pre-trigger bin
-        self._chisqs_alltimes_rolled = np.roll(chisq,
-                                               pretrigger_samples,
-                                               axis=-1)
-       
-        # amplitude
-        self._amps_alltimes_rolled = (
-                np.roll(signal_filt_td,
-                        pretrigger_samples,
-                        axis=-1)
+        self._chisqs_alltimes_rolled = np.roll(
+            chisq,
+            pretrigger_samples,
+            axis=-1
         )
+        
+     
 
         
     def _calc_fit_withdelay(self, 
@@ -954,9 +966,9 @@ class OF1x1:
 
 
             # get norm
-            norm = self._of_base.iweight(self._channel_name,
-                                         template_tag=self._template_tag,
-                                         squeeze_array=True)
+            norm = self._of_base.weight(self._channel_name,
+                                        template_tag=self._template_tag,
+                                        squeeze_array=True)
             
             # chisq no pulse 
             if self._of_chi2_nopulse is None:
