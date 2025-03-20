@@ -94,12 +94,6 @@ class OFBase:
         self._template_filts = dict()
         self._template_filts_td = dict()
     
-        # 1X1 OF : initialize amplitudes and chi2 (for all times)
-        # dict key = template tag
-        self._chisq0 = dict() # "no pulse" chisq (independent of template)
-        self._chisqs_alltimes_rolled = dict() # chisq all times
-        self._amps_alltimes_rolled = dict() # amps all times
-
 
     @property
     def verbose(self):
@@ -113,7 +107,12 @@ class OFBase:
     # =====================================================
     # Get data
     # =====================================================
-    
+    def df(self):
+        """
+        Frequency resolution
+        """
+
+        return self._df
     
     def nb_samples(self):
         """
@@ -152,9 +151,7 @@ class OFBase:
         Get channel list based on 
         PSD and CSD
         """
-
-        channels = list(self._psd.keys())
-        channels.extend(list(self._csd.keys()))
+        channels = list(self._csd.keys())
         return channels
 
     
@@ -547,36 +544,51 @@ class OFBase:
 
         return phi
 
-    def norm(self, channel, template_tag='default'):
-
+  
+    def weight(self, channels, template_tag='default',
+               squeeze_array=False):
         """
-        Method to return 1x1 norm for the optimum filter
-        (this is the denominator of amplitude estimate)
-        for the specified template tag
-
+        Get the weighting matrix for the specified combination
+        of channels. 
+        
         Parameters
         ----------
-        channel : str
-          channel name
+        
+        channels : str or array-like
+            channels as "|" separated string
+            such as "channel1|channel2"
 
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
+        template_tag : str
+             tag associate with templates
 
         Returns
         -------
-        norm : float
-            normalization for the optimum filter
+        
+        w : ndarray, dimn: [ntmps,ntmps]
+            The inverted matrix which describes how we weight each
+            template w/ respect to one another. This is "norms" in the 
+            1x1. 
         """
-        if (channel in self._norms.keys()
-            and template_tag in self._norms[channel].keys()):
-            norm = self._weights[channel][template_tag]
-            norm = float(np.squeeze(norm))
-        else:
+        
+        # channel name and list
+        channel_name = convert_channel_list_to_name(channels)
+
+        # check if available
+        if (channel_name not in self._weights
+            or template_tag not in self._weights[channel_name]):
             return None
+            
+        w = self._weights[channel_name][template_tag]
 
-
-    def iweights(self, channels, template_tag='default'):
+        if squeeze_array:
+            w = np.squeeze(w)
+            if (w.ndim==1 and len(w)==1):
+                w = float(w[0])
+            
+        return w
+    
+    def iweight(self, channels, template_tag='default',
+                squeeze_array=False):
         """
         Get the inverted weighting matrix for the specified combination
         of channels. 
@@ -609,6 +621,12 @@ class OFBase:
             return None
             
         iw = self._iweights[channel_name][template_tag]
+
+        if squeeze_array:
+            iw = np.squeeze(iw)
+            if (iw.ndim==1 and len(iw)==1):
+                iw = float(iw[0])
+        
         return iw
     
 
@@ -1655,23 +1673,6 @@ class OFBase:
                 filtered_signal
             )
 
-            """
-            NxM
-            temp_sign_mat = np.zeros((ntmps, self._nbins), dtype='complex_')
-            for itmp in range(ntmps):
-                for jchan in range(nchans):
-                    temp_sign_mat[itmp,:] += (
-                        temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:]
-                    )
-
-
-            1x1:
-               norm = self._norms[channel][tag]
-            self._signals_filts[channel][tag] = (
-                self._phis[channel][tag] * self._signals_fft[channel] / norm
-            )
-            
-            """
 
     def calc_signal_filt_td(self, channels,
                             template_tag=None):
@@ -1724,555 +1725,14 @@ class OFBase:
                                                    template_tag=tag)
                 
             filtered_signal_td = np.real(ifft(filtered_signal*self._nbins))
-            
-            """
-            1D
-            # calc signal filt ifft
-            self._signals_filts_td[channel][tag] = np.real(
-                ifft(self._signals_filts[channel][tag]*self._nbins, axis=-1)
-            )*self._df
-            """
-            
+
+            # store
             if channel_name not in self._signals_filts_td:
                 self._signals_filts_td[channel_name] = dict()
             
             self._signals_filts_td[channel_name][tag] = (
                 copy.deepcopy(filtered_signal_td)
             )
-
-
-    def calc_chisq0(self, channel):
-        """
-        Calculate part of chi2 that doesn't depend
-        on template (aka "no pulse chisq)
-
-        Parameters
-        ----------
-        None
-
-
-        Returnnp.fft.ifft
-        ------
-        None
-
-        """
-
-        if channel not in self._signals_fft:
-            raise ValueError(f'ERROR: No signal found for '
-                             f'channel {channel}')
-
-        # "no pulse chisq" (doesn't depend on template)
-        self._chisq0[channel] = np.real(
-            np.dot(self._signals_fft[channel].conjugate()/self._psd[channel],
-                   self._signals_fft[channel])*self._df
-        )
-
-
-    def calc_chisq_amp(self, channel, template_tags=None):
-        """
-        Calculate chi2/amp for all times (rolled
-        so that 0-delay is the pretrigger bin)
-
-        Parameters
-        ----------
-        template_tags : NoneType or str or list of string
-                        [default=None]
-           template tags to calculate optimal filters, if None,
-           calculate optimal filter for all templates
-
-        Return
-        ------
-        None
-
-
-        """
-
-        # "no pulse chisq" (doesn't depend on template)
-        self.calc_chisq0(channel)
-
-        # time dependent chisq + sum of the two
-
-        # check if filtered signal (ifft) available
-        # if not calculate
-        if channel not in self._signals_filts_td:
-            self.calc_signal_filt_td(channel,
-                                     template_tags=template_tags
-            )
-
-        # find tags
-        if template_tags is None:
-            template_tags = list(self._signals_filts_td[channel].keys())
-        elif isinstance(template_tags, str):
-            template_tags = [template_tags]
-        elif not isinstance(template_tags, list):
-            raise ValueError('"template_tags argument should be a '
-                             + ' a string or list of strings')
-
-
-        # initialize
-        if channel not in self._amps_alltimes_rolled:
-            self._amps_alltimes_rolled[channel] = dict()
-            self._chisqs_alltimes_rolled[channel] = dict()
-
-        # loop tags
-        for tag in template_tags:
-
-            if tag not in self._signals_filts_td[channel]:
-                self.calc_signal_filt_td(channel,
-                                         template_tags=tag
-                )
-
-            # build chi2
-            chisq_t0 = (
-                (self._signals_filts_td[channel][tag]**2) * self._norms[channel][tag]
-            )
-
-
-            # total chisq
-            chisq = self._chisq0[channel] - chisq_t0
-
-
-            # shift so that 0 delay is at pre-trigger bin
-            chisq_rolled = np.roll(chisq,
-                                   self._pretrigger_samples[channel][tag],
-                                   axis=-1)
-
-            self._chisqs_alltimes_rolled[channel][tag] = chisq_rolled
-
-
-            # amplitude
-            self._amps_alltimes_rolled[channel][tag] = (
-                np.roll(self._signals_filts_td[channel][tag],
-                        self._pretrigger_samples[channel][tag],
-                        axis=-1)
-            )
-
-            # debug
-            if self._debug:
-                print('DEBUG: Calculating chisq/amp all times with template "'+
-                      tag + '"')
-
-
-    def get_fit_nodelay(self, channel,
-                        template_tag='default',
-                        shift_usec=None,
-                        use_chisq_alltimes=True):
-        """
-        Function to calculat and return the optimum amplitude/chisq of a pulse in
-        data with no time shifting, or at a specific time.
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        shift_usec : float, optional
-          shift in micro seconds from pretrigger time
-          default: no shift
-
-        use_chisq_alltimes : bool, optional
-          use the chisq all times instead of re-calculate
-
-
-
-        Returns
-        -------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps)
-            with no time shifting allowed (or at the time specified by
-            'shift_usec').
-
-         t0 : float
-            The time shift (=0 or shift_usec)
-
-        chisq : float
-            The chi^2 value calculated from the optimum filter with no
-            time shifting (or at the time shift specified by shift_usec)
-
-        """
-
-        # intialize
-        amp = np.nan
-        chisq = np.nan
-
-        # check pretrigger
-        if channel not in self._pretrigger_samples:
-            self._pretrigger_samples[channel] = dict()
-
-        if template_tag not in self._pretrigger_samples[channel]:
-            self._pretrigger_samples[channel][template_tag] = (
-                self._nbins//2
-            )
-
-        pretrigger_samples = self._pretrigger_samples[channel][template_tag]
-
-        # shift
-        t0 = 0
-        t0_ind = pretrigger_samples
-        if shift_usec is not None:
-            t0 =  shift_usec*1e-6
-            t0_ind += round(t0*self._fs)
-            if t0_ind<0:
-                t0_ind = 0
-            elif t0_ind>self._nbins-1:
-                t0_ind = self._nbins-1
-
-
-
-        # use already calculated chisq/amp array
-        if use_chisq_alltimes:
-
-            # check if available
-            if (channel not in self._chisqs_alltimes_rolled
-                or template_tag not in self._chisqs_alltimes_rolled[channel].keys()):
-                self.calc_chisq_amp(channel, template_tags=template_tag)
-
-            amp = self._amps_alltimes_rolled[channel][template_tag][t0_ind]
-            chisq = self._chisqs_alltimes_rolled[channel][template_tag][t0_ind]
-
-        else:
-
-            # check if filtered signal available
-            # and chisq0 available
-            if (channel not in self._signals_filts
-                or  template_tag not in  self._signals_filts[channel].keys()):
-                self.calc_signal_filt(channel, template_tags=template_tag)
-
-            if  channel not in self._chisq0:
-                self.calc_chisq0(channel)
-
-            signal_filt = self._signals_filts[channel][template_tag]
-
-            # amplitude
-            if shift_usec is not None:
-                amp = np.real(np.sum(
-                    signal_filt*np.exp(2.0j*np.pi*t0*self._fft_freqs),
-                    axis=-1,
-                ))*self._df
-
-            else:
-                amp = np.real(np.sum(
-                    signal_filt, axis=-1
-                ))*self._df
-
-            # total chisq
-            chisq = self._chisq0[channel] - (amp**2)*self._norms[channel][template_tag]
-
-        return amp, t0, chisq
-
-
-    def get_fit_withdelay(self, channel, template_tag='default',
-                          window_min_from_trig_usec=None,
-                          window_max_from_trig_usec=None,
-                          window_min_index=None,
-                          window_max_index=None,
-                          lgc_outside_window=False,
-                          pulse_direction_constraint=0,
-                          interpolate_t0=False):
-        """
-        Function for calculating the optimum amplitude of a pulse in
-        data with time delay. The OF window min/max can be specified
-        either in usec from pretrigger or ADC samples. If no window,
-        the all trace (unconstrained) is used.
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-
-        window_min_from_trig_usec : float, optional
-           OF filter window start in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-
-        window_max_from_trig_usec : float, optional
-           OF filter window end in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-
-        window_min_index: int, optional
-            OF filter window start in ADC samples
-
-        window_max_index: int, optional
-            OF filter window end in ADC samples
-
-        lgcoutsidewindow : bool, optional
-            Boolean flag that is used to specify whether the Optimum
-            Filter should look inside `nconstrain` or outside it. If
-            False, the filter will minimize the chi^2 in the bins
-            specified by `nconstrain`, which is the default behavior.
-            If True, then it will minimize the chi^2 in the bins that
-            do not contain the constrained window.
-
-
-        pulse_direction_constraint : int, optional
-            Sets a constraint on the direction of the fitted pulse.
-            If 0, then no constraint on the pulse direction is set.
-            If 1, then a positive pulse constraint is set for all fits.
-            If -1, then a negative pulse constraint is set for all
-            fits. If any other value, then a ValueError will be raised.
-
-        interpolate_t0 : bool, optional
-            If True, then a precomputed solution to the parabolic
-            equation is used to find the interpolated time-of-best-fit.
-            Default is False.
-
-        Returns
-        -------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float
-            The time shift calculated for the pulse (in s).
-        chi2 : float
-            The chi^2 value calculated from the optimum filter.
-
-        """
-
-        # initialize
-        amp = np.nan
-        chisq = np.nan
-        t0 = np.nan
-
-        # check if chisq available -> if not then calculate
-        if (channel not in self._chisqs_alltimes_rolled
-            or template_tag not in self._chisqs_alltimes_rolled[channel].keys()):
-            self.calc_chisq_amp(channel, template_tags=template_tag)
-
-        # check pre-trigger
-        if channel not in self._pretrigger_samples:
-            self._pretrigger_samples[channel] = dict()
-        if template_tag not in self._pretrigger_samples[channel]:
-            self._pretrigger_samples[channel][template_tag]  = (
-                self._nbins//2
-            )
-        pretrigger_samples = self._pretrigger_samples[channel][template_tag]
-
-        # get chisq and amp for all times
-        chisqs_all = self._chisqs_alltimes_rolled[channel][template_tag]
-        amps_all = self._amps_alltimes_rolled[channel][template_tag]
-
-        # mask pulse direction
-        constraint_mask = None
-        if (pulse_direction_constraint==1
-            or pulse_direction_constraint==-1):
-            constraint_mask=(
-                amps_all*pulse_direction_constraint>0
-            )
-
-
-        # find index minimum chisq within window
-        window_min = None
-        if window_min_from_trig_usec is not None:
-            window_min = floor(pretrigger_samples
-                               + window_min_from_trig_usec*self._fs*1e-6)
-        elif window_min_index is not None:
-            window_min = window_min_index
-
-        if window_min is not None and window_min<0:
-            window_min = 0
-
-        window_max = None
-        if window_max_from_trig_usec is not None:
-            window_max = ceil(pretrigger_samples
-                              + window_max_from_trig_usec*self._fs*1e-6)
-        elif window_max_index is not None:
-            window_max = window_max_index
-
-        if window_max is not None and window_max>self._nbins:
-            window_max = self._nbins
-
-        if  window_min is not None:
-             window_min = int(window_min)
-             
-        if  window_max is not None:
-             window_max = int(window_max)
-
-            
-            
-        bestind = argmin_chisq(
-            chisqs_all,
-            window_min=window_min,
-            window_max=window_max,
-            lgc_outside_window=lgc_outside_window,
-            constraint_mask=constraint_mask
-        )
-
-        # extract chisq/amp (interpolate if requested)
-        if np.isnan(bestind):
-            amp = 0.0
-            t0 = 0.0
-            chisq = self._chisq0
-        elif interpolate_t0:
-            amp, dt_interp, chisq = interpolate_of(
-                amps_all, chisqs_all, bestind, 1/self._fs,
-            )
-            t0 = (bestind-pretrigger_samples)/self._fs + dt_interp
-        else:
-            amp = amps_all[bestind]
-            t0 = (bestind-pretrigger_samples)/self._fs
-            chisq = chisqs_all[bestind]
-
-        return amp, t0, chisq
-
-
-    def get_amplitude_resolution(self,  channel, template_tag='default'):
-        """
-        Method to return the energy resolution for the optimum filter.
-        (resolution depends only on template and noise!) for a
-        specified tag
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-
-        Returns
-        -------
-        sigma : float
-            The energy resolution of the optimum filter.
-        """
-
-        if (channel not in self._norms
-            or template_tag not in self._norms.keys()):
-            self.calc_phi(channel, template_tags=template_tag)
-
-        sigma =  1.0 / np.sqrt(self._norms[channel][template_tag])
-
-        return sigma
-
-    def get_energy_resolution(self,  channel, template_tag='default'):
-        """
-        Deprecated method name: point to get_amplitude_resolution
-        method
-        """
-        return self.get_amplitude_resolution(channel, template_tag=template_tag)
-
-
-    def get_time_resolution(self, channel, amp, template_tag='default'):
-        """
-        Method to return the time resolution for the optimum filter.
-        Resolution depends also on fitted amplitude (-> reset every events)
-
-        Parameters
-        ----------
-
-        amp : float
-          OF fitted amplitude
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        Returns
-        -------
-        sigma : float
-            The time resolution of the optimum filter.
-
-        """
-
-        if (channel not in self._templates_fft
-            or template_tag not in self._templates_fft[channel].keys()):
-            raise ValueError('ERROR: Template wit tag "'
-                             + template_tag
-                             + '" not available!')
-
-
-        template_fft = self._templates_fft[channel][template_tag]
-
-        sigma = 1.0 / np.sqrt(amp**2 * np.sum(
-            (2*np.pi*self._fft_freqs)**2 * np.abs(template_fft)**2 / self._psd[channel]
-        ) * self._df)
-
-        return sigma
-
-
-    def get_chisq_nopulse(self, channel):
-        """
-        Method to get "no pulse" part of the chi2
-        (independent of template)
-
-        Parameters
-        ---------
-        None
-
-        Return
-        ------
-        chi2_nopulse : float
-
-        """
-
-        if  channel not in self._chisq0:
-            self.calc_chisq0(channel)
-
-        return self._chisq0[channel]
-
-
-    def get_chisq_lowfreq(self, channel, amp, t0=0,
-                          lowchi2_fcutoff=10000,
-                          template_tag='default'):
-        """
-        Method for calculating the low frequency chi^2 of the optimum
-        filter, given some cut off frequency.
-
-        Parameters
-        ----------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float, optional
-            The time shift calculated for the pulse (in s).
-            default: 0 (np shift)
-        lowchi2_fcutoff : float, optional
-            The frequency (in Hz) that we should cut off the chi^2 when
-            calculating the low frequency chi^2. Default is 10 kHz.
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        Returns
-        -------
-        chi2low : float
-            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
-            inputted values.
-
-        """
-
-        # template tag
-        if (channel not in self._templates_fft
-            or template_tag not in self._templates_fft[channel].keys()):
-            raise ValueError('ERROR: Template with tag "'
-                             + template_tag
-                             + '" not available!')
-
-        # check signal
-        if channel not in self._signals_fft:
-            raise ValueError('ERROR: no signal available!')
-
-        template_fft = self._templates_fft[channel][template_tag]
-        signal_fft = self._signals_fft[channel]
-
-        # calc chisq
-        chi2tot = self._df * np.abs(
-            signal_fft - amp * np.exp(-2.0j * np.pi * t0 * self._fft_freqs) * template_fft
-        )**2 / self._psd[channel]
-
-
-        # find low freq indices
-        chi2inds = np.abs(self._fft_freqs) <= lowchi2_fcutoff
-
-        # sum
-        chi2low = np.sum(chi2tot[chi2inds])
-
-        return chi2low
-
 
       
     def _calc_time_combinations(self,

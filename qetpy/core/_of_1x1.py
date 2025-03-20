@@ -1,8 +1,10 @@
 import numpy as np
+from math import ceil, floor
 from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
-from qetpy.utils import shift
+from qetpy.utils import shift, interpolate_of, argmin_chisq
 from qetpy.core import OFBase
+
 
 __all__ = ['OF1x1',
            'get_time_offset_1x1']
@@ -16,8 +18,8 @@ class OF1x1:
     """
 
     def __init__(self, of_base=None,
-                 channel='unknown',
-                 template_tag='default', template=None,
+                 channel='signal', template=None,
+                 template_tag='default',
                  psd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  coupling='AC', integralnorm=False,
@@ -35,14 +37,12 @@ class OF1x1:
         
         channel : str, optional
             channel name
+        template : ndarray, optional
+          template array used for OF calculation, can be 
         
         template_tag : str, optional 
            tamplate tag, default='default'
         
-        template : ndarray, optional
-          template array used for OF calculation, can be 
-          None if already in of_base, otherwise required
-
         psd : ndarray, optional
           psd array used for OF calculation, can be 
           None if already in of_base, otherwise required
@@ -77,9 +77,6 @@ class OF1x1:
             will be returned (in units of Amps).
             Default=False
 
-        channel_name : str, optional
-            channel name
-            
         verbose : bool, optional 
             Display information
             Default=True
@@ -164,11 +161,17 @@ class OF1x1:
         #  template/noise pre-calculation
         if self._of_base.phi(channel, template_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_tag)
+                                   template_tag=template_tag)
 
         # initialize fit results
+        self.clear_results()
+        
 
-        # single 1x1
+    def clear_results(self):
+        """
+        Clear fit results
+        """
+
         self._of_amp_nodelay = None
         self._of_chi2_nodelay = None
         self._of_t0_nodelay = None
@@ -187,242 +190,6 @@ class OF1x1:
         self._of_chi2_iterative = None
         self._of_t0_iterative = None
         self._of_chi2low_iterative = None
-
-
-            
-    def calc(self, signal=None, 
-             window_min_from_trig_usec=None,
-             window_max_from_trig_usec=None,
-             window_min_index=None,
-             window_max_index=None,
-             lowchi2_fcutoff=10000,
-             lgc_outside_window=False,
-             pulse_direction_constraint=0,
-             interpolate_t0=False,
-             lgc_fit_nodelay=True,
-             lgc_plot=False):
-        """
-        Calculate OF with delay (and no delay if 
-        lgc_fit_nodelay=True)
-
-        Parameters
-        ----------
-        
-        signal : ndarray, optional
-          signal trace, can be None if already
-          set in 'of_base
-          
-        window_min_from_trig_usec : float, optional
-           OF filter window start in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-        window_max_from_trig_usec : float, optional
-           OF filter window end in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-
-        window_min_index: int, optional
-            OF filter window start in ADC samples 
-        
-        window_max_index: int, optional
-            OF filter window end in ADC samples
-            
-        lowchi2_fcutoff : float, optional
-            The frequency (in Hz) that we should cut off the chi^2 when
-            calculating the low frequency chi^2. Default is 10 kHz.
-            
-        lgcoutsidewindow : bool, optional
-            Boolean flag that is used to specify whether the Optimum
-            Filter should look inside `nconstrain` or outside it. If
-            False, the filter will minimize the chi^2 in the bins
-            specified by `nconstrain`, which is the default behavior.
-            If True, then it will minimize the chi^2 in the bins that
-            do not contain the constrained window.
-
-
-        pulse_direction_constraint : int, optional
-            Sets a constraint on the direction of the fitted pulse.
-            If 0, then no constraint on the pulse direction is set.
-            If 1, then a positive pulse constraint is set for all fits.
-            If -1, then a negative pulse constraint is set for all
-            fits. If any other value, then a ValueError will be raised.
-      
-        interpolate_t0 : bool, optional
-            If True, then a precomputed solution to the parabolic
-            equation is used to find the interpolated time-of-best-fit.
-            Default is False.
-
-        lgc_fit_nodelay : bool, option
-            calculation no-delay OF, default=True
-
-        lgc_plot : bool, optional
-            display diagnostic plot
-
-        Return
-        ------
-        None
-
-        """
-        
-        # update signal and do preliminary
-        # calculations
-        if signal is not None:
-
-            # clear
-            self._of_base.clear_signal()
-
-            # update
-            self._of_base.update_signal(
-                self._channel_name,
-                signal,
-                calc_signal_filt=True,
-                calc_signal_filt_td=True,
-                calc_chisq_amp=True,
-                template_tags=self._template_tag
-            )
-            
-        # get fit results
-        amp,t0,chi2 = self._of_base.get_fit_withdelay(
-            self._channel_name,
-            self._template_tag,
-            window_min_from_trig_usec=window_min_from_trig_usec,
-            window_max_from_trig_usec=window_max_from_trig_usec,
-            window_min_index=window_min_index,
-            window_max_index=window_max_index,
-            lgc_outside_window=lgc_outside_window,
-            pulse_direction_constraint=pulse_direction_constraint,
-            interpolate_t0=interpolate_t0
-        )
-
-        lowchi2 = self._of_base.get_chisq_lowfreq(
-            self._channel_name,
-            template_tag=self._template_tag,
-            amp=amp,
-            t0=t0,
-            lowchi2_fcutoff=lowchi2_fcutoff
-        )
-
-        self._of_amp_withdelay = amp
-        self._of_chi2_withdelay = chi2
-        self._of_t0_withdelay = t0
-        self._of_chi2low_withdelay = lowchi2
-
-        # chisq no pulse
-        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse(self._channel_name)
-        
-        # add nodelay fit
-        if lgc_fit_nodelay:
-            amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
-                self._channel_name,
-                template_tag=self._template_tag,
-                shift_usec=None,
-                use_chisq_alltimes=True
-            )
-            lowchi2_0 = self._of_base.get_chisq_lowfreq(
-                self._channel_name,
-                template_tag=self._template_tag,
-                amp=amp_0,
-                t0=t0_0,
-                lowchi2_fcutoff=lowchi2_fcutoff
-            )
-        
-            self._of_amp_nodelay = amp_0
-            self._of_chi2_nodelay = chi2_0
-            self._of_t0_nodelay = t0_0
-            self._of_chi2low_nodelay = lowchi2_0
-
-        if lgc_plot:
-            self.plot(lgc_plot_withdelay=True,
-                      lgc_plot_nodelay=lgc_fit_nodelay)
-                
-                
-                
-
-    def calc_nodelay(self, signal=None,
-                     shift_usec=None,
-                     lowchi2_fcutoff=10000,
-                     use_chisq_alltimes=True,
-                     lgc_plot=False):
-        """
-        Calculate no-delay OF  (a shift
-        from pretrigger can be added)
-
-        Parameters
-        ----------
-
-        signal : ndarray, optional
-          signal trace, can be None if already
-          set in 'of_base
-
-        shift_usec : float, optional
-          shift in micro seconds from pretrigger time
-          default: no shift
-                             
-        lowchi2_fcutoff : float, optional
-            The frequency (in Hz) that we should cut off the chi^2 when
-            calculating the low frequency chi^2. Default is 10 kHz.
-        
-        use_chisq_alltimes : bool, optional
-          use the chisq all times 
-        
-        lgc_plot : bool, optional
-            display diagnostic plot
-
-
-        Return
-        ------
-        None
-
-        """
-
-        # update signal and do preliminary
-        # calculations
-        if signal is not None:
-
-            # clear
-            self._of_base.clear_signal()
-
-            # update
-            self._of_base.update_signal(
-                self._channel_name,
-                signal,
-                calc_signal_filt=True,
-                calc_signal_filt_td=True,
-                calc_chisq_amp=True,
-                template_tags=self._template_tag
-            )
-        
-        # nodelay fit
-        amp_0,t0_0,chi2_0 = self._of_base.get_fit_nodelay(
-            self._channel_name,
-            template_tag=self._template_tag,
-            shift_usec=shift_usec,
-            use_chisq_alltimes=use_chisq_alltimes
-        )
-        
-        lowchi2_0 = self._of_base.get_chisq_lowfreq(
-            self._channel_name,
-            template_tag=self._template_tag,
-            amp=amp_0,
-            t0=t0_0,
-            lowchi2_fcutoff=lowchi2_fcutoff
-        )
-        
-        self._of_amp_nodelay = amp_0
-        self._of_chi2_nodelay = chi2_0
-        self._of_t0_nodelay = t0_0
-        self._of_chi2low_nodelay = lowchi2_0
-
-
-        # chisq no pulse
-        self._of_chi2_nopulse = self._of_base.get_chisq_nopulse(self._channel_name)
-        
-            
-
-        if lgc_plot:
-            self.plot(lgc_fit_nodelay=True)
-            
-
         
 
     def get_result_nodelay(self):
@@ -505,8 +272,6 @@ class OF1x1:
           
         """
         return self._of_chi2_nopulse
-
-
     
     
     def get_amplitude_resolution(self):
@@ -525,11 +290,20 @@ class OF1x1:
             The energy resolution of the optimum filter.
 
         """
-        sigma = self._of_base.get_amplitude_resolution(
-            self._channel_name,
-            self._template_tag
-        )
 
+        # get norm
+        norm = self._of_base.iweight(self._channel_name,
+                                     template_tag=self._template_tag,
+                                     squeeze_array=True)
+        if norm is None:
+            raise ValueError(f'ERROR: No "norm" found for '
+                             f'channel {self._channel_name} and '
+                             f'tag "{self._template_tag}" '
+                             f'in OF base class!')
+        
+
+        sigma =  1.0 / np.sqrt(norm)
+        
         return sigma
 
     
@@ -542,7 +316,7 @@ class OF1x1:
         return self.get_amplitude_resolution()
 
     
-    def get_time_resolution(self, amp):
+    def get_time_resolution(self, lgc_nodelay=False):
         """
         Method to return the time resolution for the optimum filter.
         Resolution depends also on fitted amplitude (-> reset every events)
@@ -561,15 +335,175 @@ class OF1x1:
 
         """
 
-        sigma =  self._of_base.get_time_resolution(
+
+        # template FFT 
+        template_fft = self,_of_base.template_fft(
             self._channel_name,
-            amp,
-            self._template_tag
+            template_tag=self._template_tag
         )
+        
+        if template_fft is None:
+            raise ValueError(f'ERROR: No template FFT found for '
+                             f'channel {self._channel_name} and '
+                             f'tag "{self._template_tag}" '
+                             f'in OF base class!')
+
+        fft_freqs = self._of_base.fft_freqs()
+        df = self._of_base.df()
+        
+
+        # check self._of_amp_nodelay = None
+        amp = self._of_amp_withdelay
+        if lgc_nodelay:
+            amp =  self._of_amp_nodelay
+
+        if amp is None:
+            raise ValueError(f'ERROR: No fit done! '
+                             f'Unable to calculate time resolution! ')
+                
+        sigma = 1.0 / np.sqrt(amp**2 * np.sum(
+            (2*np.pi*fft_freqs)**2 * np.abs(template_fft)**2 / psd
+        ) * df)
+        
 
         return sigma
 
-    
+            
+    def calc(self, signal=None, 
+             window_min_from_trig_usec=None,
+             window_max_from_trig_usec=None,
+             window_min_index=None,
+             window_max_index=None,
+             lowchi2_fcutoff=10000,
+             lgc_outside_window=False,
+             pulse_direction_constraint=0,
+             interpolate_t0=False,
+             lgc_fit_withdelay=True,
+             lgc_fit_nodelay=True,
+             lgc_plot=False):
+        """
+        Calculate OF with delay (and no delay if 
+        lgc_fit_nodelay=True)
+
+        Parameters
+        ----------
+        
+        signal : ndarray, optional
+          signal trace, can be None if already
+          set in 'of_base
+          
+        window_min_from_trig_usec : float, optional
+           OF filter window start in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+        window_max_from_trig_usec : float, optional
+           OF filter window end in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_min_index: int, optional
+            OF filter window start in ADC samples 
+        
+        window_max_index: int, optional
+            OF filter window end in ADC samples
+            
+        lowchi2_fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
+            
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the Optimum
+            Filter should look inside `nconstrain` or outside it. If
+            False, the filter will minimize the chi^2 in the bins
+            specified by `nconstrain`, which is the default behavior.
+            If True, then it will minimize the chi^2 in the bins that
+            do not contain the constrained window.
+
+
+        pulse_direction_constraint : int, optional
+            Sets a constraint on the direction of the fitted pulse.
+            If 0, then no constraint on the pulse direction is set.
+            If 1, then a positive pulse constraint is set for all fits.
+            If -1, then a negative pulse constraint is set for all
+            fits. If any other value, then a ValueError will be raised.
+      
+        interpolate_t0 : bool, optional
+            If True, then a precomputed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
+
+        lgc_fit_nodelay : bool, option
+            calculation no-delay OF, default=True
+
+        lgc_plot : bool, optional
+            display diagnostic plot
+
+        Return
+        ------
+        None
+
+        """
+
+        # clear results
+        self.clear_results()
+        
+        # update signal and do preliminary
+        # calculations
+        if signal is not None:
+
+            # clear
+            self._of_base.clear_signal()
+
+            # update
+            self._of_base.update_signal(
+                self._channel_name,
+                signal,
+                calc_fft=True
+            )
+
+        # calculate filtered signal
+        self._of_base.calc_signal_filt(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+
+        self._of_base.calc_signal_filt_td(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+
+        # calc chisq
+        self._calc_chisq_amp()
+            
+        # calc fit with delay
+        if lgc_fit_withdelay:
+            
+            self._calc_fit_withdelay(
+                window_min_from_trig_usec=window_min_from_trig_usec,
+                window_max_from_trig_usec=window_max_from_trig_usec,
+                window_min_index=window_min_index,
+                window_max_index=window_max_index,
+                lgc_outside_window=lgc_outside_window,
+                pulse_direction_constraint=pulse_direction_constraint,
+                interpolate_t0=interpolate_t0,
+                lowchi2_fcutoff=lowchi2_fcutoff
+            )
+
+        
+        # calc fit nodelay
+        if lgc_fit_nodelay:
+            
+            self._calc_fit_nodelay(
+                shift_usec=None,
+                lowchi2_fcutoff=lowchi2_fcutoff,
+                use_chisq_alltimes=True,
+                lgc_plot=False)
+                
+
+        if lgc_plot:
+            self.plot(lgc_plot_withdelay=True,
+                      lgc_plot_nodelay=lgc_fit_nodelay)
+                    
     def plot(self, lgc_plot_withdelay=True,
              lgc_plot_nodelay=True,
              figsize=(8, 5),
@@ -611,8 +545,11 @@ class OF1x1:
             return
         
         # signal
-        signal = self._of_base.signal(self._channel_name)
-        template = self._of_base.template(self._channel_name)
+        signal = self._of_base.signal(self._channel_name, squeeze_array=True)
+        template = self._of_base.template(self._channel_name,
+                                          template_tag=self._template_tag,
+                                          squeeze_array=True)
+        
         fs = self._of_base.sample_rate
         nbins = len(signal)
         chi2 = self._of_chi2_withdelay/len(signal)
@@ -659,6 +596,483 @@ class OF1x1:
         ax.grid(linestyle='dotted')
         fig.tight_layout()
         
+
+    def _calc_chisq0(self):
+        """
+        Calculate part of chi2 that doesn't depend
+        on template (aka "no pulse chisq)
+        
+        Parameters
+        ----------
+        None
+
+
+        Return
+        ------
+        None
+
+        """
+
+        # psd
+        psd = self._of_base.psd(self._channel_name)
+        if psd is None:
+            raise ValueError(f'ERROR: No psd found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+
+        psd = self._of_base.psd(self._channel_name)
+        
+        # signal fft
+        signal_fft = self._of_base.signal_fft(self._channel_name,
+                                              squeeze_array=True)
+        if signal_fft is None:
+            raise ValueError(f'ERROR: No signal fft found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+        
+        # df
+        df = self._of_base.df()
+            
+        # "no pulse chisq" (doesn't depend on template)
+        self._of_chi2_nopulse = np.real(
+            np.dot(signal_fft.conjugate()/psd,
+                   signal_fft)*df
+        )
+
+        
+    def _calc_chisq_amp(self):
+        """
+        Calculate chi2/amp for all times (rolled
+        so that 0-delay is the pretrigger bin)
+
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+
+
+        """
+
+        # "no pulse chisq" (doesn't depend on template)
+        self._calc_chisq0()
+
+        # time dependent chisq + sum of the two
+
+        # check if filtered signal (ifft) available
+        # if not calculate
+        signal_filt_td = self._of_base.signal_filt_td(
+            self._channel_name,
+            template_tag=self._template_tag,
+            squeeze_array=True
+        )
+        
+        if signal_filt_td is None:
+            raise ValueError(f'ERROR: No filtered signal found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+        
+        # norm
+        norm = self._of_base.iweight(self._channel_name,
+                                    template_tag=self._template_tag,
+                                     squeeze_array=True)
+        
+        if norm is None:
+            raise ValueError(f'ERROR: No "norm" found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+
+        # pretrigger
+        pretrigger_samples = self._of_base.nb_pretrigger_samples(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+            
+        # initialize
+        self._chisqs_alltimes_rolled = None
+        self._amps_alltimes_rolled = None
+
+        
+        # build chi2
+        chisq_t0 = (signal_filt_td**2) * norm
+        
+        # total chisq
+        chisq = self._of_chi2_nopulse - chisq_t0
+
+        # shift so that 0 delay is at pre-trigger bin
+        self._chisqs_alltimes_rolled = np.roll(chisq,
+                                               pretrigger_samples,
+                                               axis=-1)
+       
+        # amplitude
+        self._amps_alltimes_rolled = (
+                np.roll(signal_filt_td,
+                        pretrigger_samples,
+                        axis=-1)
+        )
+
+        
+    def _calc_fit_withdelay(self, 
+                            window_min_from_trig_usec=None,
+                            window_max_from_trig_usec=None,
+                            window_min_index=None,
+                            window_max_index=None,
+                            lgc_outside_window=False,
+                            pulse_direction_constraint=0,
+                            interpolate_t0=False,
+                            lowchi2_fcutoff=10000):
+        """
+        Function for calculating the optimum amplitude of a pulse in
+        data with time delay. The OF window min/max can be specified
+        either in usec from pretrigger or ADC samples. If no window,
+        the all trace (unconstrained) is used.
+
+        Parameters
+        ----------
+
+        window_min_from_trig_usec : float, optional
+           OF filter window start in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_max_from_trig_usec : float, optional
+           OF filter window end in micro seconds from
+           pre-trigger (can be negative if prior pre-trigger)
+
+
+        window_min_index: int, optional
+            OF filter window start in ADC samples
+
+        window_max_index: int, optional
+            OF filter window end in ADC samples
+
+        lgcoutsidewindow : bool, optional
+            Boolean flag that is used to specify whether the Optimum
+            Filter should look inside `nconstrain` or outside it. If
+            False, the filter will minimize the chi^2 in the bins
+            specified by `nconstrain`, which is the default behavior.
+            If True, then it will minimize the chi^2 in the bins that
+            do not contain the constrained window.
+
+
+        pulse_direction_constraint : int, optional
+            Sets a constraint on the direction of the fitted pulse.
+            If 0, then no constraint on the pulse direction is set.
+            If 1, then a positive pulse constraint is set for all fits.
+            If -1, then a negative pulse constraint is set for all
+            fits. If any other value, then a ValueError will be raised.
+
+        interpolate_t0 : bool, optional
+            If True, then a precomputed solution to the parabolic
+            equation is used to find the interpolated time-of-best-fit.
+            Default is False.
+
+        Returns
+        -------
+         None
+
+        """
+
+        # initialize
+        amp = np.nan
+        chisq = np.nan
+        t0 = np.nan
+
+        # sample rate and pretrigger
+        fs = self._of_base.sample_rate
+        nbins = self._of_base.nb_samples()
+        pretrigger_samples = self._of_base.nb_pretrigger_samples(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+
+        # chisq and amp for all times
+        chisqs_all = self._chisqs_alltimes_rolled
+        amps_all = self._amps_alltimes_rolled
+
+        # mask pulse direction
+        constraint_mask = None
+        if (pulse_direction_constraint==1
+            or pulse_direction_constraint==-1):
+            constraint_mask=(
+                amps_all*pulse_direction_constraint>0
+            )
+
+
+        # find index minimum chisq within window
+        window_min = None
+        if window_min_from_trig_usec is not None:
+            window_min = floor(pretrigger_samples
+                               + window_min_from_trig_usec*fs*1e-6)
+        elif window_min_index is not None:
+            window_min = window_min_index
+
+        if window_min is not None and window_min<0:
+            window_min = 0
+
+        window_max = None
+        if window_max_from_trig_usec is not None:
+            window_max = ceil(pretrigger_samples
+                              + window_max_from_trig_usec*fs*1e-6)
+        elif window_max_index is not None:
+            window_max = window_max_index
+
+        if window_max is not None and window_max>nbins:
+            window_max = nbins
+
+        if  window_min is not None:
+             window_min = int(window_min)
+             
+        if  window_max is not None:
+             window_max = int(window_max)
+
+            
+        bestind = argmin_chisq(
+            chisqs_all,
+            window_min=window_min,
+            window_max=window_max,
+            lgc_outside_window=lgc_outside_window,
+            constraint_mask=constraint_mask
+        )
+
+        # extract chisq/amp (interpolate if requested)
+        if np.isnan(bestind):
+            amp = 0.0
+            t0 = 0.0
+            chisq = self._chisq_no_pulse
+        elif interpolate_t0:
+            amp, dt_interp, chisq = interpolate_of(
+                amps_all, chisqs_all, bestind, 1/fs,
+            )
+            t0 = (bestind-pretrigger_samples)/fs + dt_interp
+        else:
+            amp = amps_all[bestind]
+            t0 = (bestind-pretrigger_samples)/fs
+            chisq = chisqs_all[bestind]
+            
+        # low frequency chisq
+        lowchisq = self._get_chisq_lowfreq(
+            amp, t0=t0,
+            lowchi2_fcutoff=lowchi2_fcutoff
+        )
+
+
+        # store
+        self._of_amp_withdelay = amp
+        self._of_chi2_withdelay = chisq
+        self._of_t0_withdelay = t0
+        self._of_chi2low_withdelay = lowchisq
+
+           
+
+    def _calc_fit_nodelay(self,
+                          shift_usec=None,
+                          lowchi2_fcutoff=10000,
+                          use_chisq_alltimes=True,
+                          lgc_plot=False):
+        """
+        Calculate no-delay OF  (a shift
+        from pretrigger can be added)
+
+        Parameters
+        ----------
+
+        shift_usec : float, optional
+          shift in micro seconds from pretrigger time
+          default: no shift
+                             
+        lowchi2_fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
+        
+        use_chisq_alltimes : bool, optional
+          use the chisq all times 
+        
+        lgc_plot : bool, optional
+            display diagnostic plot
+
+
+        Return
+        ------
+        None
+
+        """
+
+        # intialize
+        amp_0 = np.nan
+        chisq_0 = np.nan
+
+        # sample rate and pretrigger. frequencies
+        fs = self._of_base.sample_rate
+        nbins = self._of_base.nb_samples()
+        pretrigger_samples = self._of_base.nb_pretrigger_samples(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+        fft_freqs = self._of_base.fft_freqs()
+        df = self._of_base.df()
+
+        
+        # shift
+        t0_0 = 0
+        t0_ind = pretrigger_samples
+        if shift_usec is not None:
+            t0_0 =  shift_usec*1e-6
+            t0_ind += round(t0_0*fs)
+            if t0_ind<0:
+                t0_ind = 0
+            elif t0_ind>nbins-1:
+                t0_ind = nbins-1
+
+
+        # use already calculated chisq/amp array
+        if use_chisq_alltimes:
+
+            if (self._amps_alltimes_rolled is None
+                or self._chisqs_alltimes_rolled is None):
+                self._calc_chisq_amp()
+
+            amp_0 = self._amps_alltimes_rolled[t0_ind]
+            chisq_0 = self._chisqs_alltimes_rolled[t0_ind]
+
+        else:
+
+            # get filtered signal
+            signal_filt = self._of_base.signal_filt(
+                self._channel_name,
+                template_tag=self._template_tag,
+                squeeze_array=True
+            )
+        
+            if signal_filt is None:
+                raise ValueError(f'ERROR: No filtered signal found for '
+                                 f'channel {self._channel_name} '
+                                 f'and tag {self._template_tag} '
+                                 f'in OF base class!')
+
+
+            # get norm
+            norm = self._of_base.iweight(self._channel_name,
+                                         template_tag=self._template_tag,
+                                         squeeze_array=True)
+            
+            # chisq no pulse 
+            if self._of_chi2_nopulse is None:
+                self._calc_chisq0()
+
+            chi2_nopulse = self._of_chi2_nopulse.copy()
+          
+            # amplitude
+            if shift_usec is not None:
+                amp_0 = np.real(np.sum(
+                    signal_filt*np.exp(2.0j*np.pi*t0_0*fft_freqs),
+                    axis=-1,
+                ))*df
+
+            else:
+                amp_0 = np.real(np.sum(
+                    signal_filt, axis=-1
+                ))*df
+
+            # total chisq
+            chisq_0 = chi2_nopulse - (amp_0**2)*norm
+
+
+        # lowfreq chisq
+        lowchisq_0 = self._get_chisq_lowfreq(
+            amp_0, t0=t0_0,
+            lowchi2_fcutoff=lowchi2_fcutoff
+        )
+        
+        self._of_amp_nodelay = amp_0
+        self._of_chi2_nodelay = chisq_0
+        self._of_t0_nodelay = t0_0
+        self._of_chi2low_nodelay = lowchisq_0
+
+        if lgc_plot:
+            self.plot(lgc_fit_nodelay=True)
+            
+
+    def _get_chisq_lowfreq(self, amp, t0=0,
+                           lowchi2_fcutoff=10000):
+        """
+        Method for calculating the low frequency chi^2 of the optimum
+        filter, given some cut off frequency.
+
+        Parameters
+        ----------
+        amp : float
+            The optimum amplitude calculated for the trace (in Amps).
+        t0 : float, optional
+            The time shift calculated for the pulse (in s).
+            default: 0 (np shift)
+        lowchi2_fcutoff : float, optional
+            The frequency (in Hz) that we should cut off the chi^2 when
+            calculating the low frequency chi^2. Default is 10 kHz.
+
+   
+        Returns
+        -------
+        chi2low : float
+            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
+            inputted values.
+
+        """
+
+        # get template and signal FFT
+        template_fft = self._of_base.template_fft(
+            self._channel_name,
+            template_tag=self._template_tag,
+            squeeze_array=True
+        )
+        
+        if template_fft is None:
+            raise ValueError(f'ERROR: No template FFT found for '
+                             f'channel {self._channel_name} and '
+                             f'tag "{self._template_tag}" '
+                             f'in OF base class!')
+
+        # signal fft
+        signal_fft = self._of_base.signal_fft(self._channel_name,
+                                              squeeze_array=True)
+        if signal_fft is None:
+            raise ValueError(f'ERROR: No signal fft found for '
+                             f'channel {self._channel_name} '
+                             f'in OF base class!')
+
+        # psd
+        psd = self._of_base.psd(self._channel_name)
+        if psd is None:
+            raise ValueError(f'ERROR: No psd found for '
+                             f'channel {self._channel_name} ')
+         
+        # sample rate and pretrigger. frequencies
+        fs = self._of_base.sample_rate
+        nbins = self._of_base.nb_samples()
+        pretrigger_samples = self._of_base.nb_pretrigger_samples(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+        fft_freqs = self._of_base.fft_freqs()
+        df = self._of_base.df()
+
+        
+        
+        # calc chisq
+        chi2tot = df * np.abs(
+            signal_fft - amp * np.exp(-2.0j * np.pi * t0 * fft_freqs) * template_fft
+        )**2 / psd
+        
+        # find low freq indices
+        chi2inds = np.abs(fft_freqs) <= lowchi2_fcutoff
+
+        # sum
+        chi2low = np.sum(chi2tot[chi2inds])
+
+        return chi2low
+
         
         
 def get_time_offset_1x1(psd, template_1, template_2, fs=1.25e6, start_time=10e-3):
@@ -706,6 +1120,8 @@ def get_time_offset_1x1(psd, template_1, template_2, fs=1.25e6, start_time=10e-3
     
     of.calc(signal=template_2,
             window_min_from_trig_usec=-2000, 
-            window_max_from_trig_usec=2000)
+            window_max_from_trig_usec=2000,
+            lgc_fit_withdelay=True,
+            lgc_fit_nodelay=False)
     amp, t0, chi2, lowchi2 = of.get_result_withdelay()
     return -t0
