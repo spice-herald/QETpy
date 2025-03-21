@@ -337,9 +337,10 @@ class OF1x1:
 
 
         # template FFT 
-        template_fft = self,_of_base.template_fft(
+        template_fft = self._of_base.template_fft(
             self._channel_name,
-            template_tag=self._template_tag
+            template_tag=self._template_tag,
+            squeeze_array=True
         )
         
         if template_fft is None:
@@ -350,7 +351,7 @@ class OF1x1:
 
         fft_freqs = self._of_base.fft_freqs()
         df = self._of_base.df()
-        
+        psd =  self._of_base.psd( self._channel_name)
 
         # check self._of_amp_nodelay = None
         amp = self._of_amp_withdelay
@@ -366,6 +367,8 @@ class OF1x1:
         ) * df)
         
 
+        sigma = np.real(sigma)
+        
         return sigma
 
             
