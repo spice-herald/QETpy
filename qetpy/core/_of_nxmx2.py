@@ -7,7 +7,6 @@ from numpy.linalg import pinv as pinv
 __all__ = ['OFnxmx2']
 
 
-
 class OFnxmx2:
     """
     N channels / M templates Optimal Fitler 
@@ -15,11 +14,12 @@ class OFnxmx2:
    
     """
     def __init__(self, of_base=None, channels=None,
-                 templates=None, template_tags=None,
-                 template_time_tags=None, csd=None, sample_rate=None,
+                 templates=None, template_tag=None,
+                 template_group_ids=None, csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False, fit_window=None,
                  restrict_time_flag=True,
+                 time_constraints_tag=None,
                  verbose=True):
 
         """
@@ -40,13 +40,11 @@ class OFnxmx2:
           multi-template array used for OF calculation, can be
           None if already in of_base, otherwise required
           
-        template_tags : 2D array (optional)
-            Template tags to calculate optimal filters
-            Optional if "templates" provided (must be same 
-            format as "templates" if not None)
+        template_tag : string (optional)
+           tag associated with template matrix            
 
-        template_time_tags : 2D array (optional)
-          time tage used for multi-template array with each having 2 time degree of freedom
+        template_group_ids : 2D array (optional)
+          group idis used for multi-template array with each having 2 time degree of freedom
           used for OF calculation, can be None if already in of_base, otherwise required.
           eg for 4 template : one can have [0,1,0,0]-> meaning 1st, 3rd and fourth templat move together
 
@@ -87,7 +85,9 @@ class OFnxmx2:
              time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
 
         restrict_time_flag : boolean, optional
-        
+
+        time_constraints_tag : str (optional)
+          tag associated to template_group_ids,  fit_window, restrict_time_flag
 
         verbose : bool, optional
             Display information
@@ -122,44 +122,32 @@ class OFnxmx2:
                                  '"templates" argument required!')
 
             # templates tag required 
-            if (of_base is not None
-                and template_tags is None):
-                raise ValueError('ERROR: "template_tags" required '
+            if template_tag is None:
+                raise ValueError('ERROR: "template_tag" required '
                                  'if "of_base" provided and "templates" '
                                  'argument is None')
         
         else:
 
             # check numpy array
-            if (not isinstance(templates, np.ndarray)
-                or templates.ndim != 3):
+            if not isinstance(templates, np.ndarray):
                 raise ValueError('ERROR: Expecting "templates" to be '
-                                 'a 3D array')
-            self._ntmps = templates.shape[1]
+                                 'a numpy array')
+        
+            if templates.ndim == 1:
+                templates = templates[np.newaxis, np.newaxis, :]  # 1 channel, 1 template
+            elif templates.ndim == 2:
+                templates = templates[np.newaxis, :, :]            # 1 channel, multiple templates
+            elif templates.ndim != 3:
+                raise ValueError('ERROR: "templates" input must be 1D, 2D, or 3D')    
             
             if templates.shape[0] != self._nchans:
                 raise ValueError(f'ERROR: Expecting "templates" to have '
                                  f'shape[0]={self._nchans}!')
                         
-        # check template tags
-        if template_tags is not None:
-
-            if (not isinstance(template_tags, np.ndarray)
-                or  template_tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            ntmps = template_tags.shape[1]
-            if (self._ntmps is not None
-                and ntmps != self._ntmps):
-                raise ValueError('ERROR: the number of templates M between '
-                                 '"templates" and "template_tags" is not '
-                                 'consistent!')
-           
-            if template_tags.shape[0] != self._nchans:
-                raise ValueError(f'ERROR: Expecting "template_tags" to have '
-                                 f'shape[0]={self._nchans}!')
-
+            # check template tags
+            if template_tag is None:
+                template_tag = 'default'
 
         # Instantiate OF base (if None) and add templates
         self._of_base = of_base
@@ -175,6 +163,13 @@ class OFnxmx2:
                 and pretrigger_samples is None):
                 raise ValueError('ERROR in OFnxm: '
                                  'pretrigger (msec or samples) required!')
+
+            # check time cosntraints
+            if (template_group_ids is None
+                or fit_window is None):
+                raise ValueError('ERROR: "template_group_ids" and '
+                                 '"fit_window" required!')
+            
             # instantiate
             self._of_base = OFBase(sample_rate, verbose=verbose)
 
@@ -185,78 +180,86 @@ class OFnxmx2:
             fs = self._of_base.sample_rate
             if pretrigger_msec is not None:
                 pretrigger_samples = int(round(fs*pretrigger_msec/1000))
-
-            # create tags if template_tags is None
-            if template_tags is None:
-                
-                template_tags = np.empty(templates.shape[0:2], dtype='object')
-                count = 0
-                for i in range(len(template_tags)):
-                    for j in range(len(template_tags[i])):
-                        template_tags[i][j] = f'default_{count}'
-                        count +=1
             # verbose
             print(f'INFO: Adding templates with shape={templates.shape} '
                   'to OF base object!')
                                     
-            # add to OF 
-            self._of_base.add_template_many_channels(
-                self._channel_list, templates, template_tags,
+            # add to OF
+            self._of_base.add_template(
+                self._channel_name, templates, template_tag,
                 pretrigger_samples=pretrigger_samples,
                 integralnorm=integralnorm,
                 overwrite=True
             )
-                
+                        
         else:
 
-            is_tag = False
-            tags = self._of_base.template_tags(self._channel_name)
-            for tag in tags:
-                if np.array_equal(tag, template_tags):
-                    is_tag = True
+            templates = self._of_base.template(
+                self._channel_name,
+                template_tag=template_tag
+            )
 
-            if not is_tag:
+            if templates is None:
                 raise ValueError(
                     f'ERROR: No template with tag '
-                    f'"{template_tags}" found for channel '
+                    f'"{template_tag}" found for channel '
                     f'{self._channel_name} in OF base!'
                 )
                     
         # save template tags
-        self._template_tags = template_tags
-        self._ntmps = template_tags.shape[-1]
-
+        self._template_tag = template_tag
+        self._ntmps = templates.shape[1]
+        
         # sample rate
         self._fs = self._of_base.sample_rate
         
         # number of samples
         self._nb_samples = self._of_base.nb_samples()
         self._nb_pretrigger_samples = self._of_base.nb_pretrigger_samples(
-            self._channel_name, self._template_tags
+            self._channel_name, self._template_tag
         )
 
-        #  Set time constraints
-        if (template_time_tags is None
-            or len(template_time_tags) != self._ntmps):
-            raise ValueError(f'ERROR: "template_time_tags" is required '
-                             f'and must have length {self._ntmps}!')
+        #  add time constraint to base object if templates not None
+        if (template_group_ids is not None
+            and fit_window is not None):
+
+            if time_constraints_tag is None:
+                time_constraints_tag = 'default'
+
+                self._of_base.set_time_constraints(
+                self._channel_name,
+                template_group_ids=template_group_ids,
+                fit_window=fit_window,
+                restrict_time_flag=restrict_time_flag,
+                time_constraints_tag=time_constraints_tag
+            )
+            
+            
+        elif time_constraints_tag is None:
+            raise ValueError(
+                'ERROR: "time_constraints_tag" if no input '
+                '"template_group_ids" and "fit_window"')
         
         
-        time_combinations = self._of_base.calc_time_combinations(
-            fit_window,
-            restrict_time_flag
-        )
-                
-        self._of_base.set_time_constraints(
-            channels,
-            template_tags,
-            template_time_tags,
-            time_combinations
-        )
-        
-        self._template_time_tags = template_time_tags
+        # get time combinations
+        time_combinations =  self._of_base.time_combinations(
+            self._channel_name,
+            time_constraints_tag=time_constraints_tag)
+
+        if time_combinations is None:
+            raise ValueError(
+                'ERROR: time constraints missing from OF base! '
+                'Arguments "template_group_ids" and "fit_window" '
+                'need to be provided')
+
+        self._time_constraints_tag = time_constraints_tag
         self._time_combinations = time_combinations
-         
+        self._template_group_ids = (
+            self._of_base.template_group_ids(
+                self._channel_name,
+                time_constraints_tag=time_constraints_tag)
+        )
+
         # add noise to base object
         if csd is not None:
             
@@ -276,32 +279,32 @@ class OFnxmx2:
         # initialize
         self.clear()
         
-        # calulate (if not calculated yet)
-        self._of_base.calc_p_matrix(channels,
-                                    template_tags=template_tags,
-                                    template_time_tags=template_time_tags,
-                                    time_combinations=time_combinations)
-        # save
-        self._p_matrix_inv = (
-            self._of_base.p_matrix_inv(
-                channels,
-                template_tags,
-                template_time_tags,
-                time_combinations
-            )
-        )
+        # check if p matrix calculated
+        if  self._of_base.p_matrix(
+                self._channel_name,
+                template_tag=template_tag,
+                time_constraints_tag=time_constraints_tag) is None:
         
+            self._of_base.calc_p_matrix(
+                self._channel_name,
+                template_tag=template_tag,
+                time_constraints_tag=time_constraints_tag
+            )
 
-        self._p_matrix  = (
-            self._of_base.p_matrix(
-                channels,
-                template_tags,
-                template_time_tags,
-                time_combinations
-            )
+
+        # save
+        self._p_matrix = self._of_base.p_matrix(
+            self._channel_name,
+            template_tag=template_tag,
+            time_constraints_tag=time_constraints_tag)
+    
+        self._p_matrix_inv = self._of_base.p_matrix_inv(
+            self._channel_name,
+            template_tag=template_tag,
+            time_constraints_tag=time_constraints_tag
         )
-            
-        
+
+                
 
     def clear(self):
         """
@@ -344,15 +347,24 @@ class OFnxmx2:
                                  'in "signal" array!')
             
             self._of_base.clear_signal()
-            
-            self._of_base.update_signal_many_channels(
+
+            # update signal
+            self._of_base.update_signal(
                 self._channel_name,
                 signal,
-                calc_signal_filt_matrix=True,
-                calc_signal_filt_matrix_td=True,
-                template_tags=self._template_tags)
+                calc_fft=True)
 
-
+            # calculate signal filter
+            self._of_base.calc_signal_filt(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
+            
+            # calc signal filter ifft
+            self._of_base.calc_signal_filt_td(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
 
         # calculate Q vector
         self._calc_q_vector()
@@ -394,17 +406,11 @@ class OFnxmx2:
         Calculate Q vector
         """
 
-        # calc filtered signal matrix td
-        # if not yet calculated
-        self._of_base.calc_signal_filt_matrix_td(
-            self._channel_name,
-            self._template_tags
-        )
         
-        signal_filt_matrix_td = (
+        signal_filt_td = (
             self._of_base.signal_filt_td(
                 self._channel_name,
-                template_tag=self._template_tags)
+                template_tag=self._template_tag)
         )
             
         # initialize
@@ -414,8 +420,8 @@ class OFnxmx2:
         
         for itmps in range(self._ntmps):
             self._q_vector[itmps,:] = (
-                signal_filt_matrix_td[itmps][
-                    self._time_combinations[:,self._template_time_tags[itmps]]
+                signal_filt_td[itmps][
+                    self._time_combinations[:,self._template_group_ids[itmps]]
                 ]
             )
         
@@ -451,22 +457,20 @@ class OFnxmx2:
 
         
         # get signal matrix fft
-        signal_matrix_fft = self._of_base.signal_fft(self._channel_name)
+        signal_fft = self._of_base.signal_fft(self._channel_name)
 
         # get invert covariant matrix
         icovf = self._of_base.icovf(self._channel_name)
-        
-        chi2base = 0
-        for kchan in range(self._nchans):
-            for jchan in range(self._nchans):
-                chi2base += np.sum(
-                    np.dot((signal_matrix_fft[kchan,:].conjugate())
-                           * icovf[kchan,jchan,:],
-                           signal_matrix_fft[jchan,:])
-                )
 
-                
-        #chi2base is a time independent scalar on the sum over all channels & freq bins
+
+        # chi2 base (time independent scalar on the sum over
+        # all channels & freq bins)
+        chi2base = np.einsum('kf,kjf,jf->', 
+                             signal_fft.conjugate(), 
+                             icovf, 
+                             signal_fft, 
+                             optimize=True)
+     
         chi2base = np.real(chi2base)
 
         #chi2_t is the time dependent part

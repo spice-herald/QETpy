@@ -144,11 +144,20 @@ class OFnxm:
         if templates is not None:
 
             # check array
-            if (not isinstance(templates, np.ndarray)
-                or (templates.ndim != 3 and templates.ndim != 1)):
+            if not isinstance(templates, np.ndarray):
                 raise ValueError('ERROR: Expecting "templates" to be '
-                                 'a 1D or 3D array')
-            
+                                 'a numpy array')
+
+            if templates.ndim == 1:
+                templates = templates[np.newaxis, np.newaxis, :]  # 1 channel, 1 template
+            elif templates.ndim == 2:
+                templates = templates[np.newaxis, :, :]            # 1 channel, multiple templates
+            elif templates.ndim != 3:
+                raise ValueError('ERROR: "templates" input must be 1D, 2D, or 3D')    
+
+            if templates.shape[0] != self._nchans:
+                raise ValueError(f'ERROR: Expecting "templates" to have '
+                                 f'shape[0]={self._nchans}!')
             # calc phi
             calc_phi = True
             

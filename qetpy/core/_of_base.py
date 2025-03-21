@@ -303,7 +303,7 @@ class OFBase:
         return time_constraints['template_group_ids']
 
 
-    def time_conbinations(self, channels,
+    def time_combinations(self, channels,
                           time_constraints_tag='default'):
         """
         Get NxMx2 time_combinations for specified channel
@@ -877,8 +877,8 @@ class OFBase:
 
         templates : nd array 1D, 2D, or 3D
            1D: 1x1 template array
-           2D: 1xN template array
-           3D: NxM template array (N channels, M templates)
+           2D: 1xM template array
+           3D: NxM template array (N channels, M templates, samples)
 
         template_tag : str 
            tag name associated to the template
@@ -1522,12 +1522,13 @@ class OFBase:
                            template_tag=tag,
                            squeeze_array=False)
 
+                       
             if phi is None:
                 self.calc_phi(channel_name, template_tag=tag)
                 phi = self.phi(channel_name,
                                template_tag=tag,
                                squeeze_array=False)
-                
+                      
             # loop time constraints
             for constraints_tag in time_constraints_tag_list:
 
@@ -1549,18 +1550,13 @@ class OFBase:
 
                 t0s = self.time_combinations(
                     channel_name,
-                    time_constraints_tag=constraints_tag)
+                    time_constraints_tag=constraints_tag
+                )
 
+                # group id matrix
+                time_diff  = template_group_ids[:, None] - template_group_ids[None, :]
+            
                 
-
-                # calculate 
-                time_diff = np.zeros((template_group_ids.shape[0] ,
-                                      template_group_ids.shape[0] ))
-                for i in range(template_group_ids.shape[0]):
-                    for j in range(template_group_ids.shape[0]):
-                        time_diff[i,j] = (template_group_ids[i]
-                                          -template_group_ids[j])
-
                 p = np.zeros((self._nbins, ntmps, ntmps ), dtype='complex_')
                 np.einsum('jii->ji', p)[:] = 1
                 for itmp in range(ntmps):
@@ -1569,12 +1565,12 @@ class OFBase:
                         for jchan in range(nchans):
                             if (time_diff[itmp, jtmp] != 0):
                                 sum += np.fft.ifft(
-                                    phi[:,itmp, jchan]\
+                                    phi[jchan,itmp, :]\
                                     * template_fft[jchan,jtmp,:]
                                 )*self._nbins
                             if (time_diff[itmp,jtmp] == 0):
                                 sum += np.sum(
-                                    phi[:,itmp,jchan]\
+                                    phi[jchan,itmp,:]\
                                     * template_fft[jchan,jtmp,:]
                                 )
                                 
