@@ -12,5 +12,5 @@ from ._of_nxm import *
 from ._of_nxmx2 import *
 from ._of_1x1 import *
 from ._of_nonlin import *
-from ._of_1x2 import *
-from ._of_1x3 import *
+from ._of_1x2x2 import *
+from ._of_1x3x3 import *
