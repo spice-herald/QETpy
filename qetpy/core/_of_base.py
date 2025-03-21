@@ -1251,13 +1251,7 @@ class OFBase:
         self._template_filts = dict()
         self._template_filts_td = dict()
         
-        # 1x1 chisq and amp arrays
-        self._chisq0 = dict()
-        self._chisqs_alltimes_rolled = dict()
-        self._amps_alltimes_rolled = dict()
-
-        
-             
+                   
     def update_signal(self, channels, signals,
                       calc_fft=True):
               

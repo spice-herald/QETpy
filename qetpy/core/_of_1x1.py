@@ -614,8 +614,9 @@ class OF1x1:
         """
 
         # psd
-        psd = self._get_psd_amps2()
-
+        df = self._of_base.df()
+        psd = self._of_base.psd(self._channel_name)
+        
         # signal fft
         signal_fft = self._of_base.signal_fft(self._channel_name,
                                               squeeze_array=True)
@@ -629,7 +630,7 @@ class OF1x1:
         self._of_chi2_nopulse = np.real(
             np.dot(signal_fft.conjugate()/psd,
                    signal_fft)
-        )
+        )/df
 
                 
         
@@ -1041,9 +1042,9 @@ class OF1x1:
                              f'channel {self._channel_name} '
                              f'in OF base class!')
 
-        # psd
-        psd = self._get_psd_amps2()
-         
+        # psd A^2/Hz
+        psd = self._of_base.psd(self._channel_name)
+        
         # sample rate and pretrigger. frequencies
         fs = self._of_base.sample_rate
         nbins = self._of_base.nb_samples()
@@ -1064,40 +1065,10 @@ class OF1x1:
         ndof = np.sum(chi2inds)
             
         # sum
-        chi2low = np.real(np.sum(chi2tot[chi2inds]))
+        chi2low = np.real(np.sum(chi2tot[chi2inds]))/df
 
         return chi2low
 
-
-    def _get_psd_amps2(self):
-        """
-        Get PSD in A^2
-        """
-        
-        psd = self._of_base.psd(self._channel_name)
-        if psd is None:
-            raise ValueError(f'ERROR: No psd found for '
-                             f'channel {self._channel_name} '
-                             f'in OF base class!')
-
-        psd = psd.copy()
-
-        
-        # df
-        df = self._of_base.df()
-
-        # Coupling type
-        is_coupling_ac =  np.isinf(psd[0].real)
-
-        
-        # units of A^2
-        psd *= df
-        if is_coupling_ac:
-            psd[0] = np.inf
-
-
-        return psd
-        
         
 def get_time_offset_1x1(psd, template_1, template_2, fs=1.25e6, start_time=10e-3):
     """

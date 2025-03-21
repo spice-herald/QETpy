@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.optimize import least_squares
-from numpy.fft import rfft, fft, ifft, fftfreq, rfftfreq
 import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase
+from qetpy.utils import ifft
+
 
 __all__ = ['OF1x3']
 
@@ -16,7 +17,7 @@ class  OF1x3:
     """
 
     def __init__(self, of_base=None,
-                 channel='unknown',
+                 channel='Signal',
                  template_1=None, template_1_tag='Scintillation',
                  template_2=None, template_2_tag='Evaporation',
                  template_3=None, template_3_tag='Triplet',
@@ -208,15 +209,15 @@ class  OF1x3:
         #  template/noise pre-calculation
         if self._of_base.phi(channel, template_1_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_1_tag)
+                                   template_tag=template_1_tag)
 
         if self._of_base.phi(channel, template_2_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_2_tag)
+                                   template_tag=template_2_tag)
             
         if self._of_base.phi(channel, template_3_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_3_tag)
+                                   template_tag=template_3_tag)
 
 
         # calculate p matrix
@@ -236,7 +237,7 @@ class  OF1x3:
         self._time_third_pulse = None
      
         
-    def calc(self, signal=None,fit_window = None, lgc_plot=False):
+    def calc(self, signal=None, fit_window=None, lgc_plot=False):
         """
         Runs the pileup optimum filter algorithm for 1 channel 2 pulses.
         Parameters
@@ -247,18 +248,36 @@ class  OF1x3:
         -------
         None
         """
-
+        
         # calculate signal fft 
         if signal is not None:
+
+            # update signal
             self._of_base.update_signal(
                 self._channel,
                 signal,
-                calc_signal_filt=True,
-                calc_signal_filt_td=True,
-                template_tags=[self._template_1_tag,
-                               self._template_2_tag,
-                               self._template_3_tag]
+                calc_fft=True
             )
+            
+            # calculate filtered signal
+            template_tags = [self._template_1_tag,
+                             self._template_2_tag,
+                             self._template_3_tag]
+            
+            for tag in template_tags:
+                
+                # calculate signal filter
+                self._of_base.calc_signal_filt(
+                    self._channel,
+                    template_tag=tag
+                )
+                
+                # calc signal filter inverse FFT
+                self._of_base.calc_signal_filt_td(
+                    self._channel,
+                    template_tag=tag
+                )
+                
         if fit_window is not None:
            self._calc_p_matrix(fit_window)
         else:
@@ -336,10 +355,13 @@ class  OF1x3:
             return
         
         # signal
-        signal = self._of_base.signal(self._channel)
-        template_1 = self._of_base.template(self._channel, self._template_1_tag)
-        template_2 = self._of_base.template(self._channel, self._template_2_tag)
-        template_3  = self._of_base.template(self._channel, self._template_3_tag)
+        signal = self._of_base.signal(self._channel, squeeze_array=True)
+        template_1 = self._of_base.template(self._channel, self._template_1_tag,
+                                            squeeze_array=True)
+        template_2 = self._of_base.template(self._channel, self._template_2_tag,
+                                            squeeze_array=True)
+        template_3  = self._of_base.template(self._channel, self._template_3_tag,
+                                             squeeze_array=True)
         
         fs = self._fs
         nbins = len(signal)
@@ -377,7 +399,7 @@ class  OF1x3:
                          self._time_second_pulse) 
                  + shift(self._amplitude[self._template_3_tag]*template_3*1e6,
                          self._time_third_pulse)),
-                label=(r'OF_1x2, $\chi^2$' + f'/Ndof={chi2:.2f}'),
+                label=(r'OF_1x3x3, $\chi^2$' + f'/Ndof={chi2:.2f}'),
                 color='k')
 
         if xlim_msec is not None:
@@ -397,20 +419,29 @@ class  OF1x3:
         """
 
         # get optimal filter and template ffts
-        phis = [self._of_base.phi(self._channel, self._template_1_tag),
-                self._of_base.phi(self._channel, self._template_2_tag),
-                self._of_base.phi(self._channel, self._template_3_tag)]
+        phis = [self._of_base.phi(self._channel, self._template_1_tag,
+                                  squeeze_array=True),
+                self._of_base.phi(self._channel, self._template_2_tag,
+                                  squeeze_array=True),
+                self._of_base.phi(self._channel, self._template_3_tag,
+                                  squeeze_array=True)]
 
-        norms = [self._of_base.norm(self._channel, self._template_1_tag),
-                 self._of_base.norm(self._channel, self._template_2_tag),
-                 self._of_base.norm(self._channel, self._template_3_tag)]
+        norms = [self._of_base.weight(self._channel, self._template_1_tag,
+                                      squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_2_tag,
+                                      squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_3_tag,
+                                      squeeze_array=True)]
 
         template_ffts = [self._of_base.template_fft(self._channel,
-                                                    self._template_1_tag),
+                                                    self._template_1_tag,
+                                                    squeeze_array=True),
                          self._of_base.template_fft(self._channel,
-                                                    self._template_2_tag),
+                                                    self._template_2_tag,
+                                                    squeeze_array=True),
                          self._of_base.template_fft(self._channel,
-                                                    self._template_3_tag)]
+                                                    self._template_3_tag,
+                                                    squeeze_array=True)]
         
         # number of templates = 3
         M = len(phis)
@@ -426,7 +457,7 @@ class  OF1x3:
             p[:, i, i] = norms[i]
             for j in range(i+1,M):
                 p[:, i, j] = p[:, j, i] = (
-                    np.real(np.fft.ifft(template_ffts[j] * phis[i]) * self._fs)
+                    np.real(ifft(template_ffts[j] * phis[i]) * nbins)
                 )
               
         p_inv = np.linalg.pinv(p)
@@ -481,22 +512,31 @@ class  OF1x3:
 
         # calc q vector
         signal_filt_tds = [self._of_base.signal_filt_td(self._channel,
-                                                        self._template_1_tag),
+                                                        self._template_1_tag,
+                                                        squeeze_array=True),
                            self._of_base.signal_filt_td(self._channel,
-                                                        self._template_2_tag),
+                                                        self._template_2_tag,
+                                                        squeeze_array=True),
                            self._of_base.signal_filt_td(self._channel,
-                                                        self._template_3_tag)]
+                                                        self._template_3_tag,
+                                                        squeeze_array=True)]
         
-        norms = [self._of_base.norm(self._channel, self._template_1_tag),
-                 self._of_base.norm(self._channel, self._template_2_tag),
-                 self._of_base.norm(self._channel, self._template_3_tag)]
+        norms = [self._of_base.weight(self._channel, self._template_1_tag,
+                                      squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_2_tag,
+                                      squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_3_tag,
+                                      squeeze_array=True)]
 
         
         # calculate  q vector
-        q = [signal_filt_tds[0]*norms[0],
-             signal_filt_tds[1]*norms[1],
-             signal_filt_tds[2]*norms[2]]
+        #q = [signal_filt_tds[0]*norms[0],
+        #     signal_filt_tds[1]*norms[1],
+        #     signal_filt_tds[2]*norms[2]]
 
+        q = [signal_filt_tds[0],
+             signal_filt_tds[1],
+             signal_filt_tds[2]]
         
         M = len(q)
         t0s = self._time_combinations
@@ -521,8 +561,21 @@ class  OF1x3:
         """
         
         q_vector_conj = np.conjugate(self._q_vector)
+
+
+        # chi2 no pulse
+        df = self._of_base.df()
+        psd = self._of_base.psd(self._channel)
+        signal_fft = self._of_base.signal_fft(self._channel,
+                                              squeeze_array=True)
+         
+        chisq0 = np.real(
+            np.dot(signal_fft.conjugate()/psd,
+                   signal_fft)
+        )/df
+
         
-        chi2 = (self._of_base._chisq0[self._channel]
+        chi2 = (chisq0
                 - q_vector_conj[0,:] * amps1
                 - q_vector_conj[1,:] * amps2
                 - q_vector_conj[2,:] * amps3)
