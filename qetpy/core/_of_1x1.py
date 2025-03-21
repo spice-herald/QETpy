@@ -363,11 +363,11 @@ class OF1x1:
                              f'Unable to calculate time resolution! ')
                 
         sigma = 1.0 / np.sqrt(amp**2 * np.sum(
-            (2*np.pi*fft_freqs)**2 * np.abs(template_fft)**2 / psd
-        ) * df)
+            (2*np.pi*fft_freqs)**2 * np.abs(template_fft)**2 / psd)
+        )
         
 
-        sigma = np.real(sigma)
+        sigma = np.real(sigma)*np.sqrt(df)
         
         return sigma
 
