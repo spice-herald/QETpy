@@ -768,7 +768,7 @@ class OFBase:
     
 
 
-    def template_filt(self, channel,
+    def template_filt(self, channels,
                       template_tag='default',
                       squeeze_array=False):
         """
@@ -779,7 +779,7 @@ class OFBase:
 
         Parameters
         ----------
-        channel : str
+        channels : str
           channel name
 
         template_tag : str, optional
@@ -811,7 +811,7 @@ class OFBase:
 
 
 
-    def template_filt_td(self, channel,
+    def template_filt_td(self, channels,
                          template_tag='default',
                          squeeze_array=False):
         """
