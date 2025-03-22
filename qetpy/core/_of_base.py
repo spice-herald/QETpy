@@ -489,7 +489,7 @@ class OFBase:
         nchans = len(channel_list)
         
         signal_array = np.zeros((nchans, self._nbins),
-                                dtype=np.complex_)
+                                dtype=np.complex128)
         
         for ichan, chan in enumerate(channel_list):
             if chan not in self._signals_fft:
@@ -1551,7 +1551,7 @@ class OFBase:
                 time_diff  = template_group_ids[:, None] - template_group_ids[None, :]
             
                 
-                p = np.zeros((self._nbins, ntmps, ntmps ), dtype=np.complex_)
+                p = np.zeros((self._nbins, ntmps, ntmps ), dtype=np.complex128)
                 np.einsum('jii->ji', p)[:] = 1
                 for itmp in range(ntmps):
                     for jtmp in range(ntmps):
