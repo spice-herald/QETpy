@@ -1119,7 +1119,10 @@ class OFBase:
         # add to dictionary
         self._csd[channel_name] = csd
 
-
+        # frequency resolution
+        if self._df is None:
+            self._df= self._fs/nbins
+            
         # calculate icov
         if calc_icov:
             self.calc_icovf(channel_name,

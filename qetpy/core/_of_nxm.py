@@ -311,7 +311,12 @@ class OFnxm:
                 signal,
                 calc_fft=True)
 
-            # calculate signal filter
+        # calculate signal filter
+        if self._of_base.signal_filt(
+            self._channel_name,
+            template_tag=self._template_tag
+        ) is None:
+            
             self._of_base.calc_signal_filt(
                 self._channel_name,
                 template_tag=self._template_tag

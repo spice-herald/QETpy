@@ -465,15 +465,20 @@ class OF1x1:
             )
 
         # calculate filtered signal
-        self._of_base.calc_signal_filt(
+        if self._of_base.signal_filt(
             self._channel_name,
             template_tag=self._template_tag
-        )
+        ) is None:
+            
+            self._of_base.calc_signal_filt(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
 
-        self._of_base.calc_signal_filt_td(
-            self._channel_name,
-            template_tag=self._template_tag
-        )
+            self._of_base.calc_signal_filt_td(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
 
         # calc chisq
         self._calc_chisq_amp()
