@@ -225,20 +225,20 @@ class OFnxmx2:
 
             if time_constraints_tag is None:
                 time_constraints_tag = 'default'
-
-                self._of_base.set_time_constraints(
+                
+            self._of_base.set_time_constraints(
                 self._channel_name,
                 template_group_ids=template_group_ids,
                 fit_window=fit_window,
                 restrict_time_flag=restrict_time_flag,
                 time_constraints_tag=time_constraints_tag
-            )
-            
+            )  
             
         elif time_constraints_tag is None:
             raise ValueError(
-                'ERROR: "time_constraints_tag" if no input '
-                '"template_group_ids" and "fit_window"')
+                'ERROR: "time_constraints_tag" required if no input '
+                '"template_group_ids" and "fit_window"'
+            )
         
         
         # get time combinations
