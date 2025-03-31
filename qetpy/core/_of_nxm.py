@@ -17,7 +17,7 @@ class OFnxm:
     
     """
     def __init__(self, of_base=None,  channels=None,
-                 templates=None, template_tags=None,
+                 templates=None, template_tag=None,
                  csd=None, sample_rate=None,
                  pretrigger_msec=None, pretrigger_samples=None,
                  integralnorm=False,
@@ -42,11 +42,9 @@ class OFnxm:
           None if already in of_base, otherwise required
           
 
-        template_tags : 2D array (optional)
-            Template tags to calculate optimal filters
-            Optional if "templates" provided (must be same 
-            format as "templates" if not None)
-
+        template_tag : str (optional)
+            Tag associated with templates (to store in of_base)
+       
         csd : ndarray, optional
           psd array used for OF calculation, can be
           None if already in of_base, otherwise required
@@ -91,63 +89,34 @@ class OFnxm:
         self._channel_name = convert_channel_list_to_name(channels)
         self._channel_list = convert_channel_name_to_list(channels)
         self._nchans = len(self._channel_list)
-
+             
         # initialize number of templates (per channel)
         self._ntmps = None
+        self._template_tag = None
 
-        # check templates argument
-        if templates is None:
-            
-            # OF base required
-            if of_base is None:
-                raise ValueError('ERROR: Either "of_base" or '
-                                 '"templates" argument required!')
-
-            # templates tag required 
-            if (of_base is not None
-                and template_tags is None):
-                raise ValueError('ERROR: "template_tags" required '
-                                 'if "of_base" provided and "templates" '
-                                 'argument is None')
-        
+        # template tag
+        self._template_tag = None
+        if template_tag is not None:
+            self._template_tag = template_tag
         else:
-
-            # check numpy array
-            if (not isinstance(templates, np.ndarray)
-                or templates.ndim != 3):
-                raise ValueError('ERROR: Expecting "templates" to be '
-                                 'a 3D array')
-            self._ntmps = templates.shape[1]
+            if templates is None:
+                raise ValueError('ERROR: template tag required if '
+                                 'templates array not provided!')
+            # assign "default"
+            self._template_tag = 'default'
             
-            if templates.shape[0] != self._nchans:
-                raise ValueError(f'ERROR: Expecting "templates" to have '
-                                 f'shape[0]={self._nchans}!')
-                        
-        # check template tags
-        if template_tags is not None:
-
-            if (not isinstance(template_tags, np.ndarray)
-                or  template_tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            ntmps = template_tags.shape[1]
-            if (self._ntmps is not None
-                and ntmps != self._ntmps):
-                raise ValueError('ERROR: the number of templates M between '
-                                 '"templates" and "template_tags" is not '
-                                 'consistent!')
-           
-            if template_tags.shape[0] != self._nchans:
-                raise ValueError(f'ERROR: Expecting "template_tags" to have '
-                                 f'shape[0]={self._nchans}!')
                             
-
         # Instantiate OF base (if None) and add templates
         self._of_base = of_base
 
         # instantiate OF base if None
         if of_base is None:
+
+            # templates required
+            if templates is None:
+                raise ValueError('ERROR:  Either "of_base" or '
+                                 '"templates" argument required!')
+
             
             # check required parameters
             if sample_rate is None:
@@ -160,30 +129,45 @@ class OFnxm:
             # instantiate
             self._of_base = OFBase(sample_rate, verbose=verbose)
 
+        else:
+
+            if (templates is None and
+                self._of_base.template(self._channel_name,
+                                       self._template_tag) is None):
+                raise ValueError(
+                    f'ERROR: "templates" for channel {self._channel_name} '
+                    f'and tag "{self._template_tag}" not found '
+                    f'in of_base object !')
             
         # add template to base object if templates not None
+        calc_phi = False
         if templates is not None:
-        
+
+            # check array
+            if not isinstance(templates, np.ndarray):
+                raise ValueError('ERROR: Expecting "templates" to be '
+                                 'a numpy array')
+
+            if templates.ndim == 1:
+                templates = templates[np.newaxis, np.newaxis, :]  # 1 channel, 1 template
+            elif templates.ndim == 2:
+                templates = templates[np.newaxis, :, :]            # 1 channel, multiple templates
+            elif templates.ndim != 3:
+                raise ValueError('ERROR: "templates" input must be 1D, 2D, or 3D')    
+
+            if templates.shape[0] != self._nchans:
+                raise ValueError(f'ERROR: Expecting "templates" to have '
+                                 f'shape[0]={self._nchans}!')
+            # calc phi
+            calc_phi = True
+            
             fs = self._of_base.sample_rate
             if pretrigger_msec is not None:
                 pretrigger_samples = int(round(fs*pretrigger_msec/1000))
-
-            # create tags if template_tags is None
-            if template_tags is None:
-                
-                template_tags = np.empty(templates.shape[0:2], dtype='object')
-                count = 0
-                for i in range(len(template_tags)):
-                    for j in range(len(template_tags[i])):
-                        template_tags[i][j] = f'default_{count}'
-                        count +=1
-            # verbose
-            print(f'INFO: Adding templates with shape={templates.shape} '
-                  'to OF base object!')
                                     
             # add to OF 
-            self._of_base.add_template_many_channels(
-                self._channel_list, templates, template_tags,
+            self._of_base.add_template(
+                self._channel_name, templates, self._template_tag,
                 pretrigger_samples=pretrigger_samples,
                 integralnorm=integralnorm,
                 overwrite=True
@@ -191,22 +175,33 @@ class OFnxm:
                 
         else:
 
-            is_tag = False
-            tags = self._of_base.template_tags(self._channel_name)
-            for tag in tags:
-                if np.array_equal(tag, template_tags):
-                    is_tag = True
-
-            if not is_tag:
+            templates =  self._of_base.template(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
+            
+            if templates is None:
                 raise ValueError(
                     f'ERROR: No template with tag '
-                    f'"{template_tags}" found for channel '
+                    f'"{template_tag}" found for channel '
                     f'{self._channel_name} in OF base!'
                 )
-                    
-        # save template tags
-        self._template_tags = template_tags
-        self._ntmps = template_tags.shape[1]
+
+
+        # store as internal variable 
+        self._templates =  self._of_base.template(
+            self._channel_name,
+            template_tag=self._template_tag
+        )
+        
+        self._ntmps = self._templates.shape[1]
+        if (self._templates.shape[0] != self._nchans):
+            raise ValueError(f'ERROR: Inconsistent number of channels: '
+                             f'templates: {self._templates.shape[0]}, '
+                             f'input channels {self._channel_name}: '
+                             f'{self._nchans}')
+        
+
         
         # add noise to base object
         if csd is not None:
@@ -214,31 +209,27 @@ class OFnxm:
             if self._verbose:
                 print('INFO: Adding noise CSD to OF base object')
                 
-            self._of_base.set_csd(channels=self._channel_name, csd=csd)
+            self._of_base.set_csd(self._channel_name, csd=csd)
             
-        elif self._of_base.csd(channels=self._channel_name) is None:
+        elif self._of_base.csd(self._channel_name) is None:
             raise ValueError('ERROR: No csd found in OF base object.'
                              ' Add csd argument!')
                   
-        #  template/noise pre-calculation
-        # at this point we have added the csd, and the templates to of_base
-        
-        if self._of_base.iw_matrix(self._channel_name,
-                                self._template_tags) is None:
+        # calculate optimal filter and weight matrix (if not done)
+        if (calc_phi
+            or self._of_base.phi(self._channel_name,
+                                 self._template_tag) is None):
+            if self._verbose:
+                print('INFO: Calculating optimal filter!')
+                
+            self._of_base.calc_phi(self._channel_name,
+                                   self._template_tag)
             
-            self._of_base.calc_weight_matrix(self._channel_name,
-                                          self._template_tags)
-            
-            # calc_weight_matrix will then check that phi_matrix is calculated
-            # calc_phi_matrix in turn checks that the templates are fft'd,
-            # the template matrix is constructed
-            # and i_covf is calculated. So all precalcs are covered.
-
         # initialize fit results
         #variables need to be added (chi2, amp, ntmp,nchan,pretriggersamples, etc.)
         self._nbins = self._of_base._nbins
         self._pretrigger_samples = self._of_base.nb_pretrigger_samples(
-            self._channel_name, self._template_tags
+            self._channel_name, self._template_tag
         )
 
         self._fs = self._of_base.sample_rate
@@ -288,30 +279,56 @@ class OFnxm:
         None
  
         """
-
+                
         # clear internal (signal) data
         self.clear()
-        
+
+                
         # update signal and do preliminary (signal) calculations
         # (like fft signal, filtered signal, signal matrix ...
         if signal is not None:
+
+            # check array
+            if not isinstance(signal, np.ndarray):
+                  raise ValueError('ERROR: signal should be a '
+                                   'numpy array!')
+
+            
+            # check dimension
+            if signal.ndim == 1:
+                signal = signal[np.newaxis, :]
             
             # check if correct size
-            if (not isinstance(signal, np.ndarray)
-                or signal.shape[0] != self._nchans):
+            if signal.shape[0] != self._nchans:
                 raise ValueError('ERROR: Wrong number of channels '
-                                'in "signal" array!')
+                                 'in "signal" array!')
             
             self._of_base.clear_signal()
-            
-            self._of_base.update_signal_many_channels(
+
+            # update signal
+            self._of_base.update_signal(
                 self._channel_name,
                 signal,
-                calc_signal_filt_matrix=True,
-                calc_signal_filt_matrix_td=True,
-                template_tags=self._template_tags)
+                calc_fft=True)
 
-
+        # calculate signal filter
+        if self._of_base.signal_filt(
+            self._channel_name,
+            template_tag=self._template_tag
+        ) is None:
+            
+            self._of_base.calc_signal_filt(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
+            
+            # calculate signal filter td
+            self._of_base.calc_signal_filt_td(
+                self._channel_name,
+                template_tag=self._template_tag
+            )
+            
+              
         # calculate amplitude all times
         self._calc_amp_allt()
 
@@ -416,6 +433,32 @@ class OFnxm:
         return amp, t0, chi2
 
 
+    def get_fit_overlay(self, amp, t0):
+        """
+        Get fit overlay to display fit
+        """
+
+        # get template
+        templates = self._of_base.template(self._channel_name,
+                                           self._template_tag)
+        
+        if templates is None:
+            return []
+
+        # sample rate 
+        fs = self._of_base.sample_rate
+        
+        
+        # fit overlay
+        shift = int(t0 * fs)
+        rolled_templates = np.roll(templates, shift, axis=-1)
+        fit_overlay = np.sum(rolled_templates * amp[None, :, None], axis=1)
+
+
+        return fit_overlay
+
+    
+
     def _calc_amp_allt(self):
         """
         FIXME
@@ -428,23 +471,28 @@ class OFnxm:
 
         if self._of_base.signal_filt_td(
                 self._channel_name,
-                template_tag=self._template_tags
+                template_tag=self._template_tag
         ) is None:
-            self._of_base.calc_signal_filt_matrix_td(
+            if self._verbose:
+                print('INFO: filtered signal not available. '
+                      'Calculating it')
+                
+            self._of_base.calc_signal_filt_td(
                 self._channel_name,
-                self._template_tags)
+                template_tag=self._template_tag)
 
         # signal filt 
         signal_filt = self._of_base.signal_filt_td(
             self._channel_name,
-            template_tag=self._template_tags
+            template_tag=self._template_tag
         )
-
+            
         # inverted weight matrix
-        iw_mat = self._of_base.iw_matrix(self._channel_name,
-                                         self._template_tags)
+        iw = self._of_base.iweight(self._channel_name,
+                                   self._template_tag)
+
         # calculate
-        self._amps_alltimes = (iw_mat @ signal_filt)
+        self._amps_alltimes = (iw @ signal_filt)
            
         # roll with pretrigger_samples 
         temp_amp_roll = np.zeros_like(self._amps_alltimes)
@@ -467,26 +515,23 @@ class OFnxm:
         signal_fft = self._of_base.signal_fft(self._channel_name)
         
         # inverted cov matrix
-        temp_icov_f = self._of_base.icovf(self._channel_name)
+        icov_f = self._of_base.icovf(self._channel_name)
 
         # amplitude all time
-        temp_amp_allt = self._amps_alltimes
+        temp_amp_allt = self._amps_alltimes.copy()
 
         # signal filt
         filt_signal_t = self._of_base.signal_filt_td(
             self._channel_name,
-            template_tag=self._template_tags
+            template_tag=self._template_tag
         )
-        
+
         # calculate chi2
 
         #chi2base is a time independent scalar on the sum over all channels & freq bins
-        chi2base = 0
-        for kchan in range(self._nchans):
-            for jchan in range(self._nchans):
-                chi2base += np.sum(np.dot(
-                    (signal_fft[kchan,:].conjugate())*temp_icov_f[kchan,jchan,:],
-                    signal_fft[jchan,:]))
+        chi2base = np.einsum('kf,kjf,jf->', signal_fft.conjugate(), icov_f,
+                             signal_fft, optimize=True)
+
         chi2base = np.real(chi2base)
         chi2_t = np.zeros_like(temp_amp_allt)
         chi2_t = np.real(np.sum(temp_amp_allt*filt_signal_t, axis=0))
@@ -494,7 +539,7 @@ class OFnxm:
         #this sums along the template
         #dim [ntmp, nbins]
         #chi2_t is the time dependent part
-        self._chi2_alltimes = chi2base-chi2_t
+        self._chi2_alltimes = chi2base - chi2_t
         self._chi2_alltimes_rolled = np.roll(self._chi2_alltimes,
                                              self._pretrigger_samples,
                                              axis=-1)

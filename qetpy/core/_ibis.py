@@ -526,7 +526,11 @@ class IBIS(object):
             ibias_off = np.zeros_like(int_n)
             ibias_off_err = np.zeros_like(int_n)
             rp = self.rp_guess
+            if rp.ndim == 2:
+                rp = rp[np.newaxis,:,:]
             rp_err = self.rp_err_guess
+            if rp_err.ndim == 2:
+                rp_err = rp_err[np.newaxis,:,:]
             int_point_y = int_n
             int_point_x = np.zeros_like(int_n)
 
