@@ -3,6 +3,8 @@ from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
 from qetpy.utils import shift
 from qetpy.core import OFBase
+from qetpy.utils import ifft
+
 
 __all__ = ['OF1x2']
 
@@ -201,12 +203,12 @@ class OF1x2:
         #  template/noise pre-calculation
         if self._of_base.phi(channel, template_1_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_1_tag)
-
+                                   template_tag=template_1_tag)
+            
         if self._of_base.phi(channel, template_2_tag) is None:
             self._of_base.calc_phi(channel,
-                                   template_tags=template_2_tag)
-
+                                   template_tag=template_2_tag)
+            
 
         # calculate p matrix
         self._calc_p_matrix(fit_window)
@@ -241,13 +243,31 @@ class OF1x2:
         
         # calculate signal fft 
         if signal is not None:
+
+            
             self._of_base.update_signal(
                 self._channel,
                 signal,
-                calc_signal_filt=True,
-                calc_signal_filt_td=True,
-                template_tags=[self._template_1_tag , self._template_2_tag]
+                calc_fft=True
             )
+
+            # calculate filtered signal
+            template_tags = [self._template_1_tag , self._template_2_tag]
+                     
+            for tag in template_tags:
+
+                # calculate signal filter
+                self._of_base.calc_signal_filt(
+                    self._channel,
+                    template_tag=tag
+                )
+                
+                # calc signal filter ifft
+                self._of_base.calc_signal_filt_td(
+                    self._channel,
+                    template_tag=tag
+                )
+            
            
         # calculate amplitudes
         amps1, amps2 = self._calc_amps(flag_polarity_constraints, method)
@@ -301,9 +321,9 @@ class OF1x2:
             return
         
         # signal
-        signal = self._of_base.signal(self._channel)
-        template_1 = self._of_base.template(self._channel, self._template_1_tag)
-        template_2 = self._of_base.template(self._channel, self._template_2_tag)
+        signal = self._of_base.signal(self._channel, squeeze_array=True)
+        template_1 = self._of_base.template(self._channel, self._template_1_tag, squeeze_array=True)
+        template_2 = self._of_base.template(self._channel, self._template_2_tag, squeeze_array=True)
 
         fs = self._fs
         nbins = len(signal)
@@ -336,7 +356,7 @@ class OF1x2:
                       self._time_first_pulse ) + shift(
                           self._amplitude[self._template_2_tag]*template_2*1e6 ,
                           self._time_second_pulse),
-                label=(r'OF_1x2, $\chi^2$' + f'/Ndof={chi2:.2f}'),
+                label=(r'OF_1x2x2, $\chi^2$' + f'/Ndof={chi2:.2f}'),
                 color='k')
         
         if xlim_msec is not None:
@@ -356,16 +376,16 @@ class OF1x2:
         """
 
         # get optimal filter and template ffts
-        phis = [self._of_base.phi(self._channel, self._template_1_tag),
-                self._of_base.phi(self._channel, self._template_2_tag)]
+        phis = [self._of_base.phi(self._channel, self._template_1_tag, squeeze_array=True),
+                self._of_base.phi(self._channel, self._template_2_tag, squeeze_array=True)]
 
-        norms = [self._of_base.norm(self._channel, self._template_1_tag),
-                 self._of_base.norm(self._channel, self._template_2_tag)]
+        norms = [self._of_base.weight(self._channel, self._template_1_tag, squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_2_tag, squeeze_array=True)]
 
         template_ffts = [self._of_base.template_fft(self._channel,
-                                                    self._template_1_tag),
+                                                    self._template_1_tag, squeeze_array=True),
                          self._of_base.template_fft(self._channel,
-                                                    self._template_2_tag)]
+                                                    self._template_2_tag, squeeze_array=True)]
         
         # number of templates = 2
         M = len(phis)
@@ -385,7 +405,7 @@ class OF1x2:
             allowed_boundary[:, i, i] = 1.0 #diagonal by definiation
             for j in range(i+1,M):
                 p[:, i, j] = p[:, j, i] = (
-                    np.real(np.fft.ifft(template_ffts[j] * phis[i]) * self._fs)
+                    np.real(ifft(template_ffts[j] * phis[i]) * nbins)
                 )
                 allowed_boundary[:, i, j] = allowed_boundary[:, j, i] = 0
 
@@ -454,16 +474,21 @@ class OF1x2:
 
         # get filtered signal from OF base
         signal_filt_tds = [self._of_base.signal_filt_td(self._channel,
-                                                        self._template_1_tag),
+                                                        self._template_1_tag,
+                                                        squeeze_array=True),
                            self._of_base.signal_filt_td(self._channel,
-                                                        self._template_2_tag)]
-        norms = [self._of_base.norm(self._channel, self._template_1_tag),
-                 self._of_base.norm(self._channel, self._template_2_tag)]
+                                                        self._template_2_tag,
+                                                        squeeze_array=True)]
+        norms = [self._of_base.weight(self._channel, self._template_1_tag,
+                                      squeeze_array=True),
+                 self._of_base.weight(self._channel, self._template_2_tag,
+                                      squeeze_array=True)]
 
         # calculate  q vector
-        q = [signal_filt_tds[0]*norms[0],
-             signal_filt_tds[1]*norms[1]]
-        
+        #q = [signal_filt_tds[0]*norms[0],
+        #     signal_filt_tds[1]*norms[1]]
+        q = [signal_filt_tds[0],
+             signal_filt_tds[1]]
         M = len(q)
         t0s = self._time_combinations
         self._q_vector = np.zeros((M, t0s[:,0].shape[0]))
@@ -596,7 +621,20 @@ class OF1x2:
         t0s = self._time_combinations.copy()
 
         # calculate chi2
-        chi2 = (self._of_base._chisq0[self._channel]
+
+        # chi2 no pulse
+        df = self._of_base.df()
+        psd = self._of_base.psd(self._channel)
+        signal_fft = self._of_base.signal_fft(self._channel,
+                                              squeeze_array=True)
+        
+        chisq0 = np.real(
+            np.dot(signal_fft.conjugate()/psd,
+                   signal_fft)
+        )/df
+
+        
+        chi2 = (chisq0
                 - q_vector_conj[0,:] * amps1
                 - q_vector_conj[1,:] * amps2
                 - self._q_vector[0,:] * amps1

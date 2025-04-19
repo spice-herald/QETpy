@@ -6,7 +6,7 @@ from qetpy.utils import convert_channel_name_to_list, convert_channel_list_to_na
 from numpy.linalg import pinv as pinv
 import time
 import copy
-import uuid
+
 
 __all__ = ['OFBase']
 
@@ -57,14 +57,9 @@ class OFBase:
         self._templates = dict()
         self._templates_fft = dict()
 
-        # template tags for NxM
-        # and time constraints
-        self._template_matrix_tags = dict()
+        # time constraint for NxMx2
         self._time_constraints = dict()
- 
-        # initialize two-sided noise psd (in Amps^2/Hz)
-        self._psd = dict()
-
+    
         # initialize two-sided noise csd (in Amps^2/Hz)
         self._csd = dict()
 
@@ -78,8 +73,8 @@ class OFBase:
         # initialize calculated optimal filter and norm
         # (independent of signal)
         self._phis = dict()
-        self._norms = dict()
-        self._iw_matrix = dict()
+        self._weights = dict()
+        self._iweights = dict()
         self._p_matrix  = dict()
         self._p_matrix_inv  = dict()
       
@@ -99,12 +94,6 @@ class OFBase:
         self._template_filts = dict()
         self._template_filts_td = dict()
     
-        # 1X1 OF : initialize amplitudes and chi2 (for all times)
-        # dict key = template tag
-        self._chisq0 = dict() # "no pulse" chisq (independent of template)
-        self._chisqs_alltimes_rolled = dict() # chisq all times
-        self._amps_alltimes_rolled = dict() # amps all times
-
 
     @property
     def verbose(self):
@@ -115,6 +104,16 @@ class OFBase:
         return self._fs
 
 
+    # =====================================================
+    # Get data
+    # =====================================================
+    def df(self):
+        """
+        Frequency resolution
+        """
+
+        return self._df
+    
     def nb_samples(self):
         """
         Number of samples
@@ -129,26 +128,20 @@ class OFBase:
         """
         return self._fft_freqs
 
-    def nb_pretrigger_samples(self, channel, template_tag):
+    def nb_pretrigger_samples(self, channels, template_tag='default'):
         """
         get pretrigger samples
         """
 
         # convert to string if needed (if str, return same string)
-        channel_name = convert_channel_list_to_name(channel)
-        channel_list = convert_channel_name_to_list(channel)
-
+        channel_name = convert_channel_list_to_name(channels)
+        
         pretrigger_samples = None
-        if channel_name in self._pretrigger_samples.keys():
-            tag =  template_tag
-            if len(channel_list) > 1:
-                tag = self._get_template_matrix_tag(
-                    channel_list, template_tag
-                )
-            if tag in self._pretrigger_samples[channel_name]:
-                pretrigger_samples = (
-                    self._pretrigger_samples[channel_name][tag]
-                )
+        if (channel_name in self._pretrigger_samples
+            and template_tag in self._pretrigger_samples[channel_name]):
+            pretrigger_samples = (
+                self._pretrigger_samples[channel_name][template_tag]
+            )
                 
         return pretrigger_samples
 
@@ -158,9 +151,7 @@ class OFBase:
         Get channel list based on 
         PSD and CSD
         """
-
-        channels = list(self._psd.keys())
-        channels.extend(list(self._csd.keys()))
+        channels = list(self._csd.keys())
         return channels
 
     
@@ -184,23 +175,18 @@ class OFBase:
 
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-        
+  
+        tags = []
         if channel_name in self._templates.keys():
-            tags_temp = list(self._templates[channel_name].keys())
-            tags = []
-            for tag in tags_temp:
-                if 'matrix_tag' in tag:
-                    tags.append(self._template_matrix_tags[channel_name][tag])
-                else:
-                    tags.append(tag)
-            return tags
-        else:
-            return []
+            tags = list(self._templates[channel_name].keys())
+        
+        return tags
 
         
         
-    def template(self, channels, template_tag='default'):
+    def template(self, channels,
+                 template_tag='default',
+                 squeeze_array=False):
         """
         Get template (s) in time domain for the specified tag
 
@@ -215,11 +201,14 @@ class OFBase:
         template_tag : str (single channel)
                         or 2D array (multiple channels)
           template tags/id
+
+        squeeze_array : boolean
+          array store as 3D, flag to sequeeze to 1D or 2D
                    
         Return
         ------
 
-        template(s) : ndarray
+        template(s) : ndarray 1D, 2D, or 3D 
          template trace(s)  in time domain
          if multiple channels:
             template dim: [nchans, ntmps, nbins]
@@ -228,37 +217,24 @@ class OFBase:
 
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channels
-        if len(channel_list) > 1:
-
-            if (not isinstance(template_tag, np.ndarray)
-                or  template_tag.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tag" '
-                                 'to be a (2D) numpy array')
-
-            matrix_tag = self._get_template_matrix_tag(
-                channel_list, template_tag
-            )
-            
-            # build matrix if not available
-            if (channel_name not in self._templates
-                or matrix_tag not in self._templates[channel_name]):
-                self.build_template_matrix(channels,
-                                           template_tag,
-                                           matrix_tag)
-            template_tag =  matrix_tag
-             
-                         
-        if (channel_name in self._templates.keys()
-            and template_tag in self._templates[channel_name].keys()):
-            return self._templates[channel_name][template_tag]
-        else:
+        # check available
+        if (channel_name not in self._templates
+            or template_tag not in self._templates[channel_name]):
             return None
+                 
+        # get template matrix (3D)
+        template = self._templates[channel_name][template_tag]
+        if squeeze_array:
+            template = np.squeeze(template)
+
+        return template
+    
                         
  
-    def template_fft(self, channels, template_tag='default'):
+    def template_fft(self, channels,
+                     template_tag='default',
+                     squeeze_array=False):
         """
         Get template FFT for the specified tag(s)
 
@@ -285,37 +261,70 @@ class OFBase:
 
         """
 
-        # channel name and list
+        # channel name
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channels
-        if len(channel_list) > 1:
+        # check available
+        if (channel_name not in self._templates_fft
+            or template_tag not in self._templates_fft[channel_name]):
+            return None
+                   
+        # get template matrix (3D)
+        template_fft = self._templates_fft[channel_name][template_tag]
+        if squeeze_array:
+            template_fft = np.squeeze(template_fft)
 
-            if (not isinstance(template_tag, np.ndarray)
-                or  template_tag.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tag" '
-                                 'to be a (2D) numpy array')
+        return template_fft
+        
+    def template_group_ids(self, channels,
+                           time_constraints_tag='default'):
+        """
+        Get NxMx2 template group ids for specified channel
+        """
+        
+        # channel name
+        channel_name = convert_channel_list_to_name(channels)
 
-            matrix_tag = self._get_template_matrix_tag(
-                channel_list, template_tag
-            )
-            
-            # build matrix if not available
-            if (channel_name not in self._templates
-                or matrix_tag not in self._templates[channel_name]):
-                self.build_template_matrix(channels,
-                                           template_tag,
-                                           matrix_tag)
-            template_tag = matrix_tag
-             
-                         
-        if (channel_name in self._templates_fft.keys()
-            and template_tag in self._templates_fft[channel_name].keys()):
-            return self._templates_fft[channel_name][template_tag]
-        else:
+        # check available
+        if (channel_name not in self._time_constraints
+            or time_constraints_tag not in self._time_constraints[channel_name]):
+            raise ValueError(f'ERROR: NxMx2 time constraints not available for '
+                             f'channel {channel_name} and tag '
+                             f'{time_constraints_tag}')
+        
+        # get constraints
+        time_constraints = self._time_constraints[channel_name][time_constraints_tag]
+
+        if 'template_group_ids' not in time_constraints:
+            raise ValueError(f'ERROR: "template_group_ids" not available for '
+                             f'channel {channel_name} and tag '
+                             f'{time_constraints_tag}')
+
+        return time_constraints['template_group_ids']
+
+
+    def time_combinations(self, channels,
+                          time_constraints_tag='default'):
+        """
+        Get NxMx2 time_combinations for specified channel
+        """
+        
+        # channel name
+        channel_name = convert_channel_list_to_name(channels)
+
+        # check available
+        if (channel_name not in self._time_constraints
+            or time_constraints_tag not in self._time_constraints[channel_name]):
+            return None
+        
+        # get constraints
+        time_constraints = self._time_constraints[channel_name][time_constraints_tag]
+
+        if 'time_combinations' not in time_constraints:
             return None
 
+        return time_constraints['time_combinations']
+    
         
     def psd(self, channel):
         """
@@ -335,10 +344,15 @@ class OFBase:
 
         """
 
-        if channel in self._psd.keys():
-            return self._psd[channel]
-        else:
+        channel_name = convert_channel_list_to_name(channel)
+        
+        if channel_name not in self._csd.keys():
             return None
+        
+        array = self._csd[channel_name]
+        array = np.squeeze(array)
+        
+        return array
 
     def csd(self, channels):
         """
@@ -363,8 +377,10 @@ class OFBase:
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
 
+        # get add and return
         if channel_name in self._csd.keys():
-            return self._csd[channel_name]
+            csd = self._csd[channel_name]
+            return csd.copy()
         else:
             return None
 
@@ -397,7 +413,7 @@ class OFBase:
             return None
 
         
-    def signal(self, channels):
+    def signal(self, channels, squeeze_array=False):
         """
         Get signal trace(s) in time domain
       
@@ -410,26 +426,38 @@ class OFBase:
        '
         Return
         ------
-        signal : ndarray
+        signal : ndarray 1D or 2D
           time domain signal trace
-          if multiple channels:
+          if multiple channels or squeeze_array=False
              ndarray = [nchans, nsamples]
         """
+
+        # check nsamples
+        if self._nbins is None:
+            raise ValueError('ERROR: No signal stored!')
+
         
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
+        nchans = len(channel_list)
+
+        signal_array = np.zeros((nchans, self._nbins),
+                                dtype='float64')
         
-        if channel_name in self._signals.keys():
-            return self._signals[channel_name]
-        elif len(channel_list) > 1:
-            self.build_signal_matrix(channel_name, signal_fft=False)
-            return self._signals[channel_name]
-        else:
-            return None
+        for ichan, chan in enumerate(channel_list):
+            if chan not in self._signals:
+                raise ValueError(f'ERROR: No signal stored for '
+                                 f'{chan} !')
+            signal_array[ichan,:] = self._signals[chan]
+
+        if squeeze_array:
+             signal_array  = np.squeeze(signal_array)
+
+        return signal_array
+                
         
-        
-    def signal_fft(self, channels):
+    def signal_fft(self, channels, squeeze_array=False):
         """
         Get current signal(s) trace FFT
 
@@ -445,26 +473,38 @@ class OFBase:
         ------
         signals_fft : ndarray
           signal trace FFT
-          if multiple channels:
+          if multiple channels or squeeze_array=False
              ndarray = [nchans, nsamples]
 
         """
 
+        # check nsamples
+        if self._nbins is None:
+            raise ValueError('ERROR: No signal  stored!')
+
+        
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
         channel_list = convert_channel_name_to_list(channels)
+        nchans = len(channel_list)
+        
+        signal_array = np.zeros((nchans, self._nbins),
+                                dtype=np.complex128)
+        
+        for ichan, chan in enumerate(channel_list):
+            if chan not in self._signals_fft:
+                raise ValueError(f'ERROR: No signal FFT stored for '
+                                 f'{chan} !')
+            signal_array[ichan,:] = self._signals_fft[chan]
 
-        # get/return data
-        if channel_name in self._signals_fft.keys():
-            return self._signals_fft[channel_name]
-        elif len(channel_list) > 1:
-            self.build_signal_matrix(channel_name, signal_fft=True)
-            return self._signals_fft[channel_name]
-        else:
-            return None
-        
-        
-    def phi(self, channels, template_tag='default'):
+        if squeeze_array:
+             signal_array  = np.squeeze(signal_array)
+
+        return signal_array
+
+    
+    def phi(self, channels, template_tag='default',
+            squeeze_array=False):
         """
         Get 'optimal filter' (phi) for a specified
         template tag, depends only
@@ -489,56 +529,67 @@ class OFBase:
 
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channel
-        # or single channel represented as 2D 1x1 template array
-        if len(channel_list) > 1 or isinstance(template_tag, np.ndarray):
-            
-            if (not isinstance(template_tag, np.ndarray)
-                or  template_tag.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tag" '
-                                 'to be a (2D) numpy array')
-            
-            template_tag = self._get_template_matrix_tag(
-                channel_list, template_tag
-            )
-       
-        if (channel_name in self._phis
-            and template_tag in self._phis[channel_name]):
-            return self._phis[channel_name][template_tag]
-        else:
+
+        # check availability
+        if (channel_name not in self._phis
+            or template_tag not in self._phis[channel_name]):
             return None
+   
+        # get array
+        phi = self._phis[channel_name][template_tag]
 
-    def norm(self, channel, template_tag='default'):
+        # squeeze
+        if squeeze_array:
+            phi = np.squeeze(phi)
 
+        return phi
+
+  
+    def weight(self, channels, template_tag='default',
+               squeeze_array=False):
         """
-        Method to return norm for the optimum filter
-        (this is the denominator of amplitude estimate)
-        for the specified template tag
-
+        Get the weighting matrix for the specified combination
+        of channels. 
+        
         Parameters
         ----------
-        channel : str
-          channel name
+        
+        channels : str or array-like
+            channels as "|" separated string
+            such as "channel1|channel2"
 
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
+        template_tag : str
+             tag associate with templates
 
         Returns
         -------
-        norm : float
-            normalization for the optimum filter
+        
+        w : ndarray, dimn: [ntmps,ntmps]
+            The inverted matrix which describes how we weight each
+            template w/ respect to one another. This is "norms" in the 
+            1x1. 
         """
-        if (channel in self._norms.keys()
-            and template_tag in self._norms[channel].keys()):
-            return self._norms[channel][template_tag]
-        else:
+        
+        # channel name and list
+        channel_name = convert_channel_list_to_name(channels)
+
+        # check if available
+        if (channel_name not in self._weights
+            or template_tag not in self._weights[channel_name]):
             return None
+            
+        w = self._weights[channel_name][template_tag]
 
-
-    def iw_matrix(self, channels, template_tags):
+        if squeeze_array:
+            w = np.squeeze(w)
+            if (w.ndim==1 and len(w)==1):
+                w = float(w[0])
+            
+        return w
+    
+    def iweight(self, channels, template_tag='default',
+                squeeze_array=False):
         """
         Get the inverted weighting matrix for the specified combination
         of channels. 
@@ -550,13 +601,13 @@ class OFBase:
             channels as "|" separated string
             such as "channel1|channel2"
 
-        template_tags : 2D array [nchans, ntmps]
-             template tags array
+        template_tag : str
+             tag associate with templates
 
         Returns
         -------
         
-        iw_mat: ndarray, dimn: [ntmps,ntmps]
+        iw : ndarray, dimn: [ntmps,ntmps]
             The inverted matrix which describes how we weight each
             template w/ respect to one another. This is "norms" in the 
             1x1. 
@@ -564,23 +615,25 @@ class OFBase:
         
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-        
-        # get matrix tag
-        matrix_tag = self._get_template_matrix_tag(
-            channel_list, template_tags
-        )
-        
-        if (channels in self._iw_matrix
-            and matrix_tag in self._iw_matrix[channels]):
-            return self._iw_matrix[channels][matrix_tag]
-        else:
+
+        # check if available
+        if (channel_name not in self._iweights
+            or template_tag not in self._iweights[channel_name]):
             return None
+            
+        iw = self._iweights[channel_name][template_tag]
+
+        if squeeze_array:
+            iw = np.squeeze(iw)
+            if (iw.ndim==1 and len(iw)==1):
+                iw = float(iw[0])
+        
+        return iw
+    
 
     def p_matrix_inv(self, channels,
-                     template_tags,
-                     template_time_tags,
-                     time_combinations):
+                     template_tag='default',
+                     time_constraints_tag='default'):
         """
         Get NxMx2 p_matrix INVERTED
         
@@ -589,35 +642,25 @@ class OFBase:
 
         # convert to nname
         channel_name = convert_channel_list_to_name(channels)
-                    
-        # get matrix name
-        matrix_tag = self._get_template_matrix_tag(
-            channel_name, template_tags
-        )
 
-      
-        # create dictionary with all constraints
-        constraints_dict = {
-            'template_time_tags': template_time_tags,
-            'time_combinations': time_combinations
-        } 
-        
-        constraints_tag = self._get_time_constraints_tag(
-            channels, template_tags, constraints_dict
-        )
+        # combined tag
+        combined_tag = f'{template_tag}_{time_constraints_tag}'
 
+
+        # check
         if (channel_name not in self._p_matrix_inv
-            or matrix_tag not in self._p_matrix_inv[channel_name]
-            or constraints_tag not in self._p_matrix_inv[channel_name][matrix_tag]):
+            or combined_tag not in self._p_matrix_inv[channel_name]):
             return None
+
+        # return
     
-        return self._p_matrix_inv[channel_name][matrix_tag][constraints_tag]
+        return self._p_matrix_inv[channel_name][combined_tag]
+    
 
     
     def p_matrix(self, channels,
-                 template_tags,
-                 template_time_tags,
-                 time_combinations):
+                 template_tag='default',
+                 time_constraints_tag='default'):
         """
         Get NxMx2 p_matrix
         
@@ -626,49 +669,38 @@ class OFBase:
 
         # convert to nname
         channel_name = convert_channel_list_to_name(channels)
-                    
-        # get matrix name
-        matrix_tag = self._get_template_matrix_tag(
-            channel_name, template_tags
-        )
 
-      
-        # create dictionary with all constraints
-        constraints_dict = {
-            'template_time_tags': template_time_tags,
-            'time_combinations': time_combinations
-        } 
-        
-        constraints_tag = self._get_time_constraints_tag(
-            channels, template_tags, constraints_dict
-        )
+        # combined tag
+        combined_tag = f'{template_tag}_{time_constraints_tag}'
 
+        # check
         if (channel_name not in self._p_matrix
-            or matrix_tag not in self._p_matrix[channel_name]
-            or constraints_tag not in self._p_matrix[channel_name][matrix_tag]):
+            or combined_tag not in self._p_matrix[channel_name]):
             return None
-    
-        return self._p_matrix[channel_name][matrix_tag][constraints_tag]
-
+        
+        # return
+        return self._p_matrix[channel_name][combined_tag]
 
 
     
  
-    def signal_filt(self, channels, template_tag='default'):
+    def signal_filt(self, channels,
+                    template_tag='default',
+                    squeeze_array=False):
         """
         Get (optimal) filtered signal in frequency domain
         for the specified template tag
 
-        signal_filt = phi*signal_fft/norm
+        signal_filt = phi*signal_fft
 
         Parameters
         ----------
         channel : str or list
           channel name
 
-        template_tag : str, 2D array optional
-          template tag/id
-          default: 'defaul'
+        template_tag : str
+          tag associated with template
+          default: 'default'
 
 
         Returns
@@ -680,33 +712,27 @@ class OFBase:
 
         # channel name and list
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channel -> get matrix tag
-        if len(channel_list) > 1:
-            if (not isinstance(template_tag, np.ndarray)
-                or  template_tag.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tag" '
-                                 'to be a (2D) numpy array')
-            
-            template_tag = self._get_template_matrix_tag(
-                channel_list, template_tag
-            )
-       
-        if (channel_name in self._signals_filts
-            and template_tag in self._signals_filts[channel_name]):
-            return self._signals_filts[channel_name][template_tag]
-        else:
+
+        # check availability
+        if (channel_name not in self._signals_filts
+            or  template_tag not in self._signals_filts[channel_name]):
             return None
-    
+            
+        # get array and squeeze
+        array = self._signals_filts[channel_name][template_tag]
+        if squeeze_array:
+            array = np.squeeze(array)
+        
 
-    def signal_filt_td(self, channels, template_tag='default'):
+        return array
+
+    def signal_filt_td(self, channels,
+                       template_tag='default',
+                       squeeze_array=False):
         """
         Get (optimal) filtered signal converted back to time domain
         for the specified template tag
-
-        signal_filt_td = ifft(signal_filt)
-                       = ifft(phi*signal_fft/norm)
 
         Parameters
         ----------
@@ -724,37 +750,36 @@ class OFBase:
 
         """
 
+        # channel name 
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
 
-        # multiple channel -> get matrix tag
-        if len(channel_list) > 1:
-            if (not isinstance(template_tag, np.ndarray)
-                or  template_tag.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tag" '
-                                 'to be a (2D) numpy array')
-            
-            template_tag = self._get_template_matrix_tag(
-                channel_list, template_tag
-            )
-       
-        if (channel_name in self._signals_filts_td
-            and template_tag in self._signals_filts_td[channel_name]):
-            return self._signals_filts_td[channel_name][template_tag]
-        else:
+        
+        # check availability
+        if (channel_name not in self._signals_filts_td
+            or  template_tag not in self._signals_filts_td[channel_name]):
             return None
+                    
+        # get array and squeeze
+        array = self._signals_filts_td[channel_name][template_tag]
+        if squeeze_array:
+            array = np.squeeze(array)
+
+        return array
+    
 
 
-    def template_filt(self, channel, template_tag='default'):
+    def template_filt(self, channels,
+                      template_tag='default',
+                      squeeze_array=False):
         """
-        FIXME: no implemented yet
+        (optimal) filtered template 
 
         Get (optimal) filtered template in frequency domain
         for a specified template tag
 
         Parameters
         ----------
-        channel : str
+        channels : str
           channel name
 
         template_tag : str, optional
@@ -763,21 +788,34 @@ class OFBase:
 
         Returns
         -------
-        template_filt  : 1darray
+        template_filt  : ndarray
            optimal filtered template in fourier domain
 
 
         """
-        if (channel in self._template_filts.keys()
-            and template_tag in self._template_filts[channel].keys()):
-            return self._template_filts[channel][template_tag]
-        else:
+
+        # channel name 
+        channel_name = convert_channel_list_to_name(channels)
+        
+        # check availability
+        if (channel_name not in self._template_filts
+            or  template_tag not in  self._template_filts[channel_name]):
             return None
+            
+        # get array and squeeze
+        array = self._template_filts[channel_name][template_tag]
+        if squeeze_array:
+            array = np.squeeze(array)
+
+        return array
 
 
-    def template_filt_td(self, channel, template_tag='default'):
+
+    def template_filt_td(self, channels,
+                         template_tag='default',
+                         squeeze_array=False):
         """
-        FIXME: no implemented yet
+        (optimal) filtered template, invert fourier transformed
 
         Get (optimal) filtered template converted back to time domain
         for a specified template tag
@@ -797,135 +835,57 @@ class OFBase:
            optimal filtered template in time domain
         """
 
-        if (channel in self._template_filts_td.keys()
-            and template_tag in self._template_filts_td[channel].keys()):
-            return self._template_filts_td[channel][template_tag]
-        else:
-            return None
-
-
-    def time_constraints_dicts(self, channels, template_tags,
-                               template_time_tags=None,
-                               time_combinations=None):
-        """
-        Get list of time constraints for specified 
-        template_tags
-        """
-
-        # channel name and list
+        
+        # channel name 
         channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-
-        # matrix tag
-        matrix_tag = self._get_template_matrix_tag(
-            channel_list, template_tags
-        )
-
-        if (channel_name not in self._time_constraints
-            or matrix_tag not in self._time_constraints[channel_name]):
-            return []
         
-        # get list of constraint tags
-        constraints_tag = None
-        if template_time_tags is not None:
-            
-            # create dictionary with all constraints
-            constraints_dict = {
-                'template_time_tags': template_time_tags,
-                'time_combinations': time_combinations
-            } 
+        # check availability
+        if (channel_name not in self._template_filts_td
+            or  template_tag not in  self._template_filts_td[channel_name]):
+            raise None
         
-            constraints_tag = self._get_time_constraints_tag(
-                channels, template_tags, constraints_dict
-            )
-             
-        constraints_tag_dict = self._time_constraints[channel_name][matrix_tag]
-        time_constraints = list()
-        for tag, constraints in  constraints_tag_dict.items():
-
-            if (constraints_tag is None
-                or tag == constraints_tag):
-                time_constraints.append(constraints)
-   
-        return time_constraints
             
+        # get array and squeeze
+        array = self._template_filts_td[channel_name][template_tag]
+        if squeeze_array:
+            array = np.squeeze(array)
+
+        return array
+
+
+    # =====================================================
+    # Set data
+    # =====================================================
     
-    def calc_time_combinations(self,
-                               fit_window,
-                               restrict_time_flag):
-        """
-        calc time combinations OF NxMx2
-        
-        Parameters
-        ----------
-            
-        fit_window :   array-likein integer
-           used for preparing the time window for nxmx2 fit
-           in samples. Ex:  [[-625,625],[-625,1250]]
-
-        
-        Return
-        ------
-        time combinations
-
-        """
-                
-        # time constraints
-        time_combinations1 = None
-        time_combinations2 = None
-        if fit_window is None:
-            time_combinations1 = np.arange(int(-self._nbins/2),
-                                           int(self._nbins/2))
-            time_combinations2 = np.arange(int(-self._nbins/2),
-                                           int(self._nbins/2))
-        else:
-            time_combinations1 = np.arange(int(fit_window[0][0]),
-                                           int(fit_window[0][1]))
-            time_combinations2 = np.arange(int(fit_window[1][0]),
-                                           int(fit_window[1][1]))
-
-        time_combinations = None
-        if restrict_time_flag:
-            print("INFO: Flag to restrict the time window is ON!! ")
-            X,Y = np.meshgrid(time_combinations1, time_combinations2)
-            mask = X <= Y
-            indices = np.where(mask)
-            time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
-        else:
-            time_combinations = (
-                np.stack(np.meshgrid(time_combinations1,
-                                     time_combinations2), -1).reshape(-1, 2)
-            )
-
-        return time_combinations
-
-
-
-    
-    def add_template(self, channel, template,
+      
+    def add_template(self, channels, templates,
                      template_tag='default',
                      pretrigger_samples=None,
                      maxnorm=False,
                      integralnorm=False,
                      overwrite=False):
         """
-        Add template with a user specified tag. If template
-        with same tag already exist, it is overwritten!
 
-        immediately calculate template FFT automatically
+        Add NxM template(s) (1D or 2D array) with a user specified tag. 
+        Calculate template FFT automatically
 
         Parameters
         ----------
-        channel : str
-          channel name
+        channels : str or list of str 
+          channel name (s): 
+                "chan1" or "chan1|chan2" = ["chan1", "chan2"]
 
-        template : nd array
-           template numpy 1d array
+        templates : nd array 1D, 2D, or 3D
+           1D: 1x1 template array
+           2D: 1xM template array
+           3D: NxM template array (N channels, M templates, samples)
 
-        template_tag : string 
-           optional [default='default']
-           name associated to the template
-           if multiple templates
+        template_tag : str 
+           tag name associated to the template
+ 
+        template_group_ids : array
+          groups used for multi-template array with each having 2 time degree of freedom
+          used for OF calculation (NxMx2 calculation)
 
         pretrigger_samples : int, optional
             number of pretrigger samples (default: 1/2 trace)
@@ -944,36 +904,66 @@ class OFBase:
 
         """
 
+        # convert channel name
+        channel_name = convert_channel_list_to_name(channels)
+        channel_list = convert_channel_name_to_list(channels)
+        nchans = len(channel_list)
+
+        # convert array to 3D
+        if templates.ndim == 1:
+            templates = templates[np.newaxis, np.newaxis, :]  # 1 channel, 1 template
+        elif templates.ndim == 2:
+            templates = templates[np.newaxis, :, :]            # 1 channel, multiple templates
+        elif templates.ndim != 3:
+            raise ValueError('ERROR: "templates" input must be 1D, 2D, or 3D')        
+
+
+
+        # check number of channels
+        if (nchans != templates.shape[0]):
+            raise ValueError(f'ERROR: Template array has wrong size! '
+                             f'Expecting {nchans} channel(s), however '
+                             f'template.shape[0] = {templates.shape[0]}')
+        
+        # check template tag
+        if (template_tag is None
+            or not isinstance(template_tag, str)):
+            raise ValueError('ERROR: "template_tag" expected '
+                             'to be a string')
+        
         # check if existe already
         if not overwrite:
-            if (channel in self._templates
-                and template_tag is not None
-                and template_tag in self._templates[channel]):
+            if (channel_name in self._templates
+                and template_tag in self._templates[channel_name]):
                 raise ValueError(
                     f'ERROR: A template with tag "{template_tag}" '
-                    f'already exist for channel {channel}! Use '
+                    f'already exist for channel {channel_name}! Use '
                     f'overwrite=True if needed')
         
         # normalize template
         if maxnorm:
-            max_temp = np.max(template)
-            if max_temp != 0:
-                template = template/max_temp
-
+            max_values = np.max(templates, axis=-1, keepdims=True)
+            safe_max = np.where(max_values == 0, 1, max_values)
+            templates = templates / safe_max
+            
+                
         # add to dictionary
-        if channel not in self._templates:
-            self._templates[channel] = dict()
+        if channel_name not in self._templates:
+            self._templates[channel_name] = dict()
 
-        self._templates[channel][template_tag] = template
+        # check isnan
+        templates[np.isnan(templates)] = 0
+        self._templates[channel_name][template_tag] = copy.deepcopy(templates)
         
         # Store number of samples
-        nbins = template.shape[-1]
+        # (all data in same OF base object should have same number of samples)
+        nbins = templates.shape[-1]
         if  self._nbins is None:
             self._nbins = nbins
         elif nbins != self._nbins:
             raise ValueError(
                 f'ERROR: Inconsistent number of samples '
-                f'for channel {channel}, tag={template_tag}. '
+                f'for channel {channel_name}, tag={template_tag}. '
                 f'psd/template with same tag must have same '
                 f'number of samples!')
 
@@ -981,109 +971,42 @@ class OFBase:
         # frequency resolution
         df = self._fs/nbins
 
-        if  self._df is None:
+        if self._df is None:
             self._df = df
 
-
         # FFT
-        self._fft_freqs, template_fft = fft(template, self._fs, axis=-1)
+        self._fft_freqs, templates_fft = fft(templates, self._fs, axis=-1)
         if integralnorm:
-            template_fft /= template_fft[0]
+            dc = templates_fft[...,:1]
+            safe_dc = np.where(dc == 0, 1, dc)
+            templates_fft = templates_fft / safe_dc
 
         # store
-        if channel not in self._templates_fft.keys():
-            self._templates_fft[channel] = dict()
+        if channel_name not in self._templates_fft.keys():
+            self._templates_fft[channel_name] = dict()
+            
+        self._templates_fft[channel_name][template_tag] = templates_fft/nbins
 
-        self._templates_fft[channel][template_tag] = template_fft/nbins/df
-
-        # pre-trigger
+                   
+        # store pre-trigger
         if pretrigger_samples is None:
             pretrigger_samples = nbins//2
-        # store
-        if channel not in self._pretrigger_samples.keys():
-            self._pretrigger_samples[channel] = dict()
-        self._pretrigger_samples[channel][template_tag] =  pretrigger_samples
+
+        if channel_name not in self._pretrigger_samples.keys():
+            self._pretrigger_samples[channel_name] = dict()
+        self._pretrigger_samples[channel_name][template_tag] =  pretrigger_samples
 
         # debug
         if self._debug:
             print(f'DEBUG: Add template "{template_tag}" for '
-                  f'channel "{channel}"!')
-
-
-    def add_template_many_channels(self, channels,
-                                   templates, template_tags,
-                                   pretrigger_samples=None,
-                                   maxnorm=False,
-                                   integralnorm=False,
-                                   build_matrix=True,
-                                   overwrite=False):
-        """
-        Add templates for multiple channels
-        
-
-        Parameters
-        ----------
-        
-        channels : str or array-like of string
-          name of the channels
-
-        templates : 3D numpy array
-            template array [nchans, ntmps, nsamples]
-          
-        template_tags : 2D numpy array 
-            template tags  [nchans, ntmps]
-
-        pretrigger_samples : int, optional
-            number of pretrigger samples (default: 1/2 trace)
-
-        integralnorm : bool, optional [default = False]
-            If set to True, then  template will be normalized
-            to an integral of 1, and any optimum filters will
-            instead return the optimum integral in units of Coulombs.
-            If set to False, then the usual optimum filter amplitudes
-            will be returned (in units of Amps).
-
-        overwrite : boolean
-           if True, overwrite existing templates with same tag
-
-        """
-        # channel name and list
-        channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-        nchans = len(channel_list)
-        
-        # check array size 
-        if (not isinstance(templates, np.ndarray)
-            or templates.ndim != 3):
-            raise ValueError('ERROR: Expecting "templates" to be '
-                             'a 3D array')
-        
-        if (not isinstance(template_tags, np.ndarray)
-            or  template_tags.ndim != 2):
-            raise ValueError('ERROR: Expecting "template_tags" '
-                             'to be a (2D) numpy array')
-        
-       
-        # number of templates
-        for ichan, chan in enumerate(channel_list):
-            chan_tags =  template_tags[ichan,:]
-            chan_arrays = templates[ichan,:,:]
-
-            for itmp in range(chan_arrays.shape[0]):
-                self.add_template(chan, chan_arrays[itmp],
-                                  template_tag=chan_tags[itmp],
-                                  pretrigger_samples=pretrigger_samples,
-                                  integralnorm=integralnorm,
-                                  overwrite=True)
-
-        # build matrix
-        if (build_matrix and nchans >  1):
-            self.build_template_matrix(channels, template_tags)
+                  f'channel "{channel_name}"!')
             
                 
-    def set_time_constraints(self, channels, template_tags,
-                             template_time_tags,
-                             time_combinations):
+    def set_time_constraints(self, channels, 
+                             template_group_ids,
+                             fit_window,
+                             restrict_time_flag=True,
+                             time_constraints_tag='default'):
         """
         Set template time constraints for OF NxMx2
         
@@ -1094,46 +1017,66 @@ class OFBase:
                 array-like or  "|" separated string
                 such as "channel1|channel2"
 
-        template_tags : 2D numpy array 
-            template tags  [nchans, ntmps]
-
-        template_time_tags : 1D numpy array 
+        template_group_ids : 1D numpy array 
              time tage used for multi-template array with each having 
              2 time degree of freedom, Ex [0,1,0,0] -> 1st,3rd, 4th template 
              move together 
              
+         fit_window :  used for preparing the time window for nxmx2 filter, 
+                   
+             time_combinations1 = np.arange(int(fit_window[0][0]), int(fit_window[0][1]))
+             time_combinations2 = np.arange(int(fit_window[1][0]), int(fit_window[1][1]))
+
+        restrict_time_flag : boolean, optional
+
+        time_constraints_tag : str
+          tag associated to time contraints, to store cosntraint in 
+          dictionary
+
         Return
         ------
         None
 
         """
 
+
+        # convert channel name
+        channel_name = convert_channel_list_to_name(channels)
+        channel_list = convert_channel_name_to_list(channels)
+        nchans = len(channel_list)
+
+
+        # convert fit_window into time_combinations
+        time_combinations = self._calc_time_combinations(
+            fit_window,
+            restrict_time_flag
+        )
+        
+
         # create dictionary with all constraints
         constraints_dict = {
-            'template_time_tags': template_time_tags,
-            'time_combinations': time_combinations
+            'template_group_ids': template_group_ids,
+            'time_combinations': time_combinations,
+            'fit_window': fit_window,
+            'restrict_time_flag': restrict_time_flag
         }      
-        
-        
-        # get/create matrix tag asscociated to template_tags
-        matrix_tag = self._get_template_matrix_tag(channels, template_tags)
 
-        # get/create tag for above dictionary
-        constraints_tag = self._get_time_constraints_tag(
-            channels,
-            template_tags,
+
+        # store time constrains
+        if channel_name not in self._time_constraints.keys():
+            self._time_constraints[channel_name] = {}
+            
+        self._time_constraints[channel_name][time_constraints_tag] = (
             constraints_dict
         )
 
-        if self._verbose:
-            print(f'INFO: Created time constraints tag "{constraints_tag}"')       
-        
-
 
                 
-    def set_csd(self, channels, csd):
+    def set_csd(self, channels, csd,
+                coupling='AC',
+                calc_icov=True):
         """
-        Add csd
+        Add csd, calculate inverse (optional)
 
         Parameters
         ----------
@@ -1154,6 +1097,11 @@ class OFBase:
         
         # convert to string if needed (if str, return same string)
         channel_name = convert_channel_list_to_name(channels)
+
+        # convert to 3D if needed
+        if csd.ndim == 1:
+            csd = csd[np.newaxis, np.newaxis, :]
+            
         
         # check if same length as template
         nbins = csd.shape[-1]
@@ -1170,6 +1118,15 @@ class OFBase:
 
         # add to dictionary
         self._csd[channel_name] = csd
+
+        # frequency resolution
+        if self._df is None:
+            self._df= self._fs/nbins
+            
+        # calculate icov
+        if calc_icov:
+            self.calc_icovf(channel_name,
+                            coupling=coupling)
 
 
     def set_psd(self, channel, psd, coupling='AC'):
@@ -1204,7 +1161,7 @@ class OFBase:
             psd[0] = np.inf
 
         # check if same length as template
-        nbins = psd.shape[0]
+        nbins = psd.shape[-1]
 
         if self._nbins is None:
             self._nbins = nbins
@@ -1216,630 +1173,14 @@ class OFBase:
                 f'number of samples!')
 
         # add to dictionary
-        self._psd[channel] = psd
+        csd = psd
+        if psd.ndim == 1:
+            csd = psd[np.newaxis, np.newaxis, :]  # now shape is (1, 1, nfreq)
 
-
-    def clear_signal(self):
-        """
-        Method to intialize calculated signal
-        parameters
-
-        Parameters
-        ----------
-           
-        channels : str or array-like
-           if multi_channels:
-                array-like or  "|" separated string
-                such as "channel1|channel2"
-
-        Return
-        ---------
-        None
-
-        """
-                
-        # signal
-        self._signals = dict()
-        self._signals_fft = dict()
+        self.set_csd(channel, csd, coupling=coupling)
         
-        # (optimal) filtered  signals and templates
-        self._signals_filts = dict()
-        self._signals_filts_td = dict()
-        self._template_filts = dict()
-        self._template_filts_td = dict()
-        
-        # 1x1 chisq and amp arrays
-        self._chisq0 = dict()
-        self._chisqs_alltimes_rolled = dict()
-        self._amps_alltimes_rolled = dict()
-        
-             
-    def update_signal(self, channel, signal,
-                      calc_signal_filt=True,
-                      calc_signal_filt_td=True,
-                      calc_chisq_amp=True,
-                      template_tags=None):
-        """
-        Method to update new signal trace for single channel, 
-        needs to be called each event
 
-        Parameters
-        ----------
-        channel : str
-          channel name
 
-        signal : ndarray
-           the signal that we want to apply the optimum filter to
-           (units should be Amps).
-
-        calc_signal_filt : bool, optional
-           If true calculate signal filt for tags specified with "template_tags" or
-           all tags if None
-           Default: True
-
-        calc_signal_filt_td : bool, optional
-           If true calculate signal filt and convert back to time domain
-           for tags specified with "template_tags" or
-           all tags if None
-            Default: True
-
-        calc_chisq_amp : bool, optional
-           If true calculate (rolled) chisq/amps for all times
-           for tags specified with "template_tags" or
-           all tags if None
-           Default: True
-
-        template_tags : array-like
-           list of template tags
-
-        Return
-        ------
-        None
-        """
-        # check nb samples
-        if (signal.shape[-1] != self._nbins):
-            raise ValueError(f'ERROR:Inconsistent number of samples '
-                             f'between signal ({signal.shape[-1]} '
-                             f'and template/psd ({ self._nbins}) for '
-                             f'channel {channel}')
-        # debug
-        if self._debug:
-            print(f'DEBUG: Update signal for channel '
-                  f'"{channel}"!')
-
-        # check if already updated
-        if channel in self._signals:
-            raise ValueError(f'ERROR: A signal already exist for '
-                             f'channel {channel}. Use clear_signal() '
-                             f'function first!')
-
-        # add signal
-        self._signals[channel] = signal
-
-        # FFT
-        f, signal_fft = fft(signal, self._fs, axis=-1)
-        self._signals_fft[channel] = signal_fft/self._nbins/self._df
-
-        if calc_signal_filt or calc_signal_filt_td:
-
-            # calculate filtered signal
-            self.calc_signal_filt(channel, template_tags=template_tags)
-
-            # calc filtered signal time domain
-            if calc_signal_filt_td:
-                self.calc_signal_filt_td(channel, template_tags=template_tags)
-
-        # calc chisq no pulse
-        if calc_chisq_amp:
-            self.calc_chisq_amp(channel, template_tags=template_tags)
-
-
-    def update_signal_many_channels(self, channels, signals,
-                                    calc_signal_filt_matrix=False,
-                                    calc_signal_filt_matrix_td=False,
-                                    template_tags=None):
-        """
-        Method to update new signals from mutiple channels 
-        needs to be called each event
-
-
-        Parameters
-        ----------
-        channels : str or array-like
-                list or  "|" separated string
-                such as "channel1|channel2"
-
-        signals : ndarray [nchan, nsamples]
-           the signal that we want to apply the optimum filter to
-           (units should be Amps).
-
-    
-        calc_signal_filt_matrix : bool, optional
-            FIXME: add docstrings
-            Default: False
-
-    
-        calc_signal_filt_matrix_td : bool, optional
-            FIXME: add docstrings
-            Default: False
-
-        template_tags : 2D array, optional
-           template tags array
-          
-
-        Return
-        ------
-        None
-        """
-
-        # let's get channel list
-        channel_list = convert_channel_name_to_list(channels)
-        channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-
-        # check signal size
-        if signals.ndim == 1:
-            signals = signals[np.newaxis, :]
-        elif signals.ndim != 2:
-            raise ValueError('ERROR: Expecting "signal" to be '
-                             'a 2D array')
-
-        nchans_array = signals.shape[0]
-        nbins_array = signals.shape[-1]
-
-
-        if (nchans != nchans_array):
-            raise ValueError(f'ERROR: number of channels ({nchans}) '
-                             f'does not match signal array ({nchans_array})')
-
-        if  nbins_array != self._nbins:
-            raise ValueError(f'ERROR:Inconsistent number of samples '
-                             f'between signal ({nbins_array}) '
-                             f'and template/psd ({ self._nbins})')
-        
-        
-        # loop channels and add signal
-        for ichan, chan in enumerate(channel_list):
-            
-            signal =  signals[ichan,:]
-            self.update_signal(chan, signal,
-                               calc_signal_filt=False,
-                               calc_signal_filt_td=False,
-                               calc_chisq_amp=False,
-                               template_tags=None)
-            
-
-        # all the FFTs should be done, now do
-        # multi-channels calculation
-        if len(channel_list) > 1:
-
-            # build signal FFT matrix
-            if channel_name not in self._signals_fft:
-                self.build_signal_matrix(channel_name, signal_fft=True)
-
-            # calculation
-            if calc_signal_filt_matrix or calc_signal_filt_matrix_td:
-
-                # check template_tags
-                if (template_tags is None
-                    or not isinstance(template_tags, np.ndarray)
-                    or  template_tags.ndim != 2):
-                    raise ValueError('ERROR: Expecting "template_tags" '
-                                     'to be a (2D) numpy array')
-                
-                # calc signal filt matrix
-                self.calc_signal_filt_matrix(channel_name, template_tags)
-                
-                if calc_signal_filt_matrix_td:
-                    self.calc_signal_filt_matrix_td(
-                        channel_name,
-                        template_tags
-                    )
-                
-
-    def calc_phi(self, channel, template_tags=None):
-        """
-        calculate optimal filters (phi)
-
-        phi = template_fft* / psd
-
-        Parameters
-        ----------
-        channel : str
-          channel name
-
-        template_tags : NoneType or str or list of string
-                        [default=None]
-           template tags to calculate optimal filters, if None,
-           calculate optimal filter for all templates
-
-        Return
-        ------
-        None
-        """
-
-        # check channel
-        if channel not in self._templates_fft:
-            raise ValueError(f'ERROR: Missing template fft for '
-                             f'channel {channel}')
-
-        if channel not in self._psd:
-            raise ValueError(f'ERROR: Missing psd for '
-                             f'channel {channel}')
-
-
-        if template_tags is None:
-            template_tags = list(self._templates_fft[channel].keys())
-        elif isinstance(template_tags, str):
-            template_tags = [template_tags]
-        elif not isinstance(template_tags, list):
-            raise ValueError(f'ERROR "template_tags" argument should be '
-                             f'a string or list of strings')
-
-        # initialize
-        if channel not in self._phis:
-            self._phis[channel] = dict()
-        if channel not in self._norms:
-            self._norms[channel] = dict()
-
-        # loop and calculate optimal filters
-        for tag in template_tags:
-
-            if tag not in self._templates_fft[channel].keys():
-                raise ValueError(f'ERROR: Template with tag "{tag}" '
-                                 f'not found for channel {channel}')
-
-            if self._debug:
-                print('DEBUG: Calculating phi with template "'+
-                      tag + '"')
-
-            # calculate OF
-            template_fft = self._templates_fft[channel][tag]
-
-            self._phis[channel][tag] = (
-                template_fft.conjugate() / self._psd[channel]
-            )
-
-            # calculate norm
-            self._norms[channel][tag] = (
-                np.real(np.dot(self._phis[channel][tag],
-                               self._templates_fft[channel][tag]))*self._df
-            )
-
-
-    def calc_phi_matrix(self, channels, template_tags=None):
-        """
-        Calculates the optimal filter matrix across the specified channels and templates.
-        Depends on the templates and the inverted covariance matrix. This function also checks
-        that precalculations are covered. 
-        
-        Parameters
-        ----------
-        
-        channels : list or string
-            a list of str channels
-
-        template_tags: 2D array [nchan, ntemp]
-            a list of str template tags
-            default: None
-        
-        Returns
-        -------
-        
-        None
-        """
-
-        # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
-        channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-
-        template_tags_list = [template_tags]
-        if template_tags is None:
-            template_tags_list = self.template_tags(channel_name)
-            
-        for tags in template_tags_list:
-
-            # check template tags
-            if (not isinstance(tags, np.ndarray)
-                or tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            if tags.shape[0] != nchans:
-                raise ValueError('ERROR: Wrong number of channels for '
-                                 '"template_tags" argument!')
-        
-            # number of templates
-            ntmps = tags.shape[-1]
-        
-            # get matric name
-            matrix_tag = self._get_template_matrix_tag(
-                channel_name, tags
-            )
-
-            # Build template matrix if needed
-            if (channel_name not in self._templates_fft
-                or matrix_tag not in self._templates_fft[channel_name]):
-                self.build_template_matrix(channels,
-                                           tags,
-                                           matrix_tag)
-            
-            if self.csd(channel_name) is None:
-                raise ValueError(f'ERROR: Missing csd for '
-                                 f'channels {channel_name}')
-        
-            # calculate the inverted csd matrix if needed
-            if self.icovf(channel_name) is None:
-                self.calc_icovf(channel_name)
-        
-            # initialize phi container
-            if channel_name not in self._phis:
-                self._phis[channel_name] = dict()
-
-            # calculate
-            template_fft = self._templates_fft[channel_name][matrix_tag]
-            temp_icovf = self._icovf[channel_name]
-                
-            self._phis[channel_name][matrix_tag] = (
-                np.array([(template_fft[:,:,jnu].T).conjugate()
-                          @ temp_icovf[:,:,jnu] for jnu in range(self._nbins)
-                ], dtype='complex_')
-            )
-
-        
-    def calc_weight_matrix(self, channels, template_tags=None):
-        """
-        A function that calculates the inverted and non inverted weighting (or norm) matrix. 
-        Depends on the optimal filter matrix (phi) and the template matrix.
-        This function also checks that the phi matrix has been precomputed. 
-        
-        Parameters
-        ----------
-        
-        channels : list or string
-            channel names
-
-        template_tags: 2D array (optional)
-           array of template tags
-        
-        Returns
-        -------
-        
-        None
-        """
-
-        # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
-        channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-
-        template_tags_list = [template_tags]
-        if template_tags is None:
-            template_tags_list = self.template_tags(channel_name)
-      
-        for tags in template_tags_list:
-        
-            # check template tags
-            if (not isinstance(tags, np.ndarray)
-                or  tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            if tags.shape[0] != nchans:
-                raise ValueError('ERROR: Wrong number of channels for '
-                                 '"template_tags" argument!')
-        
-            # number of templates
-            ntmps = tags.shape[-1]
-            
-            # get matric name
-            matrix_tag = self._get_template_matrix_tag(
-                channel_name, tags
-            )
-
-            # calculate optimal filter matrix if needed
-            if (channel_name not in self._phis
-                or matrix_tag not in self._phis[channel_name]):
-                self.calc_phi_matrix(channel_name, tags)
-
-            # calculate weigth matrix
-            temp_w = np.zeros((ntmps, ntmps), dtype='complex_')
-            temp_phi_mat = self._phis[channel_name][matrix_tag]
-            temp_templ_fft = self._templates_fft[channel_name][matrix_tag]
-            for itmp in range(ntmps):
-                for jtmp in range(ntmps):
-                    for jchan in range(nchans):
-                        temp_w[itmp,jtmp] += np.sum(
-                            temp_phi_mat[:,itmp,jchan]*temp_templ_fft[jchan,jtmp,:]
-                        )
-            # real
-            temp_w = np.real(temp_w)
-
-            # store
-            if channel_name not in self._iw_matrix:
-                self._iw_matrix[channel_name] = dict()
-            
-            self._iw_matrix[channel_name][matrix_tag] = pinv(temp_w)
-
-
-            
-    def calc_p_matrix(self, channels,
-                      template_tags=None,
-                      template_time_tags=None,
-                      time_combinations=None):
-        """
-        P matrix calculation for NxMx2
-        """
-
-        # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
-        channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-        
-        # template tag list
-        template_tags_list = [template_tags]
-        if template_tags is None:
-            template_tags_list = self.template_tags(channel_name)
-            if template_time_tags is not None:
-                raise ValueError('ERROR: "template_tags" argument '
-                                 'is required!')
-        else:
-            if (template_time_tags is None
-                or time_combinations is None):
-                raise ValueError(
-                    'ERROR: "template_time_tags" and "time_combinations" '
-                    'and arguments are required!')
-
-            # check if already available!
-            p_matrix = self.p_matrix(
-                channel_name,
-                template_tags,
-                template_time_tags,
-                time_combinations
-            )
-
-            if  p_matrix is not None:
-                #if self._verbose:
-                #    print(f'INFO: p matrix already calculated for '
-                #          f'channel { channel_name}')
-                return
-            
-            
-        # loop template tag list
-        for tags in template_tags_list:
-        
-            # check template tags
-            if (not isinstance(tags, np.ndarray)
-                or  tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            if tags.shape[0] != nchans:
-                raise ValueError('ERROR: Wrong number of channels for '
-                                 '"template_tags" argument!')
-        
-            # number of templates
-            ntmps = tags.shape[-1]
-            
-            # get matric name
-            matrix_tag = self._get_template_matrix_tag(
-                channel_name, tags
-            )
-
-            # get list of constraints (and associated tags)
-            constraints_list = []
-            if template_time_tags is not None:
-
-                if time_combinations is None:
-                    raise ValueError('ERROR: Missing "time_combinations" '
-                                     'parameter!')
-
-                constraints_dict = {
-                    'template_time_tags': template_time_tags,
-                    'time_combinations': time_combinations
-                }   
-                constraints_list = [constraints_dict]
-
-            else:
-                constraints_list = self.time_constraints_dicts(
-                    channels, tags)
-                
-                if not constraints_list:
-                    raise ValueError(f'ERROR: No time constraints have '
-                                     f'been set for {channel_name}, '
-                                     f'template tags = {tags}')
-                
-            # calculate optimal filter matrix if needed
-            if (channel_name not in self._phis
-                or matrix_tag not in self._phis[channel_name]):
-                self.calc_phi_matrix(channel_name, template_tags)
-                
-            phi_mat = self._phis[channel_name][matrix_tag]
-
-            # template mat
-            template_fft_mat = self.template_fft(channel_name, template_tags)
-            
-            # loop constraints
-            for constraints in constraints_list:
-                
-                # get constraint tag
-                constraints_tag = self._get_time_constraints_tag(
-                    channels, tags, constraints
-                )
-
-                # time combinatiob
-                t0s = constraints['time_combinations']
-                template_time_tags = constraints['template_time_tags']
-
-                # calculate 
-                time_diff_mat = np.zeros((template_time_tags.shape[0] ,
-                                          template_time_tags.shape[0] ))
-                for i in range(template_time_tags.shape[0]):
-                    for j in range(template_time_tags.shape[0]):
-                        time_diff_mat[i,j] = (template_time_tags[i]
-                                              -template_time_tags[j])
-
-                p = np.zeros((self._nbins, ntmps, ntmps ), dtype='complex_')
-                np.einsum('jii->ji', p)[:] = 1
-                for itmp in range(ntmps):
-                    for jtmp in range(ntmps):
-                        sum = 0.0 + 0.0j
-                        for jchan in range(nchans):
-                            if (time_diff_mat[itmp, jtmp] != 0):
-                                sum += np.fft.ifft(
-                                    phi_mat[:,itmp, jchan]\
-                                    * template_fft_mat[jchan,jtmp,:]
-                                )*self._nbins
-                            if (time_diff_mat[itmp,jtmp] == 0):
-                                sum += np.sum(
-                                    phi_mat[:,itmp,jchan]\
-                                    * template_fft_mat[jchan,jtmp,:]
-                                )
-                                
-                        if (jtmp >= itmp):
-                            p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
-
-                p_inv = np.linalg.pinv(p)
-
-                # add constraint
-                p_matrix =  np.zeros((t0s[:,0].shape[0], ntmps, ntmps))
-                p_matrix_inv =  np.zeros((t0s[:,0].shape[0], ntmps, ntmps))
-                        
-                np.einsum('jii->ji', p_matrix_inv)[:] = 1
-
-                for itmps in range(ntmps):
-                    for jtmps in range(ntmps):
-                        p_matrix[:, itmps, jtmps] = (
-                            p[t0s[:,0]-t0s[:,1]][:, itmps, jtmps]
-                        )
-                        p_matrix_inv[:, itmps, jtmps] = (
-                            p_inv[t0s[:,0]- t0s[:,1]][:, itmps, jtmps]
-                        )
-
-                        
-                # save
-                if channel_name not in self._p_matrix:
-                    self._p_matrix[channel_name] = dict()
-                if matrix_tag not in self._p_matrix[channel_name]:
-                    self._p_matrix[channel_name][matrix_tag] = dict()
-                    
-                self._p_matrix[channel_name][matrix_tag][constraints_tag] = (
-                    p_matrix
-                )
-
-                if channel_name not in self._p_matrix_inv:
-                    self._p_matrix_inv[channel_name] = dict()
-                if matrix_tag not in self._p_matrix_inv[channel_name]:
-                    self._p_matrix_inv[channel_name][matrix_tag] = dict()
-                    
-                self._p_matrix_inv[channel_name][matrix_tag][constraints_tag] = (
-                    p_matrix_inv
-                )
-
-                
-
-                
     def calc_icovf(self, channels, coupling='AC'):
         """
         A function that inverts the csd or covariance noise matrix between channels. 
@@ -1881,62 +1222,396 @@ class OFBase:
             
         self._icovf[channel_name] = temp_icovf
         
-        
-    def calc_signal_filt(self, channel, template_tags=None):
-        """
-        Calculate filtered signal (for the specified
-        or all template tags)
 
-        signal_filt = phi*signal_fft/norm
+
+        
+    def clear_signal(self):
+        """
+        Method to intialize calculated signal
+        parameters
 
         Parameters
         ----------
-        template_tags : NoneType or str or list of string
-                        [default=None]
-           template tags to calculate optimal filters, if None,
-           calculate optimal filter for all templates
+           
+        channels : str or array-like
+           if multi_channels:
+                array-like or  "|" separated string
+                such as "channel1|channel2"
+
+        Return
+        ---------
+        None
+
+        """
+                
+        # signal
+        self._signals = dict()
+        self._signals_fft = dict()
+        
+        # (optimal) filtered  signals and templates
+        self._signals_filts = dict()
+        self._signals_filts_td = dict()
+        self._template_filts = dict()
+        self._template_filts_td = dict()
+        
+                   
+    def update_signal(self, channels, signals,
+                      calc_fft=True):
+              
+        """
+        Method to update new signal trace for single channel, 
+        needs to be called each event
+
+        Parameters
+        ----------
+        channel : str or list of ste
+          channel name
+
+        signal : ndarray
+           the signal that we want to apply the optimum filter to
+           (units should be Amps). Dimensions need to match number of 
+           signals
+
+        calc_fft : bool, optional
+           If true calculate signal fft
+           Default: True
 
         Return
         ------
         None
-
         """
 
-        # check if phis have been calculcae
-        if channel not in self._phis:
-            self.calc_phi(channel, template_tags=template_tags)
+        # let's get channel list
+        channel_list = convert_channel_name_to_list(channels)
+        channel_name = convert_channel_list_to_name(channels)
+        nchans = len(channel_list)
 
-        if template_tags is None:
-            template_tags = self._phis[channel].keys()
-        elif isinstance(template_tags, str):
-            template_tags = [template_tags]
-        elif not isinstance(template_tags, list):
-            raise ValueError(f'ERROR: "template_tags" argument should be '
-                             f'a string or list of strings')
+        # check signal size
+        if signals.ndim == 1:
+            signals = signals[np.newaxis, :]
+       
+        nchans_array = signals.shape[0]
+        nbins_array = signals.shape[-1]
 
-        # initialize
-        if channel not in self._signals_filts:
-            self._signals_filts[channel] = dict()
+        if (nchans_array != nchans):
+            raise ValueError(f'ERROR: number of channels ({nchans}) '
+                             f'does not match signal array ({nchans_array})')
 
-
-        for tag in template_tags:
-
-            if tag not in self._phis[channel].keys():
-                self.calc_phi(channel, template_tags=tag)
-
-            # filtered signal
-            norm = self._norms[channel][tag]
-            self._signals_filts[channel][tag] = (
-                self._phis[channel][tag] * self._signals_fft[channel] / norm
-            )
-
+        if  (nbins_array != self._nbins):
+            raise ValueError(f'ERROR:Inconsistent number of samples '
+                             f'between signal ({nbins_array}) '
+                             f'and template/psd ({ self._nbins})')
+        
+             
+        # loop channels and add signal
+        for ichan, chan in enumerate(channel_list):
+            
+            signal =  signals[ichan,:]
+            
             # debug
             if self._debug:
-                print('DEBUG: Calculating signal_filt with template "'+
-                      tag + '"')
+                print(f'DEBUG: Update signal for channel '
+                      f'"{chan}"!')
+                
+            # check if already updated
+            if chan in self._signals:
+                if self._debug:
+                    print(f'WARNING: A signal already exist for '
+                          f'channel {chan}.')
+                    continue
+                          
+            # add signal
+            self._signals[chan] = signal
+            
+            # add fft ("forward" normalization)
+            if calc_fft:
+                f, signal_fft = fft(signal, self._fs, axis=-1)
+                self._signals_fft[chan] = signal_fft/self._nbins
+                
+    
+    def calc_phi(self, channels, template_tag=None,
+                 calc_weight=True):
+        """
+
+        Calculates NxM optimal filter matrix across the specified channels 
+        and templates. Depends on the templates and the inverted covariance matrix. 
+        This function also checks that precalculations are covered. 
+        
+        For 1x1: phi = template_fft* / psd
+
+        Parameters
+        ----------
+        channels : str or list of str
+          channel name (s)
+
+        template_tag : str  (optional)
+           tag associated with template
+           if None, calculate for tags
+
+        Return
+        ------
+        None
+        """
+
+        # convert to name
+        channel_name = convert_channel_list_to_name(channels)
+        
+        # check if noise available
+        if channel_name not in self._csd:
+            raise ValueError(f'ERROR: Noise csd not availabe for '
+                             f'channel {channel_name} !')
+
+        
+        # get noise data (inverte covariance matrix)
+        if self.icovf(channel_name) is None:
+            self.calc_icovf(channel_name)
+        icovf = self.icovf(channel_name)
 
 
-    def calc_signal_filt_matrix(self, channels, template_tags=None):
+        # get list of tags
+        template_tags_list = [template_tag]
+        if template_tag is None:
+            template_tags_list = self.template_tags(channel_name)
+
+        for tag in template_tags_list:
+
+            # get template FFT
+            if (channel_name not in self._templates_fft
+                or tag not in self._templates_fft[channel_name]):
+                raise ValueError(f'ERROR: Missing template fft for '
+                                 f'channel {channel_name}, '
+                                 f'template tag = {tag}')
+
+            template_fft = self._templates_fft[channel_name][tag]
+
+            # calculate optimal filter
+            
+            # Using Einstein summation:
+            # - Let k be the channel index,
+            # - j be the template index,
+            # - and n the frequency bin.
+            
+            phi = np.einsum('kjn,kin->ijn', np.conjugate(template_fft), icovf)
+
+        
+            # save
+            if channel_name not in self._phis:
+                self._phis[channel_name] = dict()
+
+            self._phis[channel_name][tag] =  copy.deepcopy(phi)
+
+
+            # calc weight matrix
+            if calc_weight:
+                self.calc_weight(channel_name, template_tag=tag)
+                
+
+
+    
+        
+    def calc_weight(self, channels, template_tag=None):
+        """
+        A function that calculates the inverted and non inverted weighting (or norm) matrix. 
+        Depends on the optimal filter matrix (phi) and the template matrix.
+        This function also checks that the phi matrix has been precomputed. 
+        # 1D  self._norms[channel][tag] = (
+                np.real(np.dot(self._phis[channel][tag],
+                               self._templates_fft[channel][tag]))*self._df
+            )
+        
+        Parameters
+        ----------
+        
+        channels : list or string
+            channel names
+
+        template_tags: 2D array (optional)
+           array of template tags
+        
+        Returns
+        -------
+        
+        None
+        """
+
+        # convert to name
+        channel_name = convert_channel_list_to_name(channels)
+    
+
+        template_tags_list = [template_tag]
+        if template_tag is None:
+            template_tags_list = self.template_tags(channel_name)
+      
+        for tag in template_tags_list:
+        
+            # get phi
+            if self.phi(channel_name, tag) is None:
+                self.calc_phi(channel_name, tag)
+
+            phi = self.phi(channel_name, tag,
+                           squeeze_array=False)
+        
+            # get template FFT
+            template_fft = self.template_fft(channel_name, tag,
+                                             squeeze_array=False)
+            
+            # Compute the weight matrix
+            temp_w = np.einsum('cif,cjf->ij', phi, template_fft)
+            
+            # take the pseudoinverse of its real part,
+            weight =  copy.deepcopy(np.real(temp_w))
+            
+            # store
+            if channel_name not in self._weights:
+                self._weights[channel_name] = dict()
+                self._iweights[channel_name] = dict()
+                
+            self._weights[channel_name][tag] =  weight
+            self._iweights[channel_name][tag] = pinv(weight)
+            
+
+            
+    def calc_p_matrix(self, channels,
+                      template_tag=None,
+                      time_constraints_tag=None):
+        """
+        P matrix calculation for NxMx2 for specified template tag
+        and time constraints tag. If tags are None, calculate with 
+        all available tags.
+        """
+
+        # convert to name/list
+        channel_list = convert_channel_name_to_list(channels)
+        channel_name = convert_channel_list_to_name(channels)
+        nchans = len(channel_list)
+        
+        # template tags
+        template_tag_list = [template_tag]
+        if template_tag is None:
+            template_tag_list = self.template_tags(channel_name)
+            
+        if (len(template_tag_list) == 0):
+            raise ValueError(f'ERROR: No template tag available for '
+                             f'channel {channel_name} !')
+        
+        # time constraint tag
+        time_constraints_tag_list = [time_constraints_tag]
+        if (len(time_constraints_tag_list) == 0):
+            raise ValueError(f'ERROR: No time constraint tag available for '
+                             f'channel {channel_name} !')
+        
+
+
+        # loop template and time constraint tags
+        for tag in template_tag_list:
+
+            # get template FFT
+            template_fft = self.template_fft(channel_name,
+                                             template_tag=tag,
+                                             squeeze_array=False)
+
+            # number of template
+            ntmps = template_fft.shape[1]
+
+            
+            # get optimal filter
+            phi = self.phi(channel_name,
+                           template_tag=tag,
+                           squeeze_array=False)
+
+                       
+            if phi is None:
+                self.calc_phi(channel_name, template_tag=tag)
+                phi = self.phi(channel_name,
+                               template_tag=tag,
+                               squeeze_array=False)
+                      
+            # loop time constraints
+            for constraints_tag in time_constraints_tag_list:
+
+
+                # check if p_matrix already calculated
+                p_matrix = self.p_matrix(
+                    channel_name,
+                    template_tag=tag,
+                    time_constraints_tag=constraints_tag)
+
+                if p_matrix is not None:
+                    continue
+                
+
+                # get constraints
+                template_group_ids = self.template_group_ids(
+                    channel_name,
+                    time_constraints_tag=constraints_tag)
+
+                t0s = self.time_combinations(
+                    channel_name,
+                    time_constraints_tag=constraints_tag
+                )
+
+                # group id matrix
+                time_diff  = template_group_ids[:, None] - template_group_ids[None, :]
+            
+                
+                p = np.zeros((self._nbins, ntmps, ntmps ), dtype=np.complex128)
+                np.einsum('jii->ji', p)[:] = 1
+                for itmp in range(ntmps):
+                    for jtmp in range(ntmps):
+                        sum = 0.0 + 0.0j
+                        for jchan in range(nchans):
+                            if (time_diff[itmp, jtmp] != 0):
+                                sum += np.fft.ifft(
+                                    phi[jchan,itmp, :]\
+                                    * template_fft[jchan,jtmp,:]
+                                )*self._nbins
+                            if (time_diff[itmp,jtmp] == 0):
+                                sum += np.sum(
+                                    phi[jchan,itmp,:]\
+                                    * template_fft[jchan,jtmp,:]
+                                )
+                                
+                        if (time_diff[itmp, jtmp] == -1):
+                            p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
+                        elif (time_diff[itmp, jtmp] == 0):
+                            p[:,itmp,jtmp] = p[:,jtmp,itmp] = np.real(sum)
+
+                p_inv = np.linalg.pinv(p)
+
+                # add constraint
+                p_matrix =  np.zeros((t0s[:,0].shape[0], ntmps, ntmps))
+                p_matrix_inv =  np.zeros((t0s[:,0].shape[0], ntmps, ntmps))
+                
+                np.einsum('jii->ji', p_matrix_inv)[:] = 1
+
+                for itmps in range(ntmps):
+                    for jtmps in range(ntmps):
+                        p_matrix[:, itmps, jtmps] = (
+                            p[t0s[:,0]-t0s[:,1]][:, itmps, jtmps]
+                        )
+                        p_matrix_inv[:, itmps, jtmps] = (
+                            p_inv[t0s[:,0]- t0s[:,1]][:, itmps, jtmps]
+                        )
+
+                        
+                # save
+                combined_tag = f'{tag}_{constraints_tag}'
+                
+                if channel_name not in self._p_matrix:
+                    self._p_matrix[channel_name] = dict()
+                    self._p_matrix_inv[channel_name] = dict()
+                    
+                self._p_matrix[channel_name][combined_tag] = (
+                     copy.deepcopy(p_matrix)
+                )
+                    
+                self._p_matrix_inv[channel_name][combined_tag] = (
+                     copy.deepcopy(p_matrix_inv)
+                )
+                
+                
+  
+    def calc_signal_filt(self, channels, template_tag=None):
         """
         A function that calculates the filtered signal matrix in frequency domain.
         That is, the signal matrix multiplied by the optimal filter matrix (phi). 
@@ -1948,132 +1623,53 @@ class OFBase:
             multiple channels as a list or 
             as "|" separated string such as "channel1|channel2"
 
-        template_tags : 2D array
-          template tags
+        template_tag : str (optional)
+          template tag, if None: all available
         
         Returns
         -------
         
         None
         """
-
+        
         # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
         channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
 
-        if nchans == 1:
-            raise ValueError('ERROR: "calc_signal_filt_matrix() function '
-                             'requires multiple channels')
-
-        template_tags_list = [template_tags]
-        if template_tags is None:
+        # get list of tags
+        template_tags_list = [template_tag]
+        if template_tag is None:
             template_tags_list = self.template_tags(channel_name)
+
+        for tag in template_tags_list:
+
             
-        for tags in template_tags_list:
-
-            # check template tags
-            if (not isinstance(tags, np.ndarray)
-                or  tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
-
-            if tags.shape[0] != nchans:
-                raise ValueError('ERROR: Wrong number of channels for '
-                                 '"template_tags" argument!')
-        
-            # number of templates
-            ntmps = tags.shape[-1]
-        
-            # get matric name
-            matrix_tag = self._get_template_matrix_tag(
-                channel_name, tags
-            )
-
-                 # calculate optimal filter matrix if needed
-            if (channel_name not in self._phis
-                or matrix_tag not in self._phis[channel_name]):
-                self.calc_phi_matrix(channel_name, tags)
-                   
-            temp_phi_mat = self._phis[channel_name][matrix_tag]
+            # get optimal filter
+            phi = self.phi(channel_name,
+                           template_tag=tag,
+                           squeeze_array=False)
+            
+            if phi is None:
+                self.calc_phi(channel_name, template_tag=tag)
+                phi = self.phi(channel_name,
+                               template_tag=tag,
+                               squeeze_array=False)
                 
+                       
             signal_fft = self.signal_fft(channel_name)
              
             # calculate
-            temp_sign_mat = np.zeros((ntmps, self._nbins), dtype='complex_')
-            for itmp in range(ntmps):
-                for jchan in range(nchans):
-                    temp_sign_mat[itmp,:] += (
-                        temp_phi_mat[:,itmp,jchan]*signal_fft[jchan,:]
-                    )
-                
-            # save 
+            filtered_signal = np.einsum('cif,cf->if', phi, signal_fft)
+            
+            # save
             if channel_name not in self._signals_filts:
                 self._signals_filts[channel_name] = dict()
-        
-            self._signals_filts[channel_name][matrix_tag] = temp_sign_mat
-
-
-    def calc_signal_filt_td(self, channel, template_tags=None):
-        """
-        Convert signal filt to time domain (for the specified
-        or all template tags)
-
-        signal_filt_td = ifft(signal_filt)
-                       = ifft(phi*signal_fft/norm)
-
-
-        Parameters
-        ----------
-        template_tags : NoneType or str or list of string
-                        [default=None]
-           template tags to calculate optimal filters, if None,
-           calculate optimal filter for all templates
-
-        Return
-        ------
-        None
-
-        """
-
-        # check if filtered signal available
-        if channel not in self._signals_filts:
-            self.calc_signal_filt(channel,
-                                  template_tags=template_tags
+            self._signals_filts[channel_name][tag] =  copy.deepcopy(
+                filtered_signal
             )
 
-        # get tags
-        if template_tags is None:
-            template_tags = self._signals_filts[channel].keys()
-        elif isinstance(template_tags, str):
-            template_tags = [template_tags]
-        elif not isinstance(template_tags, list):
-            raise ValueError('"template_tags argument should be a '
-                             + ' a string or list of strings')
 
-        # initialize
-        if channel not in self._signals_filts_td:
-            self._signals_filts_td[channel] = dict()
-
-        for tag in template_tags:
-
-            # check tag
-            if tag not in self._signals_filts[channel].keys():
-                self.calc_signal_filt(channel, template_tags=tag)
-
-            # calc signal filt ifft
-            self._signals_filts_td[channel][tag] = np.real(
-                ifft(self._signals_filts[channel][tag]*self._nbins, axis=-1)
-            )*self._df
-
-            # debug
-            if self._debug:
-                print('DEBUG: Calculating signal_filt_td with template "'+
-                      tag + '"')
-
-
-    def calc_signal_filt_matrix_td(self, channels,
-                                   template_tags=None):
+    def calc_signal_filt_td(self, channels,
+                            template_tag=None):
         """
         A function that calculates the optimally filtered signal matrix in time domain.
         In other words, the ifft of the filtered signal matrix. 
@@ -2091,941 +1687,95 @@ class OFBase:
         None
         """
 
-        # convert to name/list
-        channel_list = convert_channel_name_to_list(channels)
+        # channel name
         channel_name = convert_channel_list_to_name(channels)
-        nchans = len(channel_list)
-
-        if nchans == 1:
-            raise ValueError('ERROR: "calc_signal_filt_matrix() function '
-                             'requires multiple channels')
-
-        template_tags_list = [template_tags]
-        if template_tags is None:
+        
+        # get list of tags
+        template_tags_list = [template_tag]
+        if template_tag is None:
             template_tags_list = self.template_tags(channel_name)
-        else:
 
+        for tag in template_tags_list:
+            
             # check if calculated already
             signal_td = self.signal_filt_td(
                 channel_name,
-                template_tag=template_tags
+                template_tag=tag
             )
             
             if signal_td  is not None:
-                #if self._verbose:
-                #    print(f'INFO: filtered signal matrix already '
-                #          f'calculated for channel {channel_name}')
-                return
+                continue
                 
-            
-        for tags in template_tags_list:
-        
-            # check template tags
-            if (not isinstance(tags, np.ndarray)
-                or  tags.ndim != 2):
-                raise ValueError('ERROR: Expecting "template_tags" '
-                                 'to be a (2D) numpy array')
 
-            if tags.shape[0] != nchans:
-                raise ValueError('ERROR: Wrong number of channels for '
-                                 '"template_tags" argument!')
-        
-            # number of templates
-            ntmps = tags.shape[-1]
-        
-            # get matric name
-            matrix_tag = self._get_template_matrix_tag(
-                channel_name, tags
-            )
+            # check filtered signal has been calculated
+            filtered_signal = self.signal_filt(channel_name,
+                                             template_tag=tag)
 
-            # check filtered signal matrix has been calculated
-            if (channel_name not in self._signals_filts
-                or matrix_tag  not in self._signals_filts[channel_name]):
-                self.calc_signal_filt_matrix(channel_name, tags)
+            if filtered_signal is None:
+                self.calc_signal_filt(channel_name,
+                                      template_tag=tag)
 
-            sign_f_mat = self._signals_filts[channel_name][matrix_tag]
-            temp_sign_t_mat = np.real(ifft(sign_f_mat*self._nbins))
+                filtered_signal = self.signal_filt(channel_name,
+                                                   template_tag=tag)
+                
+            filtered_signal_td = np.real(ifft(filtered_signal*self._nbins))
 
+            # store
             if channel_name not in self._signals_filts_td:
                 self._signals_filts_td[channel_name] = dict()
             
-            self._signals_filts_td[channel_name][matrix_tag] = (
-                copy.deepcopy(temp_sign_t_mat)
+            self._signals_filts_td[channel_name][tag] = (
+                copy.deepcopy(filtered_signal_td)
             )
 
-
-    def calc_chisq0(self, channel):
+      
+    def _calc_time_combinations(self,
+                                fit_window,
+                                restrict_time_flag):
         """
-        Calculate part of chi2 that doesn't depend
-        on template (aka "no pulse chisq)
-
+        calc time combinations OF NxMx2
+        
         Parameters
         ----------
-        None
+            
+        fit_window :   array-likein integer
+           used for preparing the time window for nxmx2 fit
+           in samples. Ex:  [[-625,625],[-625,1250]]
 
-
-        Returnnp.fft.ifft
-        ------
-        None
-
-        """
-
-        if channel not in self._signals_fft:
-            raise ValueError(f'ERROR: No signal found for '
-                             f'channel {channel}')
-
-        # "no pulse chisq" (doesn't depend on template)
-        self._chisq0[channel] = np.real(
-            np.dot(self._signals_fft[channel].conjugate()/self._psd[channel],
-                   self._signals_fft[channel])*self._df
-        )
-
-
-    def calc_chisq_amp(self, channel, template_tags=None):
-        """
-        Calculate chi2/amp for all times (rolled
-        so that 0-delay is the pretrigger bin)
-
-        Parameters
-        ----------
-        template_tags : NoneType or str or list of string
-                        [default=None]
-           template tags to calculate optimal filters, if None,
-           calculate optimal filter for all templates
-
+        
         Return
         ------
-        None
-
-
-        """
-
-        # "no pulse chisq" (doesn't depend on template)
-        self.calc_chisq0(channel)
-
-        # time dependent chisq + sum of the two
-
-        # check if filtered signal (ifft) available
-        # if not calculate
-        if channel not in self._signals_filts_td:
-            self.calc_signal_filt_td(channel,
-                                     template_tags=template_tags
-            )
-
-        # find tags
-        if template_tags is None:
-            template_tags = list(self._signals_filts_td[channel].keys())
-        elif isinstance(template_tags, str):
-            template_tags = [template_tags]
-        elif not isinstance(template_tags, list):
-            raise ValueError('"template_tags argument should be a '
-                             + ' a string or list of strings')
-
-
-        # initialize
-        if channel not in self._amps_alltimes_rolled:
-            self._amps_alltimes_rolled[channel] = dict()
-            self._chisqs_alltimes_rolled[channel] = dict()
-
-        # loop tags
-        for tag in template_tags:
-
-            if tag not in self._signals_filts_td[channel]:
-                self.calc_signal_filt_td(channel,
-                                         template_tags=tag
-                )
-
-            # build chi2
-            chisq_t0 = (
-                (self._signals_filts_td[channel][tag]**2) * self._norms[channel][tag]
-            )
-
-
-            # total chisq
-            chisq = self._chisq0[channel] - chisq_t0
-
-
-            # shift so that 0 delay is at pre-trigger bin
-            chisq_rolled = np.roll(chisq,
-                                   self._pretrigger_samples[channel][tag],
-                                   axis=-1)
-
-            self._chisqs_alltimes_rolled[channel][tag] = chisq_rolled
-
-
-            # amplitude
-            self._amps_alltimes_rolled[channel][tag] = (
-                np.roll(self._signals_filts_td[channel][tag],
-                        self._pretrigger_samples[channel][tag],
-                        axis=-1)
-            )
-
-            # debug
-            if self._debug:
-                print('DEBUG: Calculating chisq/amp all times with template "'+
-                      tag + '"')
-
-
-    def get_fit_nodelay(self, channel,
-                        template_tag='default',
-                        shift_usec=None,
-                        use_chisq_alltimes=True):
-        """
-        Function to calculat and return the optimum amplitude/chisq of a pulse in
-        data with no time shifting, or at a specific time.
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        shift_usec : float, optional
-          shift in micro seconds from pretrigger time
-          default: no shift
-
-        use_chisq_alltimes : bool, optional
-          use the chisq all times instead of re-calculate
-
-
-
-        Returns
-        -------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps)
-            with no time shifting allowed (or at the time specified by
-            'shift_usec').
-
-         t0 : float
-            The time shift (=0 or shift_usec)
-
-        chisq : float
-            The chi^2 value calculated from the optimum filter with no
-            time shifting (or at the time shift specified by shift_usec)
+        time combinations
 
         """
-
-        # intialize
-        amp = np.nan
-        chisq = np.nan
-
-        # check pretrigger
-        if channel not in self._pretrigger_samples:
-            self._pretrigger_samples[channel] = dict()
-
-        if template_tag not in self._pretrigger_samples[channel]:
-            self._pretrigger_samples[channel][template_tag] = (
-                self._nbins//2
-            )
-
-        pretrigger_samples = self._pretrigger_samples[channel][template_tag]
-
-        # shift
-        t0 = 0
-        t0_ind = pretrigger_samples
-        if shift_usec is not None:
-            t0 =  shift_usec*1e-6
-            t0_ind += round(t0*self._fs)
-            if t0_ind<0:
-                t0_ind = 0
-            elif t0_ind>self._nbins-1:
-                t0_ind = self._nbins-1
-
-
-
-        # use already calculated chisq/amp array
-        if use_chisq_alltimes:
-
-            # check if available
-            if (channel not in self._chisqs_alltimes_rolled
-                or template_tag not in self._chisqs_alltimes_rolled[channel].keys()):
-                self.calc_chisq_amp(channel, template_tags=template_tag)
-
-            amp = self._amps_alltimes_rolled[channel][template_tag][t0_ind]
-            chisq = self._chisqs_alltimes_rolled[channel][template_tag][t0_ind]
-
+                
+        # time constraints
+        time_combinations1 = None
+        time_combinations2 = None
+        if fit_window is None:
+            time_combinations1 = np.arange(int(-self._nbins/2),
+                                           int(self._nbins/2))
+            time_combinations2 = np.arange(int(-self._nbins/2),
+                                           int(self._nbins/2))
         else:
+            time_combinations1 = np.arange(int(fit_window[0][0]),
+                                           int(fit_window[0][1]))
+            time_combinations2 = np.arange(int(fit_window[1][0]),
+                                           int(fit_window[1][1]))
 
-            # check if filtered signal available
-            # and chisq0 available
-            if (channel not in self._signals_filts
-                or  template_tag not in  self._signals_filts[channel].keys()):
-                self.calc_signal_filt(channel, template_tags=template_tag)
-
-            if  channel not in self._chisq0:
-                self.calc_chisq0(channel)
-
-            signal_filt = self._signals_filts[channel][template_tag]
-
-            # amplitude
-            if shift_usec is not None:
-                amp = np.real(np.sum(
-                    signal_filt*np.exp(2.0j*np.pi*t0*self._fft_freqs),
-                    axis=-1,
-                ))*self._df
-
-            else:
-                amp = np.real(np.sum(
-                    signal_filt, axis=-1
-                ))*self._df
-
-            # total chisq
-            chisq = self._chisq0[channel] - (amp**2)*self._norms[channel][template_tag]
-
-        return amp, t0, chisq
-
-
-    def get_fit_withdelay(self, channel, template_tag='default',
-                          window_min_from_trig_usec=None,
-                          window_max_from_trig_usec=None,
-                          window_min_index=None,
-                          window_max_index=None,
-                          lgc_outside_window=False,
-                          pulse_direction_constraint=0,
-                          interpolate_t0=False):
-        """
-        Function for calculating the optimum amplitude of a pulse in
-        data with time delay. The OF window min/max can be specified
-        either in usec from pretrigger or ADC samples. If no window,
-        the all trace (unconstrained) is used.
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-
-        window_min_from_trig_usec : float, optional
-           OF filter window start in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-
-        window_max_from_trig_usec : float, optional
-           OF filter window end in micro seconds from
-           pre-trigger (can be negative if prior pre-trigger)
-
-
-        window_min_index: int, optional
-            OF filter window start in ADC samples
-
-        window_max_index: int, optional
-            OF filter window end in ADC samples
-
-        lgcoutsidewindow : bool, optional
-            Boolean flag that is used to specify whether the Optimum
-            Filter should look inside `nconstrain` or outside it. If
-            False, the filter will minimize the chi^2 in the bins
-            specified by `nconstrain`, which is the default behavior.
-            If True, then it will minimize the chi^2 in the bins that
-            do not contain the constrained window.
-
-
-        pulse_direction_constraint : int, optional
-            Sets a constraint on the direction of the fitted pulse.
-            If 0, then no constraint on the pulse direction is set.
-            If 1, then a positive pulse constraint is set for all fits.
-            If -1, then a negative pulse constraint is set for all
-            fits. If any other value, then a ValueError will be raised.
-
-        interpolate_t0 : bool, optional
-            If True, then a precomputed solution to the parabolic
-            equation is used to find the interpolated time-of-best-fit.
-            Default is False.
-
-        Returns
-        -------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float
-            The time shift calculated for the pulse (in s).
-        chi2 : float
-            The chi^2 value calculated from the optimum filter.
-
-        """
-
-        # initialize
-        amp = np.nan
-        chisq = np.nan
-        t0 = np.nan
-
-        # check if chisq available -> if not then calculate
-        if (channel not in self._chisqs_alltimes_rolled
-            or template_tag not in self._chisqs_alltimes_rolled[channel].keys()):
-            self.calc_chisq_amp(channel, template_tags=template_tag)
-
-        # check pre-trigger
-        if channel not in self._pretrigger_samples:
-            self._pretrigger_samples[channel] = dict()
-        if template_tag not in self._pretrigger_samples[channel]:
-            self._pretrigger_samples[channel][template_tag]  = (
-                self._nbins//2
-            )
-        pretrigger_samples = self._pretrigger_samples[channel][template_tag]
-
-        # get chisq and amp for all times
-        chisqs_all = self._chisqs_alltimes_rolled[channel][template_tag]
-        amps_all = self._amps_alltimes_rolled[channel][template_tag]
-
-        # mask pulse direction
-        constraint_mask = None
-        if (pulse_direction_constraint==1
-            or pulse_direction_constraint==-1):
-            constraint_mask=(
-                amps_all*pulse_direction_constraint>0
+        time_combinations = None
+        if restrict_time_flag:
+            X,Y = np.meshgrid(time_combinations1, time_combinations2)
+            mask = X <= Y
+            indices = np.where(mask)
+            time_combinations = np.column_stack(( X[indices] ,Y[indices] ))
+        else:
+            time_combinations = (
+                np.stack(np.meshgrid(time_combinations1,
+                                     time_combinations2), -1).reshape(-1, 2)
             )
 
+        return time_combinations
 
-        # find index minimum chisq within window
-        window_min = None
-        if window_min_from_trig_usec is not None:
-            window_min = floor(pretrigger_samples
-                               + window_min_from_trig_usec*self._fs*1e-6)
-        elif window_min_index is not None:
-            window_min = window_min_index
 
-        if window_min is not None and window_min<0:
-            window_min = 0
 
-        window_max = None
-        if window_max_from_trig_usec is not None:
-            window_max = ceil(pretrigger_samples
-                              + window_max_from_trig_usec*self._fs*1e-6)
-        elif window_max_index is not None:
-            window_max = window_max_index
-
-        if window_max is not None and window_max>self._nbins:
-            window_max = self._nbins
-
-        if  window_min is not None:
-             window_min = int(window_min)
-             
-        if  window_max is not None:
-             window_max = int(window_max)
-
-            
-            
-        bestind = argmin_chisq(
-            chisqs_all,
-            window_min=window_min,
-            window_max=window_max,
-            lgc_outside_window=lgc_outside_window,
-            constraint_mask=constraint_mask
-        )
-
-        # extract chisq/amp (interpolate if requested)
-        if np.isnan(bestind):
-            amp = 0.0
-            t0 = 0.0
-            chisq = self._chisq0
-        elif interpolate_t0:
-            amp, dt_interp, chisq = interpolate_of(
-                amps_all, chisqs_all, bestind, 1/self._fs,
-            )
-            t0 = (bestind-pretrigger_samples)/self._fs + dt_interp
-        else:
-            amp = amps_all[bestind]
-            t0 = (bestind-pretrigger_samples)/self._fs
-            chisq = chisqs_all[bestind]
-
-        return amp, t0, chisq
-
-
-    def get_amplitude_resolution(self,  channel, template_tag='default'):
-        """
-        Method to return the energy resolution for the optimum filter.
-        (resolution depends only on template and noise!) for a
-        specified tag
-
-        Parameters
-        ----------
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-
-        Returns
-        -------
-        sigma : float
-            The energy resolution of the optimum filter.
-        """
-
-        if (channel not in self._norms
-            or template_tag not in self._norms.keys()):
-            self.calc_phi(channel, template_tags=template_tag)
-
-        sigma =  1.0 / np.sqrt(self._norms[channel][template_tag])
-
-        return sigma
-
-    def get_energy_resolution(self,  channel, template_tag='default'):
-        """
-        Deprecated method name: point to get_amplitude_resolution
-        method
-        """
-        return self.get_amplitude_resolution(channel, template_tag=template_tag)
-
-
-    def get_time_resolution(self, channel, amp, template_tag='default'):
-        """
-        Method to return the time resolution for the optimum filter.
-        Resolution depends also on fitted amplitude (-> reset every events)
-
-        Parameters
-        ----------
-
-        amp : float
-          OF fitted amplitude
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        Returns
-        -------
-        sigma : float
-            The time resolution of the optimum filter.
-
-        """
-
-        if (channel not in self._templates_fft
-            or template_tag not in self._templates_fft[channel].keys()):
-            raise ValueError('ERROR: Template wit tag "'
-                             + template_tag
-                             + '" not available!')
-
-
-        template_fft = self._templates_fft[channel][template_tag]
-
-        sigma = 1.0 / np.sqrt(amp**2 * np.sum(
-            (2*np.pi*self._fft_freqs)**2 * np.abs(template_fft)**2 / self._psd[channel]
-        ) * self._df)
-
-        return sigma
-
-
-    def get_chisq_nopulse(self, channel):
-        """
-        Method to get "no pulse" part of the chi2
-        (independent of template)
-
-        Parameters
-        ---------
-        None
-
-        Return
-        ------
-        chi2_nopulse : float
-
-        """
-
-        if  channel not in self._chisq0:
-            self.calc_chisq0(channel)
-
-        return self._chisq0[channel]
-
-
-    def get_chisq_lowfreq(self, channel, amp, t0=0,
-                          lowchi2_fcutoff=10000,
-                          template_tag='default'):
-        """
-        Method for calculating the low frequency chi^2 of the optimum
-        filter, given some cut off frequency.
-
-        Parameters
-        ----------
-        amp : float
-            The optimum amplitude calculated for the trace (in Amps).
-        t0 : float, optional
-            The time shift calculated for the pulse (in s).
-            default: 0 (np shift)
-        lowchi2_fcutoff : float, optional
-            The frequency (in Hz) that we should cut off the chi^2 when
-            calculating the low frequency chi^2. Default is 10 kHz.
-
-        template_tag : str, optional
-          template tag/id
-          default: 'default'
-
-        Returns
-        -------
-        chi2low : float
-            The low frequency chi^2 value (cut off at lowchi2_fcutoff) for the
-            inputted values.
-
-        """
-
-        # template tag
-        if (channel not in self._templates_fft
-            or template_tag not in self._templates_fft[channel].keys()):
-            raise ValueError('ERROR: Template with tag "'
-                             + template_tag
-                             + '" not available!')
-
-        # check signal
-        if channel not in self._signals_fft:
-            raise ValueError('ERROR: no signal available!')
-
-        template_fft = self._templates_fft[channel][template_tag]
-        signal_fft = self._signals_fft[channel]
-
-        # calc chisq
-        chi2tot = self._df * np.abs(
-            signal_fft - amp * np.exp(-2.0j * np.pi * t0 * self._fft_freqs) * template_fft
-        )**2 / self._psd[channel]
-
-
-        # find low freq indices
-        chi2inds = np.abs(self._fft_freqs) <= lowchi2_fcutoff
-
-        # sum
-        chi2low = np.sum(chi2tot[chi2inds])
-
-        return chi2low
-
-
-
-    def build_signal_matrix(self, channels, signal_fft=False):
-        """
-        Function to build the signal matrix [nchan, nsamples] 
-        for specified channel list.
-        
-        
-        Parameters
-        ----------
-
-        channels : str or array-like
-             list or  "|" separated string
-                such as "channel1|channel2"
-
-        signal_fft : boolean
-           if True, build signal FFT matrix
-           if False (default) , build time domain signal matrix
-   
-               
-        Returns
-        -------
-        
-        None
-        """
-
-        channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-        nchans = len(channel_list)
-
-        if nchans == 1:
-            raise ValueError('ERROR: more than one channel needed '
-                             'to build signal matrix')
-
-        # let's build matrix
-        if signal_fft:
-
-            signal_matrix = np.zeros((nchans, self._nbins),
-                                     dtype='complex_')
-            
-            for ichan, chan in enumerate(channel_list):
-                if chan not in self._signals_fft:
-                    raise ValueError(f'ERROR: Missing signal for channel {chan}')
-                signal_matrix[ichan,:] = self._df*self._signals_fft[chan].copy()
-                
-            self._signals_fft[channel_name] = signal_matrix
-
-        else:
-
-            signal_matrix = np.zeros((nchans, self._nbins),
-                                     dtype='float64')
-            
-            for ichan, chan in enumerate(channel_list):
-                if chan not in self._signals:
-                    raise ValueError(f'ERROR: Missing signal for channel {chan}')
-                signal_matrix[ichan,:] = self._signals[chan].copy()
-                
-            self._signals[channel_name] = signal_matrix
-
-                 
-    def build_template_matrix(self, channels,
-                              template_tags,
-                              matrix_tag=None):
-        
-        """
-        A function to build the template matrix [nchan, ntemplate, nsamples]
-        for specified channels and template tags
-        
-        Parameters
-        ----------
-        
-        channels : str or array-like
-                list or  "|" separated string
-                such as "channel1|channel2"
-
-        template_tags: 2D array [nchans, ntmps] 
-            tags for each templates
-
-        matrix_tag : str (optional)
-            matrix tag
-        
-        template_fft: boolean
-          if False, time domain template (default)
-          if True, template FFT
-       
-                    
-        Returns
-        -------
-        
-        None
-        """
-
-        # channel name and list 
-        channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-        nchans = len(channel_list)
-
-        # check template tags
-        if (not isinstance(template_tags, np.ndarray)
-            or  template_tags.ndim != 2):
-            raise ValueError('ERROR: Expecting "template_tags" '
-                             'to be a (2D) numpy array')
-
-        if template_tags.shape[0] != len(channel_list):
-            raise ValueError('ERROR: Inconsistent number of '
-                             'channels between "template_tags" '
-                             'and {channel_name}')
-
-        # number of templates
-        ntmps = template_tags.shape[1]
-
-
-        # matrix tag
-        if matrix_tag is None:
-            matrix_tag = self._get_template_matrix_tag(channel_name,
-                                                       template_tags)
-
-        # template time domain
-        pretrigger_samples = None
-        
-        if (channel_name not in self._templates
-            or matrix_tag not in self._templates[channel_name]):
-
-            template_matrix = np.zeros((nchans, ntmps, self._nbins),
-                                       dtype='float64')
-            
-            # loop channel
-            for ichan, chan in enumerate(channel_list):
-                
-                if chan not in self._templates:
-                    raise ValueError(f'ERROR: Missing templates for channel {chan}')
-
-                # loop templates
-                chan_tags = template_tags[ichan,:]
-                for itmp in range(ntmps):
-
-                    tag = chan_tags[itmp]
-
-                    if tag not in self._templates[chan]:
-                        raise ValueError(
-                            f'ERROR: Missing template with tag {tag} '
-                            f'for channel {chan}!')
-                    
-                    array = self._templates[chan][tag]
-                    array[np.isnan(array)] = 0
-                    template_matrix[ichan,itmp,:] = array
-
-                    # pretrigger
-                    pretrigger_samples_chan = self.nb_pretrigger_samples(chan, tag)
-                    if pretrigger_samples is None:
-                        pretrigger_samples = self.nb_pretrigger_samples(chan, tag)
-                    elif pretrigger_samples_chan != pretrigger_samples:
-                        raise ValueError(f'ERROR: Multiple values pretrigger samples '
-                                         f'found for channel {channel_name}, '
-                                         f'tag = {template_tags}')
-            
-            if channel_name not in self._templates:
-                self._templates[channel_name] = dict()
-
-            self._templates[channel_name][matrix_tag] = template_matrix
-                    
-            # pretrigger samples
-            if channel_name not in self._pretrigger_samples:
-                self._pretrigger_samples[channel_name] = dict()
-            self._pretrigger_samples[channel_name][matrix_tag] = pretrigger_samples
-            
-                
-        # let's build matrix FFT
-        if (channel_name not in self._templates_fft
-            or matrix_tag not in self._templates_fft[channel_name]):
-
-            template_matrix = np.zeros((nchans, ntmps, self._nbins),
-                                       dtype='complex_')
-
-            # loop channel
-            for ichan, chan in enumerate(channel_list):
-                
-                if chan not in self._templates_fft:
-                    raise ValueError(f'ERROR: Missing templates for channel {chan}')
-
-                # loop templates
-                chan_tags = template_tags[ichan,:]
-                for itmp in range(ntmps):
-                    tag = chan_tags[itmp]
-                   
-                    if tag not in self._templates_fft[chan]:
-                        raise ValueError(
-                            f'ERROR: Missing template with tag {tag} '
-                            f'for channel {chan}!')
-                    array = self._templates_fft[chan][tag]
-                    array[np.isnan(array)] = 0
-                    template_matrix[ichan,itmp,:] = array * self._df
-
-            if channel_name not in self._templates_fft:
-                self._templates_fft[channel_name] = dict()
-
-            self._templates_fft[channel_name][matrix_tag] = template_matrix
-            
-        
-    
-            
-    def _get_template_matrix_tag(self, channels, template_tags):
-        """
-        Build and return template tag with multiple channels"
-        """
-
-        # check channels
-        channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-
-        # get template tags matrix
-        if (not isinstance(template_tags, np.ndarray)
-            or  template_tags.ndim != 2):
-            raise ValueError('ERROR: Expecting "template_tags" '
-                             'to be a (2D) numpy array')
-
-        # check if already a tag
-        matrix_tag = None
-        if channel_name in self._template_matrix_tags:
-            chan_tags = self._template_matrix_tags[channel_name]
-            for tag, tags in  chan_tags.items():
-                if np.array_equal(tags, template_tags):
-                    matrix_tag = tag
-        else:
-            self._template_matrix_tags[channel_name] = dict() 
-
-        # create tag
-        if  matrix_tag is None:
-
-            # create unique id
-            unique_id = str(uuid.uuid4())
-            matrix_tag = f'matrix_tag_{unique_id}'
-            if matrix_tag in self._template_matrix_tags[channel_name]:
-                unique_id = str(uuid.uuid4())
-                matrix_tag = f'matrix_tag_{unique_id}'
-            
-            # save template tags
-            self._template_matrix_tags[channel_name][matrix_tag] = (
-                template_tags
-            )
-
-        # done
-        return matrix_tag
-
-    
-    def _get_time_constraints_tag(self, channels, template_tags,
-                                  constraints_dict):
-        """
-        Get/Build and tag fow NxMx2 time constrainsts
-
-        """
-    
-        # check channels
-        channel_name = convert_channel_list_to_name(channels)
-        channel_list = convert_channel_name_to_list(channels)
-
-        if len(channel_list) == 1:
-            raise ValueError('ERROR: Matrix tag only for multiple '
-                             'channels!')
-
-        # get template tag
-        matrix_tag = self._get_template_matrix_tag(channels, template_tags)
-        
-
-        # check if a tag exist already
-        constraints_tag = None
-                
-        # check if exist:
-        if channel_name not in self._time_constraints:
-            self._time_constraints[channel_name] = dict() 
-            
-        matrix_tags = self._time_constraints[channel_name].keys()
-
-        if matrix_tag in  matrix_tags:
-            
-            chan_tags = self._time_constraints[channel_name][matrix_tag]
-            for tag, tag_dict in  chan_tags.items():
-
-                if tag_dict.keys() != constraints_dict.keys():
-                    raise ValueError('ERROR: "constraints dict" '
-                                     'is not recognized!')
-
-                is_same = self._compare_dictionaries(
-                    tag_dict,constraints_dict
-                )
-
-                if is_same:
-                    constraints_tag = tag
-                    break
-
-        else:
-            self._time_constraints[channel_name][matrix_tag] = dict() 
-
-
-        # done if exist
-        if constraints_tag is not None:
-            return constraints_tag
-
-        # create new tag
-        unique_id = str(uuid.uuid4())
-        constraints_tag = f'constraints_tag_{unique_id}'
-        
-        self._time_constraints[channel_name][matrix_tag][constraints_tag] = (
-            copy.deepcopy(constraints_dict)
-        )
-  
-        return  constraints_tag
-    
-
-                          
-    def _compare_dictionaries(self, dict1, dict2):
-        """
-        Compare 2 dictionaries
-        """
-        
-        if dict1.keys() != dict2.keys():
-            return False
-    
-        for key in dict1:
-            value1 = dict1[key]
-            value2 = dict2[key]
-        
-            if (isinstance(value1, np.ndarray)
-                and isinstance(value2, np.ndarray)):
-                if not np.array_equal(value1, value2):
-                    return False
-            elif (isinstance(value1, dict)
-                  and isinstance(value2, dict)):
-                if not self._compare_dictionaries(value1, value2):
-                    return False
-                elif (isinstance(value1, list)
-                      and isinstance(value2, list)):
-                    if value1 != value2:
-                        return False
-            else:
-                if value1 != value2:
-                    return False
-                
-        return True
-
-
-
-    

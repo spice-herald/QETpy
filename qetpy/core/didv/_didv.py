@@ -438,10 +438,10 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             np.place(popt, lgcfix, fix_params)
             np.place(popt, ~lgcfix, res['x'])
             
-        # cost
-        cost = res['cost']
+        # cost (chi2 = 2*cost)
+        cost = 2*res['cost']
         fun = res['fun']
-       
+    
         # check if the fit failed (usually only happens when we reach maximum
         # evaluations, likely when fitting assuming the wrong loop gain)
         if not res['success'] :
@@ -640,12 +640,18 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 xtol=xtol,
             )
 
+            # full coveriance matrix
+            full_fitcov2 = fitcov2
+            if lgcfix is not None:
+                full_fitcov2 = np.zeros((5, 5))
+                free_indices = np.where(~lgcfix)[0]
+                full_fitcov2[np.ix_(free_indices, free_indices)] = fitcov2
+            
             # cost: divide by NDOF
             fitcost2 = fitcost2/(np.sum(fit_freqs)-len(fitparams2))
 
             # Convert to didv falltimes
             falltimes2 = DIDV._findpolefalltimes(fitparams2)
-
             
             # Convert to a 3-pole model with  C=0  and tau3=0
 
@@ -663,7 +669,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             # 2) cov
                 
             # Insert a row of zeros at index 2
-            intermediate_cov2 = np.insert(fitcov2, 2, 0, axis=0)
+            intermediate_cov2 = np.insert(full_fitcov2, 2, 0, axis=0)
             # Insert a column of zeros at index 2
             intermediate_cov2 = np.insert(intermediate_cov2, 2, 0, axis=1) 
 
@@ -778,6 +784,13 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # cost: divide by NDOF
             fitcost3 = fitcost3/(np.sum(fit_freqs)-len(fitparams3))
+
+            # full coveriance matrix
+            full_fitcov3 = fitcov3
+            if lgcfix is not None:
+                full_fitcov3 = np.zeros((7, 7))
+                free_indices = np.where(~lgcfix)[0]
+                full_fitcov3[np.ix_(free_indices, free_indices)] = fitcov3
             
             # Convert to didv falltimes
             falltimes3 = DIDV._findpolefalltimes(fitparams3)
@@ -786,7 +799,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             self._fit_results[3] = DIDV._fitresult(
                 poles,
                 fitparams3,
-                fitcov3,
+                full_fitcov3,
                 falltimes3,
                 fitcost3,
                 lgcfix=lgcfix,
