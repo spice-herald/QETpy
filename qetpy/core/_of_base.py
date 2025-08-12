@@ -1468,7 +1468,67 @@ class OFBase:
                 
             self._weights[channel_name][tag] =  weight
             self._iweights[channel_name][tag] = pinv(weight)
-            
+
+
+
+    def calc_rho(self, channels, delta_t_samples, template_tag=None):
+        """
+        A function that calculates the rho function, which is a measure of the
+        energy miscalculation in the optimal filter for imperfect time
+        reconstruction.
+        Depends on the optimal filter matrix (phi) and the template matrix.
+        This function also checks that the weight matrix has been precomputed. 
+        
+        Parameters
+        ----------
+        
+        channels : list or string
+            channel names
+
+        delta_t_samples : int
+              number of samples to shift the template in time (time mis-identification)
+
+        template_tags: 2D array (optional)
+           array of template tags
+        
+        Returns
+        -------
+        
+        None
+        """
+
+        # convert to name
+        channel_name = convert_channel_list_to_name(channels)
+    
+        if template_tag is None:
+            template_tag = self.template_tags(channel_name)[0]
+
+        # Check if weight matrix has already been calculated
+        if self.weight(channel_name, template_tag) is None:
+            self.calc_weight(channel_name, template_tag)
+        
+        # get phi and template FFT
+        phi = self.phi(channel_name, template_tag,
+                        squeeze_array=False)
+    
+        template_fft = self.template_fft(channel_name, template_tag,
+                                            squeeze_array=False)
+        template_fft_time_shift = copy.deepcopy(template_fft)
+        for i in range(template_fft.shape[0]):
+            for j in range(template_fft.shape[1]):
+                template_fft_time_shift[i,j,:] = (
+                    template_fft[i,j,:] *
+                    np.exp(-2j * np.pi * self._fft_freqs * delta_t_samples / self._fs)
+                    )
+        
+        # Compute the weight matrix, shifted and unshifted
+        w = self.weight(channel_name, template_tag)
+        w_time_shift = np.einsum('cif,cjf->ij', phi, template_fft_time_shift)
+        w_time_shift = np.real(w_time_shift)
+        
+        # Calculate rho which is just w_time_shift / w
+        return w_time_shift @ np.linalg.inv(w)
+
 
             
     def calc_p_matrix(self, channels,
