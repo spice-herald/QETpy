@@ -413,6 +413,35 @@ class OFBase:
             return None
 
         
+    def is_signal_stored(self, channels):
+        """
+        Check if signals have been stored for a specific
+        channel (or multiple channels)
+         
+        Parameters
+        ----------
+        channel : str or array-like
+             single channel: channel name              
+             multi channels: array-like or  "|" separated string
+                such as "channel1|channel2"
+
+        Return
+        ------
+        is_stored : boolean
+            if all signals stored return True
+        """
+
+        if self._nbins is None:
+            return False
+        
+        channel_list = convert_channel_name_to_list(channels)
+
+        for ichan, chan in enumerate(channel_list):
+            if chan not in self._signals:
+                return False
+
+        return True
+        
     def signal(self, channels, squeeze_array=False):
         """
         Get signal trace(s) in time domain
@@ -1297,7 +1326,9 @@ class OFBase:
             raise ValueError(f'ERROR: number of channels ({nchans}) '
                              f'does not match signal array ({nchans_array})')
 
-        if  (nbins_array != self._nbins):
+        if self._nbins is None:
+            self._nbins = nbins_array
+        elif (nbins_array != self._nbins):
             raise ValueError(f'ERROR:Inconsistent number of samples '
                              f'between signal ({nbins_array}) '
                              f'and template/psd ({ self._nbins})')
@@ -1327,8 +1358,14 @@ class OFBase:
             if calc_fft:
                 f, signal_fft = fft(signal, self._fs, axis=-1)
                 self._signals_fft[chan] = signal_fft/self._nbins
+
+                if self._fft_freqs is None:
+                    self._fft_freqs = f
+                elif (not np.array_equal(self._fft_freqs,f)):
+                    raise ValueError(f'ERROR:Inconsistent frequency array '
+                                     f'between signal and template/psd')
+
                 
-    
     def calc_phi(self, channels, template_tag=None,
                  calc_weight=True):
         """
