@@ -1104,6 +1104,7 @@ class OFBase:
     def set_csd(self, channels, csd,
                 coupling='AC',
                 ignored_frequency_peaks=None,
+                ignore_harmonics=True,
                 calc_icov=True):
         """
         Add csd, calculate inverse (optional)
@@ -1131,6 +1132,8 @@ class OFBase:
             calculation. The nearest bin (both positive/negative frequencies) from
             given frequency is selected and CSD frequency set to infinity.
          
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
       
         Returns
         -------
@@ -1173,11 +1176,13 @@ class OFBase:
         if calc_icov:
             self.calc_icovf(channel_name,
                             coupling=coupling,
-                            ignored_frequency_peaks=ignored_frequency_peaks)
+                            ignored_frequency_peaks=ignored_frequency_peaks,
+                            ignore_harmonics=ignore_harmonics)
             
             
     def set_psd(self, channel, psd, coupling='AC',
-                ignored_frequency_peaks=None):
+                ignored_frequency_peaks=None,
+                ignore_harmonics=True):
         """
         Add psd for specified channel
         If psd already exist, it is overwritten
@@ -1202,7 +1207,9 @@ class OFBase:
             frequencies that are ignored in optimal filter
             calculation. The nearest bin (both positive/negative frequencies) from
             given frequency is selected and CSD frequency set to infinity.
-            
+              
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
 
         Returns
         -------
@@ -1236,13 +1243,15 @@ class OFBase:
             csd = psd[np.newaxis, np.newaxis, :]  # now shape is (1, 1, nfreq)
 
         self.set_csd(channel, csd, coupling=coupling,
-                     ignored_frequency_peaks=ignored_frequency_peaks)
+                     ignored_frequency_peaks=ignored_frequency_peaks,
+                     ignore_harmonics=ignore_harmonics)
         
 
 
     def calc_icovf(self, channels,
                    coupling='AC',
-                   ignored_frequency_peaks=None):
+                   ignored_frequency_peaks=None,
+                   ignore_harmonics=True):
         """
         A function that inverts the csd or covariance noise matrix between channels. 
         
@@ -1265,7 +1274,8 @@ class OFBase:
             calculation. The nearest bin (both positive/negative frequencies) from
             given frequency is selected and CSD frequency set to infinity.
 
-
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
 
         Returns
         -------
@@ -1287,29 +1297,70 @@ class OFBase:
         if coupling == 'AC':
             temp_icovf[:,:,0] = 0.0
 
+
         if ignored_frequency_peaks is not None:
 
+            # normalize input to a list
             if not isinstance(ignored_frequency_peaks, list):
                 ignored_frequency_peaks = [ignored_frequency_peaks]
-
-            for freq in ignored_frequency_peaks:
-
-                # make sure frequency positive
-                freq = np.abs(freq)
-                
-                # positive frequency
-                idx_pos = int(np.argmin(np.abs(self._fft_freqs - freq)))
-                mask = np.zeros_like(self._fft_freqs, dtype=bool)
-                mask[idx_pos] = True
-
-                # negative frequency
-                idx_neg = int(np.argmin(np.abs(self._fft_freqs + freq)))
-                mask[idx_neg] = True
-
-                # modify
-                temp_icovf[..., mask] = 0.0
-                
+                print(ignored_frequency_peaks)
+            freqs = np.asarray(self._fft_freqs)
+            fmax = float(np.max(np.abs(freqs)))
             
+            # tolerance ?
+            """
+            # estimate frequency-bin spacing (robust to sign order)
+            # sort by absolute frequency to avoid the 0 jump
+            sort_idx = np.argsort(np.abs(freqs))
+            df_est = np.median(np.diff(np.sort(np.abs(freqs))))
+            if not np.isfinite(df_est) or df_est <= 0:
+                # fallback if something weird with freqs
+                df_est = np.min(np.abs(np.diff(np.sort(freqs)))) if freqs.size > 1 else 0.0
+
+            # tolerance: half a bin by default
+            tol = 0.5 * df_est if df_est > 0 else 0.0
+            """
+
+            # accumulate all bins to zero in one mask
+            mask_all = np.zeros_like(freqs, dtype=bool)
+
+            for f in ignored_frequency_peaks:
+                if f is None or not np.isfinite(f):
+                    continue
+
+                f = float(np.abs(f))
+                if f == 0.0:
+                    # Special case: DC (closest-to-zero bin)
+                    idx0 = int(np.argmin(np.abs(freqs)))
+                    mask_all[idx0] = True
+                    continue
+
+                # Build the target frequencies to zero
+                if ignore_harmonics:
+                    kmax = int(np.floor(fmax / f))
+                    if kmax <= 0:
+                        continue
+                    targets = f * np.arange(1, kmax + 1, dtype=float)
+                else:
+                    targets = np.array([f], dtype=float)
+                
+                # For each target harmonic, hit both + and - sides
+                for t in targets:
+                    
+                    # positive side
+                    idx_pos = int(np.argmin(np.abs(freqs - t)))
+                    #if np.abs(freqs[idx_pos] - t) <= tol:
+                    mask_all[idx_pos] = True
+
+                    # negative side
+                    idx_neg = int(np.argmin(np.abs(freqs + t)))
+                    #if np.abs(freqs[idx_neg] + t) <= tol:
+                    mask_all[idx_neg] = True
+                        
+            # apply once
+            temp_icovf[..., mask_all] = 0.0
+
+
         self._icovf[channel_name] = temp_icovf
         
         
