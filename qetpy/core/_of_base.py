@@ -1104,7 +1104,7 @@ class OFBase:
     def set_csd(self, channels, csd,
                 coupling='AC',
                 ignored_frequency_peaks=None,
-                ignore_harmonics=True,
+                ignore_harmonics=False,
                 calc_icov=True):
         """
         Add csd, calculate inverse (optional)
@@ -1182,7 +1182,7 @@ class OFBase:
             
     def set_psd(self, channel, psd, coupling='AC',
                 ignored_frequency_peaks=None,
-                ignore_harmonics=True):
+                ignore_harmonics=False):
         """
         Add psd for specified channel
         If psd already exist, it is overwritten
@@ -1251,7 +1251,7 @@ class OFBase:
     def calc_icovf(self, channels,
                    coupling='AC',
                    ignored_frequency_peaks=None,
-                   ignore_harmonics=True):
+                   ignore_harmonics=False):
         """
         A function that inverts the csd or covariance noise matrix between channels. 
         
