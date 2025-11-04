@@ -47,7 +47,7 @@ def foldpsd(psd, fs):
     return fold_spectrum(psd, fs)
     
 
-def calc_psd(array, fs=1.0, folded_over=False):
+def calc_psd(array, fs=1.0, folded_over=False, return_variance=False):
     """
     calculate PSD in Amps^2/Hz for an array of the 
     following dimension:
@@ -70,14 +70,18 @@ def calc_psd(array, fs=1.0, folded_over=False):
         we keep only the positive frequencies. If False, then the entire PSD is 
         saved, including positive and negative frequencies. Default is to fold
         over the PSD.
-            
+    return_variance : bool, optional
+        If True, also return the variance of the PSD estimate at each frequency.
+
     Returns
     -------
     f : ndarray
         Array of sample frequencies
     psd : ndarray
         Power spectral density of 'array' in units of Amps^2/Hz
-        
+    variance : ndarray, optional
+        Variance of the PSD estimate at each frequency.
+
     """
     
     # calculate normalization for correct units
@@ -88,14 +92,19 @@ def calc_psd(array, fs=1.0, folded_over=False):
   
     if array.ndim == 1:
         psd = (np.abs(array_fft)**2.0)/norm
+        psd_variance = np.zeros_like(psd)
     else:
         psd = np.mean(np.abs(array_fft)**2.0, axis=0)/norm
-        
+        psd_variance = np.var(np.abs(array_fft)**2.0/norm, axis=0)
     # fold 
     if folded_over:
         f, psd = fold_spectrum(psd, fs)
+        _, psd_variance = fold_spectrum(psd_variance, fs)
     
-    return f, psd
+    if return_variance:
+        return f, psd, psd_variance
+    else:
+        return f, psd
 
 
 def foldcsd(csd, fs):
