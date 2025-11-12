@@ -11,6 +11,7 @@ __all__ = [
     "compleximpedance",
     "complexadmittance",
     "squarewaveresponse",
+    "estimate_dt0_by_crosscorr",
 ]
 
 
@@ -292,6 +293,128 @@ def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
     )
 
     return response
+
+
+
+def estimate_dt0_fft(x, t, sgfreq, duty=0.5):
+    """
+    Estimate dt0 between average trace x(t) and an ideal square-wave template
+    using circular FFT cross-correlation. Returns dt0 in seconds in (-T/2, T/2].
+    """
+    x = np.asarray(x)
+    t = np.asarray(t)
+    N = x.size
+    dt = t[1]-t[0]
+    fs = 1.0/dt
+    T  = 1.0/sgfreq
+
+    # build ideal template that matches your model polarity
+    phase = (t % T) / T
+    tmpl = np.where(phase < duty, 1.0, -1.0)
+
+    # remove means (very important)
+    x0    = x - x.mean()
+    tmpl0 = tmpl - tmpl.mean()
+
+    # FFT xcorr (circular)
+    X = np.fft.rfft(x0)
+    H = np.fft.rfft(tmpl0)
+    r = np.fft.irfft(X * np.conj(H), n=N)
+
+    # allow negative lags by rolling the correlation
+    lags = np.arange(N)
+    lags = np.where(lags <= N//2, lags, lags-N)
+    kmax = int(np.argmax(r))
+    lag_samples = lags[kmax]
+
+    # sub-sample refine by quadratic fit around peak (if possible)
+    if 1 <= kmax < N-1:
+        y_m, y_0, y_p = r[kmax-1], r[kmax], r[kmax+1]
+        denom = (y_m - 2*y_0 + y_p)
+        if denom != 0:
+            delta = 0.5*(y_m - y_p)/denom  # in samples
+            lag_samples = lag_samples + delta
+
+    # wrap result into (-T/2, T/2] to fix period ambiguity
+    dt0 = lag_samples / fs
+    while dt0 <= -T/2: dt0 += T
+    while dt0 >   T/2: dt0 -= T
+
+    # resolve the 180° ambiguity for duty=0.5:
+    # pick the sign that maximizes correlation with the *high* level
+    # (i.e., prefer aligning +1 with the actual 'high' in x)
+    t_shift = t - dt0
+    phase_s = (t_shift % T) / T
+    tmpl_s  = np.where(phase_s < duty, 1.0, -1.0)
+    if np.sum(x0 * tmpl_s) < 0:
+        # flip by half-period if anti-correlated
+        dt0 += (T/2 if dt0 <= 0 else -T/2)
+
+    # final wrap again to (-T/2, T/2]
+    while dt0 <= -T/2: dt0 += T
+    while dt0 >   T/2: dt0 -= T
+    return dt0
+
+def estimate_dt0_by_crosscorr(time, traces, sgfreq, dutycycle):
+    """
+    Estimate dt0 by cross-correlating the mean trace with an ideal ±1
+    square wave of the same period and duty. Resolves the 180° flip
+    automatically by checking the correlation sign at the best lag.
+
+    Parameters
+    ----------
+    time : (N,) array (seconds, uniform spacing)
+    traces : (M,N) array (raw traces)
+    sgfreq : float (Hz)
+    dutycycle : float in [0,1]
+
+    Returns
+    -------
+    dt0 : float (seconds)
+    """
+    
+    traces = np.asarray(traces)
+    time   = np.asarray(time)
+    nBins  = time.size
+    if nBins < 2:
+        return 0.0
+
+    # 1) average trace
+    avg = np.nanmean(traces, axis=0)
+
+    # 2) ideal ±1 template with same period & duty
+    period = 1.0 / float(sgfreq)
+    on_len = dutycycle * period
+    tmod   = np.mod(time, period)
+    tmpl   = np.where(tmod < on_len, 1.0, -1.0)
+
+    # 3) search lags within one period
+    dt = time[1] - time[0]
+    period_bins = int(round(period / dt))
+    period_bins = max(1, min(period_bins, nBins))
+
+    bestLag, bestAbs = 0, -np.inf
+    for lag in range(period_bins):
+        end = nBins - lag
+        if end <= 0:
+            break
+        corr = float(np.dot(avg[lag:lag+end], tmpl[:end]))
+        acorr = abs(corr)
+        if acorr > bestAbs:
+            bestAbs = acorr
+            bestLag = lag
+
+    # 4) sign check at bestLag ? if negative, add half-period in bins
+    end = nBins - bestLag
+    signedCorr = float(np.dot(avg[bestLag:bestLag+end], tmpl[:end]))
+    if signedCorr < 0.0:
+        bestLag = (bestLag + period_bins // 2) % period_bins
+
+    # 5) convert to seconds; fold into [0, period) for consistency
+    dt0 = (bestLag * dt) % period
+    return dt0
+
+
 
 class _BaseDIDV(object):
     """
@@ -911,12 +1034,37 @@ class _BaseDIDV(object):
         nbinsraw = len(self._rawtraces[0])
         bins = np.arange(0, nbinsraw)
 
+        # Always auto-estimate dt0 here (or do it only if self._dt0 is None)
+       #  self._dt0 = None
+       #  raw_time = bins * dt
+        """
+        self._dt0 = estimate_dt0_by_crosscorr(
+            time=raw_time,
+            traces=self._rawtraces,
+            sgfreq=self._sgfreq,
+            dutycycle=self._dutycycle
+        )
+
+        raw_avg = np.mean(self._rawtraces, axis=0)  # shape: (nbinsraw,)
+        raw_time = bins * dt
+        self._dt0 = estimate_dt0_fft(
+            x=raw_avg,
+            t=raw_time,
+            sgfreq=self._sgfreq,
+            duty=getattr(self, "_dutycycle", 0.5),
+        )
+        """
+        
+
+        print(f'dt0 estimate = {self._dt0} sec')
+        self._time = bins * dt - self._dt0
+
+        
         # add half a period of the square wave frequency to the
         # initial offset if add180phase is True
-        if (self._add180phase):
-            self._dt0 = self._dt0 + 1/(2*self._sgfreq)
-
-        self._time = bins*dt - self._dt0
+        #if (self._add180phase):
+        #    self._dt0 = self._dt0 + 1/(2*self._sgfreq)
+        #self._time = bins*dt - self._dt0
 
         # figure out how many didv periods are in the trace, including
         # the time offset
