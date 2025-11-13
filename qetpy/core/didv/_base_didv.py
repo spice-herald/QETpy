@@ -12,6 +12,7 @@ __all__ = [
     "complexadmittance",
     "squarewaveresponse",
     "estimate_dt0_fft",
+    "estimate_dt0_cross_spectrum"
 ]
 
 
@@ -295,60 +296,6 @@ def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
     return response
 
 
-import numpy as np
-
-def goertzel_phases(x, fs, f0, nharm=11, duty=0.5):
-    """Return k (odd first), phases ?_k at exact k*f0 using Goertzel."""
-    N = len(x)
-    # odd harmonics by default
-    ks = np.arange(1, nharm+1, 2)  # 1,3,5,...
-    # Optionally include even harmonics if duty!=0.5
-    if abs(duty-0.5) > 1e-3:
-        ks = np.arange(1, nharm+1)  # 1..nharm
-    
-    t = np.arange(N)/fs
-    phases = []
-    mags   = []
-    for k in ks:
-        fk = k*f0
-        w = np.exp(-2j*np.pi*fk*t)
-        Xk = np.vdot(w, x)  # inner product
-        phases.append(np.angle(Xk))
-        mags.append(np.abs(Xk))
-    return ks, np.unwrap(np.array(phases)), np.array(mags)
-
-def estimate_dt0_harmonic_slope(x, fs, f0, nharm=11, duty=0.5, psd=None):
-    ks, phis, mags = goertzel_phases(x, fs, f0, nharm, duty)
-    # Weighted LS: phi_k ? -(2? f0) * (k * dt0) + phi0  => y = a*k + b
-    y = phis
-    X = np.vstack([ks, np.ones_like(ks)]).T
-    # weights: SNR ~ |Xk|^2 / PSD(fk) if psd given, else |Xk|^2
-    if psd is not None:
-        snr = []
-        for k in ks:
-            fk = k*f0
-            # nearest bin PSD is fine; or interpolate
-            snr.append((np.interp(fk, psd['f'], psd['S']))**-1)  # inverse PSD
-        w = (mags**2)*np.array(snr)
-    else:
-        w = mags**2
-    W = np.diag(w/np.max(w))
-    # (X^T W X)^{-1} X^T W y
-    beta = np.linalg.lstsq(W@X, W@y, rcond=None)[0]
-    slope = beta[0]
-    dt0 = -slope/(2*np.pi*f0)
-    return dt0
-
-
-
-
-
-
-
-
-
-
-
 def estimate_dt0_cross_spectrum(x, fs, sgfreq, duty=0.5, sgamp=1.0,
                                 nharm_max=9, band_bins=1, zpad=1):
     """
@@ -524,7 +471,7 @@ class _BaseDIDV(object):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
-                 dt0=10.0e-6, autoresample=False):
+                 dt0=None, autoresample=False):
         """
         Initialization of the _BaseDIDV class object
 
@@ -1131,31 +1078,30 @@ class _BaseDIDV(object):
         nbinsraw = len(self._rawtraces[0])
         bins = np.arange(0, nbinsraw)
 
-        # add half a period of the square wave frequency to the
-        # initial offset if add180phase is True
-        #if (self._add180phase):
-        #    self._dt0 = self._dt0 + 1/(2*self._sgfreq)
 
-        #self._time = bins*dt - self._dt0
+        if self._dt0 is None:
 
+            raw_avg = np.mean(self._rawtraces, axis=0)  # shape: (nbinsraw,)
+            raw_time = bins * dt
 
+            dt0_estimate_cross = estimate_dt0_cross_spectrum(
+                raw_avg.copy(), fs=self._fs, sgfreq=self._sgfreq,
+                duty=getattr(self, "_dutycycle", 0.5),
+                sgamp=self._sgamp, nharm_max= 9 or 11, band_bins=1,
+                zpad=4)
+            dt0_estimate_fft = estimate_dt0_fft(
+                raw_avg.copy(), raw_time, self._sgfreq,
+                duty=getattr(self, "_dutycycle", 0.5))
 
-        raw_avg = np.mean(self._rawtraces, axis=0)  # shape: (nbinsraw,)
-        raw_time = bins * dt
+            self._dt0 = (dt0_estimate_cross + dt0_estimate_fft)/2
 
-        dt0_estimate_cross = estimate_dt0_cross_spectrum(
-            raw_avg.copy(), fs=self._fs, sgfreq=self._sgfreq,
-            duty=getattr(self, "_dutycycle", 0.5),
-            sgamp=self._sgamp, nharm_max= 9 or 11, band_bins=1,
-            zpad=4)
-
-        dt0_estimate_harm = estimate_dt0_harmonic_slope(
-            raw_avg.copy(), self._fs, self._sgfreq, nharm=11,
-            duty=getattr(self, "_dutycycle", 0.5))
+        else:
         
-        print(f'dt0 estimate fft = {dt0_estimate_cross}')
-        print(f'dt0 estimate fft = {dt0_estimate_harm}')
-        self._dt0 = dt0_estimate_cross
+            # add half a period of the square wave frequency to the
+            # initial offset if add180phase is True
+            if (self._add180phase):
+                self._dt0 = self._dt0 + 1/(2*self._sgfreq)
+
         self._time = bins*dt - self._dt0
 
         

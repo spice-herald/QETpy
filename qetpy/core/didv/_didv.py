@@ -18,7 +18,7 @@ __all__ = [
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
                      sgamp, rsh, r0=0.3, rp=0.005, dutycycle=0.5,
-                     add180phase=False, dt0=1.5e-6):
+                     add180phase=False, dt0=None):
     """
     Function to initialize and process a dIdV dataset without having
     all of the traces, but just the parameters that are required for
@@ -137,7 +137,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
-                 dt0=1.5e-6, autoresample=False):
+                 dt0=None, autoresample=False):
         """
         Initialization of the DIDV class object
 
@@ -594,8 +594,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # time shift
             dt0 = self._dt0
-            
-
+           
             # overrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 5:
@@ -693,12 +692,11 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             self._fit_results[2]['offset_err'] = self._offset_err
 
         elif poles==3:
-
+            
             if (self._fit_results[2] is None
-                or 'param' not in self._fit_results[2]):
+                or 'params' not in self._fit_results[2]):
                 
-                # Guess the 3-pole fit starting parameters from
-                # 2-pole fit guess
+                # Guess the 3-pole fit
                 A0, B0, tau10, tau20 = DIDV._guessdidvparams(
                     self._tmean,
                     self._tmean[self._flatinds],
@@ -720,8 +718,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 tau20 = self._fit_results[2]['params']['tau2']
                 tau30 = 1.0e-3
                 dt0 = self._fit_results[2]['params']['dt']
-
-
+                                          
             # is loop gain < 1
             isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
@@ -759,6 +756,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 isloopgainsub1 = guess_isloopgainsub1
             
             # 3 pole fitting
+
             fitparams3, fitcov3, fitcost3 = DIDV._fitdidv(
                 self._freq[fit_freqs],
                 self._didvmean[fit_freqs],
