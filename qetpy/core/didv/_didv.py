@@ -524,7 +524,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             
             # time shift guess
             dt = self._dt0
-            
+      
             # overrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 3:
@@ -594,7 +594,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
 
             # time shift
             dt0 = self._dt0
-           
+            
             # overrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 5:
@@ -718,7 +718,7 @@ class DIDV(_BaseDIDV, _PlotDIDV):
                 tau20 = self._fit_results[2]['params']['tau2']
                 tau30 = 1.0e-3
                 dt0 = self._fit_results[2]['params']['dt']
-                                          
+                
             # is loop gain < 1
             isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,

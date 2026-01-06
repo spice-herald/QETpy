@@ -1084,17 +1084,19 @@ class _BaseDIDV(object):
             raw_avg = np.mean(self._rawtraces, axis=0)  # shape: (nbinsraw,)
             raw_time = bins * dt
 
-            dt0_estimate_cross = estimate_dt0_cross_spectrum(
-                raw_avg.copy(), fs=self._fs, sgfreq=self._sgfreq,
-                duty=getattr(self, "_dutycycle", 0.5),
-                sgamp=self._sgamp, nharm_max= 9 or 11, band_bins=1,
-                zpad=4)
+            #dt0_estimate_cross = estimate_dt0_cross_spectrum(
+            #    raw_avg.copy(), fs=self._fs, sgfreq=self._sgfreq,
+            #    duty=getattr(self, "_dutycycle", 0.5),
+            #    sgamp=self._sgamp, nharm_max= 9 or 11, band_bins=1,
+            #    zpad=4)
+
             dt0_estimate_fft = estimate_dt0_fft(
                 raw_avg.copy(), raw_time, self._sgfreq,
                 duty=getattr(self, "_dutycycle", 0.5))
-
-            self._dt0 = (dt0_estimate_cross + dt0_estimate_fft)/2
-
+            
+            #self._dt0 = (dt0_estimate_cross + dt0_estimate_fft)/2
+            self._dt0  = dt0_estimate_fft
+                       
         else:
         
             # add half a period of the square wave frequency to the
