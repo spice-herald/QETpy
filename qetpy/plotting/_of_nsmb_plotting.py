@@ -84,9 +84,8 @@ def plotnsmb(pulset, fs, tdelmin, amin, sbTemplatef, nS, nB, nt, psddnu,
     # check the chi2
     residTf = np.fft.fft(residT, axis=1) / nt
     chi2T = np.real(np.sum(np.conj(residTf.T) / psddnu.T * residTf.T, 0))
-
-
-    chi2TFloat = float(chi2T)
+ 
+    chi2TFloat = float(np.asarray(chi2T).item())
 
     # ===Time Domain ==================================================
     bins = np.arange(nt)
