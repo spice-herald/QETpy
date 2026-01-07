@@ -11,6 +11,8 @@ __all__ = [
     "compleximpedance",
     "complexadmittance",
     "squarewaveresponse",
+    "estimate_dt0_fft",
+    "estimate_dt0_cross_spectrum"
 ]
 
 
@@ -293,6 +295,171 @@ def squarewaveresponse(t, sgamp, sgfreq, params, dutycycle=0.5,
 
     return response
 
+
+def estimate_dt0_cross_spectrum(x, fs, sgfreq, duty=0.5, sgamp=1.0,
+                                nharm_max=9, band_bins=1, zpad=1):
+    """
+    Estimate time delay dt0 between data x and an ideal square wave
+    by fitting the slope of the cross-spectrum phase vs frequency.
+
+    x           : 1D signal (average trace is best)
+    fs          : sample rate [Hz]
+    sgfreq      : square-wave frequency [Hz]
+    duty        : duty cycle in [0,1]
+    sgamp       : peak-to-peak square amplitude (only scales weights)
+    nharm_max   : use odd harmonics m = 1,3,5,... up to this m
+    band_bins   : include ±band_bins FFT bins around each harmonic
+    zpad        : zero-padding factor (e.g., 4 gives 4× frequency resolution)
+
+    returns dt0 in seconds wrapped to (-T/2, T/2], where T=1/sgfreq
+    """
+    x = np.asarray(x)
+    N  = x.size
+    T  = 1.0 / sgfreq
+
+    # optional zero-padding for finer frequency grid
+    Nz = int(zpad * N)
+    def rfft(x):
+        return np.fft.rfft(x, n=Nz)
+    freqs = np.fft.rfftfreq(Nz, d=1/fs)
+
+    # build ideal square (same length), no delay
+    t = np.arange(N) / fs
+    # exact Fourier construction causes leakage if non-integer cycles;
+    # time-domain square is fine for cross-spectrum:
+    level_hi = +sgamp/2.0
+    level_lo = -sgamp/2.0
+    phase_in_period = np.mod(t, T)
+    square = np.where(phase_in_period < duty*T, level_hi, level_lo)
+
+    # remove means to kill DC dominance
+    X = rfft(x - np.mean(x))
+    S = rfft(square - np.mean(square))
+
+    # cross-spectrum
+    Gamma = X * np.conj(S)
+
+    # pick harmonic neighborhoods
+    use_f = []
+    use_phi = []
+    use_w = []
+
+    # list of harmonic center freqs (odd only typical for duty=0.5, but we don?t rely on that)
+    ms = list(range(1, nharm_max+1))  # 1..nharm_max
+    for m in ms:
+        f0 = m * sgfreq
+        if f0 >= freqs[-1]:
+            break
+        k0 = int(np.round(f0 / (fs / Nz)))
+        kmin = max(1, k0 - band_bins)
+        kmax = min(len(freqs)-1, k0 + band_bins)
+        idx = np.arange(kmin, kmax+1)
+        # discard bins where either spectrum is too weak
+        mag = np.abs(Gamma[idx])
+        good = mag > (1e-12 * np.max(np.abs(Gamma)))  # guard
+        idx = idx[good]
+        if idx.size == 0:
+            continue
+        use_f.append(freqs[idx])
+        use_phi.append(np.angle(Gamma[idx]))
+        use_w.append(mag[good])
+
+    if not use_f:
+        return 0.0
+
+    f = np.concatenate(use_f)
+    phi = np.concatenate(use_phi)
+    w = np.concatenate(use_w)
+
+    # unwrap phase by sorting on frequency first
+    order = np.argsort(f)
+    f = f[order]
+    phi = np.unwrap(phi[order])
+    w = w[order]
+
+    # weighted linear fit: phi ? a*f + b  => dt0 = -a/(2?)
+    # Solve with weights
+    W = np.diag(w)
+    A = np.vstack([f, np.ones_like(f)]).T
+    # (A^T W A)^{-1} A^T W y
+    AtW = A.T @ W
+    sol = np.linalg.lstsq(AtW @ A, AtW @ phi, rcond=None)[0]
+    slope = sol[0]
+
+    dt0 = -slope / (2*np.pi)
+
+    # wrap into (-T/2, T/2]
+    while dt0 <= -T/2: dt0 += T
+    while dt0 >    T/2: dt0 -= T
+    return float(dt0)
+
+
+
+def estimate_dt0_fft(x, t, sgfreq, duty=0.5):
+    """
+    Estimate dt0 between average trace x(t) and an ideal square-wave template
+    using circular FFT cross-correlation. Returns dt0 in seconds in (-T/2, T/2].
+    """
+    x = np.asarray(x)
+    t = np.asarray(t)
+    N = x.size
+    dt = t[1]-t[0]
+    fs = 1.0/dt
+    T  = 1.0/sgfreq
+
+    # build ideal template that matches your model polarity
+    phase = (t % T) / T
+    tmpl = np.where(phase < duty, 1.0, -1.0)
+
+    # remove means (very important)
+    x0    = x - x.mean()
+    tmpl0 = tmpl - tmpl.mean()
+
+    # FFT xcorr (circular)
+    X = np.fft.rfft(x0)
+    H = np.fft.rfft(tmpl0)
+    r = np.fft.irfft(X * np.conj(H), n=N)
+
+    # allow negative lags by rolling the correlation
+    lags = np.arange(N)
+    lags = np.where(lags <= N//2, lags, lags-N)
+    kmax = int(np.argmax(r))
+    lag_samples = lags[kmax]
+
+    # sub-sample refine by quadratic fit around peak (if possible)
+    if 1 <= kmax < N-1:
+        y_m, y_0, y_p = r[kmax-1], r[kmax], r[kmax+1]
+        denom = (y_m - 2*y_0 + y_p)
+        if denom != 0:
+            delta = 0.5*(y_m - y_p)/denom  # in samples
+            lag_samples = lag_samples + delta
+
+    # wrap result into (-T/2, T/2] to fix period ambiguity
+    dt0 = lag_samples / fs
+    while dt0 <= -T/2: dt0 += T
+    while dt0 >   T/2: dt0 -= T
+
+    # resolve the 180° ambiguity for duty=0.5:
+    # pick the sign that maximizes correlation with the *high* level
+    # (i.e., prefer aligning +1 with the actual 'high' in x)
+    t_shift = t - dt0
+    phase_s = (t_shift % T) / T
+    tmpl_s  = np.where(phase_s < duty, 1.0, -1.0)
+    if np.sum(x0 * tmpl_s) < 0:
+        # flip by half-period if anti-correlated
+        dt0 += (T/2 if dt0 <= 0 else -T/2)
+
+    # final wrap again to (-T/2, T/2]
+    while dt0 <= -T/2: dt0 += T
+    while dt0 >   T/2: dt0 -= T
+    return dt0
+
+
+
+
+
+
+
 class _BaseDIDV(object):
     """
     Class for fitting a didv curve for different types of models of the
@@ -304,7 +471,7 @@ class _BaseDIDV(object):
 
     def __init__(self, rawtraces, fs, sgfreq, sgamp, rsh, tracegain=1.0,
                  r0=0.3, rp=0.005, dutycycle=0.5, add180phase=False,
-                 dt0=10.0e-6, autoresample=False):
+                 dt0=None, autoresample=False):
         """
         Initialization of the _BaseDIDV class object
 
@@ -911,13 +1078,35 @@ class _BaseDIDV(object):
         nbinsraw = len(self._rawtraces[0])
         bins = np.arange(0, nbinsraw)
 
-        # add half a period of the square wave frequency to the
-        # initial offset if add180phase is True
-        if (self._add180phase):
-            self._dt0 = self._dt0 + 1/(2*self._sgfreq)
+
+        if self._dt0 is None:
+
+            raw_avg = np.mean(self._rawtraces, axis=0)  # shape: (nbinsraw,)
+            raw_time = bins * dt
+
+            #dt0_estimate_cross = estimate_dt0_cross_spectrum(
+            #    raw_avg.copy(), fs=self._fs, sgfreq=self._sgfreq,
+            #    duty=getattr(self, "_dutycycle", 0.5),
+            #    sgamp=self._sgamp, nharm_max= 9 or 11, band_bins=1,
+            #    zpad=4)
+
+            dt0_estimate_fft = estimate_dt0_fft(
+                raw_avg.copy(), raw_time, self._sgfreq,
+                duty=getattr(self, "_dutycycle", 0.5))
+            
+            #self._dt0 = (dt0_estimate_cross + dt0_estimate_fft)/2
+            self._dt0  = dt0_estimate_fft
+                       
+        else:
+        
+            # add half a period of the square wave frequency to the
+            # initial offset if add180phase is True
+            if (self._add180phase):
+                self._dt0 = self._dt0 + 1/(2*self._sgfreq)
 
         self._time = bins*dt - self._dt0
 
+        
         # figure out how many didv periods are in the trace, including
         # the time offset
         period = 1.0/self._sgfreq

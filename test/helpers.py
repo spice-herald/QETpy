@@ -164,7 +164,7 @@ def create_example_pulseplusmuontail(lgcbaseline=False):
     pulse = np.exp(-t/TAU_FALL) - np.exp(-t/TAU_RISE)
 
     # randomize the delay
-    delayRand = np.random.uniform(size=1)
+    delayRand = np.random.uniform()
     pulse_shifted = np.roll(pulse, int(len(t) * delayRand))
     template = pulse_shifted/pulse_shifted.max()
 
@@ -230,7 +230,7 @@ def create_example_ttl_leakage_pulses(
     template = template/template.max()
 
     # randomize the delay for the charge leakage
-    delayrand = np.random.uniform(size=1)
+    delayrand = np.random.uniform()
     leakagetemplate = np.roll(template, int(len(t)*delayrand))
     leakagetemplate = leakagetemplate/leakagetemplate.max()
     leakagepulse = leakagetemplate*PULSE_AMP
