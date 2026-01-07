@@ -1037,6 +1037,7 @@ def of_nsmb_con(pulset, phi, Pfs, P, sbtemplatef, sbtemplate, psddnu, fs, indwin
     # check the gradient at the best fit polarity constrained min
     
     # note that we cast ind_tdel_New to an int
+    ind_tdel_New_nowindow = int(np.asarray(ind_tdel_New_nowindow).item())
     Pt_tmin, iPt_tmin = of_nsmb_getPt(Pfs, P, combind=((2**nsb)-1),
                                     bindelay=int(ind_tdel_New_nowindow),bitcomb=bitcomb,bitmask=None)
     
