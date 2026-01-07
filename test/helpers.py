@@ -230,7 +230,7 @@ def create_example_ttl_leakage_pulses(
     template = template/template.max()
 
     # randomize the delay for the charge leakage
-    delayrand = np.random.uniform(size=1)
+    delayrand = np.random.uniform()
     leakagetemplate = np.roll(template, int(len(t)*delayrand))
     leakagetemplate = leakagetemplate/leakagetemplate.max()
     leakagepulse = leakagetemplate*PULSE_AMP
