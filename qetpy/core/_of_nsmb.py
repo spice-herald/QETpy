@@ -1109,6 +1109,7 @@ def _interpchi2(indmin, chi2, amp, time):
         Amplitude at interpolated chi^2 minimum
 
     """
+    indmin = int(np.asarray(indmin).item())
 
     t_to_interp = time[int(indmin-1):int(indmin+2)]
         
