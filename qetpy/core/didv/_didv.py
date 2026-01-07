@@ -18,7 +18,7 @@ __all__ = [
 
 def didvinitfromdata(tmean, didvmean, didvstd, offset, offset_err, fs, sgfreq,
                      sgamp, rsh, r0=0.3, rp=0.005, dutycycle=0.5,
-                     add180phase=False, dt0=None):
+                     add180phase=False, dt0=1.5e-6):
     """
     Function to initialize and process a dIdV dataset without having
     all of the traces, but just the parameters that are required for
