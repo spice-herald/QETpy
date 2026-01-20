@@ -316,7 +316,7 @@ def gen_noise_from_psd(psd, fs=1.0, ntraces=1):
 
 
 
-def gen_noise(csd, fs=1.0, n_traces=1):
+def gen_noise(csd, fs=1.0, n_traces=1, seed=None, rng=None):
     """
     Function to generate noise traces with random phase from a given CSD. The CSD calculated from
     the generated noise traces should be the equivalent to the inputted CSD as the number of traces
@@ -331,6 +331,10 @@ def gen_noise(csd, fs=1.0, n_traces=1):
         Sample rate of the data being taken, assumed to be in units of Hz.
     ntraces : int, optional
         The number of noise traces that should be generated. Default is 1.
+    seed : int, optional
+        Random number generator seed
+    rng : Generator, optional
+        Random number generator object
     
     Returns
     -------
@@ -355,7 +359,11 @@ def gen_noise(csd, fs=1.0, n_traces=1):
 
     # Initialize the Fourier-domain noise realizations
     random_trace_fd = np.zeros((n_traces, n_channels, f_freqs), dtype=complex)
-    
+
+    # Initialize random number generator if needed
+    if rng is None:
+        rng = np.random.default_rng(seed)
+
     # Loop over the frequencies, randomly generate the noise in each frequency
     for i, freq in enumerate(freqs):
         
@@ -367,8 +375,8 @@ def gen_noise(csd, fs=1.0, n_traces=1):
         L = np.linalg.cholesky(csd[:, :, i] * dfreq)
 
         # Generate standard normal random variables (mean=0, variance=1)
-        z = np.random.normal(size=(n_channels, n_traces)) + \
-            1j * np.random.normal(size=(n_channels, n_traces))
+        z = rng.normal(size=(n_channels, n_traces)) + \
+            1j * rng.normal(size=(n_channels, n_traces))
         z *= 1 / np.sqrt(2)
 
         # Get the desired distribution of Fourier amplitudes
