@@ -413,6 +413,35 @@ class OFBase:
             return None
 
         
+    def is_signal_stored(self, channels):
+        """
+        Check if signals have been stored for a specific
+        channel (or multiple channels)
+         
+        Parameters
+        ----------
+        channel : str or array-like
+             single channel: channel name              
+             multi channels: array-like or  "|" separated string
+                such as "channel1|channel2"
+
+        Return
+        ------
+        is_stored : boolean
+            if all signals stored return True
+        """
+
+        if self._nbins is None:
+            return False
+        
+        channel_list = convert_channel_name_to_list(channels)
+
+        for ichan, chan in enumerate(channel_list):
+            if chan not in self._signals:
+                return False
+
+        return True
+        
     def signal(self, channels, squeeze_array=False):
         """
         Get signal trace(s) in time domain
@@ -1074,6 +1103,8 @@ class OFBase:
                 
     def set_csd(self, channels, csd,
                 coupling='AC',
+                ignored_frequency_peaks=None,
+                ignore_harmonics=False,
                 calc_icov=True):
         """
         Add csd, calculate inverse (optional)
@@ -1088,7 +1119,22 @@ class OFBase:
 
         csd : ndarray
            csd [nchan, nchan, nsamples]
+         
+        coupling : str, optional [default='AC']
+            String that determines if the zero frequency bin of the inverted csd
+            should be ignored   when calculating
+            the optimum amplitude. If set to 'AC', then the zero
+            frequency bin is ignored. If set to anything else, then the
+            zero frequency bin is kept.
 
+        ignored_frequency_peaks : float or list of float [default=None] 
+            frequencies that are ignored in optimal filter
+            calculation. The nearest bin (both positive/negative frequencies) from
+            given frequency is selected and CSD frequency set to infinity.
+         
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
+      
         Returns
         -------
         None
@@ -1116,6 +1162,9 @@ class OFBase:
                 f'(# samples={self._nbins}) must have same '
                 f'number of samples!')
 
+        # frequency vectror
+        self._fft_freqs = fftfreq(nbins, self._fs)
+        
         # add to dictionary
         self._csd[channel_name] = csd
 
@@ -1126,10 +1175,14 @@ class OFBase:
         # calculate icov
         if calc_icov:
             self.calc_icovf(channel_name,
-                            coupling=coupling)
-
-
-    def set_psd(self, channel, psd, coupling='AC'):
+                            coupling=coupling,
+                            ignored_frequency_peaks=ignored_frequency_peaks,
+                            ignore_harmonics=ignore_harmonics)
+            
+            
+    def set_psd(self, channel, psd, coupling='AC',
+                ignored_frequency_peaks=None,
+                ignore_harmonics=False):
         """
         Add psd for specified channel
         If psd already exist, it is overwritten
@@ -1149,6 +1202,14 @@ class OFBase:
             the optimum amplitude. If set to 'AC', then ths zero
             frequency bin is ignored. If set to anything else, then the
             zero frequency bin is kept.
+
+        ignored_frequency_peaks : float or list of float [default=None] 
+            frequencies that are ignored in optimal filter
+            calculation. The nearest bin (both positive/negative frequencies) from
+            given frequency is selected and CSD frequency set to infinity.
+              
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
 
         Returns
         -------
@@ -1172,16 +1233,25 @@ class OFBase:
                 f'psd/template with same tag must have same '
                 f'number of samples!')
 
+
+        # frequency vectror
+        self._fft_freqs = fftfreq(nbins, self._fs)
+        
         # add to dictionary
         csd = psd
         if psd.ndim == 1:
             csd = psd[np.newaxis, np.newaxis, :]  # now shape is (1, 1, nfreq)
 
-        self.set_csd(channel, csd, coupling=coupling)
+        self.set_csd(channel, csd, coupling=coupling,
+                     ignored_frequency_peaks=ignored_frequency_peaks,
+                     ignore_harmonics=ignore_harmonics)
         
 
 
-    def calc_icovf(self, channels, coupling='AC'):
+    def calc_icovf(self, channels,
+                   coupling='AC',
+                   ignored_frequency_peaks=None,
+                   ignore_harmonics=False):
         """
         A function that inverts the csd or covariance noise matrix between channels. 
         
@@ -1199,7 +1269,14 @@ class OFBase:
             frequency bin is ignored. If set to anything else, then the
             zero frequency bin is kept.
 
-        
+        ignored_frequency_peaks : float or list of float [default=None] 
+            frequencies that are ignored in optimal filter
+            calculation. The nearest bin (both positive/negative frequencies) from
+            given frequency is selected and CSD frequency set to infinity.
+
+        ignore_harmonics : boolean
+            if True, harmonics of the ignored_frequency_peaks are also ignored up to max frequency
+
         Returns
         -------
         
@@ -1219,11 +1296,73 @@ class OFBase:
 
         if coupling == 'AC':
             temp_icovf[:,:,0] = 0.0
+
+
+        if ignored_frequency_peaks is not None:
+
+            # normalize input to a list
+            if not isinstance(ignored_frequency_peaks, list):
+                ignored_frequency_peaks = [ignored_frequency_peaks]
+                print(ignored_frequency_peaks)
+            freqs = np.asarray(self._fft_freqs)
+            fmax = float(np.max(np.abs(freqs)))
             
+            # tolerance ?
+            """
+            # estimate frequency-bin spacing (robust to sign order)
+            # sort by absolute frequency to avoid the 0 jump
+            sort_idx = np.argsort(np.abs(freqs))
+            df_est = np.median(np.diff(np.sort(np.abs(freqs))))
+            if not np.isfinite(df_est) or df_est <= 0:
+                # fallback if something weird with freqs
+                df_est = np.min(np.abs(np.diff(np.sort(freqs)))) if freqs.size > 1 else 0.0
+
+            # tolerance: half a bin by default
+            tol = 0.5 * df_est if df_est > 0 else 0.0
+            """
+
+            # accumulate all bins to zero in one mask
+            mask_all = np.zeros_like(freqs, dtype=bool)
+
+            for f in ignored_frequency_peaks:
+                if f is None or not np.isfinite(f):
+                    continue
+
+                f = float(np.abs(f))
+                if f == 0.0:
+                    # Special case: DC (closest-to-zero bin)
+                    idx0 = int(np.argmin(np.abs(freqs)))
+                    mask_all[idx0] = True
+                    continue
+
+                # Build the target frequencies to zero
+                if ignore_harmonics:
+                    kmax = int(np.floor(fmax / f))
+                    if kmax <= 0:
+                        continue
+                    targets = f * np.arange(1, kmax + 1, dtype=float)
+                else:
+                    targets = np.array([f], dtype=float)
+                
+                # For each target harmonic, hit both + and - sides
+                for t in targets:
+                    
+                    # positive side
+                    idx_pos = int(np.argmin(np.abs(freqs - t)))
+                    #if np.abs(freqs[idx_pos] - t) <= tol:
+                    mask_all[idx_pos] = True
+
+                    # negative side
+                    idx_neg = int(np.argmin(np.abs(freqs + t)))
+                    #if np.abs(freqs[idx_neg] + t) <= tol:
+                    mask_all[idx_neg] = True
+                        
+            # apply once
+            temp_icovf[..., mask_all] = 0.0
+
+
         self._icovf[channel_name] = temp_icovf
         
-
-
         
     def clear_signal(self):
         """
@@ -1297,7 +1436,9 @@ class OFBase:
             raise ValueError(f'ERROR: number of channels ({nchans}) '
                              f'does not match signal array ({nchans_array})')
 
-        if  (nbins_array != self._nbins):
+        if self._nbins is None:
+            self._nbins = nbins_array
+        elif (nbins_array != self._nbins):
             raise ValueError(f'ERROR:Inconsistent number of samples '
                              f'between signal ({nbins_array}) '
                              f'and template/psd ({ self._nbins})')
@@ -1327,8 +1468,14 @@ class OFBase:
             if calc_fft:
                 f, signal_fft = fft(signal, self._fs, axis=-1)
                 self._signals_fft[chan] = signal_fft/self._nbins
+
+                if self._fft_freqs is None:
+                    self._fft_freqs = f
+                elif (not np.array_equal(self._fft_freqs,f)):
+                    raise ValueError(f'ERROR:Inconsistent frequency array '
+                                     f'between signal and template/psd')
+
                 
-    
     def calc_phi(self, channels, template_tag=None,
                  calc_weight=True):
         """
@@ -1364,8 +1511,10 @@ class OFBase:
         
         # get noise data (inverte covariance matrix)
         if self.icovf(channel_name) is None:
-            self.calc_icovf(channel_name)
-        icovf = self.icovf(channel_name)
+            raise ValueError(f'ERROR: Inverted CSD has not been calculated '
+                             f'for channel {channel_name} !')
+
+        icovf = copy.deepcopy(self.icovf(channel_name))
 
 
         # get list of tags
