@@ -692,43 +692,32 @@ class DIDV(_BaseDIDV, _PlotDIDV):
             self._fit_results[2]['offset_err'] = self._offset_err
 
         elif poles==3:
-            
-            if (self._fit_results[2] is None
-                or 'params' not in self._fit_results[2]):
-                
-                # Guess the 3-pole fit
-                A0, B0, tau10, tau20 = DIDV._guessdidvparams(
-                    self._tmean,
-                    self._tmean[self._flatinds],
-                    self._sgamp,
-                    self._rsh,
-                    L0=1.0e-7,
-                )[:-1]
-                B0 = -abs(B0)
-                C0 = -0.05
-                tau10 = -abs(tau10)
-                tau30 = 1.0e-3
-                dt0 = self._dt0
-                
-            else:
-                A0 = self._fit_results[2]['params']['A']
-                B0 = -abs(self._fit_results[2]['params']['B'])
-                C0 = -0.05
-                tau10 = -abs(self._fit_results[2]['params']['tau1']) 
-                tau20 = self._fit_results[2]['params']['tau2']
-                tau30 = 1.0e-3
-                dt0 = self._fit_results[2]['params']['dt']
-                
-            # is loop gain < 1
-            isloopgainsub1 = DIDV._guessdidvparams(
+
+            # Guess the 3-pole fit
+            A0, B0, tau10, tau20, isloopgainsub1 = DIDV._guessdidvparams(
                 self._tmean,
                 self._tmean[self._flatinds],
                 self._sgamp,
                 self._rsh,
                 L0=1.0e-7,
-            )[-1]
+            )
+            
+            B0 = -abs(B0)
+            C0 = -0.05
+            tau10 = -abs(tau10)
+            tau30 = 1.0e-3
+            dt0 = self._dt0
 
-        
+
+            # overwrite some parameters if 2-poles fit done
+            if (self._fit_results[2] is not None
+                and 'params' in self._fit_results[2]):
+                
+                A0 = self._fit_results[2]['params']['A']
+                B0 = -abs(self._fit_results[2]['params']['B'])
+                tau10 = -abs(self._fit_results[2]['params']['tau1']) 
+                dt0 = self._fit_results[2]['params']['dt']
+
             # overwrite guessed values if provided by user
             if guess_params is not None:
                 if len(guess_params) != 7:
