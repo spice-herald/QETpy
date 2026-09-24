@@ -15,6 +15,13 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 # ifft functions
 FFT_MODULE = 'scipy'
 
+# global variable for the fft function: a real-valued input has a
+# Hermitian spectrum, so the two-sided FFT can be obtained from the
+# half-spectrum "rfft" and then unfolded, which is roughly twice as fast
+# as the full complex transform. Set to False to always call fft().
+# Complex input always uses the full complex transform.
+FFT_USE_RFFT = True
+
 __all__ = [
     "make_decreasing",
     "calc_offset",
@@ -1209,6 +1216,61 @@ def argmin_chisq(chisq,
     return bestind
 
 
+def _unfold_rfft(half_spectrum, nbins, axis=-1):
+    """
+    Build a two-sided FFT from the half-spectrum of a real-valued input
+
+    The spectrum of a real signal is Hermitian, X[nbins-k] = conj(X[k]),
+    so the bins above the Nyquist frequency are the conjugate of the
+    positive-frequency bins in reverse order. The Nyquist bin (even
+    number of samples) and the DC bin have no mirror image.
+
+    Parameters
+    ----------
+    half_spectrum : nd numpy array
+      output of rfft, with nbins//2 + 1 frequency bins along "axis"
+
+    nbins : int
+      number of samples of the original time-domain array
+
+    axis : int (optional)
+      axis along which the FFT was calculated
+
+    Return
+    ----------
+
+    fft :  nd numpy array
+       Two-sided Fourier transformed data, nbins along "axis"
+
+    """
+
+    nb_half = half_spectrum.shape[axis]
+
+    mirror = [slice(None)] * half_spectrum.ndim
+    if nbins % 2 == 0:
+        # drop the Nyquist and DC bins
+        mirror[axis] = slice(-2, 0, -1)
+    else:
+        # no Nyquist bin: drop the DC bin only
+        mirror[axis] = slice(None, 0, -1)
+
+    head = [slice(None)] * half_spectrum.ndim
+    head[axis] = slice(0, nb_half)
+    tail = [slice(None)] * half_spectrum.ndim
+    tail[axis] = slice(nb_half, nbins)
+
+    # the output is allocated once and both halves are written into it:
+    # concatenating instead would also build a temporary conjugate array,
+    # which costs more than the transform itself for long traces
+    shape = list(half_spectrum.shape)
+    shape[axis] = nbins
+    fft_out = np.empty(tuple(shape), dtype=half_spectrum.dtype)
+    fft_out[tuple(head)] = half_spectrum
+    np.conjugate(half_spectrum[tuple(mirror)], out=fft_out[tuple(tail)])
+
+    return fft_out
+
+
 def fft(vals, fs=None, axis=-1):
     """
     Calculate 1D FFT and frequency array
@@ -1243,15 +1305,33 @@ def fft(vals, fs=None, axis=-1):
     if not isinstance(vals, np.ndarray):
         raise ValueError('ERROR: first parameter should be '
                          ' a numpy array')
+    # A real-valued input has a Hermitian spectrum: calculate the
+    # half-spectrum and unfold it, which is faster than the full
+    # complex transform (see FFT_USE_RFFT).
+    nbins = vals.shape[axis]
+    use_rfft = (FFT_USE_RFFT
+                and nbins > 0
+                and not np.iscomplexobj(vals))
+
     # calculate fft
     fft_out = []
     freqs = None
     if FFT_MODULE == 'scipy':
-        fft_out = sp.fft.fft(vals, axis=axis, norm=None)
+        if use_rfft:
+            fft_out = _unfold_rfft(
+                sp.fft.rfft(vals, axis=axis, norm=None), nbins, axis=axis
+            )
+        else:
+            fft_out = sp.fft.fft(vals, axis=axis, norm=None)
         if fs is not None:
             freqs = sp.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     elif FFT_MODULE == 'numpy':
-        fft_out = np.fft.fft(vals, axis=axis, norm=None)
+        if use_rfft:
+            fft_out = _unfold_rfft(
+                np.fft.rfft(vals, axis=axis, norm=None), nbins, axis=axis
+            )
+        else:
+            fft_out = np.fft.fft(vals, axis=axis, norm=None)
         if fs is not None:
             freqs = np.fft.fftfreq(fft_out.shape[-1], d=1.0/fs)
     else:
