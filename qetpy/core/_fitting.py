@@ -251,8 +251,6 @@ class OptimumFilter(object):
         self.norm = np.real(np.dot(self.phi, self.s)) * self.df
 
         self.v = fft(signal, axis=-1) / self.nbins / self.df
-        print('A self.v[50]: ' + str(self.v[50]))
-        print('A signal[50]: '+ str(signal[50]))
         self.signalfilt = self.phi * self.v / self.norm
 
         self.chi0 = None
@@ -558,11 +556,6 @@ class OptimumFilter(object):
             np.dot(self.v.conjugate() / self.psd, self.v) * self.df
         )
 
-        print('self.df: ' + str(self.df))
-        print('self.psd[50]: ' + str(self.psd[50]))
-        print('self.v[50]: ' + str(self.v[50]))
-        print('self.chisq0: ' + str(self.chi0))
-
         # fitting part of chi2
         #if self.chit_withdelay is None:
         self.chit_withdelay = (self.signalfilt_td**2) * self.norm
@@ -571,9 +564,7 @@ class OptimumFilter(object):
         # sum parts of chi2
         #if self.chi_withdelay is None:
         chi = self.chi0 - self.chit_withdelay
-        print('chisq_t0: ' + str(self.chit_withdelay[10]))
         self.chi_withdelay = np.roll(chi, self.nbins//2, axis=-1)
-        print('chisq_rolled: ' + str(self.chi_withdelay[self.nbins//2]))
         #if self.amps_withdelay is None:
         self.amps_withdelay = np.roll(
             self.signalfilt_td, self.nbins//2, axis=-1,
@@ -1388,83 +1379,19 @@ def ofamp_pileup_stationary(signal, template, inputpsd, fs, coupling='AC',
 
     """
 
-    psd = np.zeros(len(inputpsd))
-    psd[:] = inputpsd
-
-    nbins = len(signal)
-    df = fs / nbins
-
-    # take fft of signal and template,
-    # divide by nbins to get correct convention
-    v = fft(signal) / nbins / df
-    s = fft(template) / nbins / df
-
-    # check for compatibility between PSD and DFT
-    if(len(psd) != len(v)):
-        raise ValueError("PSD length incompatible with signal size")
-
-    # if AC coupled, the 0 component of the PSD is non-sensical
-    # if DC coupled, ignoring the DC component will
-    # still give the correct amplitude
-    if coupling == 'AC':
-        psd[0] = np.inf
-
-    # find optimum filter and norm
-    phi = s.conjugate() / psd
-    norm = np.real(np.dot(phi, s)) * df
-    signalfilt = phi * v / norm
-
-    signalfilt_td = np.real(ifft(signalfilt * nbins)) * df * norm
-    templatefilt_td = np.real(ifft(phi * s * nbins)) * df
-
-    times = np.arange(-(nbins//2), nbins//2 + nbins%2) / fs
-
-    # compute OF with delay
-    denom = norm**2 - templatefilt_td**2
-
-    a1s = np.zeros(nbins)
-    a2s = np.zeros(nbins)
-
-    # calculate the non-zero freq bins
-    a1s[1:] = (
-        signalfilt_td[0] * norm - signalfilt_td[1:] * templatefilt_td[1:]
-    ) / denom[1:]
-    a2s[1:] = (
-        signalfilt_td[1:] * norm - signalfilt_td[0] * templatefilt_td[1:]
-    ) / denom[1:]
-
-    # calculate the zero freq bins to avoid divide by zero
-    a1s[0] = signalfilt_td[0] / (2 * norm**2)
-    a2s[0] = signalfilt_td[0] / (2 * norm**2)
-
-    # signal part of chi^2
-    chi0 = np.real(np.dot(v.conjugate() / psd, v)) * df
-
-    # first fitting part of chi2
-    chit = (a1s**2 + a2s**2) * norm + 2 * a1s * a2s * templatefilt_td
-
-    # last part of chi2
-    chil = 2 * a1s * signalfilt_td[0] + 2 * a2s * signalfilt_td
-
-    # add all parts of chi2
-    chi = chi0 + chit - chil
-
-    a1s = np.roll(a1s, nbins//2)
-    a2s = np.roll(a2s, nbins//2)
-    chi = np.roll(chi, nbins//2)
-
-    # find time of best fit
-    bestind = _argmin_chi2(
-        chi, nconstrain=nconstrain, lgcoutsidewindow=lgcoutsidewindow,
+    # One implementation only. This function and OptimumFilter used to
+    # compute the same quantities separately; their chi^2 is a difference of
+    # terms many orders of magnitude larger than the result, so the two
+    # arithmetic orders disagreed by more than the comparison tolerance on
+    # some platforms.
+    optimum_filter = OptimumFilter(
+        signal, template, inputpsd, fs, coupling=coupling,
     )
 
-    # get best fit values
-    a1 = a1s[bestind]
-    a2 = a2s[bestind]
-    chi2 = chi[bestind]
-    t2 = times[bestind]
-
-    return a1, a2, t2, chi2
+    return optimum_filter.ofamp_pileup_stationary(
+        nconstrain=nconstrain,
+        lgcoutsidewindow=lgcoutsidewindow,
+    )
 
 
 def chi2lowfreq(signal, template, amp, t0, inputpsd, fs, fcutoff=10000,
