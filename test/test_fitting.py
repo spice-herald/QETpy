@@ -231,9 +231,22 @@ def test_ofamp_pileup_stationary():
     res1 = qp.ofamp_pileup_stationary(signal, template, psd, fs)
 
     OF = qp.OptimumFilter(signal, template, psd, fs)
-    res2 = OF.ofamp_pileup_stationary()
-    
-    assert isclose(res1, res2)
+    # the function delegates to the class (the function's own default for
+    # lgcoutsidewindow is False), so both must agree exactly rather than
+    # within a tolerance: chi^2 is a difference of far larger terms, and two
+    # separate arithmetic orders drift apart from platform to platform.
+    res2 = OF.ofamp_pileup_stationary(lgcoutsidewindow=False)
+
+    assert res1 == res2
+
+    # parameters must reach the class, including the constrained window
+    res3 = qp.ofamp_pileup_stationary(
+        signal, template, psd, fs, nconstrain=100,
+    )
+    res4 = OF.ofamp_pileup_stationary(nconstrain=100, lgcoutsidewindow=False)
+
+    assert res3 == res4
+    assert res3 != res1
     
 def test_chi2lowfreq():
     """
