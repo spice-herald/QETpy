@@ -361,3 +361,42 @@ class TestFFTRealInput:
                                rtol=0, atol=1e-12)
         finally:
             _utils.FFT_USE_RFFT = saved
+
+
+class TestNumpyCompatibility:
+    """The package must import and run on both NumPy 1.x and 2.x."""
+
+    def test_energy_absorbed_matches_a_direct_integral(self):
+        rng = np.random.default_rng(0)
+        trace = 1e-6 + 2e-8 * rng.standard_normal((3, 2000))
+        kwargs = dict(ioffset=1e-7, qetbias=1e-6, rload=0.01, rsh=0.005,
+                      indbasepre=200)
+
+        from qetpy.utils import energy_absorbed
+        fs = 1.25e6
+        result = energy_absorbed(trace, fs=fs, **kwargs)
+        by_time = energy_absorbed(trace, time=np.arange(2000) / fs, **kwargs)
+
+        assert np.all(np.isfinite(result))
+        assert np.allclose(result, by_time, rtol=1e-9)
+
+    def test_trapezoid_shim_resolves_to_an_available_function(self):
+        assert callable(_utils._trapezoid)
+        expected = np.trapezoid if hasattr(np, 'trapezoid') else np.trapz
+        assert _utils._trapezoid is expected
+        values = np.array([0.0, 1.0, 2.0, 3.0])
+        assert _utils._trapezoid(values, dx=0.5) == pytest.approx(2.25)
+
+    def test_no_numpy_2_only_names_are_used_directly(self):
+        """``np.trapezoid`` does not exist on NumPy 1.x, so only the shim may
+        name it; anything else breaks the oldest supported NumPy."""
+        import pathlib
+
+        package = pathlib.Path(_utils.__file__).parent.parent
+        offenders = []
+        for source in package.rglob('*.py'):
+            for number, line in enumerate(source.read_text().splitlines(), start=1):
+                code = line.split('#', 1)[0]
+                if 'np.trapezoid' in code and '_trapezoid = ' not in code:
+                    offenders.append(f'{source.relative_to(package)}:{number}')
+        assert offenders == [], f'use the _trapezoid shim instead: {offenders}'

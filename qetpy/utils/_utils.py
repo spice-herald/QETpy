@@ -11,6 +11,10 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 
+# NumPy 2.0 renamed ``np.trapz`` to ``np.trapezoid`` and later removed the
+# old name. Keep working with both NumPy 1.x and 2.x.
+_trapezoid = np.trapezoid if hasattr(np, 'trapezoid') else np.trapz
+
 # global variable for the fft, fftfreq and
 # ifft functions
 FFT_MODULE = 'scipy'
@@ -1003,11 +1007,11 @@ def energy_absorbed(trace, ioffset, qetbias, rload, rsh, fs=None,
     trace_power = powertrace_simple(trace, ioffset, qetbias, rload, rsh)
 
     if fs is not None:
-        integrated_energy = np.trapezoid(
+        integrated_energy = _trapezoid(
             baseline_p0 - trace_power, axis=-1,
         ) / (fs * constants.e)
     elif time is not None:
-        integrated_energy = np.trapezoid(
+        integrated_energy = _trapezoid(
             baseline_p0 - trace_power, x=time, axis=-1,
         ) / constants.e
     else:
