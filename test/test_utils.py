@@ -9,6 +9,7 @@ from qetpy.utils import (lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
                          shift, make_template, estimate_g,
                          resample_factors, resample_data)
+from qetpy.utils import _utils
 
 def test_shift():
     """Testing function for `qetpy.utils.shift`."""
@@ -264,3 +265,99 @@ def test_resample():
     assert all(res[ii] == expected_res[ii] for ii in range(2))
 
 
+
+
+class TestFFTRealInput:
+    """The rfft+unfold path must reproduce the full complex FFT."""
+
+    @staticmethod
+    def _reference(vals, axis=-1):
+        """Two-sided FFT without the rfft shortcut."""
+        saved = _utils.FFT_USE_RFFT
+        _utils.FFT_USE_RFFT = False
+        try:
+            return _utils.fft(vals, axis=axis)
+        finally:
+            _utils.FFT_USE_RFFT = saved
+
+    @pytest.mark.parametrize('module', ['scipy', 'numpy'])
+    @pytest.mark.parametrize('shape, axis', [
+        ((16,), -1),        # even
+        ((17,), -1),        # odd
+        ((1,), -1),         # single sample
+        ((2,), -1),         # only DC and Nyquist
+        ((3, 256), -1),     # several channels
+        ((3, 255), -1),
+        ((5, 32), 0),       # first axis
+        ((2, 3, 30), 1),    # middle axis
+        ((2, 3, 30), -2),
+    ])
+    @pytest.mark.parametrize('dtype', [np.float64, np.float32, np.int16])
+    def test_matches_complex_fft(self, module, shape, axis, dtype):
+        saved_module, saved_flag = _utils.FFT_MODULE, _utils.FFT_USE_RFFT
+        try:
+            _utils.FFT_MODULE = module
+            rng = np.random.default_rng(42)
+            if np.issubdtype(dtype, np.integer):
+                vals = rng.integers(-1000, 1000, size=shape).astype(dtype)
+            else:
+                vals = rng.standard_normal(shape).astype(dtype)
+
+            expected = self._reference(vals, axis=axis)
+            _utils.FFT_USE_RFFT = True
+            result = _utils.fft(vals, axis=axis)
+
+            assert result.shape == expected.shape
+            assert result.dtype == expected.dtype
+            assert np.allclose(result, expected, rtol=1e-6, atol=0)
+        finally:
+            _utils.FFT_MODULE, _utils.FFT_USE_RFFT = saved_module, saved_flag
+
+    def test_unfolded_spectrum_is_hermitian(self):
+        saved = _utils.FFT_USE_RFFT
+        try:
+            _utils.FFT_USE_RFFT = True
+            for nbins in (64, 65):
+                vals = np.random.default_rng(7).standard_normal(nbins)
+                result = _utils.fft(vals)
+                assert np.allclose(result, np.fft.fft(vals), rtol=1e-12, atol=1e-12)
+                # X[n - k] = conj(X[k])
+                assert np.allclose(result[1:], np.conjugate(result[:0:-1]),
+                                   rtol=1e-12, atol=1e-12)
+        finally:
+            _utils.FFT_USE_RFFT = saved
+
+    def test_complex_input_uses_the_complex_transform(self):
+        saved = _utils.FFT_USE_RFFT
+        try:
+            rng = np.random.default_rng(3)
+            vals = rng.standard_normal(64) + 1j * rng.standard_normal(64)
+            expected = self._reference(vals)
+            _utils.FFT_USE_RFFT = True
+            assert np.array_equal(_utils.fft(vals), expected)
+        finally:
+            _utils.FFT_USE_RFFT = saved
+
+    def test_frequencies_are_unchanged(self):
+        saved = _utils.FFT_USE_RFFT
+        try:
+            vals = np.random.default_rng(5).standard_normal(64)
+            _utils.FFT_USE_RFFT = False
+            freqs_ref, fft_ref = _utils.fft(vals, fs=1000.)
+            _utils.FFT_USE_RFFT = True
+            freqs, fft_out = _utils.fft(vals, fs=1000.)
+            assert np.array_equal(freqs, freqs_ref)
+            assert freqs.size == vals.size
+            assert np.allclose(fft_out, fft_ref, rtol=1e-12, atol=1e-12)
+        finally:
+            _utils.FFT_USE_RFFT = saved
+
+    def test_inverse_transform_recovers_the_trace(self):
+        saved = _utils.FFT_USE_RFFT
+        try:
+            _utils.FFT_USE_RFFT = True
+            vals = np.random.default_rng(11).standard_normal((2, 512))
+            assert np.allclose(_utils.ifft(_utils.fft(vals)).real, vals,
+                               rtol=0, atol=1e-12)
+        finally:
+            _utils.FFT_USE_RFFT = saved
