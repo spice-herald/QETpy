@@ -159,3 +159,31 @@ def test_didv():
         )
 
             
+
+
+def test_dvdi_and_dpdi_with_uncertainties():
+    """The frequency-domain uncertainty helpers must run on a real fit.
+
+    Regression test: the dVdI gradient was allocated with the 'cfloat'
+    dtype alias, which NumPy 2.0 removed, so any IV/dIdV analysis calling
+    these helpers raised TypeError.
+    """
+    from qetpy import get_dPdI_with_uncertainties, get_dVdI_with_uncertainties
+
+    didvfit, true_params = _initialize_didv(3)
+    result = didvfit.fitresult(3)
+    freqs = np.array([10.0, 100.0, 1e3, 1e4])
+
+    dvdi, dvdi_err = get_dVdI_with_uncertainties(freqs, result)
+    assert dvdi.shape == freqs.shape and dvdi_err.shape == freqs.shape
+    assert np.iscomplexobj(dvdi) and np.iscomplexobj(dvdi_err)
+    # double precision: these are covariance propagations, where single
+    # precision measurably degraded the propagated error bars
+    assert dvdi.dtype == np.complex128 and dvdi_err.dtype == np.complex128
+    assert np.all(np.isfinite(dvdi)) and np.all(np.isfinite(dvdi_err))
+    assert np.all(np.abs(dvdi) > 0)
+
+    dpdi, dpdi_err = get_dPdI_with_uncertainties(freqs, result)
+    assert dpdi.shape == freqs.shape and dpdi_err.shape == freqs.shape
+    assert dpdi.dtype == np.complex128 and dpdi_err.dtype == np.complex128
+    assert np.all(np.isfinite(dpdi)) and np.all(np.isfinite(dpdi_err))

@@ -8,6 +8,7 @@ from qetpy.utils import resample_data, fft, fftfreq
 
 __all__ = [
     "get_dPdI_with_uncertainties",
+    "get_dVdI_with_uncertainties",
     "get_power_noise_with_uncertainties",
     "get_smallsignalparams_cov",
     "get_smallsignalparams_sigmas",
@@ -1594,7 +1595,7 @@ def _get_base_jacobian(didv_result, f):
 
     #order of derived variables: i0, r0, dVdI, beta, D
     
-    base_jacobian = np.zeros((5, 7), dtype = 'complex64')
+    base_jacobian = np.zeros((5, 7), dtype='complex128')
     
     #i0 terms
     base_jacobian[0,0] = _ddA_i0(didv_result)
@@ -1672,7 +1673,7 @@ def _get_base_jacobian_ilg(didv_result, f):
 
     #order of derived variables: i0, r0, dVdI, beta, D
     
-    base_jacobian = np.zeros((5, 6), dtype = 'complex64')
+    base_jacobian = np.zeros((5, 6), dtype='complex128')
     
     #i0 terms
     base_jacobian[0,0] = _ddA_i0ilg(didv_result)
@@ -1726,7 +1727,7 @@ def _get_derived_jacobian(didv_result, f):
     """
     #order of derived variables: i0, r0, dVdI, beta, L
     
-    derived_jacobian = np.zeros(5, dtype='complex64')
+    derived_jacobian = np.zeros(5, dtype='complex128')
        
     derived_jacobian[0] = _ddi0_dPdI_3(didv_result, f)
     derived_jacobian[1] = _ddr0_dPdI_3(didv_result, f)
@@ -1742,8 +1743,8 @@ def _get_derived_cov(didv_result, f):
     evaluated at a frequency f.
     """
     
-    base_cov = np.asarray(_get_full_base_cov(didv_result), dtype = 'complex64')
-    base_jacobian = np.asarray(_get_base_jacobian(didv_result, f), dtype = 'complex64')
+    base_cov = np.asarray(_get_full_base_cov(didv_result), dtype='complex128')
+    base_jacobian = np.asarray(_get_base_jacobian(didv_result, f), dtype='complex128')
     
     derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
     return derived_cov
@@ -1775,8 +1776,8 @@ def _get_derived_cov_ilg(didv_result, f):
     evaluated at a frequency f under the infinite loop gain approximation.
     """
     
-    base_cov = np.asarray(_get_full_base_cov_ilg(didv_result), dtype = 'complex64')
-    base_jacobian = np.asarray(_get_base_jacobian_ilg(didv_result, f), dtype = 'complex64')
+    base_cov = np.asarray(_get_full_base_cov_ilg(didv_result), dtype='complex128')
+    base_jacobian = np.asarray(_get_base_jacobian_ilg(didv_result, f), dtype='complex128')
     
     derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
     return derived_cov
@@ -1808,7 +1809,9 @@ def _get_dVdI_uncertainty(didv_result, f):
     """
     Returns the uncertainty in the dVdI evaluated at a frequency f.
     """
-    dVdI_gradiant = np.zeros(6, dtype = 'cfloat')
+    # NumPy 2.0 removed the 'cfloat' alias; it meant complex128, so the
+    # double precision of this gradient is kept explicitly.
+    dVdI_gradiant = np.zeros(6, dtype='complex128')
     
     dVdI_gradiant[0] = _ddA_dVdI(didv_result, f)
     dVdI_gradiant[1] = _ddB_dVdI(didv_result, f)
@@ -1829,7 +1832,7 @@ def _get_smallsignalparams_jacobian(didv_result):
     Order of variables is:
     beta, loopgain, L, tau0, gratio, inverse_loopgain
     """
-    ssp_jacobian = np.zeros((6, 7), dtype = 'complex64')
+    ssp_jacobian = np.zeros((6, 7), dtype='complex128')
     
     #beta terms
     ssp_jacobian[0,0] = _ddA_beta(didv_result)
@@ -2086,8 +2089,8 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     
     """
     
-    dVdI = np.zeros(len(freqs), dtype = 'complex64')
-    dVdI_err = np.zeros(len(freqs), dtype = 'complex64')
+    dVdI = np.zeros(len(freqs), dtype='complex128')
+    dVdI_err = np.zeros(len(freqs), dtype='complex128')
     
     i = 0
     while i < len(freqs):
@@ -2203,8 +2206,8 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
     
     """
     
-    dPdI = np.zeros(len(freqs), dtype = 'complex64')
-    dPdI_err = np.zeros(len(freqs), dtype = 'complex64')
+    dPdI = np.zeros(len(freqs), dtype='complex128')
+    dPdI_err = np.zeros(len(freqs), dtype='complex128')
     
     i = 0
     while i < len(freqs):

@@ -400,3 +400,29 @@ class TestNumpyCompatibility:
                 if 'np.trapezoid' in code and '_trapezoid = ' not in code:
                     offenders.append(f'{source.relative_to(package)}:{number}')
         assert offenders == [], f'use the _trapezoid shim instead: {offenders}'
+
+    @pytest.mark.parametrize('removed', [
+        'cfloat', 'complex_', 'float_', 'longfloat', 'singlecomplex',
+        'clongfloat', 'longcomplex', 'unicode_', 'string_', 'bool8',
+        'int0', 'uint0', 'object0', 'void0', 'str0', 'bytes0',
+    ])
+    def test_no_dtype_aliases_removed_by_numpy_2(self, removed):
+        """NumPy 2.0 dropped these aliases, as attributes and as dtype strings.
+
+        A dtype given as a string, such as np.zeros(6, dtype='cfloat'),
+        raises TypeError on NumPy 2 and is easy to miss when grepping for
+        attribute use, so both spellings are checked here.
+        """
+        import pathlib
+
+        package = pathlib.Path(_utils.__file__).parent.parent
+        patterns = ('np.' + removed, "'" + removed + "'", '"' + removed + '"')
+        offenders = []
+        for source in sorted(package.rglob('*.py')):
+            for number, line in enumerate(source.read_text().splitlines(), start=1):
+                code = line.split('#', 1)[0]
+                if any(pattern in code for pattern in patterns):
+                    offenders.append(f'{source.relative_to(package)}:{number}')
+        assert offenders == [], (
+            removed + ' was removed in NumPy 2.0: ' + str(offenders)
+        )
