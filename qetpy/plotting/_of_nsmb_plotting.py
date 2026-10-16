@@ -97,7 +97,7 @@ def plotnsmb(pulset, fs, tdelmin, amin, sbTemplatef, nS, nB, nt, psddnu,
         plt.plot(bins.T, pulset.T, '-b', alpha=0.4, linewidth=0.5, label='Data')
     else:
         plt.plot(bins.T, pulset.T, '-k', label='Data')
-    plt.plot(bins.T, fittott.T, '-g', label=f'Total Fit. $\chi^2$={chi2TFloat:.1f}', linewidth=5)    
+    plt.plot(bins.T, fittott.T, '-g', label=rf'Total Fit. $\chi^2$={chi2TFloat:.1f}', linewidth=5)    
     # plot the background template best fit
     # note:
     #    1) the loop starts at nS and only goes to nSB - 2
@@ -148,7 +148,7 @@ def plotnsmb(pulset, fs, tdelmin, amin, sbTemplatef, nS, nB, nt, psddnu,
                         linewidth=1,
                     )
 
-    plt.xlabel(f'bins (1 bin = {(dt * 1e6):.2f} $\mu$s)');
+    plt.xlabel(rf'bins (1 bin = {(dt * 1e6):.2f} $\mu$s)');
     plt.ylabel('Amps');
 
     if xlim is not None: 

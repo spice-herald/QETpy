@@ -248,8 +248,8 @@ class _PlotDIDV(object):
                     label='3-Pole Fit',
                 )
 
-        ax.set_xlabel('Time ($\mu$s)')
-        ax.set_ylabel('Amplitude ($\mu$A)')
+        ax.set_xlabel(r'Time ($\mu$s)')
+        ax.set_ylabel(r'Amplitude ($\mu$A)')
         ax.legend(loc='upper left')
         ax.grid(linestyle='dotted')
         ax.tick_params(which='both', direction='in', right=True, top=True)
@@ -543,7 +543,7 @@ class _PlotDIDV(object):
             self._freq[plotinds],
             function((self._didvmean + self._didvstd) * time_phase)[plotinds],
             color='black',
-            label='1-$\sigma$ Bounds',
+            label=r'1-$\sigma$ Bounds',
             alpha=0.1,
         )
         ax.plot(
@@ -658,7 +658,7 @@ class _PlotDIDV(object):
         else:
             ax.set_title(f"{channel} Real Part of dIdV")
             
-        ax.set_ylabel('Re($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_ylabel(r'Re($dI/dV$) ($\Omega^{-1}$)')
 
         if saveplot:
             fig.savefig(savepath + f"didv_real_{savename}.png")
@@ -673,7 +673,7 @@ class _PlotDIDV(object):
         else:
             ax.set_title(f"{channel} Imaginary Part of dIdV")
             
-        ax.set_ylabel('Im($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_ylabel(r'Im($dI/dV$) ($\Omega^{-1}$)')
 
         if saveplot:
             fig.savefig(savepath + f"didv_imag_{savename}.png")
@@ -712,7 +712,7 @@ class _PlotDIDV(object):
         else:
             ax.set_title(f"{channel} |dIdV|")
             
-        ax.set_ylabel('Abs($dI/dV$) ($\Omega^{-1}$)')
+        ax.set_ylabel(r'Abs($dI/dV$) ($\Omega^{-1}$)')
         ax.set_ylim(0)
 
         if saveplot:
@@ -839,8 +839,8 @@ class _PlotDIDV(object):
                 label='3-Pole Fit',
             )
 
-        ax.set_xlabel('Re($dV/dI$) ($\Omega$)')
-        ax.set_ylabel('Im($dV/dI$) ($\Omega$)')
+        ax.set_xlabel(r'Re($dV/dI$) ($\Omega$)')
+        ax.set_ylabel(r'Im($dV/dI$) ($\Omega$)')
         if channel is None:
             ax.set_title('Re($dV/dI$) vs. Im($dV/dI$)')
         else:

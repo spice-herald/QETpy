@@ -780,7 +780,7 @@ def _plot_ti_noise(f, psd, noise_sim, xlims, ylims):
     ax.grid(which="minor", linestyle="dotted", alpha=0.5)
     ax.tick_params(which="both", direction="in", right=True, top=True)
     ax.set_xlabel(r'Frequency [Hz]')
-    ax.set_title(f"Current Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
+    ax.set_title(rf"Current Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
 
     ax.loglog(
         noise_sim.freqs,
@@ -819,7 +819,7 @@ def _plot_ti_noise(f, psd, noise_sim, xlims, ylims):
     )
     ax.loglog(freqs, np.sqrt(psd), color='#8c564b', alpha=0.8, label='Raw Data')
 
-    ax.set_ylabel('TES Current Noise $[A/\sqrt{\mathrm{Hz}}]$')
+    ax.set_ylabel(r'TES Current Noise $[A/\sqrt{\mathrm{Hz}}]$')
 
     lgd = plt.legend(loc='upper right')
 
@@ -868,7 +868,7 @@ def _plot_tp_noise(f, psd, noise_sim, xlims, ylims):
     ax.grid(which="minor", linestyle="dotted", alpha=0.5)
     ax.tick_params(which="both", direction="in", right=True, top=True)
     ax.set_xlabel(r'Frequency [Hz]')
-    ax.set_title(f"Power Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
+    ax.set_title(rf"Power Noise For $R_0$ : {noise_sim.r0*1e3:.2f} $m\Omega$")
 
     ax.loglog(
         noise_sim.freqs,
@@ -970,8 +970,8 @@ def _plot_sc_noise(f, psd, noise_sim, qetbias, xlims, ylims):
     )
     ax.legend()
     ax.set_xlabel('Frequency [Hz]')
-    ax.set_ylabel('Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
-    ax.set_title(f'Superconducting State noise for QETbias: {qetbias*1e6} $\mu$A')
+    ax.set_ylabel(r'Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
+    ax.set_title(rf'Superconducting State noise for QETbias: {qetbias*1e6} $\mu$A')
     ax.tick_params(which="both", direction="in", right=True, top=True)
 
     return fig, ax    
@@ -1031,8 +1031,8 @@ def _plot_n_noise(f, psd, noise_sim, qetbias, xlims, ylims):
     )
     ax.legend()
     ax.set_xlabel('Frequency [Hz]')
-    ax.set_ylabel('Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
-    ax.set_title(f'Normal State noise for QETbias: {qetbias*1e6} $\mu$A')
+    ax.set_ylabel(r'Input Referenced Current Noise [A/$\sqrt{\mathrm{Hz}}$]')
+    ax.set_title(rf'Normal State noise for QETbias: {qetbias*1e6} $\mu$A')
     ax.tick_params(which="both", direction="in", right=True, top=True)
 
     return fig, ax
