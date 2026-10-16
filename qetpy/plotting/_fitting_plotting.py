@@ -76,7 +76,7 @@ def plotnonlin(OFnonlinOBJ, pulse, params, errors):
     axes[0][0].grid(linestyle='dashed')
     axes[0][0].set_title(f'Frequency Domain Trace')
     axes[0][0].set_xlabel(f'Frequency [Hz]')
-    axes[0][0].set_ylabel('Amplitude [A/$\sqrt{\mathrm{Hz}}$]')
+    axes[0][0].set_ylabel(r'Amplitude [A/$\sqrt{\mathrm{Hz}}$]')
     axes[0][0].loglog(
         f, np.abs(OFnonlinOBJ.data[cf]), c='g', label='Pulse', alpha=0.75,
     )
@@ -93,7 +93,7 @@ def plotnonlin(OFnonlinOBJ, pulse, params, errors):
             f, np.abs(OFnonlinOBJ.twopole(*variables))[cf], c='r', label='Fit',
         )
 
-    axes[0][0].loglog(f, error, c='b', label='$\sqrt{PSD}$', alpha=0.75)
+    axes[0][0].loglog(f, error, c='b', label=r'$\sqrt{PSD}$', alpha=0.75)
     axes[0][0].tick_params(which='both', direction='in', right=True, top=True)
 
     axes[0][1].grid(linestyle = 'dashed')
@@ -169,37 +169,37 @@ def plotnonlin(OFnonlinOBJ, pulse, params, errors):
 
     axes[1][1].plot([], [], c='r', label='Best Fit')
     axes[1][1].plot([], [], c='g', label='Raw Data')
-    axes[1][1].plot([], [], c='b', label='$\sqrt{PSD}$')
+    axes[1][1].plot([], [], c='b', label=r'$\sqrt{PSD}$')
 
     for ii in range(len(params)):
         axes[1][1].plot([], [], linestyle=' ')
 
     if (OFnonlinOBJ.npolefit==4):
         labels = [
-            f'A: ({A * 1e6:.4f} +\- {A_err * 1e6:.4f}) [$\mu$A]',
-            f'B: ({B * 1e6:.4f} +\- {B_err * 1e6:.4f}) [$\mu$A]',
-            f'C: ({C * 1e6:.4f} +\- {C_err * 1e6:.4f}) [$\mu$A]',
-            f'τ, f1: ({tau_f1 * 1e6:.4f} +\- {tau_f1_err * 1e6:.4f}) [$\mu$s]',
-            f'τ, f2: ({tau_f2 * 1e6:.4f} +\- {tau_f2_err * 1e6:.4f}) [$\mu$s]',
-            f'τ, f3: ({tau_f3 * 1e6:.4f} +\- {tau_f3_err * 1e6:.4f}) [$\mu$s]',
-            f'$t_0$: ({t0 * 1e3:.4f} +\- {t0_err * 1e3:.4f}) [ms]',
-            f'τ$_r$: ({tau_r * 1e6:.4f} +\- {tau_r_err * 1e6:.4f}) [$\mu$s]',
+            rf'A: ({A * 1e6:.4f} $\pm$ {A_err * 1e6:.4f}) [$\mu$A]',
+            rf'B: ({B * 1e6:.4f} $\pm$ {B_err * 1e6:.4f}) [$\mu$A]',
+            rf'C: ({C * 1e6:.4f} $\pm$ {C_err * 1e6:.4f}) [$\mu$A]',
+            rf'τ, f1: ({tau_f1 * 1e6:.4f} $\pm$ {tau_f1_err * 1e6:.4f}) [$\mu$s]',
+            rf'τ, f2: ({tau_f2 * 1e6:.4f} $\pm$ {tau_f2_err * 1e6:.4f}) [$\mu$s]',
+            rf'τ, f3: ({tau_f3 * 1e6:.4f} $\pm$ {tau_f3_err * 1e6:.4f}) [$\mu$s]',
+            rf'$t_0$: ({t0 * 1e3:.4f} $\pm$ {t0_err * 1e3:.4f}) [ms]',
+            rf'τ$_r$: ({tau_r * 1e6:.4f} $\pm$ {tau_r_err * 1e6:.4f}) [$\mu$s]',
         ]
     elif (OFnonlinOBJ.npolefit==3):
         labels = [
-            f'A: ({A * 1e6:.4f} +\- {A_err * 1e6:.4f}) [$\mu$A]',
-            f'B: ({B * 1e6:.4f} +\- {B_err * 1e6:.4f}) [$\mu$A]',
-            f'τ, f1: ({tau_f1 * 1e6:.4f} +\- {tau_f1_err * 1e6:.4f}) [$\mu$s]',
-            f'τ, f2: ({tau_f2 * 1e6:.4f} +\- {tau_f2_err * 1e6:.4f}) [$\mu$s]',
-            f'$t_0$: ({t0 * 1e3:.4f} +\- {t0_err * 1e3:.4f}) [ms]',
-            f'τ$_r$: ({tau_r * 1e6:.4f} +\- {tau_r_err * 1e6:.4f}) [$\mu$s]',
+            rf'A: ({A * 1e6:.4f} $\pm$ {A_err * 1e6:.4f}) [$\mu$A]',
+            rf'B: ({B * 1e6:.4f} $\pm$ {B_err * 1e6:.4f}) [$\mu$A]',
+            rf'τ, f1: ({tau_f1 * 1e6:.4f} $\pm$ {tau_f1_err * 1e6:.4f}) [$\mu$s]',
+            rf'τ, f2: ({tau_f2 * 1e6:.4f} $\pm$ {tau_f2_err * 1e6:.4f}) [$\mu$s]',
+            rf'$t_0$: ({t0 * 1e3:.4f} $\pm$ {t0_err * 1e3:.4f}) [ms]',
+            rf'τ$_r$: ({tau_r * 1e6:.4f} $\pm$ {tau_r_err * 1e6:.4f}) [$\mu$s]',
         ]
     else:
         labels = [
-            f'A: ({A * 1e6:.4f} +\- {A_err * 1e6:.4f}) [$\mu$A]',
-            f'τ$_f$: ({tau_f * 1e6:.4f} +\- {tau_f_err * 1e6:.4f}) [$\mu$s]',
-            f'$t_0$: ({t0 * 1e3:.4f} +\- {t0_err * 1e3:.4f}) [ms]',
-            f'τ$_r$: ({tau_r * 1e6:.4f} +\- {tau_r_err * 1e6:.4f}) [$\mu$s]',
+            rf'A: ({A * 1e6:.4f} $\pm$ {A_err * 1e6:.4f}) [$\mu$A]',
+            rf'τ$_f$: ({tau_f * 1e6:.4f} $\pm$ {tau_f_err * 1e6:.4f}) [$\mu$s]',
+            rf'$t_0$: ({t0 * 1e3:.4f} $\pm$ {t0_err * 1e3:.4f}) [ms]',
+            rf'τ$_r$: ({tau_r * 1e6:.4f} $\pm$ {tau_r_err * 1e6:.4f}) [$\mu$s]',
         ]
     lines = axes[1][1].get_lines()
     legend1 = plt.legend(
@@ -209,7 +209,7 @@ def plotnonlin(OFnonlinOBJ, pulse, params, errors):
     )
     legend2 = plt.legend(
         [lines[i] for i in range(0, 3)],
-        ['Best Fit', 'Raw Data', '$\sqrt{PSD}$'],
+        ['Best Fit', 'Raw Data', r'$\sqrt{PSD}$'],
         loc=2,
     )
 
