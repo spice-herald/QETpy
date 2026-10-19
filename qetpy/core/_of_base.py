@@ -1292,6 +1292,17 @@ class OFBase:
 
         temp_icovf = np.zeros_like(covf, dtype='complex')
         for ii in range(self._nbins):
+
+            # An infinite CSD entry marks a frequency that must carry no
+            # weight: AC coupling sets the DC bin to infinity, and
+            # ignored_frequency_peaks does the same for individual lines.
+            # Both are overwritten with zero further down, so the inverse of
+            # such a bin is never used. Skip it: NumPy >= 2 raises
+            # LinAlgError ("SVD did not converge") on a non-finite matrix,
+            # where earlier versions returned a value that was discarded.
+            if np.isinf(covf[:,:,ii]).any():
+                continue
+
             temp_icovf[:,:,ii] = pinv(covf[:,:,ii]) #1/A^2
 
         if coupling == 'AC':
