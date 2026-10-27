@@ -8,6 +8,7 @@ from qetpy.utils import (
     make_template_threepole,
     make_template_fourpole,
     lowpassfilter,
+    estimate_onset,
     fft,
     ifft,
     fftfreq,
@@ -206,15 +207,14 @@ class Template:
         temp_t = self._modeled_template_t(model, params, t_arr, t0, fs)
         return self._time_to_freq(temp_t, fs)
 
-    def estimate_dt(self, chan, fraction=0.1, search_s=5e-4):
+    def estimate_dt(self, chan, fraction=0.1, search_s=5e-4, filter_freq=50e3):
         """
         Time from the pretrigger to the start of the measured rise [s].
 
         Used as the starting point when "fit_templates" fits the delay, so
-        that the fit does not have to be steered there by hand. The onset is
-        the last sample below "fraction" of the peak before the peak, walking
-        back: averaged pretrigger noise is a few percent of the peak, so the
-        first upward crossing is regularly an earlier noise excursion.
+        that the fit does not have to be steered there by hand. See
+        qetpy.utils.estimate_onset for how the rise is located and why the
+        search is filtered.
 
         Parameters
         ----------
@@ -227,30 +227,22 @@ class Template:
         search_s : float, optional
             How far past the pretrigger to look for the peak [s].
 
+        filter_freq : float or None, optional
+            Cut-off of the low-pass applied before the search [Hz]. None
+            searches the unfiltered mean pulse.
+
         Returns
         -------
         dt : float
             Onset time relative to the pretrigger [s]; 0.0 if no rise is
             found.
         """
-        trace = np.asarray(self._mean_p_t[chan], dtype=np.float64)
         fs = float(self._sample_rate[chan])
-        pre = int(self._pretrigger_samples[chan])
-
-        lo = max(pre - int(round(0.2 * search_s * fs)), 1)
-        hi = min(pre + int(round(search_s * fs)), trace.size)
-        if hi - lo < 3:
-            return 0.0
-
-        seg = trace[lo:hi] - np.mean(trace[:lo])
-        peak = int(np.argmax(np.abs(seg)))
-        if seg[peak] == 0:
-            return 0.0
-
-        rising = np.sign(seg[peak]) * seg[:peak + 1]
-        below = np.flatnonzero(rising < fraction * abs(seg[peak]))
-        onset = lo + (int(below[-1]) + 1 if below.size else 0)
-        return (onset - pre) / fs
+        onset = estimate_onset(self._mean_p_t[chan], fs,
+                               self._pretrigger_samples[chan],
+                               fraction=fraction, search_s=search_s,
+                               filter_freq=filter_freq)
+        return onset / fs
 
     def _default_guess(self, chan, model):
         mean_p_t = np.asarray(self._mean_p_t[chan], dtype=np.float64)
@@ -374,7 +366,7 @@ class Template:
         for ichan, chan in enumerate(channels):
             curve = self._mean_p_t[chan].copy()
             if lgc_filter_freq:
-                curve = -1.0 * lowpassfilter(curve, order=2, fs=self._sample_rate[chan], cut_off_freq=filter_freq)
+                curve = lowpassfilter(curve, order=2, fs=self._sample_rate[chan], cut_off_freq=filter_freq)
             plt.plot(self._time_axis[chan] * 1e3, curve, alpha=0.7, label=chan, color=f'C{ichan % 10}')
         plt.xlim(time_lims[0] * 1e3, time_lims[1] * 1e3)
         plt.xlabel('Time (ms)')
@@ -735,13 +727,22 @@ class Template:
             else:
                 stored_p_t, stored_p_f = model_template_p_t, model_template_p_f
 
-            model_template_i_f = np.divide(
-                stored_p_f,
-                self._dpdi[chan],
-                out=np.zeros_like(stored_p_f),
-                where=np.abs(self._dpdi[chan]) > 0,
-            )
-            model_template_i_t = -1.0 * self._freq_to_time(model_template_i_f, fs)
+            def _to_current(template_p_f):
+                template_i_f = np.divide(
+                    template_p_f,
+                    self._dpdi[chan],
+                    out=np.zeros_like(template_p_f),
+                    where=np.abs(self._dpdi[chan]) > 0,
+                )
+                return template_i_f, -1.0 * self._freq_to_time(template_i_f, fs)
+
+            model_template_i_f, model_template_i_t = _to_current(stored_p_f)
+            # Shown against the data, like the power-domain curve above: an
+            # anchored template is translated away from the measured pulse
+            # on purpose, so overlaying it on the data looks like a failed
+            # fit. The stored curve is drawn separately below.
+            plot_i_t = (_to_current(model_template_p_f)[1] if anchor_to_pretrigger
+                        else model_template_i_t)
 
             self._fit_models[chan] = model
             self._fit_vars[chan] = popt
@@ -773,11 +774,20 @@ class Template:
                     time_lims_use = time_lims
 
                 lp_mean_p_t = lowpassfilter(mean_p_t, cut_off_freq=filter_freq, order=2, fs=fs)
-                plt.plot(t_arr * 1e3, mean_p_t, label='Data', alpha=0.5, color='C0')
+                # Behind everything and faint: dPdI amplifies the noise above
+                # the filter cut-off until the unfiltered trace is a solid
+                # band several times taller than the pulse, and drawn in
+                # front it hides both the filtered data and the fit.
+                plt.plot(t_arr * 1e3, mean_p_t, label='Data', alpha=0.15,
+                         lw=0.4, color='C0', zorder=0)
                 plt.plot(t_arr * 1e3, lp_mean_p_t, label='Filtered data', color='C0')
                 plt.plot(t_arr * 1e3,
                          lowpassfilter(model_template_p_t, cut_off_freq=filter_freq, order=2, fs=fs),
                          color='C1', label='Fit template')
+                if anchor_to_pretrigger:
+                    plt.plot(t_arr * 1e3,
+                             lowpassfilter(np.real(stored_p_t), cut_off_freq=filter_freq, order=2, fs=fs),
+                             color='C2', ls='--', label='Stored template (at pretrigger)')
                 plt.legend()
                 plt.ylabel('Power (W)')
                 plt.xlabel('Time (ms)')
@@ -797,8 +807,13 @@ class Template:
                 plt.title(f'Fit Template, Frequency Domain - {chan}')
                 plt.show()
 
-                plt.plot(t_arr * 1e3, self._mean_i_t[chan], label='Current-domain pulse sum')
-                plt.plot(t_arr * 1e3, self._template_fit_i_t[chan], label='Current-domain analytic template')
+                plt.plot(t_arr * 1e3, self._mean_i_t[chan], color='C0',
+                         label='Current-domain pulse sum')
+                plt.plot(t_arr * 1e3, np.real(plot_i_t), color='C1',
+                         label='Current-domain analytic template')
+                if anchor_to_pretrigger:
+                    plt.plot(t_arr * 1e3, np.real(model_template_i_t), color='C2', ls='--',
+                             label='Stored template (at pretrigger)')
                 plt.xlabel('Time (ms)')
                 plt.ylabel('Current (A)')
                 plt.xlim(time_lims_use[0] * 1e3, time_lims_use[1] * 1e3)

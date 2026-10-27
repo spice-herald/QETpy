@@ -1,9 +1,13 @@
 """Template fitting: the frequency axis, and fitting the pulse delay."""
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
 from qetpy.core._template import Template
+from qetpy.utils import fftfreq
 
 
 FS = 1.25e6
@@ -11,8 +15,15 @@ N = 4096
 PRE = 1024
 
 
-def build(delay_samples=0, nevents=24, seed=3):
-    """A Template holding an average pulse that starts after the pretrigger."""
+def build(delay_samples=0, nevents=24, seed=3, dpdi_rise=False,
+          noise=2e-11, channels=('A',)):
+    """A Template holding an average pulse that starts after the pretrigger.
+
+    "dpdi_rise" stands in for a real dPdI, which climbs steeply towards the
+    Nyquist frequency and so amplifies the high-frequency noise of the
+    averaged pulse once it is converted to the power domain.
+    """
+    channels = list(channels)
     onset = PRE + delay_samples
     shape = np.zeros(N)
     tt = np.arange(N - onset) / FS
@@ -21,14 +32,18 @@ def build(delay_samples=0, nevents=24, seed=3):
 
     rng = np.random.default_rng(seed)
     traces = (1e-8 * shape[np.newaxis, np.newaxis, :]
-              + rng.normal(scale=2e-11, size=(nevents, 1, N)))
+              + rng.normal(scale=noise, size=(nevents, len(channels), N)))
 
     template = Template(verbose=False)
-    template.calc_average_pulses(traces=traces, channels=['A'], sample_rate=FS,
-                                 trigger_index=PRE, lgc_plot=False)
-    # Flat dPdI: the delay is a timing question, not a calibration one.
-    template.calc_power_template(['A'], dpdi=np.full(N, -1.0 + 0j),
+    template.calc_average_pulses(traces=traces, channels=channels,
+                                 sample_rate=FS, trigger_index=PRE,
                                  lgc_plot=False)
+    if dpdi_rise:
+        dpdi = -(1.0 + (np.abs(fftfreq(N, FS)) / 2e3) ** 2) + 0j
+    else:
+        # Flat dPdI: the delay is a timing question, not a calibration one.
+        dpdi = np.full(N, -1.0 + 0j)
+    template.calc_power_template(channels, dpdi=dpdi, lgc_plot=False)
     return template
 
 
@@ -164,3 +179,95 @@ def test_diagnostics_print_with_a_fitted_delay(capsys):
     out = capsys.readouterr().out
     assert 'Rise Time:' in out
     assert 'Delay:' in out and '(fitted)' in out
+
+
+def build_noisy_power(delay_samples=35, channels=('A',)):
+    """A pulse whose power-domain average is dominated by amplified noise.
+
+    This is what run75 looks like: the current-domain mean pulse is clean,
+    but dPdI climbs by three orders of magnitude towards Nyquist and the
+    power-domain trace that the fit works on is mostly high-frequency noise.
+    """
+    return build(delay_samples=delay_samples, dpdi_rise=True, noise=2e-10,
+                 nevents=8, channels=channels)
+
+
+def test_estimate_dt_is_not_fooled_by_amplified_high_frequency_noise():
+    """The onset search runs on a low-pass filtered copy for this reason.
+
+    Searching the raw power-domain trace picks a noise sample hundreds of
+    samples away, and fit_templates then starts the delay there and never
+    comes back.
+    """
+    template = build_noisy_power()
+
+    assert abs(template.estimate_dt('A') - 35 / FS) <= 12 / FS
+    assert template.estimate_dt('A', filter_freq=None) > 200 / FS
+
+
+def test_every_channel_gets_a_usable_starting_point():
+    """One channel fitting and the next running away was the symptom.
+
+    Where the raw peak search lands in amplified noise is a matter of which
+    noise sample happens to be largest, so it can be right on one channel
+    and hundreds of samples out on the next.
+    """
+    template = build_noisy_power(channels=('A', 'B'))
+
+    for chan in ('A', 'B'):
+        assert abs(template.estimate_dt(chan) - 35 / FS) <= 12 / FS
+    raw = [template.estimate_dt(chan, filter_freq=None) for chan in ('A', 'B')]
+    assert max(raw) > 200 / FS
+
+
+def test_fit_recovers_from_a_badly_scaled_guess():
+    """Amplitudes are ~1e-13 W and time constants ~1e-5 s.
+
+    A single trust-region radius in raw units cannot step sensibly in both,
+    so the delay is handed whatever room is left over and parks the pulse
+    far from the data.
+    """
+    template = build(delay_samples=35)
+    guess = [1e-5, 0.0, 4e-5, 3e-4, 3e-5]  # amplitude 1e3 times too large
+
+    template.fit_templates(['A'], template_model='threepole', guess=guess,
+                           dt=None, fit_dt=True, lgc_plot=False)
+
+    assert abs(template.fit_dt('A') - 35 / FS) <= 5 / FS
+
+
+def test_anchored_plot_compares_the_model_with_the_data():
+    """An anchored template is translated away from the measured pulse on
+    purpose, so drawing only that against the data looks like a failed fit.
+    """
+    template = build(delay_samples=90)
+    plt.close('all')
+
+    template.fit_templates(['A'], template_model='threepole', dt=None,
+                           fit_dt=True, anchor_to_pretrigger=True,
+                           lgc_plot=True, time_lims=[0.0, (N - 1) / FS])
+
+    # The current-domain panel, drawn last: data, model, stored template.
+    data, model, stored = (line.get_ydata()
+                           for line in plt.gca().get_lines()[-3:])
+    plt.close('all')
+    assert abs(onset_samples(model) - onset_samples(data)) <= 8
+    assert onset_samples(stored) <= onset_samples(data) - 40
+
+
+def test_power_template_plot_keeps_the_sign_of_what_it_plots():
+    """The filtered branch used to negate the already sign-corrected mean,
+    so the same array came out upside down depending on lgc_filter_freq."""
+    template = build(delay_samples=35)
+    stored = np.real(template._mean_p_t['A'])
+    expected = np.sign(stored[np.argmax(np.abs(stored))])
+
+    signs = []
+    for lgc_filter_freq in (True, False):
+        plt.close('all')
+        template._plot_average_power(['A'], lgc_filter_freq=lgc_filter_freq)
+        curve = plt.gca().get_lines()[-1].get_ydata()
+        signs.append(np.sign(curve[np.argmax(np.abs(curve))]))
+    plt.close('all')
+
+    assert signs == [expected, expected]
