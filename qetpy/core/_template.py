@@ -50,6 +50,7 @@ class Template:
             self._fit_models = {}
             self._fit_vars = {}
             self._fit_cov = {}
+            self._fit_dt = {}
             self._template_fit_p_t = {}
             self._template_fit_p_f = {}
             self._template_fit_i_t = {}
@@ -78,6 +79,7 @@ class Template:
             self._fit_models,
             self._fit_vars,
             self._fit_cov,
+            self._fit_dt,
             self._template_fit_p_t,
             self._template_fit_p_f,
             self._template_fit_i_t,
@@ -203,6 +205,52 @@ class Template:
     def _modeled_template_f(self, model, params, t_arr, t0, fs):
         temp_t = self._modeled_template_t(model, params, t_arr, t0, fs)
         return self._time_to_freq(temp_t, fs)
+
+    def estimate_dt(self, chan, fraction=0.1, search_s=5e-4):
+        """
+        Time from the pretrigger to the start of the measured rise [s].
+
+        Used as the starting point when "fit_templates" fits the delay, so
+        that the fit does not have to be steered there by hand. The onset is
+        the last sample below "fraction" of the peak before the peak, walking
+        back: averaged pretrigger noise is a few percent of the peak, so the
+        first upward crossing is regularly an earlier noise excursion.
+
+        Parameters
+        ----------
+        chan : str
+            Channel name.
+
+        fraction : float, optional
+            Fraction of the peak that defines the start of the rise.
+
+        search_s : float, optional
+            How far past the pretrigger to look for the peak [s].
+
+        Returns
+        -------
+        dt : float
+            Onset time relative to the pretrigger [s]; 0.0 if no rise is
+            found.
+        """
+        trace = np.asarray(self._mean_p_t[chan], dtype=np.float64)
+        fs = float(self._sample_rate[chan])
+        pre = int(self._pretrigger_samples[chan])
+
+        lo = max(pre - int(round(0.2 * search_s * fs)), 1)
+        hi = min(pre + int(round(search_s * fs)), trace.size)
+        if hi - lo < 3:
+            return 0.0
+
+        seg = trace[lo:hi] - np.mean(trace[:lo])
+        peak = int(np.argmax(np.abs(seg)))
+        if seg[peak] == 0:
+            return 0.0
+
+        rising = np.sign(seg[peak]) * seg[:peak + 1]
+        below = np.flatnonzero(rising < fraction * abs(seg[peak]))
+        onset = lo + (int(below[-1]) + 1 if below.size else 0)
+        return (onset - pre) / fs
 
     def _default_guess(self, chan, model):
         mean_p_t = np.asarray(self._mean_p_t[chan], dtype=np.float64)
@@ -404,7 +452,7 @@ class Template:
             )
 
         t = np.arange(nsamples, dtype=np.float64) / fs
-        freqs = fftfreq(nsamples, 1.0 / fs)
+        freqs = fftfreq(nsamples, fs)
         baseline_stop = max(trigger_index - 100, 1)
 
         for ichan, chan in enumerate(channels):
@@ -517,15 +565,41 @@ class Template:
 
     def fit_templates(self, channels, template_model='twopole',
                       f_fit_cutoff=50e3, guess=None, bounds=None,
-                      max_nfev=600, dt=0.0,
+                      max_nfev=600, dt=0.0, fit_dt=False, dt_bounds=None,
+                      anchor_to_pretrigger=False,
                       lgc_diagnostics=False,
                       lgc_plot=True, filter_freq=50e3,
                       time_lims=None):
         """
         Fit analytic templates in the power domain.
 
-        t0 is kept fixed at the pretrigger time + user defined dt if needed. 
-        It is not fitted.
+        By default t0 is held at the pretrigger time plus "dt", which the
+        caller has to find by hand. Set "fit_dt" to fit it instead.
+
+        Parameters
+        ----------
+        dt : float or None, optional
+            Offset of the pulse start from the pretrigger [s]. Held fixed
+            unless "fit_dt" is set, in which case it is the starting point.
+            None estimates it from the measured rise, see "estimate_dt".
+
+        fit_dt : bool, optional
+            Fit the delay as a free parameter. It is reported separately
+            from the shape parameters, which keep their usual meaning and
+            order.
+
+        dt_bounds : tuple of float, optional
+            (low, high) bounds on the fitted delay [s]. The default is the
+            starting value plus or minus 200 us, clipped to keep the pulse
+            inside the trace.
+
+        anchor_to_pretrigger : bool, optional
+            Evaluate the fitted model with its start exactly at the
+            pretrigger instead of at the fitted delay. The fit is analytic,
+            so this gives a template whose rise begins at its own stored
+            pretrigger whatever the delay in the averaged data was. The
+            diagnostic plot still shows the model at the fitted delay, so
+            that it can be compared with the data.
         """
         channels = self._normalize_channels(channels)
         self._require_channels(channels, self._mean_p_f, '_mean_p_f')
@@ -547,7 +621,8 @@ class Template:
             t_arr = self._time_axis[chan]
             fs = self._sample_rate[chan]
             freqs = self._freqs[chan]
-            t0 = self._pretrigger_samples[chan] / fs + dt
+            t0_pre = self._pretrigger_samples[chan] / fs
+            dt0 = self.estimate_dt(chan) if dt is None else float(dt)
 
             chan_guess = guess_dict[chan] if (guess_dict is not None and chan in guess_dict) else guess
             if chan_guess is None:
@@ -558,8 +633,41 @@ class Template:
             if chan_bounds is None:
                 chan_bounds = self._default_bounds(chan_guess, model)
 
+            nshape = chan_guess.size
+            if fit_dt:
+                if dt_bounds is None:
+                    span = 2e-4
+                    dt_lo = max(dt0 - span, -t0_pre)
+                    dt_hi = min(dt0 + span, (len(t_arr) - 1) / fs - t0_pre)
+                else:
+                    dt_lo, dt_hi = (float(value) for value in dt_bounds)
+                if not dt_lo < dt_hi:
+                    raise ValueError(
+                        f'ERROR: dt bounds [{dt_lo}, {dt_hi}] leave nothing to '
+                        f'fit for channel {chan}.'
+                    )
+                dt0 = float(np.clip(dt0, dt_lo, dt_hi))
+                chan_guess = np.append(chan_guess, dt0)
+                chan_bounds = (np.append(chan_bounds[0], dt_lo),
+                               np.append(chan_bounds[1], dt_hi))
+
+            def _delayed_f(shape_params, delay):
+                # make_template_*pole() rounds t0 to a whole sample, so the
+                # residual would be flat between samples and the delay could
+                # never be fitted. A phase ramp shifts the modeled template
+                # exactly, including by a fraction of a sample. It wraps the
+                # trace around, which is harmless for a delay far shorter
+                # than the pulse's distance from the trace edges.
+                base_f = self._modeled_template_f(
+                    model, shape_params, t_arr, t0_pre, fs)
+                return base_f * np.exp(-2j * np.pi * freqs * delay)
+
             def _resid(params):
-                model_f = self._modeled_template_f(model, params, t_arr, t0, fs)
+                if fit_dt:
+                    model_f = _delayed_f(params[:nshape], params[-1])
+                else:
+                    model_f = self._modeled_template_f(
+                        model, params, t_arr, t0_pre + dt0, fs)
                 diff = mean_p_f - model_f
 
                 w_real = np.zeros_like(std_p_f.real, dtype=np.float64)
@@ -580,6 +688,13 @@ class Template:
                 return out
 
             verbose = 2 if lgc_diagnostics else 0
+            diff_step = None
+            if fit_dt:
+                # scipy's default relative step is ~1e-8, which for a delay
+                # in seconds is a few tens of picoseconds: small enough to
+                # lose the derivative in rounding. Use ~0.1 sample instead.
+                eps = np.finfo(np.float64).eps ** 0.5
+                diff_step = np.append(np.full(nshape, eps), 0.1 / fs)
             result = least_squares(
                 _resid,
                 chan_guess,
@@ -587,20 +702,43 @@ class Template:
                 xtol=1e-20,
                 ftol=1e-6,
                 max_nfev=max_nfev,
+                diff_step=diff_step,
                 verbose=verbose,
             )
 
-            popt = np.asarray(result.x, dtype=np.float64)
+            popt_all = np.asarray(result.x, dtype=np.float64)
             jac = np.asarray(result.jac, dtype=np.float64)
-            pcov = np.linalg.pinv(jac.T @ jac)
+            pcov_all = np.linalg.pinv(jac.T @ jac)
 
-            model_template_p_t = self._modeled_template_t(model, popt, t_arr, t0, fs)
-            model_template_p_f = self._modeled_template_f(model, popt, t_arr, t0, fs)
+            # The delay is reported on its own: the shape parameters keep
+            # their documented order, which _print_fit_summary unpacks.
+            popt = popt_all[:nshape]
+            pcov = pcov_all[:nshape, :nshape]
+            dt_fit = float(popt_all[-1]) if fit_dt else dt0
+            dt_err = float(np.sqrt(pcov_all[nshape, nshape])) if fit_dt else 0.0
+
+            t0_fit = t0_pre + dt_fit
+            t0_render = t0_pre if anchor_to_pretrigger else t0_fit
+
+            def _render(delay):
+                if not fit_dt:
+                    t0 = t0_pre + delay
+                    return (self._modeled_template_t(model, popt, t_arr, t0, fs),
+                            self._modeled_template_f(model, popt, t_arr, t0, fs))
+                model_f = _delayed_f(popt, delay)
+                return np.real(self._freq_to_time(model_f, fs)), model_f
+
+            # Shown against the data; the stored products may be anchored.
+            model_template_p_t, model_template_p_f = _render(dt_fit)
+            if anchor_to_pretrigger:
+                stored_p_t, stored_p_f = _render(0.0)
+            else:
+                stored_p_t, stored_p_f = model_template_p_t, model_template_p_f
 
             model_template_i_f = np.divide(
-                model_template_p_f,
+                stored_p_f,
                 self._dpdi[chan],
-                out=np.zeros_like(model_template_p_f),
+                out=np.zeros_like(stored_p_f),
                 where=np.abs(self._dpdi[chan]) > 0,
             )
             model_template_i_t = -1.0 * self._freq_to_time(model_template_i_f, fs)
@@ -608,15 +746,22 @@ class Template:
             self._fit_models[chan] = model
             self._fit_vars[chan] = popt
             self._fit_cov[chan] = pcov
-            self._template_fit_p_t[chan] = np.real(model_template_p_t)
-            self._template_fit_p_f[chan] = model_template_p_f
+            self._fit_dt[chan] = dt_fit
+            self._template_fit_p_t[chan] = np.real(stored_p_t)
+            self._template_fit_p_f[chan] = stored_p_f
             self._template_fit_i_t[chan] = np.real(model_template_i_t)
             self._template_fit_i_f[chan] = model_template_i_f
 
-            results[chan] = {'popt': popt, 'pcov': pcov}
+            results[chan] = {'popt': popt, 'pcov': pcov,
+                             'dt': dt_fit, 'dt_err': dt_err,
+                             'anchored_to_pretrigger': bool(anchor_to_pretrigger)}
 
             if lgc_diagnostics and self._verbose:
                 self._print_fit_summary(chan)
+                print(f'Delay: {dt_fit * 1e6} +/- {dt_err * 1e6} us'
+                      f'{" (fitted)" if fit_dt else " (fixed)"}')
+                if anchor_to_pretrigger:
+                    print('Stored template anchored to the pretrigger.')
 
             if lgc_plot:
                 if time_lims is None:
@@ -665,6 +810,26 @@ class Template:
             chan = channels[0]
             return results[chan]['popt'], results[chan]['pcov']
         return results
+
+    def fit_dt(self, channel):
+        """
+        Delay the last fit used for this channel [s].
+
+        A single-channel fit_templates() returns only (popt, pcov) for
+        backwards compatibility, so the fitted delay is read back here.
+
+        Parameters
+        ----------
+        channel : str
+            Channel name.
+
+        Returns
+        -------
+        dt : float or None
+            Offset of the modeled pulse start from the pretrigger, or None
+            if the channel has not been fitted.
+        """
+        return self._fit_dt.get(channel)
 
     def get_template_in_current(self, channels, domain='time', use_fit=True, return_metadata=False):
         channels = self._normalize_channels(channels)
