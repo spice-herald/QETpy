@@ -8,6 +8,7 @@ from qetpy.core.didv._base_didv import stdcomplex
 from qetpy.utils import (lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
                          shift, make_template, estimate_g,
+                         estimate_onset,
                          resample_factors, resample_data)
 from qetpy.utils import _utils
 
@@ -426,3 +427,56 @@ class TestNumpyCompatibility:
         assert offenders == [], (
             removed + ' was removed in NumPy 2.0: ' + str(offenders)
         )
+
+
+class TestEstimateOnset:
+    """Locating where a pulse starts rising, relative to the pretrigger."""
+
+    FS = 1.25e6
+    PRE = 1024
+    TAU_R = 20e-6
+
+    def pulse(self, delay_samples, noise=0.0, seed=1):
+        onset = self.PRE + delay_samples
+        trace = np.zeros(4096)
+        tt = np.arange(4096 - onset) / self.FS
+        trace[onset:] = np.exp(-tt / 200e-6) - np.exp(-tt / self.TAU_R)
+        trace /= trace.max()
+        if noise:
+            trace = trace + np.random.default_rng(seed).normal(
+                scale=noise, size=trace.size)
+        return trace
+
+    @pytest.mark.parametrize('delay', [-40, 0, 35, 90])
+    def test_onset_is_found_relative_to_the_pretrigger(self, delay):
+        """A 10% crossing lags the analytic start by a little of the rise."""
+        onset = estimate_onset(self.pulse(delay), self.FS, self.PRE)
+
+        assert delay <= onset <= delay + 6
+
+    def test_a_higher_fraction_gives_a_later_crossing(self):
+        """Two fractions bracket a rise time, which callers use as a scale."""
+        trace = self.pulse(35)
+
+        low = estimate_onset(trace, self.FS, self.PRE)
+        high = estimate_onset(trace, self.FS, self.PRE, fraction=0.9)
+
+        # The fall starts eating into the rise before it is complete, so a
+        # 10-90% rise is under two of the two-pole model's rise constants.
+        rise = (high - low) / self.FS
+        assert self.TAU_R < rise < 2 * self.TAU_R
+
+    def test_the_last_crossing_before_the_peak_wins(self):
+        """The first upward crossing is regularly an earlier noise excursion."""
+        clean = estimate_onset(self.pulse(35), self.FS, self.PRE)
+
+        assert abs(estimate_onset(self.pulse(35, noise=0.03), self.FS,
+                                  self.PRE) - clean) <= 4
+
+    def test_a_flat_trace_has_no_onset(self):
+        assert estimate_onset(np.zeros(4096), self.FS, self.PRE) == 0
+
+    @pytest.mark.parametrize('nbins', [2, 12])
+    def test_a_trace_shorter_than_the_search_has_no_onset(self, nbins):
+        """Short enough and filtfilt cannot pad it either."""
+        assert estimate_onset(np.zeros(nbins), self.FS, self.PRE) == 0

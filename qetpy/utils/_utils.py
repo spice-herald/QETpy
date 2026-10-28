@@ -30,6 +30,7 @@ __all__ = [
     "make_decreasing",
     "calc_offset",
     "lowpassfilter",
+    "estimate_onset",
     "align_traces",
     "get_offset_from_muon",
     "powertrace_simple",
@@ -777,6 +778,78 @@ def lowpassfilter(traces, cut_off_freq=100000, fs=625e3, order=1):
     filt_traces = signal.filtfilt(b, a, traces, padtype='even')
 
     return filt_traces
+
+
+def estimate_onset(trace, fs, pretrigger, fraction=0.1, search_s=5e-4,
+                   filter_freq=50e3):
+    """
+    Samples from the pretrigger to the start of the rise of a pulse.
+
+    The onset is the last sample below "fraction" of the peak before the
+    peak, walking back. Averaged pretrigger noise is a few percent of the
+    peak, so the first upward crossing is regularly an earlier noise
+    excursion and the first one found going forwards is the wrong answer.
+
+    The search runs on a low-pass filtered copy. dPdI rises steeply towards
+    the Nyquist frequency, so a power-domain mean pulse is dominated by
+    high-frequency noise even when the current-domain one looks clean, and
+    an unfiltered peak search lands on noise hundreds of samples from the
+    pulse. The filter is zero phase, so it does not move the onset it is
+    used to find.
+
+    Parameters
+    ----------
+    trace : ndarray
+        A single averaged pulse.
+    fs : float
+        Digitization rate [Hz].
+    pretrigger : int
+        The sample the onset is measured relative to.
+    fraction : float, optional
+        Fraction of the peak that defines the start of the rise. Passing
+        0.9 gives the 90% crossing instead, so the difference between the
+        two is a 10-90% rise time.
+    search_s : float, optional
+        How far past the pretrigger to look for the peak [s].
+    filter_freq : float or None, optional
+        Cut-off of the low pass applied before the search [Hz]. None
+        searches the unfiltered trace.
+
+    Returns
+    -------
+    onset : int
+        Samples from "pretrigger" to the start of the rise, negative if the
+        rise starts before it; 0 if no rise is found.
+
+    """
+
+    trace = np.asarray(trace, dtype=np.float64)
+    fs = float(fs)
+    pretrigger = int(pretrigger)
+
+    lo = max(pretrigger - int(round(0.2 * search_s * fs)), 1)
+    hi = min(pretrigger + int(round(search_s * fs)), trace.size)
+    if hi - lo < 3:
+        return 0
+
+    # filtfilt pads the trace by 3*(order + 1) samples at each end and
+    # refuses to run on anything shorter than that.
+    if (filter_freq is not None and 0 < float(filter_freq) < 0.5 * fs
+            and trace.size > 9):
+        trace = lowpassfilter(trace, cut_off_freq=float(filter_freq),
+                              order=2, fs=fs)
+
+    seg = trace[lo:hi] - np.mean(trace[:lo])
+    peak = int(np.argmax(np.abs(seg)))
+    if seg[peak] == 0:
+        return 0
+
+    rising = np.sign(seg[peak]) * seg[:peak + 1]
+    below = np.flatnonzero(rising < fraction * abs(seg[peak]))
+    onset = lo + (int(below[-1]) + 1 if below.size else 0)
+
+    return onset - pretrigger
+
 
 def align_traces(traces, lgcjustshifts=False, n_cut=5000, cut_off_freq=5000.0,
                  fs=625e3):
