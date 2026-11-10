@@ -1625,13 +1625,27 @@ def energy_resolution(psd, template,  dpdi, fs,
     
     return energy_res
 
-def calc_resolution_nxm(csd, template, fs):
+def calc_resolution_nxm(csd, template, fs, conditional=False,
+                        return_covariance=False):
     """
     Calculates the resolution of an NxM OF. To calculate energy resolution corectly,
     you need to supply a template matrix correctly normalized such that the
     templates represent an event of energy 1 in whatever units you'd like to calculate
     the resolution in (usually eV). The CSD and template need to also be in the same
     domain, so either both in current or in power units.
+
+    The NxM OF fits all M amplitudes at once, so the quantity returned by
+    default is the *marginal* error on each amplitude, sqrt(diag(F^-1)) with
+
+        F_jk = sum_f s_j^dagger(f) C^-1(f) s_k(f) df
+
+    the amplitude information matrix. Whenever two amplitudes are correlated
+    through the noise -- which happens for any CSD with off-diagonal terms,
+    even when each amplitude touches a single channel -- this is larger than
+    1/sqrt(F_jj), by 1/sqrt(1 - rho^2) for two amplitudes of correlation rho.
+    ``conditional=True`` returns 1/sqrt(F_jj) instead: the error on one
+    amplitude with the others held fixed, which is what this function returned
+    before resolutions accounted for the covariance.
 
     Parameters:
     -----------
@@ -1648,51 +1662,95 @@ def calc_resolution_nxm(csd, template, fs):
     fs : float
         The sampling frequency, e.g. 1.25e6 Hz.
 
+    conditional : bool, optional
+        If True, return the error on each amplitude with the other amplitudes
+        held fixed, 1/sqrt(F_jj), rather than the marginal error. Default:
+        False.
+
+    return_covariance : bool, optional
+        If True, also return the full (amplitudes) x (amplitudes) covariance
+        matrix F^-1, whose off-diagonal terms give the correlation between the
+        fitted amplitudes. Ignored when ``conditional`` is True. Default:
+        False.
+
     Returns:
     --------
 
     resolutions : 1D numpy array
         An array of the calculated resolutions for each amplitude in the NxM OF.
-    
+
+    covariance : 2D numpy array
+        The amplitude covariance matrix, only if ``return_covariance`` is True.
+
     """
 
-    channels = len(template[:,0,0])
-    amplitudes = len(template[0,:,0])
-    samples = len(template[0,0,:])
-    
-    df = fs/samples
+    template = np.asarray(template)
+    csd = np.asarray(csd)
 
-    template_fft = np.zeros_like(template, dtype=np.complex128)
+    if template.ndim != 3:
+        raise ValueError(
+            'ERROR: "template" must be 3D, (channels) x (fit amplitudes) '
+            f'x (samples); got shape {template.shape}'
+        )
+    if csd.ndim != 3:
+        raise ValueError(
+            'ERROR: "csd" must be 3D, (channels) x (channels) x '
+            f'(frequencies), unfolded; got shape {csd.shape}'
+        )
 
-    i = 0
-    while i < len(template_fft[:,0,0]):
-        j = 0
-        while j < len(template_fft[0,:,0]):
-            _, temp_fft = fft(template[i,j,:], int(fs), axis=-1)
-            template_fft[i,j,:] = temp_fft/samples/df
-            j += 1
-        i += 1
+    nchan, namp, nbins = template.shape
+    if csd.shape != (nchan, nchan, nbins):
+        raise ValueError(
+            f'ERROR: "csd" has shape {csd.shape}, expecting '
+            f'{(nchan, nchan, nbins)} to match the template. An unfolded CSD '
+            'has as many frequencies as the template has samples.'
+        )
 
-    inverse_csd = np.zeros([channels, channels, samples], dtype=np.complex128)
-    i = 0
-    while i < samples:
-        inverse_csd[:, :, i] = np.linalg.inv(csd[:,:, i])
-        i += 1
+    df = fs / nbins
 
-    integrals_arr = np.zeros(amplitudes)
-    i = 1 #ignore zero frequency bin
-    while i < samples:
-        j = 0
-        while j < amplitudes:
-            integrals_arr[j] += np.abs(np.matmul(np.matmul(template_fft[:,j,i], inverse_csd[:,:,i]), np.transpose(template_fft[:,j,i])))
-            j += 1
-        i += 1
+    # s(f) = fft(template) * dt, the same convention as OptimumFilter
+    s = fft(template, axis=-1) / nbins / df
 
-    integrals_arr *= df
-    res_arr = integrals_arr**-0.5
+    # Drop the zero-frequency bin before inverting rather than after: the OF
+    # ignores it anyway (AC coupling), and a CSD whose DC bin is zeroed -- a
+    # common convention -- is singular there and would take the whole
+    # inversion down with it.
+    s = s[..., 1:]
+    inverse_csd = np.linalg.inv(np.moveaxis(csd[..., 1:], -1, 0))
 
-    return res_arr
-        
+    # F_jk = sum_f s_j^dagger C^-1 s_k df. The fitted amplitudes are real, so
+    # only the symmetric real part of F enters the chi2; the imaginary part is
+    # antisymmetric and cancels in the sum over amplitudes. It also cancels
+    # bin by bin here, since every +f is kept alongside its -f.
+    fisher = np.einsum('ajf,fab,bkf->jk', s.conj(), inverse_csd, s,
+                       optimize=True).real * df
+
+    dead = np.flatnonzero(np.diag(fisher) <= 0)
+    if dead.size:
+        raise ValueError(
+            f'ERROR: amplitudes {dead.tolist()} carry no signal: their '
+            'templates are zero, or zero everywhere the CSD is finite.'
+        )
+
+    if conditional:
+        return np.diag(fisher)**-0.5
+
+    if namp > 1 and np.linalg.cond(fisher) > 1 / np.finfo(np.float64).eps:
+        raise ValueError(
+            'ERROR: the amplitude set is degenerate -- at least one template '
+            'is a linear combination of the others, so the fit cannot '
+            'separate their amplitudes. Drop the redundant template(s), or '
+            'pass conditional=True to get each amplitude on its own.'
+        )
+
+    covariance = np.linalg.inv(fisher)
+    resolutions = np.sqrt(np.diag(covariance))
+
+    if return_covariance:
+        return resolutions, covariance
+
+    return resolutions
+
 def fold_spectrum(spectrum, fs):
     """
     Folds over the spectrum to keep only positive frequencies, applies a factor of 2 
