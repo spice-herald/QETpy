@@ -29,17 +29,22 @@ def _p_delta_frequency(freqs, start_time, lgcplot=False):
     Returns the Fourier transform of a delta function
     (i.e. delta(time - start_time)) evaluated at
     frequencies in the array freqs.
+
+    Notes
+    -----
+    The sign of the exponent follows the convention of ``qetpy.utils.ifft``
+    (numpy/scipy ``ifft``, which carries ``exp(+2j*pi*k*n/N)``), so that
+    ``ifft`` of the returned array places the delta at ``+start_time``.
+    Using ``exp(+2j*pi*f*start_time)`` here would put it at
+    ``-start_time`` instead, which wraps to the end of the array.
     """
-    
-    p_freqs = np.zeros(len(freqs))
-    i = 0
-    while i < len(freqs):
-        p_freqs[i] = np.exp(2.0j * np.pi * freqs[i] * start_time)
-        i += 1
-        
-    p_freqs /= max(np.abs(p_freqs))
+
+    freqs = np.asarray(freqs, dtype=np.float64)
+    p_freqs = np.exp(-2.0j * np.pi * freqs * start_time)
+
+    p_freqs /= np.max(np.abs(p_freqs))
     p_freqs *= 2.0
-        
+
     if lgcplot:
         plt.plot(freqs, np.abs(p_freqs))
         plt.xlabel("Frequency, Hz")
@@ -49,7 +54,7 @@ def _p_delta_frequency(freqs, start_time, lgcplot=False):
         p_time = ifft(p_freqs)[:int(len(freqs)/2)]
         fs = max(freqs)
         times = np.arange(0, len(freqs)/(2.0 * fs), 1/fs)
-        plt.plot(times/2.0, p_time)
+        plt.plot(times/2.0, np.real(p_time))
         plt.xlabel("Time, seconds")
         plt.ylabel("Template Power, arb. units.")
         plt.show()
@@ -58,20 +63,25 @@ def _p_delta_frequency(freqs, start_time, lgcplot=False):
     
 def _p_pulse_frequency(freqs, start_time, tau_p, tau_m, lgcplot=False):
     """
-    Returns the Fourier transform of a delta function
-    (i.e. delta(time - start_time)) evaluated at
+    Returns the Fourier transform of a two pole pulse that starts at
+    start_time, with rise time tau_p and fall time tau_m, evaluated at
     frequencies in the array freqs.
+
+    Notes
+    -----
+    Same convention as :func:`_p_delta_frequency`: the exponent and the
+    poles are signed for numpy/scipy ``ifft``, so the pulse lands at
+    ``+start_time`` and decays forwards in time.  Flipping the exponent
+    without also flipping the poles would give an anticausal pulse.
     """
-    
-    p_freqs = np.zeros(len(freqs))
-    i = 0
-    while i < len(freqs):
-        numerator = np.exp(2.0j * np.pi * freqs[i] * start_time)
-        denominator = (2.0j * np.pi * freqs[i] - 1/tau_p) * (2.0j * np.pi * freqs[i] - 1/tau_m)
-        p_freqs[i] = numerator/denominator
-        i += 1
-        
-    p_freqs /= max(np.abs(p_freqs))
+
+    freqs = np.asarray(freqs, dtype=np.float64)
+    s = 2.0j * np.pi * freqs
+    numerator = np.exp(-2.0j * np.pi * freqs * start_time)
+    denominator = (s + 1/tau_p) * (s + 1/tau_m)
+    p_freqs = numerator/denominator
+
+    p_freqs /= np.max(np.abs(p_freqs))
     p_freqs *= 2.0
         
     if lgcplot:
@@ -84,7 +94,7 @@ def _p_pulse_frequency(freqs, start_time, tau_p, tau_m, lgcplot=False):
         fs = max(freqs)
         times = np.arange(0, len(freqs)/(2.0 * fs), 1/fs)
         
-        plt.plot(times/2.0, p_time)
+        plt.plot(times/2.0, np.real(p_time))
         plt.xlabel("Time, seconds")
         plt.ylabel("Template Power, arb. units.")
         plt.show()
