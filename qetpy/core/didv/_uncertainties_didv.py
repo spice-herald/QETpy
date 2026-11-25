@@ -1561,6 +1561,61 @@ def _ddD_dPdI_ilg(didv_result, f):
 Functions for calculating covariance matricies and Jacobians, etc.
 """
 
+def _broadcast_entry(value, shape, dtype):
+    """One Jacobian entry, spread over the frequency axis.
+
+    Several of the derivatives are identically zero, or otherwise do not
+    depend on frequency, and come back as a scalar however they are called.
+    Broadcasting puts those on the same footing as the entries that do
+    follow the frequency, so a whole matrix can be built in one go.
+    """
+    return np.broadcast_to(np.asarray(value, dtype=dtype), shape)
+
+
+def _stack_jacobian(didv_result, f, rows, width, dtype='complex128'):
+    """Build a Jacobian for every frequency at once.
+
+    ``rows`` gives, in row order, the derivatives of one derived variable
+    and whether they are evaluated at a frequency.  ``f`` may be a single
+    frequency or an array of them; an array adds a leading frequency axis,
+    so the result is ``(len(f), len(rows), width)``.
+    """
+    shape = np.shape(f)
+    jacobian = np.zeros(shape + (len(rows), width), dtype=dtype)
+    for row, derivatives, uses_frequency in rows:
+        for column, derivative in enumerate(derivatives):
+            value = (derivative(didv_result, f) if uses_frequency
+                     else derivative(didv_result))
+            jacobian[..., row, column] = _broadcast_entry(value, shape, dtype)
+    return jacobian
+
+
+def _stack_gradient(didv_result, f, derivatives, dtype='complex128'):
+    """Build a gradient for every frequency at once, as _stack_jacobian."""
+    shape = np.shape(f)
+    gradient = np.zeros(shape + (len(derivatives),), dtype=dtype)
+    for index, derivative in enumerate(derivatives):
+        gradient[..., index] = _broadcast_entry(
+            derivative(didv_result, f), shape, dtype)
+    return gradient
+
+
+def _quadratic_form(gradient, cov):
+    """g C g^T for each frequency, without conjugating g."""
+    return np.einsum('...i,...ij,...j->...', gradient, cov, gradient)
+
+
+def _as_frequency_series(value, freqs):
+    """A result as its own complex array of one value per frequency."""
+    return np.broadcast_to(np.asarray(value, dtype='complex128'),
+                           np.shape(freqs)).copy()
+
+
+def _scalar_if_scalar(value, f):
+    """Keep the scalar-frequency contract: a scalar in, a scalar out."""
+    return value if np.ndim(f) else np.asarray(value)[()]
+
+
 def _get_full_base_cov(didv_result):
     """
     Returns the covariance matrix for the variables A, B, C, tau1, 
@@ -1585,65 +1640,33 @@ def _get_full_base_cov(didv_result):
     
     return full_cov
 
+
 def _get_base_jacobian(didv_result, f):
     """
     Returns the Jacobian matrix of the base variables used
     when calculating the covariance for the "derived varriables"
     (e.g. i0, beta, etc.). The Jacobian is evaluated at a
-    frequency f.
+    frequency f, or at every frequency in an array f, which adds a
+    leading frequency axis.
     """
 
     #order of derived variables: i0, r0, dVdI, beta, D
-    
-    base_jacobian = np.zeros((5, 7), dtype='complex128')
-    
-    #i0 terms
-    base_jacobian[0,0] = _ddA_i0(didv_result)
-    base_jacobian[0,1] = _ddB_i0(didv_result)
-    base_jacobian[0,2] = _ddC_i0(didv_result)
-    base_jacobian[0,3] = _ddtau1_i0(didv_result)
-    base_jacobian[0,4] = _ddtau2_i0(didv_result)
-    base_jacobian[0,5] = _ddtau3_i0(didv_result)
-    base_jacobian[0,6] = _ddr0_i0(didv_result)
-    
-    #r0 terms
-    base_jacobian[1,0] = _ddA_r0(didv_result)
-    base_jacobian[1,1] = _ddB_r0(didv_result)
-    base_jacobian[1,2] = _ddC_r0(didv_result)
-    base_jacobian[1,3] = _ddtau1_r0(didv_result)
-    base_jacobian[1,4] = _ddtau2_r0(didv_result)
-    base_jacobian[1,5] = _ddtau3_r0(didv_result)
-    base_jacobian[1,6] = _ddr0_r0(didv_result)
-    
-    #dVdI terms
-    base_jacobian[2,0] = _ddA_dVdI(didv_result, f)
-    base_jacobian[2,1] = _ddB_dVdI(didv_result, f)
-    base_jacobian[2,2] = _ddC_dVdI(didv_result, f)
-    base_jacobian[2,3] = _ddtau1_dVdI(didv_result, f)
-    base_jacobian[2,4] = _ddtau2_dVdI(didv_result, f)
-    base_jacobian[2,5] = _ddtau3_dVdI(didv_result, f)
-    base_jacobian[2,6] = _ddr0_dVdI(didv_result, f)
-    
-    #beta terms
-    base_jacobian[3,0] = _ddA_beta(didv_result)
-    base_jacobian[3,1] = _ddB_beta(didv_result)
-    base_jacobian[3,2] = _ddC_beta(didv_result)
-    base_jacobian[3,3] = _ddtau1_beta(didv_result)
-    base_jacobian[3,4] = _ddtau2_beta(didv_result)
-    base_jacobian[3,5] = _ddtau3_beta(didv_result)
-    base_jacobian[3,6] = _ddr0_beta(didv_result)
-    
-    #denominator terms
-    base_jacobian[4,0] = _ddA_D(didv_result, f)
-    base_jacobian[4,1] = _ddB_D(didv_result, f)
-    base_jacobian[4,2] = _ddC_D(didv_result, f)
-    base_jacobian[4,3] = _ddtau1_D(didv_result, f)
-    base_jacobian[4,4] = _ddtau2_D(didv_result, f)
-    base_jacobian[4,5] = _ddtau3_D(didv_result, f)
-    base_jacobian[4,6] = _ddr0_D(didv_result, f)
-    
-    return base_jacobian
-    
+    #the i0, r0 and beta rows do not depend on frequency; dVdI and D do
+    rows = (
+        (0, (_ddA_i0, _ddB_i0, _ddC_i0, _ddtau1_i0, _ddtau2_i0, _ddtau3_i0,
+             _ddr0_i0), False),
+        (1, (_ddA_r0, _ddB_r0, _ddC_r0, _ddtau1_r0, _ddtau2_r0, _ddtau3_r0,
+             _ddr0_r0), False),
+        (2, (_ddA_dVdI, _ddB_dVdI, _ddC_dVdI, _ddtau1_dVdI, _ddtau2_dVdI,
+             _ddtau3_dVdI, _ddr0_dVdI), True),
+        (3, (_ddA_beta, _ddB_beta, _ddC_beta, _ddtau1_beta, _ddtau2_beta,
+             _ddtau3_beta, _ddr0_beta), False),
+        (4, (_ddA_D, _ddB_D, _ddC_D, _ddtau1_D, _ddtau2_D, _ddtau3_D,
+             _ddr0_D), True),
+    )
+
+    return _stack_jacobian(didv_result, f, rows, 7)
+
 def _get_full_base_cov_ilg(didv_result):
     """
     Returns the covariance matrix for the variables A, B, C, tau1, 
@@ -1663,59 +1686,31 @@ def _get_full_base_cov_ilg(didv_result):
 
     return full_cov_ilg
 
+
 def _get_base_jacobian_ilg(didv_result, f):
     """
     Returns the Jacobian matrix of the base variables used
     when calculating the covariance for the "derived varriables"
     (e.g. i0, beta, etc.) with the infinite loop gain approximation.
-    The Jacobian is evaluated at a frequency f.
+    The Jacobian is evaluated at a frequency f, or at every frequency in
+    an array f, which adds a leading frequency axis.
     """
 
     #order of derived variables: i0, r0, dVdI, beta, D
-    
-    base_jacobian = np.zeros((5, 6), dtype='complex128')
-    
-    #i0 terms
-    base_jacobian[0,0] = _ddA_i0ilg(didv_result)
-    base_jacobian[0,1] = _ddB_i0ilg(didv_result)
-    base_jacobian[0,2] = _ddC_i0ilg(didv_result)
-    base_jacobian[0,3] = _ddtau1_i0ilg(didv_result)
-    base_jacobian[0,4] = _ddtau2_i0ilg(didv_result)
-    base_jacobian[0,5] = _ddtau3_i0ilg(didv_result)
-    
-    #r0 terms
-    base_jacobian[1,0] = _ddA_r0ilg(didv_result)
-    base_jacobian[1,1] = _ddB_r0ilg(didv_result)
-    base_jacobian[1,2] = _ddC_r0ilg(didv_result)
-    base_jacobian[1,3] = _ddtau1_r0ilg(didv_result)
-    base_jacobian[1,4] = _ddtau2_r0ilg(didv_result)
-    base_jacobian[1,5] = _ddtau3_r0ilg(didv_result)
-    
-    #dVdI terms
-    base_jacobian[2,0] = _ddA_dVdI(didv_result, f)
-    base_jacobian[2,1] = _ddB_dVdI(didv_result, f)
-    base_jacobian[2,2] = _ddC_dVdI(didv_result, f)
-    base_jacobian[2,3] = _ddtau1_dVdI(didv_result, f)
-    base_jacobian[2,4] = _ddtau2_dVdI(didv_result, f)
-    base_jacobian[2,5] = _ddtau3_dVdI(didv_result, f)
-    
-    #beta terms
-    base_jacobian[3,0] = _ddA_betailg(didv_result)
-    base_jacobian[3,1] = _ddB_betailg(didv_result)
-    base_jacobian[3,2] = _ddC_betailg(didv_result)
-    base_jacobian[3,3] = _ddtau1_betailg(didv_result)
-    base_jacobian[3,4] = _ddtau2_betailg(didv_result)
-    base_jacobian[3,5] = _ddtau3_betailg(didv_result)
-    
-    #denominator terms
-    base_jacobian[4,0] = _ddA_D(didv_result, f)
-    base_jacobian[4,1] = _ddB_D(didv_result, f)
-    base_jacobian[4,2] = _ddC_D(didv_result, f)
-    base_jacobian[4,3] = _ddtau1_D(didv_result, f)
-    base_jacobian[4,4] = _ddtau2_D(didv_result, f)
-    base_jacobian[4,5] = _ddtau3_D(didv_result, f)
-    
-    return base_jacobian
+    rows = (
+        (0, (_ddA_i0ilg, _ddB_i0ilg, _ddC_i0ilg, _ddtau1_i0ilg,
+             _ddtau2_i0ilg, _ddtau3_i0ilg), False),
+        (1, (_ddA_r0ilg, _ddB_r0ilg, _ddC_r0ilg, _ddtau1_r0ilg,
+             _ddtau2_r0ilg, _ddtau3_r0ilg), False),
+        (2, (_ddA_dVdI, _ddB_dVdI, _ddC_dVdI, _ddtau1_dVdI, _ddtau2_dVdI,
+             _ddtau3_dVdI), True),
+        (3, (_ddA_betailg, _ddB_betailg, _ddC_betailg, _ddtau1_betailg,
+             _ddtau2_betailg, _ddtau3_betailg), False),
+        (4, (_ddA_D, _ddB_D, _ddC_D, _ddtau1_D, _ddtau2_D, _ddtau3_D), True),
+    )
+
+    return _stack_jacobian(didv_result, f, rows, 6)
+
 
 def _get_derived_jacobian(didv_result, f):
     """
@@ -1723,32 +1718,31 @@ def _get_derived_jacobian(didv_result, f):
     of dPdI when calculated in terms of the derived variables.
     Used when calculating the uncertainty in dPdI when correctly
     taking into account covariance. The Jacobian is evaluated
-    at a frequency f.
+    at a frequency f, or at every frequency in an array f, which adds a
+    leading frequency axis.
     """
     #order of derived variables: i0, r0, dVdI, beta, L
-    
-    derived_jacobian = np.zeros(5, dtype='complex128')
-       
-    derived_jacobian[0] = _ddi0_dPdI_3(didv_result, f)
-    derived_jacobian[1] = _ddr0_dPdI_3(didv_result, f)
-    derived_jacobian[2] = _dddVdI_dPdI_3(didv_result, f)
-    derived_jacobian[3] = _ddbeta_dPdI_3(didv_result, f)
-    derived_jacobian[4] = _ddD_dPdI_3(didv_result, f)
-    
-    return derived_jacobian
+
+    return _stack_gradient(
+        didv_result, f,
+        (_ddi0_dPdI_3, _ddr0_dPdI_3, _dddVdI_dPdI_3, _ddbeta_dPdI_3,
+         _ddD_dPdI_3))
+
 
 def _get_derived_cov(didv_result, f):
     """
     Returns the covariance matrix for the derived variables (e.g. beta, dVdI),
-    evaluated at a frequency f.
+    evaluated at a frequency f, or at every frequency in an array f, which
+    adds a leading frequency axis.
     """
-    
+
     base_cov = np.asarray(_get_full_base_cov(didv_result), dtype='complex128')
-    base_jacobian = np.asarray(_get_base_jacobian(didv_result, f), dtype='complex128')
-    
-    derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
+    base_jacobian = _get_base_jacobian(didv_result, f)
+
+    derived_cov = (base_jacobian @ base_cov) @ np.swapaxes(base_jacobian,
+                                                           -1, -2)
     return derived_cov
-    
+
 def _get_derived_jacobian_ilg(didv_result, f):
     """
     Returns the Jacobian (or really gradiant, since it's 1D)
@@ -1756,76 +1750,79 @@ def _get_derived_jacobian_ilg(didv_result, f):
     under the infinite gain approximation.
     Used when calculating the uncertainty in dPdI when correctly
     taking into account covariance. The Jacobian is evaluated
-    at a frequency f.
+    at a frequency f, or at every frequency in an array f, which adds a
+    leading frequency axis.
     """
     #order of derived variables: i0, r0, dVdI, beta, L
-    
-    derived_jacobian = np.zeros(5)
-    
-    derived_jacobian[0] = _ddi0_dPdI_ilg(didv_result, f)
-    derived_jacobian[1] = _ddr0_dPdI_ilg(didv_result, f)
-    derived_jacobian[2] = _dddVdI_dPdI_ilg(didv_result, f)
-    derived_jacobian[3] = _ddbeta_dPdI_ilg(didv_result, f)
-    derived_jacobian[4] = _ddD_dPdI_ilg(didv_result, f)
-    
-    return derived_jacobian
+    #the real dtype is what this has always used
+
+    return _stack_gradient(
+        didv_result, f,
+        (_ddi0_dPdI_ilg, _ddr0_dPdI_ilg, _dddVdI_dPdI_ilg, _ddbeta_dPdI_ilg,
+         _ddD_dPdI_ilg), dtype=float)
+
 
 def _get_derived_cov_ilg(didv_result, f):
     """
     Returns the covariance matrix for the derived variables (e.g. beta, dVdI),
-    evaluated at a frequency f under the infinite loop gain approximation.
+    evaluated at a frequency f under the infinite loop gain approximation,
+    or at every frequency in an array f, which adds a leading frequency axis.
     """
-    
-    base_cov = np.asarray(_get_full_base_cov_ilg(didv_result), dtype='complex128')
-    base_jacobian = np.asarray(_get_base_jacobian_ilg(didv_result, f), dtype='complex128')
-    
-    derived_cov = np.matmul(np.matmul(base_jacobian, base_cov), np.transpose(base_jacobian))
+
+    base_cov = np.asarray(_get_full_base_cov_ilg(didv_result),
+                          dtype='complex128')
+    base_jacobian = _get_base_jacobian_ilg(didv_result, f)
+
+    derived_cov = (base_jacobian @ base_cov) @ np.swapaxes(base_jacobian,
+                                                           -1, -2)
     return derived_cov
+
 
 def _get_dPdI_uncertainty(didv_result, f):
     """
-    Returns the uncertainty in the dPdI evaluated at a frequency f.
+    Returns the uncertainty in the dPdI evaluated at a frequency f, or at
+    every frequency in an array f.
     """
     derived_cov = _get_derived_cov(didv_result, f)
     derived_jacobian = _get_derived_jacobian(didv_result, f)
-    
-    dPdI_variance = np.matmul(np.matmul(derived_jacobian, derived_cov), np.transpose(derived_jacobian))
-    
-    return dPdI_variance**0.5
-    
+
+    dPdI_variance = _quadratic_form(derived_jacobian, derived_cov)
+
+    return _scalar_if_scalar(dPdI_variance**0.5, f)
+
+
 def _get_dPdI_uncertainty_ilg(didv_result, f):
     """
     Returns the uncertainty in the dPdI evaluated at a frequency f
-    using the infinite loop gain approximation.
+    using the infinite loop gain approximation, or at every frequency in
+    an array f.
     """
     derived_cov = _get_derived_cov_ilg(didv_result, f)
     derived_jacobian = _get_derived_jacobian_ilg(didv_result, f)
-    
-    dPdI_variance = np.matmul(np.matmul(derived_jacobian, derived_cov), np.transpose(derived_jacobian))
-    
-    return dPdI_variance**0.5
-    
+
+    dPdI_variance = _quadratic_form(derived_jacobian, derived_cov)
+
+    return _scalar_if_scalar(dPdI_variance**0.5, f)
+
+
 def _get_dVdI_uncertainty(didv_result, f):
     """
-    Returns the uncertainty in the dVdI evaluated at a frequency f.
+    Returns the uncertainty in the dVdI evaluated at a frequency f, or at
+    every frequency in an array f.
     """
     # NumPy 2.0 removed the 'cfloat' alias; it meant complex128, so the
     # double precision of this gradient is kept explicitly.
-    dVdI_gradiant = np.zeros(6, dtype='complex128')
-    
-    dVdI_gradiant[0] = _ddA_dVdI(didv_result, f)
-    dVdI_gradiant[1] = _ddB_dVdI(didv_result, f)
-    dVdI_gradiant[2] = _ddC_dVdI(didv_result, f)
-    dVdI_gradiant[3] = _ddtau1_dVdI(didv_result, f)
-    dVdI_gradiant[4] = _ddtau2_dVdI(didv_result, f)
-    dVdI_gradiant[5] = _ddtau3_dVdI(didv_result, f)
-    
+    dVdI_gradiant = _stack_gradient(
+        didv_result, f,
+        (_ddA_dVdI, _ddB_dVdI, _ddC_dVdI, _ddtau1_dVdI, _ddtau2_dVdI,
+         _ddtau3_dVdI))
+
     cov = didv_result['cov'][:6,:6]
-    
-    variance = np.matmul(np.matmul(dVdI_gradiant, cov), np.transpose(dVdI_gradiant))
-    
-    return variance**0.5
-    
+
+    variance = _quadratic_form(dVdI_gradiant, cov)
+
+    return _scalar_if_scalar(variance**0.5, f)
+
 def _get_smallsignalparams_jacobian(didv_result):
     """
     Returns the covariance matrix for a 3 pole fit dIdV.
@@ -2089,15 +2086,12 @@ def get_dVdI_with_uncertainties(freqs, didv_result, lgcplot=False):
     
     """
     
-    dVdI = np.zeros(len(freqs), dtype='complex128')
-    dVdI_err = np.zeros(len(freqs), dtype='complex128')
-    
-    i = 0
-    while i < len(freqs):
-        dVdI[i] = _get_dVdI(didv_result, freqs[i])
-        dVdI_err[i] = _get_dVdI_uncertainty(didv_result, freqs[i])
-        i += 1
-        
+    freqs = np.asarray(freqs, dtype=float)
+
+    dVdI = _as_frequency_series(_get_dVdI(didv_result, freqs), freqs)
+    dVdI_err = _as_frequency_series(_get_dVdI_uncertainty(didv_result, freqs),
+                                    freqs)
+
     if lgcplot:
         
         taup_freq = 1/(2 * np.pi * np.abs(didv_result['falltimes'][0]))
@@ -2206,19 +2200,21 @@ def get_dPdI_with_uncertainties(freqs, didv_result, lgcplot=False,
     
     """
     
-    dPdI = np.zeros(len(freqs), dtype='complex128')
-    dPdI_err = np.zeros(len(freqs), dtype='complex128')
-    
-    i = 0
-    while i < len(freqs):
-        if lgc_infinite_loopgain_approx:
-            dPdI[i] = _get_dPdI_ilg(didv_result, freqs[i])
-            dPdI_err[i] = _get_dPdI_uncertainty_ilg(didv_result, freqs[i])
-        else:
-            dPdI[i] = _get_dPdI_3(didv_result, freqs[i])
-            dPdI_err[i] = _get_dPdI_uncertainty(didv_result, freqs[i])
-        i += 1
-    
+    # Every term below is an analytic function of the frequency, so the
+    # whole array is evaluated at once.  Done one frequency at a time this
+    # dominated an IV/dIdV sweep: a 125k-bin PSD grid took 17 s per fit.
+    freqs = np.asarray(freqs, dtype=float)
+
+    if lgc_infinite_loopgain_approx:
+        dPdI = _get_dPdI_ilg(didv_result, freqs)
+        dPdI_err = _get_dPdI_uncertainty_ilg(didv_result, freqs)
+    else:
+        dPdI = _get_dPdI_3(didv_result, freqs)
+        dPdI_err = _get_dPdI_uncertainty(didv_result, freqs)
+
+    dPdI = _as_frequency_series(dPdI, freqs)
+    dPdI_err = _as_frequency_series(dPdI_err, freqs)
+
         
     if lgcplot:
         
