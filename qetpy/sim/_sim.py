@@ -115,7 +115,8 @@ class TESnoise:
     """
 
     def __init__(self, freqs=None, didv_result=None, tc=0.040, tload=0.9, 
-                 tbath=0.020, p0_manual=None, n=5.0, lgc_ballistic=True,
+                 tbath=0.020, p0_manual=None, n=5.0, G=None,
+                 lgc_ballistic=True,
                  squid_noise_current=None, squid_noise_current_freqs=None,
                  lgc_diagnostics=True):
         """
@@ -144,6 +145,14 @@ class TESnoise:
             
         n : float, optional
             The power-law dependence of the power flow to the heat bath
+
+        G : float, optional
+            The thermal conductance to the bath in W/K, when it has been
+            measured. By default it is calculated as n * P0 / Tc, which
+            assumes the power law holds with the exponent given by `n`.
+            Supplying G does not remove that assumption everywhere: `n` also
+            sets the thermal fluctuation noise suppression factor below, so it
+            is still used whether or not G is given.
             
         lgc_ballistic : boolean, optional
             Boolean flag that determines whether we use the ballistic (True) or
@@ -186,7 +195,12 @@ class TESnoise:
         self.tc = tc
         self.tload = tload
         self.tbath = tbath
-        if p0_manual is None:
+        if G is not None:
+            self.G = float(G)
+            if lgc_diagnostics:
+                print("Using the thermal conductance given")
+                print("G = " + str(self.G) + " W/K")
+        elif p0_manual is None:
             self.G = self.n * didv_result['biasparams']['p0'] / self.tc
             if lgc_diagnostics:
                 print("Automatically determining G")
