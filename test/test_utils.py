@@ -5,10 +5,11 @@ from helpers import isclose
 from qetpy import calc_psd
 from qetpy.cut import removeoutliers, iterstat
 from qetpy.core.didv._base_didv import stdcomplex
+from qetpy import OptimumFilter
 from qetpy.utils import (lowpassfilter, align_traces,
                          calc_offset, energy_absorbed, powertrace_simple,
                          shift, make_template, estimate_g,
-                         estimate_onset,
+                         estimate_onset, calc_resolution_nxm,
                          resample_factors, resample_data)
 from qetpy.utils import _utils
 
@@ -480,3 +481,200 @@ class TestEstimateOnset:
     def test_a_trace_shorter_than_the_search_has_no_onset(self, nbins):
         """Short enough and filtfilt cannot pad it either."""
         assert estimate_onset(np.zeros(nbins), self.FS, self.PRE) == 0
+
+
+class TestCalcResolutionNxm:
+    """``calc_resolution_nxm`` against OptimumFilter and against real fits.
+
+    The resolution the NxM OF actually delivers is the scatter of its fitted
+    amplitudes on noise-only data, so most of these tests fit noise and
+    measure it. That catches the two things a closed form gets wrong quietly:
+    dropping the conjugate in ``s^dagger C^-1 s``, and reporting
+    ``1/sqrt(F_jj)`` for a fit that floats every amplitude at once.
+    """
+
+    FS = 1e5
+    N = 256
+    NEVENTS = 4000
+
+    @classmethod
+    def pulse(cls, tau, start=40, shift=0):
+        x = np.arange(cls.N)
+        p = np.where(x >= start, np.exp(-(x - start) / tau), 0.0)
+        return np.roll(p / p.max(), shift)
+
+    @classmethod
+    def white_csd(cls, rho, nchan=2):
+        """Two-sided CSD of white noise with unit variance per channel."""
+        cov = np.full((nchan, nchan), rho) + np.eye(nchan) * (1 - rho)
+        return cov, np.repeat((cov / cls.FS)[:, :, None],
+                              cls.N, axis=-1).astype(complex)
+
+    @classmethod
+    def fit_noise(cls, csd, cov, templates, seed):
+        """Fit noise-only events with the explicit normal equations."""
+        rng = np.random.default_rng(seed)
+        nchan = templates.shape[0]
+        df = cls.FS / cls.N
+        s = np.fft.fft(templates, axis=-1)[..., 1:] / cls.FS
+        inv = np.linalg.inv(np.moveaxis(csd, -1, 0))[1:]
+        fisher = np.einsum('ajf,fab,bkf->jk', s.conj(), inv, s,
+                           optimize=True).real * df
+
+        chol = np.linalg.cholesky(cov)
+        white = rng.standard_normal((cls.NEVENTS, nchan, cls.N))
+        noise = np.einsum('ab,ebn->ean', chol, white)
+        data = np.fft.fft(noise, axis=-1)[..., 1:] / cls.FS
+        proj = np.einsum('ajf,fab,ebf->ej', s.conj(), inv, data,
+                         optimize=True).real * df
+        return np.linalg.solve(fisher, proj.T).T.std(axis=0, ddof=1)
+
+    def test_1x1_matches_the_optimum_filter(self):
+        """One channel, one amplitude: it must reduce to 1/sqrt(norm)."""
+        template = self.pulse(20)
+        psd = np.full(self.N, 1e-16)
+
+        expected = OptimumFilter(np.zeros(self.N), template, psd,
+                                 self.FS).energy_resolution()
+        got = calc_resolution_nxm(psd[None, None, :].astype(complex),
+                                  template[None, None, :], self.FS)
+
+        assert got.shape == (1,)
+        assert isclose(np.array([got[0]]), np.array([expected]), rtol=1e-12)
+
+    def test_uncorrelated_amplitudes_need_no_covariance_correction(self):
+        """With no correlation the marginal and conditional errors agree."""
+        _, csd = self.white_csd(0.0)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, self.pulse(50)])], axis=0)
+
+        marginal = calc_resolution_nxm(csd, templates, self.FS)
+        conditional = calc_resolution_nxm(csd, templates, self.FS,
+                                          conditional=True)
+
+        assert isclose(marginal, conditional, rtol=1e-10)
+
+    def test_correlated_amplitudes_inflate_by_the_closed_form(self):
+        """Two amplitudes of correlation rho inflate by 1/sqrt(1 - rho^2)."""
+        _, csd = self.white_csd(0.6)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, self.pulse(50)])], axis=0)
+
+        marginal, cov = calc_resolution_nxm(csd, templates, self.FS,
+                                            return_covariance=True)
+        conditional = calc_resolution_nxm(csd, templates, self.FS,
+                                          conditional=True)
+
+        rho = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
+        assert abs(rho) > 0.2
+        assert isclose(marginal / conditional,
+                       np.full(2, 1 / np.sqrt(1 - rho**2)), rtol=1e-10)
+
+    @pytest.mark.parametrize('case, rho', [
+        ('2x2', 0.0),
+        ('2x2', 0.6),
+        ('2x1', 0.6),
+        ('2x1 shifted', 0.6),
+    ])
+    def test_resolution_matches_the_scatter_of_fitted_noise(self, case, rho):
+        """The prediction is the standard deviation of the fitted amplitudes."""
+        cov, csd = self.white_csd(rho)
+        zero = np.zeros(self.N)
+        if case == '2x2':
+            templates = np.stack([np.stack([self.pulse(20), zero]),
+                                  np.stack([zero, self.pulse(50)])], axis=0)
+        elif case == '2x1':
+            templates = np.stack([np.stack([self.pulse(20)]),
+                                  np.stack([self.pulse(50)])], axis=0)
+        else:
+            # the two channels see the same pulse at different times, which is
+            # where dropping the conjugate goes badly wrong
+            templates = np.stack([np.stack([self.pulse(20)]),
+                                  np.stack([self.pulse(20, shift=10)])], axis=0)
+
+        predicted = calc_resolution_nxm(csd, templates, self.FS)
+        measured = self.fit_noise(csd, cov, templates, seed=20240617)
+
+        # 4000 events put the statistical error on each sigma at ~1.1%
+        assert isclose(measured / predicted, np.ones(predicted.size),
+                       rtol=0.05)
+
+    def test_dropping_the_conjugate_would_fail_the_scatter_test(self):
+        """Guard the guard: the shifted 2x1 case is sensitive to it."""
+        cov, csd = self.white_csd(0.6)
+        templates = np.stack([np.stack([self.pulse(20)]),
+                              np.stack([self.pulse(20, shift=10)])], axis=0)
+
+        df = self.FS / self.N
+        s = np.fft.fft(templates, axis=-1)[..., 1:] / self.FS
+        inv = np.linalg.inv(np.moveaxis(csd, -1, 0))[1:]
+        unconjugated = np.abs(np.einsum('ajf,fab,bjf->jf', s, inv, s,
+                                        optimize=True)).sum(axis=-1) * df
+
+        predicted = calc_resolution_nxm(csd, templates, self.FS)
+        assert abs(unconjugated[0]**-0.5 / predicted[0] - 1) > 0.15
+
+    def test_a_dead_amplitude_is_named(self):
+        _, csd = self.white_csd(0.0)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, zero])], axis=0)
+
+        with pytest.raises(ValueError, match=r'amplitudes \[1\] carry no signal'):
+            calc_resolution_nxm(csd, templates, self.FS)
+
+    def test_a_degenerate_amplitude_set_is_refused(self):
+        """Two amplitudes the fit cannot tell apart."""
+        _, csd = self.white_csd(0.0)
+        zero = np.zeros(self.N)
+        shared = self.pulse(20)
+        templates = np.stack([np.stack([shared, shared]),
+                              np.stack([zero, zero])], axis=0)
+
+        with pytest.raises(ValueError, match='degenerate'):
+            calc_resolution_nxm(csd, templates, self.FS)
+
+        # each amplitude on its own is still well defined
+        conditional = calc_resolution_nxm(csd, templates, self.FS,
+                                          conditional=True)
+        assert np.all(np.isfinite(conditional))
+
+    def test_a_zeroed_dc_bin_does_not_break_the_inversion(self):
+        """The DC bin is dropped before inverting, not after."""
+        _, csd = self.white_csd(0.6)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, self.pulse(50)])], axis=0)
+
+        expected = calc_resolution_nxm(csd, templates, self.FS)
+        csd[:, :, 0] = 0.0
+
+        assert isclose(calc_resolution_nxm(csd, templates, self.FS),
+                       expected, rtol=1e-12)
+
+    def test_a_folded_csd_is_refused(self):
+        """Half as many frequencies as samples is the commonest mistake."""
+        _, csd = self.white_csd(0.0)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, self.pulse(50)])], axis=0)
+
+        with pytest.raises(ValueError, match='unfolded CSD'):
+            calc_resolution_nxm(csd[:, :, :self.N // 2 + 1], templates,
+                                self.FS)
+
+    @pytest.mark.parametrize('bad', ['template', 'csd'])
+    def test_two_dimensional_input_is_refused(self, bad):
+        _, csd = self.white_csd(0.0)
+        zero = np.zeros(self.N)
+        templates = np.stack([np.stack([self.pulse(20), zero]),
+                              np.stack([zero, self.pulse(50)])], axis=0)
+
+        if bad == 'template':
+            with pytest.raises(ValueError, match='"template" must be 3D'):
+                calc_resolution_nxm(csd, templates[0], self.FS)
+        else:
+            with pytest.raises(ValueError, match='"csd" must be 3D'):
+                calc_resolution_nxm(csd[0], templates, self.FS)
