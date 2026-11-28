@@ -187,3 +187,47 @@ def test_dvdi_and_dpdi_with_uncertainties():
     assert dpdi.shape == freqs.shape and dpdi_err.shape == freqs.shape
     assert dpdi.dtype == np.complex128 and dpdi_err.dtype == np.complex128
     assert np.all(np.isfinite(dpdi)) and np.all(np.isfinite(dpdi_err))
+
+
+
+@pytest.mark.parametrize("dutycycle", [0.5, 0.35])
+def test_squarewaveresponse_uses_full_time_span(dutycycle):
+    fs = 1_250_000.0
+    sgfreq = 625.0
+    t = np.arange(8000) / fs
+    shifted_t = t + 0.00624587549883436
+    shifted_t[1] = 0.006246675498843709
+    params = {"A": 0.011, "B": 0, "C": 0, "tau1": 0,
+              "tau2": 1e-7 / 0.011, "tau3": 0}
+
+    reference = qp.squarewaveresponse(
+        t, 1e-6, sgfreq, params, dutycycle=dutycycle, rsh=5e-3,
+    )
+    response = qp.squarewaveresponse(
+        shifted_t, 1e-6, sgfreq, params, dutycycle=dutycycle, rsh=5e-3,
+    )
+
+    assert np.any(reference)
+    np.testing.assert_allclose(response, reference, rtol=1e-12, atol=1e-16)
+
+
+@pytest.mark.parametrize("fs, sgfreq", [(1_250_000.0, 10.0), (2048.5, 0.5)])
+def test_didv_uses_known_sample_rate_with_time_offset(fs, sgfreq):
+    t = np.arange(4 * int(fs / sgfreq)) / fs
+    params = {"A": 0.011, "B": 0, "C": 0, "tau1": 0,
+              "tau2": 1e-7 / 0.011, "tau3": 0}
+    sgamp, rsh = 1e-6, 5e-3
+    response = qp.squarewaveresponse(t, sgamp, sgfreq, params, rsh=rsh)
+    noise = np.random.default_rng(915).normal(
+        scale=1e-10, size=(4, response.size),
+    )
+    traces = response + noise
+    reference = qp.DIDV(traces, fs, sgfreq, sgamp, rsh, dt0=0)
+    shifted = qp.DIDV(traces, fs, sgfreq, sgamp, rsh, dt0=-0.00624587549883436)
+    reference.processtraces()
+    shifted.processtraces()
+
+    assert np.any(~reference._zeroinds)
+    np.testing.assert_array_equal(shifted._zeroinds, reference._zeroinds)
+    np.testing.assert_array_equal(shifted._freq, reference._freq)
+    np.testing.assert_allclose(shifted._didvmean, reference._didvmean)

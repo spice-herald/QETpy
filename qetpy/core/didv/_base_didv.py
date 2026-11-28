@@ -665,10 +665,9 @@ class _BaseDIDV(object):
 
         tracelength = len(x)
 
-        # get the frequencies for a DFT, based on the sample rate of the data
-        dx = x[1]-x[0]
-        fs = 1/dx
-        freq = fftfreq(len(x), fs)
+        # Estimate the sample rate across the full trace to reduce timestamp rounding error.
+        fs = (tracelength - 1) / (x[-1] - x[0])
+        freq = fftfreq(tracelength, fs)
 
         # didv of fit in frequency space
         ci = _BaseDIDV._threepoleadmittance(freq, A, B, C, tau1, tau2, tau3)
@@ -710,7 +709,7 @@ class _BaseDIDV(object):
 
 
     @staticmethod
-    def _deconvolvedidv(x, trace, rsh, sgamp, sgfreq, dutycycle):
+    def _deconvolvedidv(x, trace, rsh, sgamp, sgfreq, dutycycle, *, fs=None):
         """
         Function for taking a trace with a known square wave jitter and
         extracting the complex impedance via deconvolution of the
@@ -720,10 +719,9 @@ class _BaseDIDV(object):
 
         tracelength = len(x)
 
-        # get the frequencies for a DFT,
-        # based on the sample rate of the data
-        dx = x[1]-x[0]
-        fs = 1/dx
+        # Prefer the acquisition sample rate when the caller knows it.
+        if fs is None:
+            fs = (tracelength - 1) / (x[-1] - x[0])
       
         # FFT of the trace
         freq, st = fft(trace, fs)
@@ -1158,6 +1156,7 @@ class _BaseDIDV(object):
                 self._sgamp,
                 self._sgfreq,
                 self._dutycycle,
+                fs=self._fs,
             )[1]
             didvs.append(didvi)
 
@@ -1181,6 +1180,7 @@ class _BaseDIDV(object):
             self._sgamp,
             self._sgfreq,
             self._dutycycle,
+            fs=self._fs,
         )[::2]
 
         #get number of traces 
